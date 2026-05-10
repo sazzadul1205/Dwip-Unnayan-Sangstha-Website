@@ -11,13 +11,14 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\Controller;
-
+use App\Models\Application;
 // Models
 use App\Models\User;
 use App\Models\Location;
 use App\Models\JobListing;
 use App\Models\JobCategory;
 use App\Models\JobView;
+use Illuminate\Support\Facades\DB;
 
 class JobListingController extends Controller
 {
@@ -170,7 +171,7 @@ class JobListingController extends Controller
         }
 
         // Pagination
-        $perPage = $request->input('per_page', 15);
+        $perPage = $request->input('per_page', 7);
         $jobListings = $query->paginate($perPage)->through(function ($jobListing) {
             return [
                 'id' => $jobListing->id,
@@ -674,7 +675,7 @@ class JobListingController extends Controller
     /**
      * Generate a unique slug for a job listing
      */
-    protected function generateUniqueSlug($title, $excludeId = null)
+    protected function generateUniqueSlug(string $title, $excludeId = null)
     {
         $slug = Str::slug($title);
         $originalSlug = $slug;
@@ -766,7 +767,7 @@ class JobListingController extends Controller
     /**
      * Restore a soft-deleted job listing
      */
-    public function restore($id)
+    public function restore(int $id)
     {
         $jobListing = JobListing::withTrashed()->findOrFail($id);
 
@@ -798,7 +799,7 @@ class JobListingController extends Controller
     /**
      * Permanently delete a soft-deleted job listing
      */
-    public function forceDelete($id)
+    public function forceDelete(int $id)
     {
         $jobListing = JobListing::withTrashed()->findOrFail($id);
 
@@ -887,5 +888,424 @@ class JobListingController extends Controller
         ]);
 
         return redirect()->back()->with('success', "{$count} job listing(s) moved to trash.");
+    }
+
+    /**
+     * Display statistics dashboard for job listings
+     */
+    public function statistics(Request $request)
+    {
+        // Get date range filter
+        $dateRange = $request->get('date_range', 'all');
+        $startDate = $this->getStartDateFromRange($dateRange);
+
+        // ==========================================
+        // JOB LISTINGS STATISTICS
+        // ==========================================
+
+        // Total jobs query
+        $totalJobsQuery = JobListing::query();
+        $activeJobsQuery = JobListing::where('is_active', true)->whereNull('deleted_at');
+        $inactiveJobsQuery = JobListing::where('is_active', false)->whereNull('deleted_at');
+        $trashedJobsQuery = JobListing::onlyTrashed();
+
+        // Jobs by type
+        $jobsByType = JobListing::select('job_type', DB::raw('count(*) as total'))
+            ->whereNull('deleted_at')
+            ->groupBy('job_type')
+            ->get()
+            ->map(function ($item) {
+                return [
+                    'name' => ucfirst(str_replace('-', ' ', $item->job_type)),
+                    'value' => $item->total,
+                    'color' => $this->getColorForJobType($item->job_type)
+                ];
+            });
+
+        // Jobs by experience level
+        $jobsByExperience = JobListing::select('experience_level', DB::raw('count(*) as total'))
+            ->whereNull('deleted_at')
+            ->groupBy('experience_level')
+            ->get()
+            ->map(function ($item) {
+                return [
+                    'name' => ucfirst(str_replace('-', ' ', $item->experience_level)),
+                    'value' => $item->total,
+                    'color' => $this->getColorForExperienceLevel($item->experience_level)
+                ];
+            });
+
+        // Jobs by category (top 10)
+        $jobsByCategory = JobCategory::withCount(['jobListings' => function ($query) {
+            $query->whereNull('deleted_at');
+        }])
+            ->orderBy('job_listings_count', 'desc')
+            ->limit(10)
+            ->get()
+            ->map(function ($category) {
+                return [
+                    'name' => $category->name,
+                    'value' => $category->job_listings_count,
+                    'color' => $this->getRandomColor($category->id)
+                ];
+            });
+
+        // Jobs by location (top 10)
+        $jobsByLocation = Location::withCount(['jobListings' => function ($query) {
+            $query->whereNull('deleted_at');
+        }])
+            ->orderBy('job_listings_count', 'desc')
+            ->limit(10)
+            ->get()
+            ->map(function ($location) {
+                return [
+                    'name' => $location->name,
+                    'value' => $location->job_listings_count,
+                    'color' => $this->getRandomColor($location->id)
+                ];
+            });
+
+        // Monthly job creation trend (last 12 months)
+        $monthlyJobs = JobListing::select(
+            DB::raw('YEAR(created_at) as year'),
+            DB::raw('MONTH(created_at) as month'),
+            DB::raw('count(*) as total')
+        )
+            ->whereNull('deleted_at')
+            ->where('created_at', '>=', now()->subMonths(12))
+            ->groupBy('year', 'month')
+            ->orderBy('year', 'asc')
+            ->orderBy('month', 'asc')
+            ->get()
+            ->map(function ($item) {
+                $date = Carbon::createFromDate($item->year, $item->month, 1);
+                return [
+                    'month' => $date->format('M Y'),
+                    'total' => $item->total
+                ];
+            });
+
+        // ==========================================
+        // APPLICATIONS STATISTICS
+        // ==========================================
+
+        // Total applications
+        $totalApplicationsQuery = Application::query();
+        $pendingApplicationsQuery = Application::where('status', 'pending');
+        $shortlistedApplicationsQuery = Application::where('status', 'shortlisted');
+        $rejectedApplicationsQuery = Application::where('status', 'rejected');
+        $hiredApplicationsQuery = Application::where('status', 'hired');
+
+        // Apply date filter if set
+        if ($startDate) {
+            $totalApplicationsQuery->where('created_at', '>=', $startDate);
+            $pendingApplicationsQuery->where('created_at', '>=', $startDate);
+            $shortlistedApplicationsQuery->where('created_at', '>=', $startDate);
+            $rejectedApplicationsQuery->where('created_at', '>=', $startDate);
+            $hiredApplicationsQuery->where('created_at', '>=', $startDate);
+
+            $totalJobsQuery->where('created_at', '>=', $startDate);
+            $activeJobsQuery->where('created_at', '>=', $startDate);
+            $inactiveJobsQuery->where('created_at', '>=', $startDate);
+            $trashedJobsQuery->where('deleted_at', '>=', $startDate);
+        }
+
+        // Applications by status
+        $applicationsByStatus = [
+            [
+                'name' => 'Pending',
+                'value' => $pendingApplicationsQuery->count(),
+                'color' => '#f59e0b' // Amber
+            ],
+            [
+                'name' => 'Shortlisted',
+                'value' => $shortlistedApplicationsQuery->count(),
+                'color' => '#3b82f6' // Blue
+            ],
+            [
+                'name' => 'Rejected',
+                'value' => $rejectedApplicationsQuery->count(),
+                'color' => '#ef4444' // Red
+            ],
+            [
+                'name' => 'Hired',
+                'value' => $hiredApplicationsQuery->count(),
+                'color' => '#10b981' // Green
+            ]
+        ];
+
+        // Monthly application trend (last 12 months)
+        $monthlyApplications = Application::select(
+            DB::raw('YEAR(created_at) as year'),
+            DB::raw('MONTH(created_at) as month'),
+            DB::raw('count(*) as total')
+        )
+            ->where('created_at', '>=', now()->subMonths(12))
+            ->groupBy('year', 'month')
+            ->orderBy('year', 'asc')
+            ->orderBy('month', 'asc')
+            ->get()
+            ->map(function ($item) {
+                $date = Carbon::createFromDate($item->year, $item->month, 1);
+                return [
+                    'month' => $date->format('M Y'),
+                    'total' => $item->total
+                ];
+            });
+
+        // Applications by job (top 10)
+        $applicationsByJob = JobListing::withCount('applications')
+            ->orderBy('applications_count', 'desc')
+            ->limit(10)
+            ->get()
+            ->map(function ($job) {
+                return [
+                    'title' => Str::limit($job->title, 30),
+                    'count' => $job->applications_count,
+                    'color' => $this->getRandomColor($job->id)
+                ];
+            });
+
+        // Average ATS score by job type
+        $atsScoreByJobType = JobListing::select('job_type', DB::raw('AVG(JSON_EXTRACT(ats_score, "$.percentage")) as avg_score'))
+            ->join('applications', 'job_listings.id', '=', 'applications.job_listing_id')
+            ->whereNotNull('applications.ats_score')
+            ->whereNull('job_listings.deleted_at')
+            ->groupBy('job_type')
+            ->get()
+            ->map(function ($item) {
+                return [
+                    'type' => ucfirst(str_replace('-', ' ', $item->job_type)),
+                    'score' => round($item->avg_score ?? 0, 2)
+                ];
+            });
+
+        // ==========================================
+        // EMPLOYER STATISTICS
+        // ==========================================
+
+        // Top employers by job count
+        $topEmployers = User::where('role', 'employer')
+            ->withCount(['jobListings' => function ($query) {
+                $query->whereNull('deleted_at');
+            }])
+            ->orderBy('job_listings_count', 'desc')
+            ->limit(10)
+            ->get()
+            ->map(function ($employer) {
+                return [
+                    'name' => $employer->name,
+                    'job_count' => $employer->job_listings_count,
+                    'avatar' => $employer->google_avatar ?? null
+                ];
+            });
+
+        // Top employers by application count
+        $topEmployersByApplications = User::where('role', 'employer')
+            ->withCount(['jobListings' => function ($query) {
+                $query->withCount('applications');
+            }])
+            ->get()
+            ->map(function ($employer) {
+                $applicationCount = $employer->jobListings->sum('applications_count');
+                return [
+                    'name' => $employer->name,
+                    'application_count' => $applicationCount
+                ];
+            })
+            ->sortByDesc('application_count')
+            ->take(10)
+            ->values();
+
+        // ==========================================
+        // SUMMARY STATISTICS
+        // ==========================================
+
+        $summary = [
+            'total_jobs' => $totalJobsQuery->count(),
+            'active_jobs' => $activeJobsQuery->count(),
+            'inactive_jobs' => $inactiveJobsQuery->count(),
+            'trashed_jobs' => $trashedJobsQuery->count(),
+            'total_applications' => $totalApplicationsQuery->count(),
+            'pending_applications' => $pendingApplicationsQuery->count(),
+            'shortlisted_applications' => $shortlistedApplicationsQuery->count(),
+            'rejected_applications' => $rejectedApplicationsQuery->count(),
+            'hired_applications' => $hiredApplicationsQuery->count(),
+            'conversion_rate' => $this->calculateConversionRate($totalApplicationsQuery->count(), $hiredApplicationsQuery->count()),
+        ];
+
+        // Calculate percentage changes (compared to previous period)
+        $previousStartDate = $startDate ? Carbon::parse($startDate)->subDays($this->getDateRangeDays($dateRange)) : null;
+        $previousSummary = $this->getPreviousPeriodStats($previousStartDate, $dateRange);
+
+        // Calculate trends
+        $trends = [
+            'total_jobs' => $this->calculateTrend($previousSummary['total_jobs'], $summary['total_jobs']),
+            'total_applications' => $this->calculateTrend($previousSummary['total_applications'], $summary['total_applications']),
+            'conversion_rate' => $this->calculateTrend($previousSummary['conversion_rate'], $summary['conversion_rate']),
+        ];
+
+        return Inertia::render('Backend/Statistics/Index', [
+            'summary' => $summary,
+            'trends' => $trends,
+            'jobsByType' => $jobsByType,
+            'jobsByExperience' => $jobsByExperience,
+            'jobsByCategory' => $jobsByCategory,
+            'jobsByLocation' => $jobsByLocation,
+            'monthlyJobs' => $monthlyJobs,
+            'applicationsByStatus' => $applicationsByStatus,
+            'monthlyApplications' => $monthlyApplications,
+            'applicationsByJob' => $applicationsByJob,
+            'atsScoreByJobType' => $atsScoreByJobType,
+            'topEmployers' => $topEmployers,
+            'topEmployersByApplications' => $topEmployersByApplications,
+            'dateRange' => $dateRange,
+            'filters' => $request->only(['date_range']),
+        ]);
+    }
+
+    /**
+     * Get start date based on date range
+     */
+    protected function getStartDateFromRange(string $dateRange)
+    {
+        switch ($dateRange) {
+            case 'today':
+                return now()->startOfDay();
+            case 'week':
+                return now()->subDays(7);
+            case 'month':
+                return now()->subMonth();
+            case 'year':
+                return now()->subYear();
+            default:
+                return null;
+        }
+    }
+
+    /**
+     * Get number of days for a date range
+     */
+    protected function getDateRangeDays(string $dateRange)
+    {
+        switch ($dateRange) {
+            case 'today':
+                return 1;
+            case 'week':
+                return 7;
+            case 'month':
+                return 30;
+            case 'year':
+                return 365;
+            default:
+                return 30;
+        }
+    }
+
+    /**
+     * Get statistics from previous period
+     */
+    protected function getPreviousPeriodStats(?Carbon $previousStartDate, string $dateRange)
+    {
+        if (!$previousStartDate) {
+            return [
+                'total_jobs' => 0,
+                'total_applications' => 0,
+                'conversion_rate' => 0,
+            ];
+        }
+
+        $previousEndDate = $previousStartDate->copy()->addDays($this->getDateRangeDays($dateRange));
+
+        return [
+            'total_jobs' => JobListing::whereBetween('created_at', [$previousStartDate, $previousEndDate])->count(),
+            'total_applications' => Application::whereBetween('created_at', [$previousStartDate, $previousEndDate])->count(),
+            'conversion_rate' => $this->calculateConversionRate(
+                Application::whereBetween('created_at', [$previousStartDate, $previousEndDate])->count(),
+                Application::where('status', 'hired')->whereBetween('created_at', [$previousStartDate, $previousEndDate])->count()
+            ),
+        ];
+    }
+
+    /**
+     * Calculate conversion rate (hired / total applications)
+     */
+    protected function calculateConversionRate(int|float $totalApplications, int|float $hiredApplications)
+    {
+        if ($totalApplications == 0) {
+            return 0;
+        }
+        return round(($hiredApplications / $totalApplications) * 100, 2);
+    }
+
+    /**
+     * Calculate trend percentage
+     */
+    protected function calculateTrend(int|float $previous, int|float $current)
+    {
+        if ($previous == 0) {
+            return $current > 0 ? 100 : 0;
+        }
+        return round((($current - $previous) / $previous) * 100, 2);
+    }
+
+    /**
+     * Get color for job type
+     */
+    protected function getColorForJobType(string $jobType)
+    {
+        $colors = [
+            'full-time' => '#3b82f6',
+            'part-time' => '#f59e0b',
+            'contract' => '#ef4444',
+            'internship' => '#10b981',
+            'remote' => '#8b5cf6',
+            'hybrid' => '#ec4899',
+        ];
+
+        return $colors[$jobType] ?? '#6b7280';
+    }
+
+    /**
+     * Get color for experience level
+     */
+    protected function getColorForExperienceLevel(string $level)
+    {
+        $colors = [
+            'entry' => '#10b981',
+            'junior' => '#3b82f6',
+            'mid-level' => '#f59e0b',
+            'senior' => '#ef4444',
+            'lead' => '#8b5cf6',
+            'executive' => '#ec4899',
+        ];
+
+        return $colors[$level] ?? '#6b7280';
+    }
+
+    /**
+     * Get random color based on ID
+     */
+    protected function getRandomColor(int $id)
+    {
+        $colors = [
+            '#3b82f6',
+            '#ef4444',
+            '#10b981',
+            '#f59e0b',
+            '#8b5cf6',
+            '#ec4899',
+            '#06b6d4',
+            '#6366f1',
+            '#14b8a6',
+            '#f97316',
+            '#d946ef',
+            '#0ea5e9',
+            '#eab308',
+            '#22c55e',
+            '#a855f7'
+        ];
+
+        return $colors[$id % count($colors)];
     }
 }

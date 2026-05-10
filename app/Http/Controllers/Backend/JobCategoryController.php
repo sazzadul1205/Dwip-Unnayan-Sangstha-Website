@@ -47,7 +47,7 @@ class JobCategoryController extends Controller
             $query->orderBy('name', 'asc');
         }
 
-        $categories = $query->paginate(10)->withQueryString();
+        $categories = $query->paginate(9)->withQueryString();
 
         // Get summary statistics
         $stats = [

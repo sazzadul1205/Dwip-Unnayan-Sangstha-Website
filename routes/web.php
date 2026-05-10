@@ -195,10 +195,20 @@ Route::middleware(['auth', 'verified', 'profile.complete'])->group(function () {
         });
 
         /*
-    |--------------------------------------------------------------------------
-    | Public Job Listings Management (Backend viewing)
-    |--------------------------------------------------------------------------
-    */
+        |--------------------------------------------------------------------------
+        | Statistics
+        |--------------------------------------------------------------------------
+        */
+
+        Route::prefix('statistics')->name('statistics.')->group(function () {
+            Route::get('/', [JobListingController::class, 'statistics'])->name('index');
+        });
+
+        /*
+        |--------------------------------------------------------------------------
+        | Public Job Listings Management (Backend viewing)
+        |--------------------------------------------------------------------------
+        */
 
         Route::prefix('public-jobs')->name('public-jobs.')->group(function () {
             Route::get('/', [PublicJobListingController::class, 'index'])->name('index');

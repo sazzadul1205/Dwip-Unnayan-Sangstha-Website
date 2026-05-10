@@ -91,7 +91,7 @@ const Sidebar = () => {
     const newOpenMenus = { ...openMenus };
 
     // Jobs management section
-    if (url.includes('/listing') || url.includes('/locations') || url.includes('/categories')) {
+    if (url.includes('/listing') || url.includes('/locations') || url.includes('/categories') || url.includes('/statistics')) {
       newOpenMenus.jobs = true;
       newOpenMenus.employerJobs = true;
       newOpenMenus.adminJobs = true;
@@ -476,12 +476,13 @@ const Sidebar = () => {
         });
       }
 
-      if (hasPermission('report.jobs')) {
+      // Statistics - Job Statistics
+      if (hasPermission('report.jobs') || hasPermission('dashboard.admin')) {
         jobSubItems.push({
           name: 'Job Statistics',
-          routeName: 'backend.listing.index',
-          routeParams: { view: 'stats' },
+          routeName: 'backend.statistics.index',
           icon: FiBarChart2,
+          description: 'View job analytics and reports',
         });
       }
 
