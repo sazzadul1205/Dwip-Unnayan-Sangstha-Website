@@ -207,18 +207,13 @@ class Role extends Model
     }
 
     /**
-     * Check if role can access module at required level
+     * Check if role can access module at required level - FIXED to reuse constants
      */
     public function canAccessModule(
         string $module,
         string $requiredLevel = 'read'
     ): bool {
-        $levels = [
-            'no_access' => 0,
-            'read' => 1,
-            'write' => 2,
-            'manage' => 3,
-        ];
+        $levels = array_flip(RoleModuleAccess::$accessLevels);
 
         $roleLevel = $levels[$this->getModuleAccessLevel($module)] ?? 0;
         $required = $levels[$requiredLevel] ?? 0;

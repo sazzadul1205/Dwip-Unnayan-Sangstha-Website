@@ -56,7 +56,6 @@ class ApplicantCv extends Model
          * Before creating
          */
         static::creating(function (ApplicantCv $cv): void {
-
             // Count only active CVs
             if (
                 self::hasReachedMaxEntries(
@@ -93,7 +92,6 @@ class ApplicantCv extends Model
          * Before updating
          */
         static::updating(function (ApplicantCv $cv): void {
-
             if (
                 $cv->is_primary &&
                 $cv->getOriginal('is_primary') !== true &&
@@ -115,9 +113,7 @@ class ApplicantCv extends Model
          * Before deleting
          */
         static::deleting(function (ApplicantCv $cv): void {
-
             if ($cv->is_primary) {
-
                 $anotherCv = self::where(
                     'applicant_profile_id',
                     $cv->applicant_profile_id
@@ -156,7 +152,6 @@ class ApplicantCv extends Model
      */
     public static function hasReachedMaxEntries(int $applicantProfileId, bool $onlyActive = false): bool
     {
-
         $query = self::where('applicant_profile_id', $applicantProfileId);
 
         if ($onlyActive) {
@@ -171,7 +166,6 @@ class ApplicantCv extends Model
      */
     public static function getRemainingSlots(int $applicantProfileId): int
     {
-
         $currentCount = self::where('applicant_profile_id', $applicantProfileId)
             ->where('status', 'active')
             ->count();
@@ -184,7 +178,6 @@ class ApplicantCv extends Model
      */
     public static function getPrimaryCv(int $applicantProfileId): ?self
     {
-
         return self::where('applicant_profile_id', $applicantProfileId)
             ->where('is_primary', true)
             ->where('status', 'active')
@@ -192,19 +185,29 @@ class ApplicantCv extends Model
     }
 
     /**
-     * Set current CV as primary
+     * Set current CV as primary - FIXED with limit check
      */
     public function setAsPrimary(): self
     {
+        // Check if we need to activate this CV
+        if ($this->status !== 'active') {
+            if (self::hasReachedMaxEntries($this->applicant_profile_id, true)) {
+                throw ValidationException::withMessages([
+                    'cv' => sprintf(
+                        'Cannot activate CV. Maximum %d active CVs already reached.',
+                        self::MAX_CVS_PER_PROFILE
+                    ),
+                ]);
+            }
+            $this->status = 'active';
+        }
+
+        // Unset other primary CVs
         self::where('applicant_profile_id', $this->applicant_profile_id)
             ->where('status', 'active')
-            ->update([
-                'is_primary' => false,
-            ]);
+            ->update(['is_primary' => false]);
 
         $this->is_primary = true;
-        $this->status = 'active';
-
         $this->save();
 
         return $this;
@@ -215,7 +218,6 @@ class ApplicantCv extends Model
      */
     public static function reorderCvs(int $applicantProfileId): void
     {
-
         $cvs = self::where('applicant_profile_id', $applicantProfileId)
             ->orderBy('order_position')
             ->orderBy('created_at')
@@ -226,20 +228,15 @@ class ApplicantCv extends Model
         }
 
         DB::transaction(function () use ($applicantProfileId, $cvs): void {
-
             // Shift positions temporarily
             self::where('applicant_profile_id', $applicantProfileId)->update([
-                'order_position' => DB::raw(
-                    'order_position + 1000'
-                ),
+                'order_position' => DB::raw('order_position + 1000'),
             ]);
 
             foreach ($cvs as $index => $cv) {
-
-                self::where('id', $cv->id)
-                    ->update([
-                        'order_position' => $index,
-                    ]);
+                self::where('id', $cv->id)->update([
+                    'order_position' => $index,
+                ]);
             }
         });
     }
@@ -253,7 +250,6 @@ class ApplicantCv extends Model
      */
     public function scopeActive(Builder $query): Builder
     {
-
         return $query->where('status', 'active');
     }
 
@@ -262,7 +258,6 @@ class ApplicantCv extends Model
      */
     public function scopePrimary(Builder $query): Builder
     {
-
         return $query->where('is_primary', true);
     }
 
@@ -271,7 +266,6 @@ class ApplicantCv extends Model
      */
     public function scopeOrdered(Builder $query): Builder
     {
-
         return $query->orderBy('order_position');
     }
 }

@@ -15,12 +15,7 @@ class User extends Authenticatable
     use HasFactory, Notifiable, SoftDeletes;
 
     /**
-     * Table name (optional - Laravel will use 'users' by default)
-     * protected $table = 'users';
-     */
-
-    /**
-     * Fillable fields - add any new field here to allow mass assignment
+     * Fillable fields - removed 'role' column
      */
     protected $fillable = [
         'name',
@@ -29,7 +24,6 @@ class User extends Authenticatable
         'old_password',
         'google_id',
         'google_avatar',
-        'role',
         'email_verified_at',
     ];
 
@@ -43,7 +37,6 @@ class User extends Authenticatable
 
     /**
      * Cast fields to native types
-     * Add new cast fields here when needed
      */
     protected $casts = [
         'email_verified_at' => 'datetime',
@@ -52,25 +45,10 @@ class User extends Authenticatable
         'deleted_at' => 'datetime',
     ];
 
-    /**
-     * Role constants - easy to add more roles
-     */
-    const ROLE_ADMIN = 'admin';
-    const ROLE_EMPLOYER = 'employer';
-    const ROLE_JOB_SEEKER = 'job_seeker';
-
-    // All roles in one place for easy access
-    public static array $roles = [
-        self::ROLE_ADMIN,
-        self::ROLE_EMPLOYER,
-        self::ROLE_JOB_SEEKER,
-    ];
-
     /* ========== RELATIONSHIPS ========== */
 
     /**
      * Applicant profile relation (for job seekers)
-     * One user has one applicant profile
      */
     public function applicantProfile()
     {
@@ -79,7 +57,6 @@ class User extends Authenticatable
 
     /**
      * Job listings relation (for employers)
-     * One user (employer) can have many job listings
      */
     public function jobListings()
     {
@@ -88,7 +65,6 @@ class User extends Authenticatable
 
     /**
      * Applications relation
-     * One user can have many job applications
      */
     public function applications()
     {
@@ -97,7 +73,6 @@ class User extends Authenticatable
 
     /**
      * Job views relation
-     * Track which jobs this user viewed
      */
     public function jobViews()
     {
@@ -170,7 +145,6 @@ class User extends Authenticatable
     public function hasAllRoles(array $roleSlugs): bool
     {
         $userRoleSlugs = $this->roles()->pluck('slug')->toArray();
-
         return count(array_intersect($roleSlugs, $userRoleSlugs)) === count($roleSlugs);
     }
 
@@ -179,18 +153,12 @@ class User extends Authenticatable
      */
     public function hasPermission(string $permissionSlug): bool
     {
-        $hasPermission = $this->roles()
+        return $this->roles()
             ->join('role_permissions', 'roles.id', '=', 'role_permissions.role_id')
             ->join('permissions', 'role_permissions.permission_id', '=', 'permissions.id')
             ->where('permissions.slug', $permissionSlug)
             ->where('role_permissions.granted', true)
             ->exists();
-
-        if ($hasPermission) {
-            return true;
-        }
-
-        return $this->checkLegacyPermission($permissionSlug);
     }
 
     /**
@@ -203,7 +171,6 @@ class User extends Authenticatable
                 return true;
             }
         }
-
         return false;
     }
 
@@ -217,7 +184,6 @@ class User extends Authenticatable
                 return false;
             }
         }
-
         return true;
     }
 
@@ -278,7 +244,6 @@ class User extends Authenticatable
         foreach ($roleSlugs as $roleSlug) {
             $this->assignRole($roleSlug, $assignedBy);
         }
-
         return true;
     }
 
@@ -303,30 +268,6 @@ class User extends Authenticatable
         }
 
         $this->roles()->detach($role->id);
-
         return true;
-    }
-
-    /* ========== LEGACY + HELPERS ========== */
-
-    protected function checkLegacyPermission(string $permissionSlug): bool
-    {
-        $legacyPermissions = [
-            'admin' => [
-                'profile.view.any',
-                'profile.edit.any',
-                'job.create',
-            ],
-            'employer' => [
-                'job.create',
-                'job.edit.own',
-            ],
-            'job_seeker' => [
-                'job.view.any',
-                'application.apply',
-            ],
-        ];
-
-        return in_array($permissionSlug, $legacyPermissions[$this->role] ?? []);
     }
 }

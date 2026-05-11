@@ -16,6 +16,15 @@ class ApplicantProfile extends Model
     use HasFactory, SoftDeletes;
 
     /**
+     * Fields required for a complete profile
+     */
+    public const REQUIRED_FIELDS = [
+        'first_name',
+        'last_name',
+        'phone',
+    ];
+
+    /**
      * Fillable fields
      */
     protected $fillable = [
@@ -147,9 +156,7 @@ class ApplicantProfile extends Model
      */
     public function getFullNameAttribute(): string
     {
-        return trim(
-            $this->first_name . ' ' . $this->last_name
-        );
+        return trim($this->first_name . ' ' . $this->last_name);
     }
 
     /* ==========================================
@@ -157,13 +164,14 @@ class ApplicantProfile extends Model
      |========================================== */
 
     /**
-     * Scope completed profiles
+     * Scope completed profiles - FIXED to use REQUIRED_FIELDS constant
      */
-    public function scopeComplete(
-        Builder $query
-    ): Builder {
-
-        return $query->whereNotNull('phone');
+    public function scopeComplete(Builder $query): Builder
+    {
+        foreach (self::REQUIRED_FIELDS as $field) {
+            $query->whereNotNull($field);
+        }
+        return $query;
     }
 
     /* ==========================================
@@ -171,15 +179,20 @@ class ApplicantProfile extends Model
      |========================================== */
 
     /**
-     * Check if profile is complete
+     * Check if profile is complete - FIXED to use REQUIRED_FIELDS constant
      */
     public function isComplete(): bool
     {
-        return !empty($this->phone);
+        foreach (self::REQUIRED_FIELDS as $field) {
+            if (empty($this->$field)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     /**
-     * Get profile completion percentage
+     * Get profile completion percentage - FIXED to use consistent fields
      */
     public function completionPercentage(): int
     {
@@ -187,21 +200,19 @@ class ApplicantProfile extends Model
             'first_name',
             'last_name',
             'phone',
+            'birth_date',
+            'gender',
             'experience_years',
             'current_job_title',
         ];
 
         $filled = 0;
-
         foreach ($fields as $field) {
-
             if (!empty($this->$field)) {
                 $filled++;
             }
         }
 
-        return (int) round(
-            ($filled / count($fields)) * 100
-        );
+        return (int) round(($filled / count($fields)) * 100);
     }
 }

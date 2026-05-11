@@ -94,13 +94,21 @@ class JobListing extends Model
     ];
 
     /**
-     * Auto-generate slug when creating job
+     * Auto-generate slug when creating job - FIXED with better uniqueness
      */
     protected static function booted(): void
     {
         static::creating(function (JobListing $job): void {
             if (empty($job->slug)) {
-                $job->slug = Str::slug($job->title . '-' . uniqid());
+                $baseSlug = Str::slug($job->title);
+                $slug = $baseSlug . '-' . Str::random(8);
+
+                // Ensure uniqueness
+                while (self::where('slug', $slug)->exists()) {
+                    $slug = $baseSlug . '-' . Str::random(8);
+                }
+
+                $job->slug = $slug;
             }
         });
     }
