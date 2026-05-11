@@ -1,6 +1,6 @@
 // resources/js/pages/Backend/Roles/Create.jsx
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Head, router } from '@inertiajs/react';
 import AuthenticatedLayout from '../../../layouts/AuthenticatedLayout';
 
@@ -21,23 +21,43 @@ import {
   FaEdit,
   FaLock,
   FaDatabase,
+  FaInfoCircle,
+  FaExclamationTriangle,
+  FaUserTag,
+  FaLayerGroup,
+  FaMagic,
+  FaSearch,
 } from 'react-icons/fa';
+
+// Step Components
+import { BasicInfoStep } from '../../../components/RoleSteps/BasicInfoStep';
+import { PermissionsStep } from '../../../components/RoleSteps/PermissionsStep';
+import { StepIndicator } from '../../../components/RoleSteps/StepIndicator';
+import { ModuleAccessStep } from '../../../components/RoleSteps/ModuleAccessStep';
+import { ReviewStep } from '../../../components/RoleSteps/ReviewStep';
+import { StepNavigation } from '../../../components/RoleSteps/StepNavigation';
 
 // SweetAlert
 import Swal from 'sweetalert2';
 
 export default function Create({ permissions, existingLevels, accessLevels }) {
+  const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState({});
-  const [expandedModules, setExpandedModules] = useState({});
 
-  // Form data state
+  const steps = [
+    { id: 1, title: 'Basic Info', component: BasicInfoStep },
+    { id: 2, title: 'Permissions', component: PermissionsStep },
+    { id: 3, title: 'Module Access', component: ModuleAccessStep },
+    { id: 4, title: 'Review', component: ReviewStep },
+  ];
+
   const [formData, setFormData] = useState({
     // Basic Info
     name: '',
     slug: '',
     description: '',
-    level: '',
+    level: 60,
     is_default: false,
     is_active: true,
 
@@ -48,137 +68,19 @@ export default function Create({ permissions, existingLevels, accessLevels }) {
     module_access: [],
   });
 
-  // Toggle module expansion
-  const toggleModule = (moduleName) => {
-    setExpandedModules(prev => ({
-      ...prev,
-      [moduleName]: !prev[moduleName]
-    }));
+  // Check if form has any data entered
+  const hasFormData = () => {
+    return (
+      formData.name ||
+      formData.description ||
+      formData.permissions.length > 0 ||
+      formData.module_access.length > 0
+    );
   };
 
-  // Handle permission toggle
-  const handlePermissionToggle = (permissionId) => {
-    setFormData(prev => {
-      const permissions = prev.permissions.includes(permissionId)
-        ? prev.permissions.filter(id => id !== permissionId)
-        : [...prev.permissions, permissionId];
-
-      return { ...prev, permissions };
-    });
-
-    // Clear error for this field
-    if (errors.permissions) {
-      setErrors(prev => ({ ...prev, permissions: undefined }));
-    }
-  };
-
-  // Handle module access level change
-  const handleModuleAccessChange = (moduleName, accessLevel) => {
-    setFormData(prev => {
-      const existingIndex = prev.module_access.findIndex(m => m.module === moduleName);
-      const newModuleAccess = [...prev.module_access];
-
-      if (existingIndex >= 0) {
-        if (accessLevel === 'no_access') {
-          // Remove if set to no_access
-          newModuleAccess.splice(existingIndex, 1);
-        } else {
-          newModuleAccess[existingIndex] = { module: moduleName, access_level: accessLevel };
-        }
-      } else if (accessLevel !== 'no_access') {
-        newModuleAccess.push({ module: moduleName, access_level: accessLevel });
-      }
-
-      return { ...prev, module_access: newModuleAccess };
-    });
-  };
-
-  // Get current module access level
-  const getModuleAccessLevel = (moduleName) => {
-    const moduleAccess = formData.module_access.find(m => m.module === moduleName);
-    return moduleAccess?.access_level || 'no_access';
-  };
-
-  // Handle basic input change
-  const handleChange = (e) => {
-    const { name, value, type, checked } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: type === 'checkbox' ? checked : value
-    }));
-
-    // Clear error for this field
-    if (errors[name]) {
-      setErrors(prev => ({ ...prev, [name]: undefined }));
-    }
-  };
-
-  // Generate slug from name
-  const generateSlug = () => {
-    if (formData.name) {
-      const slug = formData.name
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/^-+|-+$/g, '');
-      setFormData(prev => ({ ...prev, slug }));
-    }
-  };
-
-  // Check if any filters are active
-  const [permissionFilters, setPermissionFilters] = useState({
-    search: '',
-    showSelectedOnly: false,
-  });
-
-  // Filter permissions based on search
-  const filteredPermissions = permissions.filter(module => {
-    if (permissionFilters.showSelectedOnly) {
-      // Only show modules that have selected permissions
-      const hasSelectedPermissions = module.permissions.some(p =>
-        formData.permissions.includes(p.id)
-      );
-      if (!hasSelectedPermissions) return false;
-    }
-
-    if (permissionFilters.search) {
-      const searchLower = permissionFilters.search.toLowerCase();
-      // Check module name
-      if (module.module.toLowerCase().includes(searchLower)) return true;
-      // Check permission names
-      return module.permissions.some(p =>
-        p.name.toLowerCase().includes(searchLower) ||
-        p.slug.toLowerCase().includes(searchLower)
-      );
-    }
-
-    return true;
-  });
-
-  // Validation
-  const validateForm = () => {
-    const newErrors = {};
-
-    if (!formData.name || formData.name.trim().length < 2) {
-      newErrors.name = 'Role name must be at least 2 characters';
-    }
-    if (!formData.slug || formData.slug.trim().length < 2) {
-      newErrors.slug = 'Slug must be at least 2 characters';
-    } else if (!/^[a-z0-9-]+$/.test(formData.slug)) {
-      newErrors.slug = 'Slug can only contain lowercase letters, numbers, and hyphens';
-    }
-    if (!formData.level) {
-      newErrors.level = 'Please select a level';
-    } else if (formData.level < 1 || formData.level > 100) {
-      newErrors.level = 'Level must be between 1 and 100';
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  // Handle back button
-  const handleBack = () => {
-    if (formData.name || formData.description || formData.permissions.length > 0) {
+  // Handle back button click with confirmation if data exists
+  const handleBackToListings = () => {
+    if (hasFormData()) {
       Swal.fire({
         title: 'Discard changes?',
         text: 'You have entered information that will be lost if you leave. Are you sure?',
@@ -198,18 +100,68 @@ export default function Create({ permissions, existingLevels, accessLevels }) {
     }
   };
 
-  // Submit form
-  const handleSubmit = () => {
-    if (!validateForm()) {
+  // Validate current step
+  const validateStep = () => {
+    const newErrors = {};
+
+    switch (currentStep) {
+      case 1: // Basic Info
+        if (!formData.name || formData.name.trim().length < 2) {
+          newErrors.name = 'Role name must be at least 2 characters';
+        }
+        if (!formData.slug || formData.slug.trim().length < 2) {
+          newErrors.slug = 'Slug must be at least 2 characters';
+        } else if (!/^[a-z0-9-]+$/.test(formData.slug)) {
+          newErrors.slug = 'Slug can only contain lowercase letters, numbers, and hyphens';
+        }
+        if (!formData.level) {
+          newErrors.level = 'Please select a level';
+        } else if (formData.level < 1 || formData.level > 100) {
+          newErrors.level = 'Level must be between 1 and 100';
+        }
+        break;
+
+      case 2: // Permissions - Optional, no validation needed
+        break;
+
+      case 3: // Module Access - Optional, no validation needed
+        break;
+
+      case 4: // Review - Always valid if we got here
+        break;
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const nextStep = () => {
+    if (validateStep()) {
+      setCurrentStep(prev => Math.min(prev + 1, steps.length));
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else {
       Swal.fire({
         icon: 'error',
         title: 'Validation Error',
-        text: 'Please fix the errors before submitting.',
+        text: 'Please fix the errors before proceeding.',
         confirmButtonColor: '#2563eb',
       });
-      return;
     }
+  };
 
+  const previousStep = () => {
+    setCurrentStep(prev => Math.max(prev - 1, 1));
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // Navigate to a specific step (for review page editing)
+  const navigateToStep = (stepNumber) => {
+    setCurrentStep(stepNumber);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // Final submission
+  const handleSubmit = () => {
     Swal.fire({
       title: 'Create Role?',
       html: `
@@ -227,7 +179,7 @@ export default function Create({ permissions, existingLevels, accessLevels }) {
       confirmButtonColor: '#10b981',
       cancelButtonColor: '#d33',
       confirmButtonText: 'Yes, Create Role',
-      cancelButtonText: 'Review',
+      cancelButtonText: 'Review Again',
       reverseButtons: true,
     }).then((result) => {
       if (result.isConfirmed) {
@@ -254,6 +206,8 @@ export default function Create({ permissions, existingLevels, accessLevels }) {
 
             if (error.response?.data?.errors) {
               setErrors(error.response.data.errors);
+              // Navigate back to first step to show errors
+              setCurrentStep(1);
               Swal.fire({
                 icon: 'error',
                 title: 'Validation Error',
@@ -278,439 +232,82 @@ export default function Create({ permissions, existingLevels, accessLevels }) {
     });
   };
 
-  // Get level recommendation based on name
-  const getLevelRecommendation = () => {
-    const name = formData.name.toLowerCase();
-    if (name.includes('admin') || name.includes('super') || name.includes('owner')) {
-      return 10;
-    }
-    if (name.includes('manager') || name.includes('lead') || name.includes('head')) {
-      return 30;
-    }
-    if (name.includes('senior')) {
-      return 50;
-    }
-    if (name.includes('junior') || name.includes('intern')) {
-      return 80;
-    }
-    return 60;
-  };
+  const CurrentStepComponent = steps[currentStep - 1].component;
+  const isReviewStep = currentStep === steps.length;
 
-  const applyLevelRecommendation = () => {
-    setFormData(prev => ({ ...prev, level: getLevelRecommendation() }));
+  // Custom submit handler for review step
+  const handleStepSubmit = () => {
+    if (isReviewStep) {
+      handleSubmit();
+    } else {
+      nextStep();
+    }
   };
 
   return (
     <AuthenticatedLayout>
       <Head title="Create Role" />
 
-      <div className="min-h-screen bg-linear-to-br from-gray-50 to-gray-100 py-8 px-4 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-7xl">
-          {/* Header with Back Button */}
-          <div className="mb-6">
-            <div className="flex items-center justify-between mb-4">
-              <button
-                onClick={handleBack}
-                className="group flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-all duration-200"
-              >
-                <FaArrowLeft className="group-hover:-translate-x-1 transition-transform duration-200" size={16} />
-                <span className="text-sm font-medium">Back to Roles</span>
-              </button>
+      <div className="min-h-screen bg-linear-to-br from-gray-50 via-white to-gray-100 py-8 px-4 sm:px-6 lg:px-8">
+        <div className="mx-auto">
+          {/* Header */}
+          <div className="flex justify-center items-center gap-5 mb-6">
+            <div className="inline-flex items-center justify-center w-16 h-16 bg-linear-to-br from-purple-500 to-purple-600 rounded-2xl shadow-lg">
+              <FaShieldAlt className="w-8 h-8 text-white" />
             </div>
-
             <div className="text-center">
-              <h1 className="text-2xl font-bold bg-linear-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
+              <h1 className="text-3xl font-bold bg-linear-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
                 Create New Role
               </h1>
-              <p className="text-xs text-gray-500 mt-1">Define role details and configure permissions</p>
+              <p className="text-sm text-gray-500 max-w-md">
+                Define role details, configure permissions, and set access levels
+              </p>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Left Column - Basic Information */}
-            <div className="lg:col-span-1 space-y-6">
-              {/* Basic Info Card */}
-              <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
-                <div className="px-6 py-4 bg-linear-to-r from-gray-800 to-gray-900">
-                  <h2 className="text-white font-semibold flex items-center gap-2">
-                    <FaShieldAlt size={16} />
-                    Basic Information
-                  </h2>
-                </div>
-                <div className="p-6 space-y-4">
-                  {/* Role Name */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Role Name <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      name="name"
-                      value={formData.name}
-                      onChange={handleChange}
-                      onBlur={generateSlug}
-                      placeholder="e.g., Content Manager, Sales Lead"
-                      className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition ${errors.name ? 'border-red-500 bg-red-50' : 'border-gray-300'
-                        }`}
-                    />
-                    {errors.name && (
-                      <p className="text-xs text-red-500 mt-1">{errors.name}</p>
-                    )}
-                  </div>
+          {/* Back Button */}
+          <div className="mb-4">
+            <button
+              onClick={handleBackToListings}
+              className="group flex items-center gap-2 text-gray-500 hover:text-gray-700 transition-all duration-200"
+            >
+              <FaArrowLeft className="group-hover:-translate-x-1 transition-transform duration-200" size={14} />
+              <span className="text-sm">Back to Roles</span>
+            </button>
+          </div>
 
-                  {/* Slug */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Slug <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      name="slug"
-                      value={formData.slug}
-                      onChange={handleChange}
-                      placeholder="e.g., content-manager"
-                      className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition font-mono text-sm ${errors.slug ? 'border-red-500 bg-red-50' : 'border-gray-300'
-                        }`}
-                    />
-                    {errors.slug && (
-                      <p className="text-xs text-red-500 mt-1">{errors.slug}</p>
-                    )}
-                    <p className="text-xs text-gray-400 mt-1">Used for URL and code references. Use lowercase letters, numbers, and hyphens only.</p>
-                  </div>
-
-                  {/* Level */}
-                  <div>
-                    <div className="flex justify-between items-center mb-2">
-                      <label className="block text-sm font-medium text-gray-700">
-                        Access Level <span className="text-red-500">*</span>
-                      </label>
-                      <button
-                        type="button"
-                        onClick={applyLevelRecommendation}
-                        className="text-xs text-blue-600 hover:text-blue-800 flex items-center gap-1"
-                      >
-                        <FaPlus size={10} />
-                        Suggest
-                      </button>
-                    </div>
-                    <div className="flex gap-3">
-                      <input
-                        type="number"
-                        name="level"
-                        value={formData.level}
-                        onChange={handleChange}
-                        placeholder="1-100"
-                        min="1"
-                        max="100"
-                        className={`w-32 px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition ${errors.level ? 'border-red-500 bg-red-50' : 'border-gray-300'
-                          }`}
-                      />
-                      <div className="flex-1">
-                        <div className="w-full bg-gray-200 rounded-full h-2 mt-3">
-                          <div
-                            className="bg-blue-600 rounded-full h-2 transition-all duration-300"
-                            style={{ width: `${(formData.level / 100) * 100}%` }}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                    {errors.level && (
-                      <p className="text-xs text-red-500 mt-1">{errors.level}</p>
-                    )}
-                    <p className="text-xs text-gray-400 mt-1">
-                      Lower numbers = higher access (1=highest, 100=lowest)
-                    </p>
-
-                    {/* Existing Levels Reference */}
-                    {existingLevels && existingLevels.length > 0 && (
-                      <div className="mt-3 p-3 bg-gray-50 rounded-lg">
-                        <p className="text-xs font-medium text-gray-600 mb-2">Existing Role Levels:</p>
-                        <div className="flex flex-wrap gap-2">
-                          {existingLevels.slice(0, 8).map(role => (
-                            <span key={role.level} className="text-xs px-2 py-1 bg-gray-200 rounded-full text-gray-600">
-                              Lvl {role.level}: {role.name}
-                            </span>
-                          ))}
-                          {existingLevels.length > 8 && (
-                            <span className="text-xs text-gray-400">+{existingLevels.length - 8} more</span>
-                          )}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Description */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Description
-                    </label>
-                    <textarea
-                      name="description"
-                      value={formData.description}
-                      onChange={handleChange}
-                      rows={4}
-                      placeholder="Describe the role and its responsibilities..."
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition resize-none"
-                    />
-                    <p className="text-xs text-gray-400 mt-1">
-                      {formData.description.length}/500 characters
-                    </p>
-                  </div>
-
-                  {/* Status Toggles */}
-                  <div className="space-y-3 pt-2">
-                    <label className="flex items-center justify-between cursor-pointer">
-                      <div className="flex items-center gap-2">
-                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${formData.is_active ? 'bg-green-100' : 'bg-gray-100'}`}>
-                          {formData.is_active ? <FaCheckCircle className="text-green-600" size={16} /> : <FaTimesCircle className="text-gray-400" size={16} />}
-                        </div>
-                        <div>
-                          <span className="text-sm font-medium text-gray-700">Active</span>
-                          <p className="text-xs text-gray-400">Inactive roles cannot be assigned to users</p>
-                        </div>
-                      </div>
-                      <input
-                        type="checkbox"
-                        name="is_active"
-                        checked={formData.is_active}
-                        onChange={handleChange}
-                        className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                      />
-                    </label>
-
-                    <label className="flex items-center justify-between cursor-pointer">
-                      <div className="flex items-center gap-2">
-                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${formData.is_default ? 'bg-purple-100' : 'bg-gray-100'}`}>
-                          <FaShieldAlt className={formData.is_default ? 'text-purple-600' : 'text-gray-400'} size={16} />
-                        </div>
-                        <div>
-                          <span className="text-sm font-medium text-gray-700">Default Role</span>
-                          <p className="text-xs text-gray-400">Auto-assigned to new users (only one default role allowed)</p>
-                        </div>
-                      </div>
-                      <input
-                        type="checkbox"
-                        name="is_default"
-                        checked={formData.is_default}
-                        onChange={handleChange}
-                        className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
-                      />
-                    </label>
-                  </div>
-                </div>
-              </div>
-
-              {/* Module Access Card */}
-              <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
-                <div className="px-6 py-4 bg-linear-to-r from-indigo-600 to-indigo-700">
-                  <h2 className="text-white font-semibold flex items-center gap-2">
-                    <FaLock size={16} />
-                    Module Access Levels
-                  </h2>
-                </div>
-                <div className="p-4">
-                  <p className="text-xs text-gray-500 mb-3">
-                    Define access levels for each module. This overrides individual permissions.
-                  </p>
-                  <div className="space-y-3">
-                    {permissions.map(module => (
-                      <div key={module.module} className="border border-gray-100 rounded-lg p-3">
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm font-medium text-gray-700">{module.module}</span>
-                          <select
-                            value={getModuleAccessLevel(module.module)}
-                            onChange={(e) => handleModuleAccessChange(module.module, e.target.value)}
-                            className="text-sm border border-gray-300 rounded-lg px-2 py-1 focus:ring-2 focus:ring-indigo-500"
-                          >
-                            {accessLevels.map(level => (
-                              <option key={level.value} value={level.value}>{level.label}</option>
-                            ))}
-                          </select>
-                        </div>
-                      </div>
-                    ))}
-                    {permissions.length === 0 && (
-                      <p className="text-sm text-gray-400 text-center py-4">No modules available</p>
-                    )}
-                  </div>
-                </div>
-              </div>
+          {/* Main Card */}
+          <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100">
+            {/* Step Indicator */}
+            <div className="border-b border-gray-100 bg-gray-50/50 px-8 pt-6">
+              <StepIndicator currentStep={currentStep} steps={steps} />
             </div>
 
-            {/* Right Column - Permissions */}
-            <div className="lg:col-span-2 space-y-6">
-              <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
-                <div className="px-6 py-4 bg-linear-to-r from-blue-600 to-blue-700">
-                  <div className="flex justify-between items-center flex-wrap gap-4">
-                    <h2 className="text-white font-semibold flex items-center gap-2">
-                      <FaKey size={16} />
-                      Permissions
-                    </h2>
-                    <div className="flex gap-3">
-                      {/* Search */}
-                      <div className="relative">
-                        <input
-                          type="text"
-                          placeholder="Search permissions..."
-                          value={permissionFilters.search}
-                          onChange={(e) => setPermissionFilters(prev => ({ ...prev, search: e.target.value }))}
-                          className="pl-8 pr-3 py-1.5 text-sm bg-white/20 text-white placeholder-white/70 rounded-lg focus:outline-none focus:ring-2 focus:ring-white/50"
-                        />
-                        <FaDatabase className="absolute left-2.5 top-2 text-white/60" size={12} />
-                      </div>
-                      <button
-                        onClick={() => setPermissionFilters(prev => ({ ...prev, showSelectedOnly: !prev.showSelectedOnly }))}
-                        className={`px-3 py-1.5 text-sm rounded-lg transition ${permissionFilters.showSelectedOnly
-                            ? 'bg-green-500 text-white'
-                            : 'bg-white/20 text-white hover:bg-white/30'
-                          }`}
-                      >
-                        {permissionFilters.showSelectedOnly ? 'Showing Selected' : 'Show All'}
-                      </button>
-                    </div>
-                  </div>
-                </div>
+            {/* Form Content */}
+            <div className="px-8 py-8">
+              <CurrentStepComponent
+                formData={formData}
+                errors={errors}
+                setFormData={setFormData}
+                permissions={permissions}
+                existingLevels={existingLevels}
+                accessLevels={accessLevels}
+                onNavigateToStep={navigateToStep}
+              />
+            </div>
 
-                <div className="p-6 max-h-150 overflow-y-auto">
-                  {filteredPermissions.length === 0 ? (
-                    <div className="text-center py-12">
-                      <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 flex items-center justify-center">
-                        <FaKey className="text-gray-400" size={24} />
-                      </div>
-                      <p className="text-gray-500">No permissions found</p>
-                      {permissionFilters.search && (
-                        <button
-                          onClick={() => setPermissionFilters(prev => ({ ...prev, search: '' }))}
-                          className="mt-2 text-sm text-blue-600 hover:text-blue-800"
-                        >
-                          Clear search
-                        </button>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      {filteredPermissions.map(module => {
-                        const selectedCount = module.permissions.filter(p => formData.permissions.includes(p.id)).length;
-                        const isExpanded = expandedModules[module.module] !== false; // Default expanded
-
-                        return (
-                          <div key={module.module} className="border border-gray-200 rounded-xl overflow-hidden">
-                            {/* Module Header */}
-                            <button
-                              onClick={() => toggleModule(module.module)}
-                              className="w-full flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 transition-colors"
-                            >
-                              <div className="flex items-center gap-3">
-                                <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center">
-                                  <FaDatabase className="text-blue-600" size={14} />
-                                </div>
-                                <div className="text-left">
-                                  <span className="font-semibold text-gray-900">{module.module}</span>
-                                  {selectedCount > 0 && (
-                                    <span className="ml-2 text-xs text-green-600">
-                                      ({selectedCount}/{module.permissions.length} selected)
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
-                              {isExpanded ? <FaChevronUp className="text-gray-400" size={14} /> : <FaChevronDown className="text-gray-400" size={14} />}
-                            </button>
-
-                            {/* Module Permissions */}
-                            {isExpanded && (
-                              <div className="p-4 space-y-2">
-                                {/* Select All for Module */}
-                                <div className="pb-2 border-b border-gray-100 mb-2">
-                                  <label className="flex items-center gap-2 cursor-pointer text-sm font-medium text-gray-600">
-                                    <input
-                                      type="checkbox"
-                                      checked={selectedCount === module.permissions.length && module.permissions.length > 0}
-                                      onChange={() => {
-                                        const allIds = module.permissions.map(p => p.id);
-                                        const allSelected = selectedCount === module.permissions.length;
-                                        setFormData(prev => ({
-                                          ...prev,
-                                          permissions: allSelected
-                                            ? prev.permissions.filter(id => !allIds.includes(id))
-                                            : [...new Set([...prev.permissions, ...allIds])]
-                                        }));
-                                      }}
-                                      className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                                    />
-                                    Select All ({module.permissions.length})
-                                  </label>
-                                </div>
-
-                                {/* Permission Items */}
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                                  {module.permissions.map(permission => (
-                                    <label
-                                      key={permission.id}
-                                      className={`flex items-start gap-3 p-2 rounded-lg cursor-pointer transition-colors ${formData.permissions.includes(permission.id)
-                                          ? 'bg-blue-50 border border-blue-200'
-                                          : 'hover:bg-gray-50 border border-transparent'
-                                        }`}
-                                    >
-                                      <input
-                                        type="checkbox"
-                                        checked={formData.permissions.includes(permission.id)}
-                                        onChange={() => handlePermissionToggle(permission.id)}
-                                        className="mt-0.5 w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                                      />
-                                      <div className="flex-1">
-                                        <div className="flex items-center gap-2 flex-wrap">
-                                          <span className="text-sm font-medium text-gray-900">{permission.name}</span>
-                                          <span className="text-xs px-1.5 py-0.5 bg-gray-100 rounded text-gray-500 font-mono">
-                                            {permission.action}
-                                          </span>
-                                        </div>
-                                        {permission.description && (
-                                          <p className="text-xs text-gray-500 mt-0.5">{permission.description}</p>
-                                        )}
-                                        <p className="text-xs text-gray-400 font-mono mt-0.5">{permission.slug}</p>
-                                      </div>
-                                    </label>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-
-                  {/* Summary */}
-                  <div className="mt-6 pt-4 border-t border-gray-200">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-gray-600">Selected Permissions:</span>
-                      <span className="font-semibold text-blue-600">{formData.permissions.length}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Submit Actions */}
-              <div className="flex justify-end gap-3">
-                <button
-                  onClick={handleBack}
-                  className="px-6 py-2.5 bg-gray-200 text-gray-700 rounded-xl hover:bg-gray-300 transition-all duration-200 font-medium"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleSubmit}
-                  disabled={isSubmitting}
-                  className="px-6 py-2.5 bg-linear-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all duration-200 font-medium flex items-center gap-2 shadow-md hover:shadow-lg disabled:opacity-50"
-                >
-                  {isSubmitting ? (
-                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
-                  ) : (
-                    <FaSave size={14} />
-                  )}
-                  {isSubmitting ? 'Creating...' : 'Create Role'}
-                </button>
-              </div>
+            {/* Navigation */}
+            <div className="border-t border-gray-100 bg-gray-50/50 px-8 py-6">
+              <StepNavigation
+                currentStep={currentStep}
+                totalSteps={steps.length}
+                onNext={handleStepSubmit}
+                onPrevious={previousStep}
+                onSubmit={handleSubmit}
+                isSubmitting={isSubmitting}
+                isValid={true}
+                isReviewStep={isReviewStep}
+              />
             </div>
           </div>
         </div>

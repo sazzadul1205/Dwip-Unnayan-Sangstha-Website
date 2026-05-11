@@ -886,7 +886,9 @@ export default function RolesIndex({ roles: initialRoles, filters: initialFilter
                     const trashed = role.deleted_at != null;
                     const isDefault = role.is_default;
                     const isProtected = isRoleProtected(role);
-                    const showDefaultBadge = isDefault || isProtected;
+                    const isJobSeekerRole = ['job-seeker', 'job_seeker'].includes(role.slug);
+                    const isPermanentRole = ['super-admin', 'admin', 'employer', 'employer-admin'].includes(role.slug);
+                    const showDefaultBadge = isJobSeekerRole;
 
                     return (
                       <tr
@@ -907,11 +909,11 @@ export default function RolesIndex({ roles: initialRoles, filters: initialFilter
 
                         {/* ROLE DETAILS */}
                         <td className="px-6 py-4">
-                          <div className="flex items-center gap-3">
-                            <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${trashed ? 'bg-gray-300' : showDefaultBadge ? 'bg-purple-100' : role.is_active ? 'bg-green-100' : 'bg-yellow-100'
+                            <div className="flex items-center gap-3">
+                            <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${trashed ? 'bg-gray-300' : showDefaultBadge ? 'bg-purple-100' : isPermanentRole ? 'bg-red-100' : role.is_active ? 'bg-green-100' : 'bg-yellow-100'
                               }`}>
                               <FaShieldAlt className={
-                                trashed ? 'text-gray-500' : showDefaultBadge ? 'text-purple-600' : role.is_active ? 'text-green-600' : 'text-yellow-600'
+                                trashed ? 'text-gray-500' : showDefaultBadge ? 'text-purple-600' : isPermanentRole ? 'text-red-600' : role.is_active ? 'text-green-600' : 'text-yellow-600'
                               } size={18} />
                             </div>
                             <div>
@@ -920,6 +922,11 @@ export default function RolesIndex({ roles: initialRoles, filters: initialFilter
                                 {showDefaultBadge && (
                                   <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-700">
                                     Default
+                                  </span>
+                                )}
+                                {isPermanentRole && (
+                                  <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-700">
+                                    Permanent
                                   </span>
                                 )}
                               </div>
