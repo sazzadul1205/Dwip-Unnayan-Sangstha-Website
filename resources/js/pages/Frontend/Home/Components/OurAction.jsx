@@ -1,3 +1,6 @@
+// js/pages/Frontend/Home/Components/OurAction.jsx
+
+// React
 import React from 'react';
 
 const OurAction = () => {
@@ -75,7 +78,10 @@ const OurAction = () => {
   };
 
   return (
-    <div className='mx-auto bg-[#F5F5F5] px-50 py-37.5'>
+    <section
+      id='our-action'
+      className='mx-auto bg-[#F5F5F5] px-50 py-37.5'
+    >
       {/* Section Header */}
       <div className="text-center">
         <h1 className='bricolage-grotesque font-700 text-[40px] text-center text-[#080C14] pb-4'>
@@ -107,7 +113,7 @@ const OurAction = () => {
           </div>
         ))}
       </div>
-    </div>
+    </section>
   );
 };
 

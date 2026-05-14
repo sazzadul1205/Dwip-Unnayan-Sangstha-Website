@@ -50,7 +50,10 @@ const Banner = () => {
   };
 
   return (
-    <div className="relative w-full h-250 overflow-hidden">
+    <section
+      id="banner"
+      className="relative w-full h-250 overflow-hidden"
+    >
 
       {/* Background Image */}
       <img
@@ -102,7 +105,7 @@ const Banner = () => {
         </div>
       </div>
 
-    </div>
+    </section>
   );
 };
 

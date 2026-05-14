@@ -80,7 +80,10 @@ const AboutUs = () => {
   };
 
   return (
-    <div className='flex justify-between items-stretch bg-white gap-15 px-50 py-37.5'>
+    <section
+      id='about-us'
+      className='flex justify-between items-stretch bg-white gap-15 px-50 py-37.5'
+    >
 
       {/* Left Section - Text Content */}
       <div className='w-1/2 flex flex-col justify-between space-y-15'>
@@ -155,7 +158,7 @@ const AboutUs = () => {
           className='w-full h-full object-cover rounded-4xl'
         />
       </div>
-    </div>
+    </section>
   );
 };
 
