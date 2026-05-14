@@ -79,7 +79,6 @@ const AboutUs = () => {
     }
   };
 
-
   return (
     <div className='flex justify-between items-stretch bg-white gap-15 px-50 py-37.5'>
 

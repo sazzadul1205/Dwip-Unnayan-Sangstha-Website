@@ -4,6 +4,7 @@ import { Head } from '@inertiajs/react';
 import PublicLayout from '../../../layouts/PublicLayout';
 import Banner from './Components/Banner';
 import AboutUs from './Components/AboutUs';
+import OurAction from './Components/OurAction';
 
 export default function Home() {
   return (
@@ -13,6 +14,8 @@ export default function Home() {
       <Banner />
 
       <AboutUs />
+
+      <OurAction />
     </PublicLayout>
   );
 }
