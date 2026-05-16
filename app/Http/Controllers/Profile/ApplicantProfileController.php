@@ -598,13 +598,11 @@ class ApplicantProfileController extends Controller
         $experienceStats = (clone $statsQuery)->selectRaw('
         MIN(experience_years) as min_exp,
         MAX(experience_years) as max_exp,
-        AVG(experience_years) as avg_exp
-    ')->first();
+        AVG(experience_years) as avg_exp')->first();
 
         $ageStats = (clone $statsQuery)->selectRaw('
         MIN(YEAR(birth_date)) as min_birth_year,
-        MAX(YEAR(birth_date)) as max_birth_year
-    ')->whereNotNull('birth_date')->first();
+        MAX(YEAR(birth_date)) as max_birth_year')->whereNotNull('birth_date')->first();
 
         // Status counts (with current filters applied)
         $statusCounts = [
@@ -732,11 +730,8 @@ class ApplicantProfileController extends Controller
     /**
      * Apply filters to a query (helper method to avoid duplication)
      */
-    private function applyFiltersToQuery(
-        Builder $query,
-        Request $request,
-        bool $withRelations = true
-    ): void {
+    private function applyFiltersToQuery(Builder $query, Request $request, bool $withRelations = true): void
+    {
         // Apply search filters
         if ($request->filled('search')) {
             $search = $request->search;
@@ -822,50 +817,96 @@ class ApplicantProfileController extends Controller
         }
         return 'Expert';
     }
+
     /**
      * Display the applicant's profile (show page)
+     * Now accessible by:
+     * - The profile owner (job-seeker)
+     * - Super admins
+     * - Admins
      */
     public function show(?int $id = null)
     {
         $user = Auth::user();
 
-        // Check if user is a job seeker via RBAC with fallback
-        if (!$this->userHasRole($user, 'job-seeker')) {
-            return redirect()->route('dashboard')
-                ->with('error', 'Only job seekers can access applicant profiles.');
+        // If no ID provided, show the authenticated user's profile (owner view)
+        if (is_null($id)) {
+            $profile = ApplicantProfile::withTrashed()
+                ->with([
+                    'cvs' => function ($query) {
+                        $query->orderBy('order_position')
+                            ->orderBy('created_at', 'desc');
+                    },
+                    'jobHistories' => function ($query) {
+                        $query->orderBy('starting_year', 'desc')
+                            ->orderBy('created_at', 'desc');
+                    },
+                    'educationHistories' => function ($query) {
+                        $query->orderBy('passing_year', 'desc')
+                            ->orderBy('created_at', 'desc');
+                    },
+                    'achievements' => function ($query) {
+                        $query->orderBy('created_at', 'desc');
+                    },
+                    'applications' => function ($query) {
+                        $query->with(['jobListing' => function ($q) {
+                            $q->with(['category', 'locations']);
+                        }])->orderBy('created_at', 'desc');
+                    },
+                    'user'
+                ])
+                ->where('user_id', $user->id)
+                ->first();
+        } else {
+            // Admin viewing a specific profile by applicant_profile.id
+            $profile = ApplicantProfile::withTrashed()
+                ->with([
+                    'cvs' => function ($query) {
+                        $query->orderBy('order_position')
+                            ->orderBy('created_at', 'desc');
+                    },
+                    'jobHistories' => function ($query) {
+                        $query->orderBy('starting_year', 'desc')
+                            ->orderBy('created_at', 'desc');
+                    },
+                    'educationHistories' => function ($query) {
+                        $query->orderBy('passing_year', 'desc')
+                            ->orderBy('created_at', 'desc');
+                    },
+                    'achievements' => function ($query) {
+                        $query->orderBy('created_at', 'desc');
+                    },
+                    'applications' => function ($query) {
+                        $query->with(['jobListing' => function ($q) {
+                            $q->with(['category', 'locations']);
+                        }])->orderBy('created_at', 'desc');
+                    },
+                    'user'
+                ])
+                ->where('id', $id)
+                ->first();
         }
 
-        $userId = $id ?? Auth::id();
+        // If profile doesn't exist
+        if (!$profile) {
+            return redirect()->route('dashboard')
+                ->with('error', 'Profile not found.');
+        }
 
-        // Get profile including soft deleted ones with all relationships
-        $profile = ApplicantProfile::withTrashed()
-            ->with([
-                'cvs' => function ($query) {
-                    $query->orderBy('order_position')
-                        ->orderBy('created_at', 'desc');
-                },
-                'jobHistories' => function ($query) {
-                    $query->orderBy('starting_year', 'desc')
-                        ->orderBy('created_at', 'desc');
-                },
-                'educationHistories' => function ($query) {
-                    $query->orderBy('passing_year', 'desc')
-                        ->orderBy('created_at', 'desc');
-                },
-                'achievements' => function ($query) {
-                    $query->orderBy('created_at', 'desc');
-                },
-                'applications' => function ($query) {
-                    $query->with(['jobListing' => function ($q) {
-                        $q->with(['category', 'locations']);
-                    }])->orderBy('created_at', 'desc');
-                },
-                'user'
-            ])
-            ->where('user_id', $userId)
-            ->first();
+        // Check authorization:
+        // - Owner can view (job-seeker)
+        // - Super admin can view
+        // - Admin can view
+        $isOwner = ($user->id === $profile->user_id);
+        $isSuperAdmin = $this->userHasRole($user, 'super-admin');
+        $isAdmin = $this->userHasRole($user, 'admin');
 
-        // If profile exists, add computed attributes
+        if (!$isOwner && !$isSuperAdmin && !$isAdmin) {
+            return redirect()->route('unauthorized.access')
+                ->with('error', 'You do not have permission to view this profile.');
+        }
+
+        // Add computed attributes
         if ($profile) {
             // Add photo URL
             $profile->photo_url = $profile->photo_path
@@ -889,6 +930,8 @@ class ApplicantProfileController extends Controller
 
         return Inertia::render('Backend/ApplicantProfile/Show', [
             'profile' => $profile,
+            'canEdit' => $isOwner, // Only owner can edit
+            'canDelete' => $isOwner || $isSuperAdmin || $isAdmin, // Admins can delete too
         ]);
     }
 
@@ -1274,7 +1317,8 @@ class ApplicantProfileController extends Controller
      */
     public function restore(int $id)
     {
-        $profile = ApplicantProfile::withTrashed()->where('user_id', $id)->first();
+        // Find by applicant_profile.id (not user_id)
+        $profile = ApplicantProfile::withTrashed()->find($id);
 
         if (!$profile) {
             return response()->json([
@@ -1405,9 +1449,10 @@ class ApplicantProfileController extends Controller
      */
     public function forceDelete(int $id)
     {
+        // Find by applicant_profile.id
         $profile = ApplicantProfile::withTrashed()->findOrFail($id);
 
-        // Only allow if user is admin (you can adjust this check)
+        // Only allow if user is admin
         $authUser = Auth::user();
         if ($this->userHasRole($authUser, 'super-admin') || $this->userHasRole($authUser, 'admin')) {
             // Delete CV files

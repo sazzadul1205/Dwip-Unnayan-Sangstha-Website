@@ -50,7 +50,9 @@ import {
   FaGraduationCap,
   FaBuilding,
   FaCalendarDay,
-} from 'react-icons/fa'; // Fixed: Import from correct package
+  FaInfoCircle,
+  FaArrowLeft,
+} from 'react-icons/fa';
 import {
   MdOutlineBloodtype,
   MdSchool,
@@ -62,7 +64,6 @@ import {
 // SweetAlert2
 import Swal from 'sweetalert2';
 
-
 // Modals
 import CVModal from './Modals/CVModal';
 import EducationModal from './Modals/EducationModal';
@@ -72,9 +73,18 @@ import WorkExperienceModal from './Modals/WorkExperienceModal';
 import ChangePasswordModal from './Modals/ChangePasswordModal';
 import ProfessionalInfoModal from './Modals/ProfessionalInfoModal';
 
-export default function Show({ profile }) {
+export default function Show({ profile, canEdit = false, canDelete = false }) {
   const authUser = usePage().props?.auth?.user || null;
   const isOauthUser = !!authUser?.google_id;
+
+  // Check if current user is the profile owner
+  const isOwner = authUser?.id === profile?.user_id;
+
+  // Check if user has admin role (super-admin or admin)
+  const userRoles = authUser?.roles?.map(role => role.slug) || [];
+  const isSuperAdmin = userRoles.includes('super-admin');
+  const isAdmin = userRoles.includes('admin');
+  const hasAdminRole = isSuperAdmin || isAdmin;
 
   const [deleting, setDeleting] = useState(false);
   const [imgError, setImgError] = useState(false);
@@ -106,6 +116,16 @@ export default function Show({ profile }) {
   };
 
   const openModal = (modalType) => {
+    if (!isOwner) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Access Denied',
+        text: 'You can only edit your own profile.',
+        timer: 2000,
+        showConfirmButton: false,
+      });
+      return;
+    }
     if (isDeleted) {
       Swal.fire({
         icon: 'warning',
@@ -122,9 +142,18 @@ export default function Show({ profile }) {
   };
 
   const handleDelete = () => {
+    if (!isOwner && !canDelete) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Access Denied',
+        text: 'You do not have permission to delete this profile.',
+      });
+      return;
+    }
+
     Swal.fire({
       title: 'Delete Profile?',
-      text: 'Your profile will be soft deleted. You can restore it later.',
+      text: isOwner ? 'Your profile will be soft deleted. You can restore it later.' : 'This profile will be soft deleted.',
       icon: 'warning',
       showCancelButton: true,
       confirmButtonColor: '#d33',
@@ -150,11 +179,17 @@ export default function Show({ profile }) {
             Swal.fire({
               icon: 'success',
               title: 'Deleted!',
-              text: 'Your profile has been deleted.',
+              text: isOwner ? 'Your profile has been deleted.' : 'Profile has been deleted.',
               timer: 2000,
               showConfirmButton: false
             });
-            router.reload();
+
+            // If admin deleted someone else's profile, redirect back to list
+            if (!isOwner && hasAdminRole) {
+              router.visit(route('backend.applicant-profile.index'));
+            } else {
+              router.reload();
+            }
           } else {
             throw new Error(data.message || 'Failed to delete');
           }
@@ -172,9 +207,18 @@ export default function Show({ profile }) {
   };
 
   const handleRestore = () => {
+    if (!isOwner && !canDelete) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Access Denied',
+        text: 'You do not have permission to restore this profile.',
+      });
+      return;
+    }
+
     Swal.fire({
       title: 'Restore Profile?',
-      text: 'Your profile will be restored with all its data.',
+      text: 'The profile will be restored with all its data.',
       icon: 'question',
       showCancelButton: true,
       confirmButtonColor: '#3085d6',
@@ -200,11 +244,17 @@ export default function Show({ profile }) {
             Swal.fire({
               icon: 'success',
               title: 'Restored!',
-              text: 'Your profile has been restored successfully.',
+              text: 'Profile has been restored successfully.',
               timer: 1500,
               showConfirmButton: false
             });
-            router.reload();
+
+            // If admin restored someone else's profile, redirect back to list
+            if (!isOwner && hasAdminRole) {
+              router.visit(route('backend.applicant-profile.index'));
+            } else {
+              router.reload();
+            }
           } else {
             throw new Error(data.message || 'Failed to restore');
           }
@@ -219,6 +269,16 @@ export default function Show({ profile }) {
         }
       }
     });
+  };
+
+  const handleGoBack = () => {
+    // Check if there's a previous page in history
+    if (window.history.length > 1) {
+      window.history.back();
+    } else {
+      // Fallback to profiles list
+      router.visit(route('backend.applicant-profile.index'));
+    }
   };
 
   if (!profile) {
@@ -248,6 +308,9 @@ export default function Show({ profile }) {
   const age = calculateAge(profile?.birth_date);
   const stats = profile?.stats || {};
 
+  // Determine if user has admin permissions (for delete/restore actions)
+  const hasAdminAccess = canDelete || !isOwner;
+
   return (
     <AuthenticatedLayout>
       <Head title={`${profile.first_name} ${profile.last_name} - Profile`} />
@@ -255,51 +318,96 @@ export default function Show({ profile }) {
       <div className="min-h-screen bg-gray-50 py-8">
         <div className="mx-auto px-4 sm:px-6 lg:px-8">
 
-          {/* Header */}
-          <div className="mb-6 flex justify-between items-center flex-wrap gap-3">
-            <h1 className="text-3xl font-bold text-gray-900">My Profile</h1>
-            <div className="flex gap-3 flex-wrap">
-              {!isDeleted && !isOauthUser && (
+          {/* Header with Back Button for Admin */}
+          <div className="mb-6">
+            {/* Back button for admin view */}
+            {!isOwner && hasAdminRole && (
+              <div className="mb-4">
                 <button
-                  onClick={() => openModal('change-password')}
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition"
+                  onClick={handleGoBack}
+                  className="inline-flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-all duration-200 group"
                 >
-                  <FaUser size={16} />
-                  Change Password
+                  <FaArrowLeft className="group-hover:-translate-x-1 transition-transform duration-200" size={16} />
+                  Back to Profiles
                 </button>
-              )}
+              </div>
+            )}
 
-              {isDeleted ? (
-                <button
-                  onClick={handleRestore}
-                  disabled={restoring}
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
-                >
-                  {restoring ? <FaSpinner className="animate-spin" size={16} /> : <FaTrashRestore size={16} />}
-                  Restore Profile
-                </button>
-              ) : (
-                <>
-                  <Link
-                    href={route('backend.apply.index')}
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition"
-                  >
-                    <FaFileAlt size={16} />
-                    My Applications ({stats.total_applications || 0})
-                  </Link>
-
+            <div className="flex justify-between items-center flex-wrap gap-3">
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900">
+                  {isOwner ? 'My Profile' : `${profile.first_name}'s Profile`}
+                </h1>
+                {!isOwner && (
+                  <p className="text-sm text-gray-500 mt-1 flex items-center gap-1">
+                    <FaInfoCircle size={12} />
+                    Viewing profile as {hasAdminRole ? (isSuperAdmin ? 'Super Admin' : 'Admin') : 'administrator'}
+                  </p>
+                )}
+              </div>
+              <div className="flex gap-3 flex-wrap">
+                {/* Change Password - Only show for profile owner */}
+                {!isDeleted && !isOauthUser && isOwner && (
                   <button
-                    onClick={handleDelete}
-                    disabled={deleting}
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50"
+                    onClick={() => openModal('change-password')}
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition"
                   >
-                    {deleting ? <FaSpinner className="animate-spin" size={16} /> : <FaTrash size={16} />}
-                    Delete
+                    <FaUser size={16} />
+                    Change Password
                   </button>
-                </>
-              )}
+                )}
+
+                {/* Restore/Delete buttons */}
+                {isDeleted ? (
+                  <button
+                    onClick={handleRestore}
+                    disabled={restoring}
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
+                  >
+                    {restoring ? <FaSpinner className="animate-spin" size={16} /> : <FaTrashRestore size={16} />}
+                    Restore Profile
+                  </button>
+                ) : (
+                  <>
+                    {/* Applications - Only show for profile owner */}
+                    {isOwner && (
+                      <Link
+                        href={route('backend.apply.index')}
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition"
+                      >
+                        <FaFileAlt size={16} />
+                        My Applications ({stats.total_applications || 0})
+                      </Link>
+                    )}
+
+                    {/* Delete button - Show for owner or admins */}
+                    {(isOwner || hasAdminAccess) && (
+                      <button
+                        onClick={handleDelete}
+                        disabled={deleting}
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50"
+                      >
+                        {deleting ? <FaSpinner className="animate-spin" size={16} /> : <FaTrash size={16} />}
+                        Delete
+                      </button>
+                    )}
+                  </>
+                )}
+              </div>
             </div>
           </div>
+
+          {/* View-Only Banner */}
+          {!isOwner && !isDeleted && (
+            <div className="mb-6 bg-blue-50 border-l-4 border-blue-400 p-4 rounded-lg">
+              <div className="flex items-center">
+                <FaInfoCircle className="h-5 w-5 text-blue-400 mr-3" />
+                <p className="text-sm text-blue-700">
+                  You are viewing <span className="font-semibold">{profile.first_name}'s</span> profile. Edit buttons are disabled as this is not your profile.
+                </p>
+              </div>
+            </div>
+          )}
 
           {/* Deleted Banner */}
           {isDeleted && (
@@ -307,7 +415,7 @@ export default function Show({ profile }) {
               <div className="flex items-center">
                 <FaExclamationTriangle className="h-5 w-5 text-yellow-400 mr-3" />
                 <p className="text-sm text-yellow-700">
-                  This profile has been deleted. You can restore it to continue using your profile.
+                  This profile has been deleted. {isOwner ? 'You can restore it to continue using your profile.' : 'Only administrators can restore it.'}
                 </p>
               </div>
             </div>
@@ -350,6 +458,11 @@ export default function Show({ profile }) {
                     Deleted
                   </span>
                 )}
+                {!isOwner && !isDeleted && (
+                  <span className="inline-block mt-2 ml-2 px-2 py-1 bg-blue-100 text-blue-600 text-xs rounded-full">
+                    View Only
+                  </span>
+                )}
               </div>
 
               {/* Basic Information */}
@@ -359,13 +472,28 @@ export default function Show({ profile }) {
                     <FaUser className="text-blue-600" />
                     Basic Information
                   </h3>
-                  {!isDeleted && (
+                  {!isDeleted && isOwner && (
                     <button
                       onClick={() => openModal('basic')}
                       className="text-blue-600 hover:text-blue-700 flex items-center gap-1 text-sm"
                     >
                       <FaEdit size={14} /> Edit
                     </button>
+                  )}
+                  {!isDeleted && !isOwner && (
+                    <div className="relative group">
+                      <button
+                        disabled
+                        className="text-gray-400 flex items-center gap-1 text-sm cursor-not-allowed"
+                      >
+                        <FaEdit size={14} /> Edit
+                      </button>
+                      <div className="absolute right-0 bottom-full mb-2 hidden group-hover:block z-10">
+                        <div className="bg-gray-800 text-white text-xs rounded-lg py-1 px-2 whitespace-nowrap">
+                          You can only edit your own profile
+                        </div>
+                      </div>
+                    </div>
                   )}
                 </div>
 
@@ -429,7 +557,7 @@ export default function Show({ profile }) {
                     <FaBriefcase className="text-purple-600" />
                     Professional Information
                   </h3>
-                  {!isDeleted && (
+                  {!isDeleted && isOwner && (
                     <button
                       onClick={() => openModal('professional')}
                       className="text-purple-600 hover:text-purple-700 flex items-center gap-1 text-sm"
@@ -437,20 +565,27 @@ export default function Show({ profile }) {
                       <FaEdit size={14} /> Edit
                     </button>
                   )}
+                  {!isDeleted && !isOwner && (
+                    <div className="relative group">
+                      <button
+                        disabled
+                        className="text-gray-400 flex items-center gap-1 text-sm cursor-not-allowed"
+                      >
+                        <FaEdit size={14} /> Edit
+                      </button>
+                      <div className="absolute right-0 bottom-full mb-2 hidden group-hover:block z-10">
+                        <div className="bg-gray-800 text-white text-xs rounded-lg py-1 px-2 whitespace-nowrap">
+                          You can only edit your own profile
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {(!profile.experience_years && profile.experience_years !== 0) && !profile.current_job_title && (!profile.social_links || Object.keys(profile.social_links).length === 0) ? (
                   <div className="text-center py-8 bg-gray-50 rounded-lg">
                     <FaBriefcase className="h-12 w-12 text-gray-300 mx-auto mb-2" />
                     <p className="text-gray-500">No professional information added yet</p>
-                    {!isDeleted && (
-                      <button
-                        onClick={() => openModal('professional')}
-                        className="mt-3 inline-flex items-center gap-2 px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                      >
-                        <FaPlus size={14} /> Add Professional Information
-                      </button>
-                    )}
                   </div>
                 ) : (
                   <>
@@ -530,13 +665,28 @@ export default function Show({ profile }) {
                     <FaBriefcase className="text-orange-600" />
                     Work Experience ({profile.job_histories?.length || 0})
                   </h3>
-                  {!isDeleted && (
+                  {!isDeleted && isOwner && (
                     <button
                       onClick={() => openModal('work')}
                       className="text-orange-600 hover:text-orange-700 flex items-center gap-1 text-sm"
                     >
                       <FaEdit size={14} /> Edit
                     </button>
+                  )}
+                  {!isDeleted && !isOwner && (
+                    <div className="relative group">
+                      <button
+                        disabled
+                        className="text-gray-400 flex items-center gap-1 text-sm cursor-not-allowed"
+                      >
+                        <FaEdit size={14} /> Edit
+                      </button>
+                      <div className="absolute right-0 bottom-full mb-2 hidden group-hover:block z-10">
+                        <div className="bg-gray-800 text-white text-xs rounded-lg py-1 px-2 whitespace-nowrap">
+                          You can only edit your own profile
+                        </div>
+                      </div>
+                    </div>
                   )}
                 </div>
                 {profile.job_histories && profile.job_histories.length > 0 ? (
@@ -568,14 +718,6 @@ export default function Show({ profile }) {
                   <div className="text-center py-8 bg-gray-50 rounded-lg">
                     <FaBriefcase className="h-12 w-12 text-gray-300 mx-auto mb-2" />
                     <p className="text-gray-500">No work experience added yet</p>
-                    {!isDeleted && (
-                      <button
-                        onClick={() => openModal('work')}
-                        className="mt-3 inline-flex items-center gap-2 px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                      >
-                        <FaPlus size={14} /> Add Work Experience
-                      </button>
-                    )}
                   </div>
                 )}
               </div>
@@ -587,13 +729,28 @@ export default function Show({ profile }) {
                     <MdSchool className="text-green-600" />
                     Education ({profile.education_histories?.length || 0})
                   </h3>
-                  {!isDeleted && (
+                  {!isDeleted && isOwner && (
                     <button
                       onClick={() => openModal('education')}
                       className="text-green-600 hover:text-green-700 flex items-center gap-1 text-sm"
                     >
                       <FaEdit size={14} /> Edit
                     </button>
+                  )}
+                  {!isDeleted && !isOwner && (
+                    <div className="relative group">
+                      <button
+                        disabled
+                        className="text-gray-400 flex items-center gap-1 text-sm cursor-not-allowed"
+                      >
+                        <FaEdit size={14} /> Edit
+                      </button>
+                      <div className="absolute right-0 bottom-full mb-2 hidden group-hover:block z-10">
+                        <div className="bg-gray-800 text-white text-xs rounded-lg py-1 px-2 whitespace-nowrap">
+                          You can only edit your own profile
+                        </div>
+                      </div>
+                    </div>
                   )}
                 </div>
                 {profile.education_histories && profile.education_histories.length > 0 ? (
@@ -610,14 +767,6 @@ export default function Show({ profile }) {
                   <div className="text-center py-8 bg-gray-50 rounded-lg">
                     <MdSchool className="h-12 w-12 text-gray-300 mx-auto mb-2" />
                     <p className="text-gray-500">No education added yet</p>
-                    {!isDeleted && (
-                      <button
-                        onClick={() => openModal('education')}
-                        className="mt-3 inline-flex items-center gap-2 px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                      >
-                        <FaPlus size={14} /> Add Education
-                      </button>
-                    )}
                   </div>
                 )}
               </div>
@@ -629,13 +778,28 @@ export default function Show({ profile }) {
                     <FaTrophy className="text-yellow-600" />
                     Achievements & Certifications ({profile.achievements?.length || 0})
                   </h3>
-                  {!isDeleted && (
+                  {!isDeleted && isOwner && (
                     <button
                       onClick={() => openModal('achievements')}
                       className="text-yellow-600 hover:text-yellow-700 flex items-center gap-1 text-sm"
                     >
                       <FaEdit size={14} /> Edit
                     </button>
+                  )}
+                  {!isDeleted && !isOwner && (
+                    <div className="relative group">
+                      <button
+                        disabled
+                        className="text-gray-400 flex items-center gap-1 text-sm cursor-not-allowed"
+                      >
+                        <FaEdit size={14} /> Edit
+                      </button>
+                      <div className="absolute right-0 bottom-full mb-2 hidden group-hover:block z-10">
+                        <div className="bg-gray-800 text-white text-xs rounded-lg py-1 px-2 whitespace-nowrap">
+                          You can only edit your own profile
+                        </div>
+                      </div>
+                    </div>
                   )}
                 </div>
                 {profile.achievements && profile.achievements.length > 0 ? (
@@ -656,14 +820,6 @@ export default function Show({ profile }) {
                   <div className="text-center py-8 bg-gray-50 rounded-lg">
                     <FaTrophy className="h-12 w-12 text-gray-300 mx-auto mb-2" />
                     <p className="text-gray-500">No achievements added yet</p>
-                    {!isDeleted && (
-                      <button
-                        onClick={() => openModal('achievements')}
-                        className="mt-3 inline-flex items-center gap-2 px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                      >
-                        <FaPlus size={14} /> Add Achievement
-                      </button>
-                    )}
                   </div>
                 )}
               </div>
@@ -675,13 +831,28 @@ export default function Show({ profile }) {
                     <FaFileAlt className="text-red-600" />
                     CV / Resume ({profile.cvs?.length || 0})
                   </h3>
-                  {!isDeleted && (
+                  {!isDeleted && isOwner && (
                     <button
                       onClick={() => openModal('cv')}
                       className="text-red-600 hover:text-red-700 flex items-center gap-1 text-sm"
                     >
                       <FaEdit size={14} /> Manage CVs
                     </button>
+                  )}
+                  {!isDeleted && !isOwner && (
+                    <div className="relative group">
+                      <button
+                        disabled
+                        className="text-gray-400 flex items-center gap-1 text-sm cursor-not-allowed"
+                      >
+                        <FaEdit size={14} /> Manage CVs
+                      </button>
+                      <div className="absolute right-0 bottom-full mb-2 hidden group-hover:block z-10">
+                        <div className="bg-gray-800 text-white text-xs rounded-lg py-1 px-2 whitespace-nowrap">
+                          You can only manage your own CVs
+                        </div>
+                      </div>
+                    </div>
                   )}
                 </div>
                 {profile.cvs && profile.cvs.length > 0 ? (
@@ -722,14 +893,6 @@ export default function Show({ profile }) {
                   <div className="text-center py-8 bg-gray-50 rounded-lg">
                     <FaFilePdf className="h-12 w-12 text-gray-300 mx-auto mb-2" />
                     <p className="text-gray-500">No CV uploaded yet</p>
-                    {!isDeleted && (
-                      <button
-                        onClick={() => openModal('cv')}
-                        className="mt-3 inline-flex items-center gap-2 px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                      >
-                        <FaPlus size={14} /> Upload CV
-                      </button>
-                    )}
                   </div>
                 )}
               </div>
@@ -749,48 +912,52 @@ export default function Show({ profile }) {
         </div>
       </div>
 
-      {/* Modals */}
-      <BasicInfoModal
-        isOpen={activeModal === 'basic'}
-        onClose={closeModal}
-        profile={profile}
-      />
+      {/* Modals - Only render if owner */}
+      {isOwner && (
+        <>
+          <BasicInfoModal
+            isOpen={activeModal === 'basic'}
+            onClose={closeModal}
+            profile={profile}
+          />
 
-      <ProfessionalInfoModal
-        isOpen={activeModal === 'professional'}
-        onClose={closeModal}
-        profile={profile}
-      />
+          <ProfessionalInfoModal
+            isOpen={activeModal === 'professional'}
+            onClose={closeModal}
+            profile={profile}
+          />
 
-      <WorkExperienceModal
-        isOpen={activeModal === 'work'}
-        onClose={closeModal}
-        profile={profile}
-      />
+          <WorkExperienceModal
+            isOpen={activeModal === 'work'}
+            onClose={closeModal}
+            profile={profile}
+          />
 
-      <EducationModal
-        isOpen={activeModal === 'education'}
-        onClose={closeModal}
-        profile={profile}
-      />
+          <EducationModal
+            isOpen={activeModal === 'education'}
+            onClose={closeModal}
+            profile={profile}
+          />
 
-      <AchievementsModal
-        isOpen={activeModal === 'achievements'}
-        onClose={closeModal}
-        profile={profile}
-      />
+          <AchievementsModal
+            isOpen={activeModal === 'achievements'}
+            onClose={closeModal}
+            profile={profile}
+          />
 
-      <CVModal
-        isOpen={activeModal === 'cv'}
-        onClose={closeModal}
-        profile={profile}
-      />
+          <CVModal
+            isOpen={activeModal === 'cv'}
+            onClose={closeModal}
+            profile={profile}
+          />
 
-      <ChangePasswordModal
-        isOpen={activeModal === 'change-password'}
-        onClose={closeModal}
-        profile={profile}
-      />
+          <ChangePasswordModal
+            isOpen={activeModal === 'change-password'}
+            onClose={closeModal}
+            profile={profile}
+          />
+        </>
+      )}
     </AuthenticatedLayout>
   );
 }

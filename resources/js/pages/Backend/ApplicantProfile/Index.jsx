@@ -1516,7 +1516,7 @@ export default function Index({
                           )}
                         </td>
 
-                        {/* ACTIONS */}
+                        {/* // In the actions column of your table */}
                         <td className="px-6 py-4 whitespace-nowrap text-right">
                           <div className="flex justify-end gap-2">
                             <Link
@@ -1530,8 +1530,10 @@ export default function Index({
                             {trashed && (
                               <button
                                 onClick={() => {
-                                  // Restore callback
-                                  handleBulkRestore([profile.id]);
+                                  // Handle restore for single profile
+                                  if (typeof handleBulkRestore === 'function') {
+                                    handleBulkRestore([profile.id]);
+                                  }
                                 }}
                                 className="p-2 text-green-600 hover:text-green-900 hover:bg-green-50 rounded-lg transition-all duration-200"
                                 title="Restore"
@@ -1543,8 +1545,10 @@ export default function Index({
                             {!trashed && (
                               <button
                                 onClick={() => {
-                                  // Delete callback
-                                  handleBulkDelete([profile.id]);
+                                  // Handle delete for single profile
+                                  if (typeof handleBulkDelete === 'function') {
+                                    handleBulkDelete([profile.id]);
+                                  }
                                 }}
                                 className="p-2 text-red-600 hover:text-red-900 hover:bg-red-50 rounded-lg transition-all duration-200"
                                 title="Delete"

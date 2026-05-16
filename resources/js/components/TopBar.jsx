@@ -54,7 +54,7 @@ const TopBar = ({ topBarData }) => {
 
   const handleLanguageSelect = (language) => {
     setSelectedLanguage(language);
-    console.log('Selected language:', language);
+    // console.log('Selected language:', language);
     setIsLangDropdownOpen(false);
     // You can add additional logic here for language change
     // For example: change app locale, RTL support, etc.
@@ -62,7 +62,7 @@ const TopBar = ({ topBarData }) => {
 
   const handleSearchSubmit = (e) => {
     e.preventDefault();
-    console.log('Searching for:', searchQuery);
+    // console.log('Searching for:', searchQuery);
     // Implement search logic
     router.get('/search', { q: searchQuery });
     setIsSearchExpanded(false);

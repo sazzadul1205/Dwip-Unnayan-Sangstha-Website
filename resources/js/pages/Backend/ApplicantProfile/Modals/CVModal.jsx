@@ -33,6 +33,13 @@ const CVModal = ({ isOpen, onClose, profile }) => {
   const [pdfError, setPdfError] = useState(false);
   const [cvs, setCvs] = useState([]);
 
+  // Helper function to get CSRF token
+  const getCsrfToken = () => {
+    const tokenMeta = document.querySelector('meta[name="csrf-token"]');
+    const tokenInput = document.querySelector('input[name="_token"]');
+    return tokenMeta?.getAttribute('content') || tokenInput?.value || '';
+  };
+
   useEffect(() => {
     if (profile?.cvs) {
       setCvs(profile.cvs.map(cv => ({
@@ -121,18 +128,24 @@ const CVModal = ({ isOpen, onClose, profile }) => {
     try {
       const formData = new FormData();
       formData.append('cv', file);
+      // Add CSRF token to form data
+      formData.append('_token', getCsrfToken());
 
       const response = await fetch(route('backend.applicant-profile.cv.upload'), {
         method: 'POST',
         body: formData,
         headers: {
-          'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+          'Accept': 'application/json',
           'X-Requested-With': 'XMLHttpRequest',
+          // Don't set Content-Type header when using FormData - browser will set it with boundary
         },
       });
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
+        if (response.status === 419) {
+          throw new Error('Session expired. Please refresh the page and try again.');
+        }
         throw new Error(errorData?.message || 'Upload failed');
       }
 
@@ -162,7 +175,6 @@ const CVModal = ({ isOpen, onClose, profile }) => {
         showConfirmButton: false
       });
 
-      // Keep modal open; refresh will happen on close
     } catch (error) {
       console.error('Upload error:', error);
       Swal.fire({
@@ -188,13 +200,28 @@ const CVModal = ({ isOpen, onClose, profile }) => {
       if (result.isConfirmed) {
         const cvToRemove = cvs[index];
         if (cvToRemove?.id) {
-          await fetch(route('backend.applicant-profile.cv.destroy', cvToRemove.id), {
-            method: 'DELETE',
-            headers: {
-              'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
-              'X-Requested-With': 'XMLHttpRequest',
-            },
-          });
+          try {
+            const response = await fetch(route('backend.applicant-profile.cv.destroy', cvToRemove.id), {
+              method: 'DELETE',
+              headers: {
+                'X-CSRF-TOKEN': getCsrfToken(),
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+              },
+            });
+
+            if (!response.ok && response.status === 419) {
+              throw new Error('Session expired. Please refresh the page.');
+            }
+          } catch (error) {
+            Swal.fire({
+              icon: 'error',
+              title: 'Error',
+              text: error.message || 'Failed to remove CV.',
+            });
+            return;
+          }
         }
 
         const newCVs = cvs.filter((_, i) => i !== index);
@@ -213,8 +240,6 @@ const CVModal = ({ isOpen, onClose, profile }) => {
           timer: 1500,
           showConfirmButton: false
         });
-
-        // Keep modal open; refresh will happen on close
       }
     });
   };
@@ -228,24 +253,42 @@ const CVModal = ({ isOpen, onClose, profile }) => {
 
     const cv = cvs[index];
     if (cv?.id) {
-      await fetch(route('backend.applicant-profile.cv.primary', cv.id), {
-        method: 'PATCH',
-        headers: {
-          'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
-          'X-Requested-With': 'XMLHttpRequest',
-        },
-      });
+      try {
+        const response = await fetch(route('backend.applicant-profile.cv.primary', cv.id), {
+          method: 'PATCH',
+          headers: {
+            'X-CSRF-TOKEN': getCsrfToken(),
+            'X-Requested-With': 'XMLHttpRequest',
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (!response.ok && response.status === 419) {
+          throw new Error('Session expired. Please refresh the page.');
+        }
+
+        Swal.fire({
+          icon: 'success',
+          title: 'Primary CV Updated!',
+          text: 'This CV is now set as primary.',
+          timer: 1500,
+          showConfirmButton: false
+        });
+      } catch (error) {
+        Swal.fire({
+          icon: 'error',
+          title: 'Error',
+          text: error.message || 'Failed to update primary CV.',
+        });
+        // Revert the local state change
+        const revertedCVs = cvs.map((cv, idx) => ({
+          ...cv,
+          is_primary: idx === (cvs.findIndex(c => c.id === cv.id))
+        }));
+        setCvs(revertedCVs);
+      }
     }
-
-    Swal.fire({
-      icon: 'success',
-      title: 'Primary CV Updated!',
-      text: 'This CV is now set as primary.',
-      timer: 1500,
-      showConfirmButton: false
-    });
-
-    // Keep modal open; refresh will happen on close
   };
 
   const previewCV = (cv) => {
@@ -286,7 +329,6 @@ const CVModal = ({ isOpen, onClose, profile }) => {
 
   const handleSave = async () => {
     setSaving(true);
-    // CVs are saved automatically on upload/delete/primary change
     closeModal();
     setSaving(false);
   };
@@ -457,6 +499,7 @@ const CVModal = ({ isOpen, onClose, profile }) => {
         </div>
       </Modal>
 
+      {/* PDF Preview Modal */}
       {previewCv && previewCv.type === 'application/pdf' && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-60 p-4" onClick={closePreview}>
           <div className="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] overflow-auto" onClick={(e) => e.stopPropagation()}>
@@ -530,6 +573,7 @@ const CVModal = ({ isOpen, onClose, profile }) => {
         </div>
       )}
 
+      {/* Non-PDF Preview */}
       {previewCv && previewCv.type !== 'application/pdf' && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-60 p-4" onClick={closePreview}>
           <div className="bg-white rounded-xl max-w-2xl w-full" onClick={(e) => e.stopPropagation()}>

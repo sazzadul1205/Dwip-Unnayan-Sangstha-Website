@@ -999,7 +999,6 @@ class ApplicationsController extends Controller
         $companyName = $application->jobListing->employer->name ?? config('app.name');
 
         try {
-            // IMPORTANT: Use Mail::to() before send()
             Mail::to($recipientEmail)->send(new ApplicationEmail(
                 $request->subject,
                 $request->content,
@@ -1055,7 +1054,6 @@ class ApplicationsController extends Controller
 
         foreach ($applications as $application) {
             try {
-                // Get the recipient email
                 $recipientEmail = $application->email ?? $application->applicantProfile?->email ?? $application->user?->email;
 
                 if (!$recipientEmail) {
@@ -1067,7 +1065,6 @@ class ApplicationsController extends Controller
                 $jobTitle = $application->jobListing->title ?? null;
                 $companyName = $application->jobListing->employer->name ?? config('app.name');
 
-                // IMPORTANT: Use Mail::to() before send()
                 Mail::to($recipientEmail)->send(new ApplicationEmail(
                     $request->subject,
                     $request->content,

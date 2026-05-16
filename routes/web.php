@@ -43,6 +43,13 @@ use Illuminate\Http\Request;
 |--------------------------------------------------------------------------
 */
 
+Route::get('/unauthorized', function () {
+    return Inertia::render('UnauthorizedAccess', [
+        'status' => 403,
+        'message' => session('error', 'You do not have permission to access this page.')
+    ]);
+})->name('unauthorized.access');
+
 Route::prefix('/')->group(function () {
     // Home page (main landing page)
     Route::get('/', [FrontendController::class, 'home'])->name('home');
