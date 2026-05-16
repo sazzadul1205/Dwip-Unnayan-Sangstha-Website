@@ -1,26 +1,25 @@
 <?php
-
+// middleware/HandleInertiaRequests.php
 namespace App\Http\Middleware;
 
+// Support
 use Illuminate\Foundation\Inspiring;
+
+// HTTP
 use Illuminate\Http\Request;
+
+// Inertia
 use Inertia\Middleware;
 
 class HandleInertiaRequests extends Middleware
 {
     /**
      * The root template that's loaded on the first page visit.
-     *
-     * @see https://inertiajs.com/server-side-setup#root-template
-     *
-     * @var string
      */
     protected $rootView = 'app';
 
     /**
      * Determines the current asset version.
-     *
-     * @see https://inertiajs.com/asset-versioning
      */
     public function version(Request $request): ?string
     {
@@ -29,10 +28,6 @@ class HandleInertiaRequests extends Middleware
 
     /**
      * Define the props that are shared by default.
-     *
-     * @see https://inertiajs.com/shared-data
-     *
-     * @return array<string, mixed>
      */
     public function share(Request $request): array
     {
@@ -44,21 +39,13 @@ class HandleInertiaRequests extends Middleware
 
         if ($user) {
             $roles = $user->roles()
-                ->get(['roles.id', 'roles.name', 'roles.slug'])
+                ->get(['roles.id', 'roles.name', 'roles.slug', 'roles.level'])
                 ->toArray();
 
-            $permissions = $user->roles()
-                ->join('role_permissions', 'roles.id', '=', 'role_permissions.role_id')
-                ->join('permissions', 'role_permissions.permission_id', '=', 'permissions.id')
-                ->where('role_permissions.granted', true)
-                ->pluck('permissions.slug')
-                ->unique()
-                ->values()
-                ->toArray();
+            $permissions = $user->getAllPermissions();
         }
 
         return array_merge(parent::share($request), [
-            ...parent::share($request),
             'name' => config('app.name'),
             'quote' => ['message' => trim($message), 'author' => trim($author)],
             'auth' => [
@@ -66,8 +53,9 @@ class HandleInertiaRequests extends Middleware
                     'id' => $user->id,
                     'name' => $user->name,
                     'email' => $user->email,
-                    'role' => $user->role,
+                    // 'role' => $user->role, // REMOVED - no longer exists
                     'google_id' => $user->google_id,
+                    'google_avatar' => $user->google_avatar,
                     'email_verified_at' => $user->email_verified_at,
                     'created_at' => $user->created_at,
                     'roles' => $roles,
@@ -86,7 +74,7 @@ class HandleInertiaRequests extends Middleware
                     ->latest()
                     ->take(5)
                     ->get()
-                    ->map(fn ($notification) => [
+                    ->map(fn($notification) => [
                         'id' => $notification->id,
                         'data' => $notification->data,
                         'read_at' => $notification->read_at,

@@ -27,12 +27,25 @@ class JobListingController extends Controller
      */
     public function index(Request $request)
     {
+        $user = Auth::user();
+
+        // Check if user is logged in
+        if (!$user instanceof User) {
+            abort(401);
+        }
+
+        // Check permission to view job listings
+        if (!$user->hasPermission('job_listings.view')) {
+            return redirect()->route('unauthorized.access')
+                ->with('error', 'You do not have permission to view job listings.');
+        }
+
         // Start query with relationships
         $query = JobListing::withTrashed()
             ->with(['category', 'locations', 'employer'])
             ->withCount([
                 'applications',
-                'views' // Add views count
+                'views'
             ]);
 
         // Search by title or description
@@ -161,7 +174,6 @@ class JobListingController extends Controller
         $sortField = $request->input('sort_field', 'created_at');
         $sortDirection = $request->input('sort_direction', 'desc');
 
-        // Allowed sort fields to prevent SQL injection
         $allowedSortFields = ['id', 'title', 'created_at', 'updated_at', 'application_deadline', 'publish_at', 'is_active', 'views_count'];
 
         if (in_array($sortField, $allowedSortFields)) {
@@ -214,16 +226,13 @@ class JobListingController extends Controller
                 ->get(['id', 'name']),
         ];
 
-        // Return response
         return Inertia::render('Backend/JobListings/Index', [
             'jobListings' => $jobListings,
-
             'activeJobs' => JobListing::where('is_active', true)->count(),
             'inactiveJobs' => JobListing::where('is_active', false)->count(),
             'deletedJobs' => JobListing::onlyTrashed()->count(),
             'totalViews' => JobListing::withCount('views')->get()->sum('views_count'),
             'totalJobs' => JobListing::withTrashed()->count(),
-
             'filters' => $request->all([
                 'search',
                 'status',
@@ -248,7 +257,6 @@ class JobListingController extends Controller
                 'salary_min_filter',
                 'salary_max_filter'
             ]),
-
             'filterOptions' => $filterOptions,
         ]);
     }
@@ -258,6 +266,18 @@ class JobListingController extends Controller
      */
     public function create()
     {
+        $user = Auth::user();
+
+        // Check if user is logged in
+        if (!$user instanceof User) {
+            abort(401);
+        }
+
+        if (!$user->hasPermission('job_listings.create')) {
+            return redirect()->route('unauthorized.access')
+                ->with('error', 'You do not have permission to create job listings.');
+        }
+
         $categories = JobCategory::active()->orderBy('name')->get();
         $locations = Location::active()->orderBy('name')->get();
 
@@ -272,6 +292,18 @@ class JobListingController extends Controller
      */
     public function store(Request $request)
     {
+        $user = Auth::user();
+
+        // Check if user is logged in
+        if (!$user instanceof User) {
+            abort(401);
+        }
+
+        if (!$user->hasPermission('job_listings.store')) {
+            return redirect()->route('unauthorized.access')
+                ->with('error', 'You do not have permission to create job listings.');
+        }
+
         // Validate the request
         $validated = $request->validate([
             'title' => 'required|string|min:5|max:255',
@@ -325,16 +357,14 @@ class JobListingController extends Controller
             'views_count' => 0,
         ];
 
-        // Generate unique slug (model will auto-generate, but we can override)
+        // Generate unique slug
         $data['slug'] = $this->generateUniqueSlug($data['title']);
-
-        // Determine initial status
         $data['is_active'] = $this->determineInitialStatus($data);
 
         // Create the job listing
         $jobListing = JobListing::create($data);
 
-        // Handle locations relationship (many-to-many)
+        // Handle locations relationship
         if (isset($validated['location_ids']) && is_array($validated['location_ids'])) {
             $jobListing->locations()->sync($validated['location_ids']);
         }
@@ -354,6 +384,18 @@ class JobListingController extends Controller
      */
     public function show(JobListing $jobListing)
     {
+        $user = Auth::user();
+
+        // Check if user is logged in
+        if (!$user instanceof User) {
+            abort(401);
+        }
+
+        if (!$user->hasPermission('job_listings.show')) {
+            return redirect()->route('unauthorized.access')
+                ->with('error', 'You do not have permission to view job details.');
+        }
+
         $ipAddress = request()->ip();
         $alreadyViewed = JobView::where('job_listing_id', $jobListing->id)
             ->where('ip_address', $ipAddress)
@@ -385,7 +427,7 @@ class JobListingController extends Controller
             'hired' => $applications->where('status', 'hired')->count(),
         ];
 
-        // Calculate average ATS score (only for completed ATS calculations)
+        // Calculate average ATS score
         $completedATS = $applications->filter(function ($app) {
             return $app->isAtsCompleted() && $app->ats_score && isset($app->ats_score['percentage']);
         });
@@ -398,7 +440,7 @@ class JobListingController extends Controller
             $averageAtsScore = round($totalScore / $completedATS->count(), 2);
         }
 
-        // Get recent applications with ATS scores (limit 10 for show page)
+        // Get recent applications
         $recentApplications = $jobListing->applications()
             ->with(['user', 'applicantProfile'])
             ->latest()
@@ -417,7 +459,6 @@ class JobListingController extends Controller
                 ];
             });
 
-        // Get total views count
         $totalViews = $jobListing->views()->count();
 
         return Inertia::render('Backend/JobListings/Show', [
@@ -464,14 +505,24 @@ class JobListingController extends Controller
      */
     public function edit(JobListing $jobListing)
     {
+        $user = Auth::user();
+
+        // Check if user is logged in
+        if (!$user instanceof User) {
+            abort(401);
+        }
+
+        if (!$user->hasPermission('job_listings.edit')) {
+            return redirect()->route('unauthorized.access')
+                ->with('error', 'You do not have permission to edit job listings.');
+        }
+
         $categories = JobCategory::active()->orderBy('name')->get();
         $locations = Location::active()->orderBy('name')->get();
 
-        // Get current location IDs for the job listing
         $jobListing->load('locations');
         $locationIds = $jobListing->locations->pluck('id')->toArray();
 
-        // Prepare form data with all fields
         $formData = [
             'id' => $jobListing->id,
             'title' => $jobListing->title,
@@ -510,7 +561,18 @@ class JobListingController extends Controller
      */
     public function update(Request $request, JobListing $jobListing)
     {
-        // Validate the request
+        $user = Auth::user();
+
+        // Check if user is logged in
+        if (!$user instanceof User) {
+            abort(401);
+        }
+
+        if (!$user->hasPermission('job_listings.update')) {
+            return redirect()->route('unauthorized.access')
+                ->with('error', 'You do not have permission to update job listings.');
+        }
+
         $validated = $request->validate([
             'title' => 'required|string|min:5|max:255',
             'category_id' => 'required|exists:job_categories,id',
@@ -537,7 +599,6 @@ class JobListingController extends Controller
             'required_facebook_link' => 'boolean',
         ]);
 
-        // Prepare data for update
         $data = [
             'title' => $validated['title'],
             'category_id' => $validated['category_id'],
@@ -561,12 +622,10 @@ class JobListingController extends Controller
             'required_facebook_link' => $validated['required_facebook_link'] ?? false,
         ];
 
-        // Update slug if title changed
         if ($jobListing->title !== $data['title']) {
             $data['slug'] = $this->generateUniqueSlug($data['title'], $jobListing->id);
         }
 
-        // Apply automatic status update based on dates if is_active is not explicitly set
         if (!isset($validated['is_active'])) {
             $data['is_active'] = $this->determineStatusFromDates($data, $jobListing);
         } else {
@@ -575,7 +634,6 @@ class JobListingController extends Controller
 
         $jobListing->update($data);
 
-        // Handle locations relationship (many-to-many)
         if (isset($validated['location_ids']) && is_array($validated['location_ids'])) {
             $jobListing->locations()->sync($validated['location_ids']);
         }
@@ -590,12 +648,24 @@ class JobListingController extends Controller
             ->with('success', 'Job listing updated successfully');
     }
 
+
     /**
      * Remove the specified job listing (soft delete)
      */
     public function destroy(JobListing $jobListing)
     {
-        // Check if there are applications before deleting
+        $user = Auth::user();
+
+        // Check if user is logged in
+        if (!$user instanceof User) {
+            abort(401);
+        }
+
+        if (!$user->hasPermission('job_listings.destroy')) {
+            return redirect()->route('unauthorized.access')
+                ->with('error', 'You do not have permission to delete job listings.');
+        }
+
         $applicationsCount = $jobListing->applications()->count();
 
         if ($applicationsCount > 0) {
@@ -620,8 +690,19 @@ class JobListingController extends Controller
      */
     public function toggleActive(JobListing $jobListing)
     {
-        $newStatus = !$jobListing->is_active;
+        $user = Auth::user();
 
+        // Check if user is logged in
+        if (!$user instanceof User) {
+            abort(401);
+        }
+
+        if (!$user->hasPermission('job_listings.toggle_active')) {
+            return redirect()->route('unauthorized.access')
+                ->with('error', 'You do not have permission to change job status.');
+        }
+
+        $newStatus = !$jobListing->is_active;
         $jobListing->update(['is_active' => $newStatus]);
         $status = $newStatus ? 'activated' : 'deactivated';
 
@@ -639,6 +720,18 @@ class JobListingController extends Controller
      */
     public function applications(JobListing $jobListing)
     {
+        $user = Auth::user();
+
+        // Check if user is logged in
+        if (!$user instanceof User) {
+            abort(401);
+        }
+
+        if (!$user->hasPermission('job_listings.applications')) {
+            return redirect()->route('unauthorized.access')
+                ->with('error', 'You do not have permission to view applications.');
+        }
+
         $applications = $jobListing->applications()
             ->with(['user', 'applicantProfile'])
             ->orderBy('created_at', 'desc')
@@ -661,21 +754,29 @@ class JobListingController extends Controller
 
     /**
      * Update all job listing statuses based on dates
-     * This can be called via a scheduled task or manually
      */
     public function updateJobStatuses()
     {
+        $user = Auth::user();
+
+        // Check if user is logged in
+        if (!$user instanceof User) {
+            abort(401);
+        }
+
+        if (!$user->hasPermission('job_listings.update_statuses')) {
+            return response()->json(['error' => 'Unauthorized'], 403);
+        }
+
         $now = Carbon::now();
 
         Log::info('Running job status update at ' . $now);
 
-        // Auto-activate jobs that have reached their publish date
         $activated = JobListing::where('is_active', false)
             ->whereNotNull('publish_at')
             ->where('publish_at', '<=', $now)
             ->update(['is_active' => true]);
 
-        // Auto-deactivate jobs that have passed their application deadline
         $deactivated = JobListing::where('is_active', true)
             ->whereNotNull('application_deadline')
             ->where('application_deadline', '<', $now)
@@ -783,15 +884,25 @@ class JobListingController extends Controller
      */
     public function restore(int $id)
     {
+        $user = Auth::user();
+
+        // Check if user is logged in
+        if (!$user instanceof User) {
+            abort(401);
+        }
+
+        if (!$user->hasPermission('job_listings.restore')) {
+            return redirect()->route('unauthorized.access')
+                ->with('error', 'You do not have permission to restore job listings.');
+        }
+
         $jobListing = JobListing::withTrashed()->findOrFail($id);
 
-        // Check if it's actually soft-deleted
         if (!$jobListing->trashed()) {
             return redirect()->route('backend.listing.index')
                 ->with('error', 'This job listing is not in trash.');
         }
 
-        // Check if restore is valid based on dates
         $now = Carbon::now();
         if ($jobListing->application_deadline && $jobListing->application_deadline < $now) {
             return redirect()->route('backend.listing.index')
@@ -815,6 +926,18 @@ class JobListingController extends Controller
      */
     public function forceDelete(int $id)
     {
+        $user = Auth::user();
+
+        // Check if user is logged in
+        if (!$user instanceof User) {
+            abort(401);
+        }
+
+        if (!$user->hasPermission('job_listings.force_delete')) {
+            return redirect()->route('unauthorized.access')
+                ->with('error', 'You do not have permission to permanently delete job listings.');
+        }
+
         $jobListing = JobListing::withTrashed()->findOrFail($id);
 
         if (!$jobListing->trashed()) {
@@ -822,9 +945,7 @@ class JobListingController extends Controller
                 ->with('error', 'Only trashed job listings can be permanently deleted.');
         }
 
-        // Detach locations before force deleting
         $jobListing->locations()->detach();
-
         $jobListing->forceDelete();
 
         Log::info('Job listing permanently deleted', [
@@ -842,6 +963,17 @@ class JobListingController extends Controller
      */
     public function bulkActivate(Request $request)
     {
+        $user = Auth::user();
+
+        // Check if user is logged in
+        if (!$user instanceof User) {
+            abort(401);
+        }
+
+        if (!$user->hasPermission('job_listings.bulk_activate')) {
+            return redirect()->back()->with('error', 'You do not have permission to bulk activate jobs.');
+        }
+
         $validated = $request->validate([
             'job_ids' => 'required|array',
             'job_ids.*' => 'exists:job_listings,id'
@@ -859,6 +991,17 @@ class JobListingController extends Controller
      */
     public function bulkDeactivate(Request $request)
     {
+        $user = Auth::user();
+
+        // Check if user is logged in
+        if (!$user instanceof User) {
+            abort(401);
+        }
+
+        if (!$user->hasPermission('job_listings.bulk_deactivate')) {
+            return redirect()->back()->with('error', 'You do not have permission to bulk deactivate jobs.');
+        }
+
         $validated = $request->validate([
             'job_ids' => 'required|array',
             'job_ids.*' => 'exists:job_listings,id'
@@ -876,12 +1019,22 @@ class JobListingController extends Controller
      */
     public function bulkDelete(Request $request)
     {
+        $user = Auth::user();
+
+        // Check if user is logged in
+        if (!$user instanceof User) {
+            abort(401);
+        }
+
+        if (!$user->hasPermission('job_listings.bulk_delete')) {
+            return redirect()->back()->with('error', 'You do not have permission to bulk delete jobs.');
+        }
+
         $validated = $request->validate([
             'job_ids' => 'required|array',
             'job_ids.*' => 'exists:job_listings,id'
         ]);
 
-        // Check if any jobs have applications
         $jobsWithApplications = JobListing::whereIn('id', $validated['job_ids'])
             ->whereHas('applications')
             ->count();
@@ -909,6 +1062,19 @@ class JobListingController extends Controller
      */
     public function statistics(Request $request)
     {
+
+        $user = Auth::user();
+
+        // Check if user is logged in
+        if (!$user instanceof User) {
+            abort(401);
+        }
+
+        if (!$user->hasPermission('job_listings.statistics')) {
+            return redirect()->route('unauthorized.access')
+                ->with('error', 'You do not have permission to view statistics.');
+        }
+
         // Get date range filter
         $dateRange = $request->get('date_range', 'all');
         $startDate = $this->getStartDateFromRange($dateRange);

@@ -1,25 +1,41 @@
 <?php
+// app/Http/Controllers/Profile/ApplicantProfileController.php
 
 namespace App\Http\Controllers\Profile;
 
-use Inertia\Inertia;
-use Illuminate\Support\Str;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Auth;
-use App\Http\Controllers\Controller;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Validation\ValidationException;
+// Models
 use App\Models\User;
 use App\Models\JobHistory;
 use App\Models\Achievement;
 use App\Models\ApplicantCv;
 use App\Models\ApplicantProfile;
 use App\Models\EducationHistory;
-use Illuminate\Database\Eloquent\Builder;
+
+// Controllers
+use App\Http\Controllers\Controller;
+
+// Requests
+use Illuminate\Http\Request;
+
+// Facades
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
+
+// Exceptions
+use Illuminate\Validation\ValidationException;
+
 use Illuminate\Http\UploadedFile;
-use Illuminate\Contracts\Auth\Authenticatable;
+
+// Builder
+use Illuminate\Database\Eloquent\Builder;
+
+// Support
+use Illuminate\Support\Str;
+
+// Inertia
+use Inertia\Inertia;
 
 class ApplicantProfileController extends Controller
 {
@@ -29,6 +45,19 @@ class ApplicantProfileController extends Controller
      */
     public function index(Request $request)
     {
+        $user = Auth::user();
+
+        // Check if user is logged in
+        if (!$user instanceof User) {
+            abort(401);
+        }
+
+        // Check permission to view profiles list
+        if (!$user || !$user->hasPermission('profiles.view')) {
+            return redirect()->route('unauthorized.access')
+                ->with('error', 'You do not have permission to view applicant profiles.');
+        }
+
         $query = ApplicantProfile::with([
             'user',
             'cvs' => function ($q) {
@@ -248,7 +277,7 @@ class ApplicantProfileController extends Controller
         if ($request->filled('completion_status')) {
             switch ($request->completion_status) {
                 case 'complete':
-                    $query->complete(); // Uses the scope defined in ApplicantProfile
+                    $query->complete();
                     break;
                 case 'incomplete':
                     foreach (ApplicantProfile::REQUIRED_FIELDS as $field) {
@@ -257,7 +286,7 @@ class ApplicantProfileController extends Controller
                         });
                     }
                     break;
-                case 'minimal': // Only required fields filled
+                case 'minimal':
                     foreach (ApplicantProfile::REQUIRED_FIELDS as $field) {
                         $query->whereNotNull($field)->where($field, '!=', '');
                     }
@@ -279,8 +308,7 @@ class ApplicantProfileController extends Controller
 
         // Completion percentage range
         if ($request->filled('min_completion')) {
-            // Since completion_percentage is an appended attribute, we need to filter after query
-            // This will be handled in the collection transform
+            // Handled in collection transform
         }
 
         // Profile status (active/deleted)
@@ -292,7 +320,6 @@ class ApplicantProfileController extends Controller
                 case 'with':
                     $query->withTrashed();
                     break;
-                    // case '' means without trashed (default behavior)
             }
         }
 
@@ -316,7 +343,7 @@ class ApplicantProfileController extends Controller
             });
         }
 
-        // Filter by application status (profiles who have applications with specific status)
+        // Filter by application status
         if ($request->filled('application_status')) {
             $query->whereHas('applications', function ($q) use ($request) {
                 $q->where('status', $request->application_status);
@@ -551,33 +578,19 @@ class ApplicantProfileController extends Controller
 
         // Add computed attributes to collection
         $profiles->getCollection()->transform(function ($profile) {
-            // Add completion percentage
             $profile->completion_percentage = $profile->completionPercentage();
-
-            // Add full name
             $profile->full_name = $profile->full_name;
-
-            // Add email from user relation
             $profile->email = $profile->user?->email;
-
-            // Add photo URL if exists
             $profile->photo_url = $profile->photo_path
                 ? ($profile->photo_path ? route('profile.photo', ['path' => $profile->photo_path]) : null)
                 : null;
-
-            // Add experience level label
             $profile->experience_level_label = $this->getExperienceLevelLabel($profile->experience_years);
-
-            // Add application count
             $profile->applications_count = $profile->applications()->count();
-
-            // Add active CV count
             $profile->active_cvs_count = $profile->cvs()->where('status', 'active')->count();
-
             return $profile;
         });
 
-        // Sort by completion percentage if requested (needs post-query sorting)
+        // Sort by completion percentage if requested
         if ($sortField === 'completion_percentage') {
             $profiles->getCollection()->sortBy([
                 ['completion_percentage', $sortDirection === 'desc' ? SORT_DESC : SORT_ASC]
@@ -588,23 +601,18 @@ class ApplicantProfileController extends Controller
         // STATISTICS FOR FILTER OPTIONS
         // ==========================================
 
-        // Base query for stats (without pagination)
         $statsQuery = ApplicantProfile::query();
-
-        // Apply same filters to stats query
         $this->applyFiltersToQuery($statsQuery, $request, false);
 
-        // Get filter options
         $experienceStats = (clone $statsQuery)->selectRaw('
-        MIN(experience_years) as min_exp,
-        MAX(experience_years) as max_exp,
-        AVG(experience_years) as avg_exp')->first();
+            MIN(experience_years) as min_exp,
+            MAX(experience_years) as max_exp,
+            AVG(experience_years) as avg_exp')->first();
 
         $ageStats = (clone $statsQuery)->selectRaw('
-        MIN(YEAR(birth_date)) as min_birth_year,
-        MAX(YEAR(birth_date)) as max_birth_year')->whereNotNull('birth_date')->first();
+            MIN(YEAR(birth_date)) as min_birth_year,
+            MAX(YEAR(birth_date)) as max_birth_year')->whereNotNull('birth_date')->first();
 
-        // Status counts (with current filters applied)
         $statusCounts = [
             'total' => (clone $statsQuery)->count(),
             'complete' => (clone $statsQuery)->complete()->count(),
@@ -622,7 +630,6 @@ class ApplicantProfileController extends Controller
             'deleted' => ApplicantProfile::onlyTrashed()->count(),
         ];
 
-        // Gender distribution
         $genderStats = (clone $statsQuery)
             ->selectRaw('gender, COUNT(*) as count')
             ->whereNotNull('gender')
@@ -630,7 +637,6 @@ class ApplicantProfileController extends Controller
             ->pluck('count', 'gender')
             ->toArray();
 
-        // Experience level distribution
         $experienceLevels = ['fresher', 'entry', 'junior', 'mid', 'senior', 'expert'];
         $experienceDistribution = [];
         foreach ($experienceLevels as $level) {
@@ -732,62 +738,43 @@ class ApplicantProfileController extends Controller
      */
     private function applyFiltersToQuery(Builder $query, Request $request, bool $withRelations = true): void
     {
-        // Apply search filters
         if ($request->filled('search')) {
             $search = $request->search;
-
             $query->where(function ($q) use ($search) {
                 $q->where('first_name', 'like', "%{$search}%")
                     ->orWhere('last_name', 'like', "%{$search}%")
-                    ->orWhereRaw(
-                        "CONCAT(first_name, ' ', last_name) LIKE ?",
-                        ["%{$search}%"]
-                    );
+                    ->orWhereRaw("CONCAT(first_name, ' ', last_name) LIKE ?", ["%{$search}%"]);
             });
         }
 
-        // Apply gender filter
         if ($request->filled('gender')) {
             $query->where('gender', $request->gender);
         }
 
-        // Apply experience range
         if ($request->filled('min_experience')) {
-            $query->where(
-                'experience_years',
-                '>=',
-                (int) $request->min_experience
-            );
+            $query->where('experience_years', '>=', (int) $request->min_experience);
         }
 
         if ($request->filled('max_experience')) {
-            $query->where(
-                'experience_years',
-                '<=',
-                (int) $request->max_experience
-            );
+            $query->where('experience_years', '<=', (int) $request->max_experience);
         }
 
-        // Apply date range
         if ($request->filled('date_range')) {
             switch ($request->date_range) {
                 case 'today':
                     $query->whereDate('created_at', today());
                     break;
-
                 case 'this_month':
                     $query->whereMonth('created_at', now()->month);
                     break;
             }
         }
 
-        // Apply trashed filter
         if ($request->filled('trashed')) {
             switch ($request->trashed) {
                 case 'only':
                     $query->onlyTrashed();
                     break;
-
                 case 'with':
                     $query->withTrashed();
                     break;
@@ -820,30 +807,39 @@ class ApplicantProfileController extends Controller
 
     /**
      * Display the applicant's profile (show page)
-     * Now accessible by:
-     * - The profile owner (job-seeker)
-     * - Super admins
-     * - Admins
      */
     public function show(?int $id = null)
     {
         $user = Auth::user();
 
+        // Check if user is logged in
+        if (!$user instanceof User) {
+            abort(401);
+        }
+
+        if (!$user) {
+            return redirect()->route('login')
+                ->with('error', 'Please login to view profiles.');
+        }
+
         // If no ID provided, show the authenticated user's profile (owner view)
         if (is_null($id)) {
+            // Check if user can view their own profile
+            if (!$user->hasPermission('profiles.view.own')) {
+                return redirect()->route('unauthorized.access')
+                    ->with('error', 'You do not have permission to view your profile.');
+            }
+
             $profile = ApplicantProfile::withTrashed()
                 ->with([
                     'cvs' => function ($query) {
-                        $query->orderBy('order_position')
-                            ->orderBy('created_at', 'desc');
+                        $query->orderBy('order_position')->orderBy('created_at', 'desc');
                     },
                     'jobHistories' => function ($query) {
-                        $query->orderBy('starting_year', 'desc')
-                            ->orderBy('created_at', 'desc');
+                        $query->orderBy('starting_year', 'desc')->orderBy('created_at', 'desc');
                     },
                     'educationHistories' => function ($query) {
-                        $query->orderBy('passing_year', 'desc')
-                            ->orderBy('created_at', 'desc');
+                        $query->orderBy('passing_year', 'desc')->orderBy('created_at', 'desc');
                     },
                     'achievements' => function ($query) {
                         $query->orderBy('created_at', 'desc');
@@ -858,20 +854,22 @@ class ApplicantProfileController extends Controller
                 ->where('user_id', $user->id)
                 ->first();
         } else {
-            // Admin viewing a specific profile by applicant_profile.id
+            // Viewing another profile - need profiles.view.any permission
+            if (!$user->hasPermission('profiles.view.any')) {
+                return redirect()->route('unauthorized.access')
+                    ->with('error', 'You do not have permission to view other profiles.');
+            }
+
             $profile = ApplicantProfile::withTrashed()
                 ->with([
                     'cvs' => function ($query) {
-                        $query->orderBy('order_position')
-                            ->orderBy('created_at', 'desc');
+                        $query->orderBy('order_position')->orderBy('created_at', 'desc');
                     },
                     'jobHistories' => function ($query) {
-                        $query->orderBy('starting_year', 'desc')
-                            ->orderBy('created_at', 'desc');
+                        $query->orderBy('starting_year', 'desc')->orderBy('created_at', 'desc');
                     },
                     'educationHistories' => function ($query) {
-                        $query->orderBy('passing_year', 'desc')
-                            ->orderBy('created_at', 'desc');
+                        $query->orderBy('passing_year', 'desc')->orderBy('created_at', 'desc');
                     },
                     'achievements' => function ($query) {
                         $query->orderBy('created_at', 'desc');
@@ -887,33 +885,25 @@ class ApplicantProfileController extends Controller
                 ->first();
         }
 
-        // If profile doesn't exist
         if (!$profile) {
             return redirect()->route('dashboard')
                 ->with('error', 'Profile not found.');
         }
 
-        // Check authorization:
-        // - Owner can view (job-seeker)
-        // - Super admin can view
-        // - Admin can view
         $isOwner = ($user->id === $profile->user_id);
-        $isSuperAdmin = $this->userHasRole($user, 'super-admin');
-        $isAdmin = $this->userHasRole($user, 'admin');
+        $canDelete = false;
 
-        if (!$isOwner && !$isSuperAdmin && !$isAdmin) {
-            return redirect()->route('unauthorized.access')
-                ->with('error', 'You do not have permission to view this profile.');
+        if ($isOwner) {
+            $canDelete = $user->hasPermission('profiles.destroy');
+        } else {
+            $canDelete = $user->hasPermission('profiles.delete.any');
         }
 
-        // Add computed attributes
         if ($profile) {
-            // Add photo URL
             $profile->photo_url = $profile->photo_path
                 ? route('profile.photo', ['path' => $profile->photo_path])
                 : null;
 
-            // Add CV URLs and format CV data
             foreach ($profile->cvs as $cv) {
                 $cv->cv_url = $cv->cv_path ? asset('storage/' . $cv->cv_path) : null;
                 $cv->file_size = $cv->cv_path && Storage::disk('public')->exists($cv->cv_path)
@@ -921,36 +911,15 @@ class ApplicantProfileController extends Controller
                     : null;
             }
 
-            // Add completion percentage
             $profile->completion_percentage = $profile->completionPercentage();
-
-            // Add email
             $profile->email = $profile->user?->email;
         }
 
         return Inertia::render('Backend/ApplicantProfile/Show', [
             'profile' => $profile,
-            'canEdit' => $isOwner, // Only owner can edit
-            'canDelete' => $isOwner || $isSuperAdmin || $isAdmin, // Admins can delete too
+            'canEdit' => $isOwner,
+            'canDelete' => $canDelete,
         ]);
-    }
-
-    /**
-     * Helper method to check user role safely
-     */
-    private function userHasRole(?Authenticatable $user, string $roleSlug): bool
-    {
-        if (!$user instanceof User) {
-            return false;
-        }
-
-        // Try method_exists first
-        if (method_exists($user, 'hasRole')) {
-            return $user->hasRole($roleSlug);
-        }
-
-        // Fallback to direct relationship check
-        return $user->roles()->where('slug', $roleSlug)->exists();
     }
 
     /**
@@ -974,8 +943,20 @@ class ApplicantProfileController extends Controller
      */
     public function updateBasicInfo(Request $request, ApplicantProfile $applicantProfile)
     {
-        if (Auth::id() !== $applicantProfile->user_id) {
-            abort(403);
+        $user = Auth::user();
+
+        // Check if user is logged in
+        if (!$user instanceof User) {
+            abort(401);
+        }
+
+        // Only profile owner can update basic info
+        if ($user->id !== $applicantProfile->user_id) {
+            return response()->json(['error' => 'Unauthorized.'], 403);
+        }
+
+        if (!$user->hasPermission('profiles.update_basic')) {
+            return response()->json(['error' => 'You do not have permission to update basic information.'], 403);
         }
 
         if ($applicantProfile->trashed()) {
@@ -1031,8 +1012,19 @@ class ApplicantProfileController extends Controller
      */
     public function updateProfessionalInfo(Request $request, ApplicantProfile $applicantProfile)
     {
-        if (Auth::id() !== $applicantProfile->user_id) {
-            abort(403);
+        $user = Auth::user();
+
+        // Check if user is logged in
+        if (!$user instanceof User) {
+            abort(401);
+        }
+
+        if ($user->id !== $applicantProfile->user_id) {
+            return response()->json(['error' => 'Unauthorized.'], 403);
+        }
+
+        if (!$user->hasPermission('profiles.update_professional')) {
+            return response()->json(['error' => 'You do not have permission to update professional information.'], 403);
         }
 
         if ($applicantProfile->trashed()) {
@@ -1063,8 +1055,19 @@ class ApplicantProfileController extends Controller
      */
     public function updateWorkExperiences(Request $request, ApplicantProfile $applicantProfile)
     {
-        if (Auth::id() !== $applicantProfile->user_id) {
-            abort(403);
+        $user = Auth::user();
+
+        // Check if user is logged in
+        if (!$user instanceof User) {
+            abort(401);
+        }
+
+        if ($user->id !== $applicantProfile->user_id) {
+            return response()->json(['error' => 'Unauthorized.'], 403);
+        }
+
+        if (!$user->hasPermission('profiles.update_work')) {
+            return response()->json(['error' => 'You do not have permission to update work experience.'], 403);
         }
 
         if ($applicantProfile->trashed()) {
@@ -1129,8 +1132,19 @@ class ApplicantProfileController extends Controller
      */
     public function updateEducations(Request $request, ApplicantProfile $applicantProfile)
     {
-        if (Auth::id() !== $applicantProfile->user_id) {
-            abort(403);
+        $user = Auth::user();
+
+        // Check if user is logged in
+        if (!$user instanceof User) {
+            abort(401);
+        }
+
+        if ($user->id !== $applicantProfile->user_id) {
+            return response()->json(['error' => 'Unauthorized.'], 403);
+        }
+
+        if (!$user->hasPermission('profiles.update_education')) {
+            return response()->json(['error' => 'You do not have permission to update education.'], 403);
         }
 
         if ($applicantProfile->trashed()) {
@@ -1185,8 +1199,19 @@ class ApplicantProfileController extends Controller
      */
     public function updateAchievements(Request $request, ApplicantProfile $applicantProfile)
     {
-        if (Auth::id() !== $applicantProfile->user_id) {
-            abort(403);
+        $user = Auth::user();
+
+        // Check if user is logged in
+        if (!$user instanceof User) {
+            abort(401);
+        }
+
+        if ($user->id !== $applicantProfile->user_id) {
+            return response()->json(['error' => 'Unauthorized.'], 403);
+        }
+
+        if (!$user->hasPermission('profiles.update_achievements')) {
+            return response()->json(['error' => 'You do not have permission to update achievements.'], 403);
         }
 
         if ($applicantProfile->trashed()) {
@@ -1245,14 +1270,12 @@ class ApplicantProfileController extends Controller
 
         $user = User::query()->findOrFail(Auth::id());
 
-        // Check if current password matches
         if (!Hash::check($validated['current_password'], $user->password)) {
             throw ValidationException::withMessages([
                 'current_password' => ['The current password is incorrect.'],
             ]);
         }
 
-        // Update password
         $user->forceFill([
             'password' => Hash::make($validated['new_password'])
         ])->save();
@@ -1268,9 +1291,20 @@ class ApplicantProfileController extends Controller
      */
     public function destroy(ApplicantProfile $applicantProfile)
     {
-        // Only allow deleting own profile
-        if (Auth::id() !== $applicantProfile->user_id) {
-            abort(403);
+        $user = Auth::user();
+
+        // Check if user is logged in
+        if (!$user instanceof User) {
+            abort(401);
+        }
+
+        // Only profile owner can delete their own profile
+        if ($user->id !== $applicantProfile->user_id) {
+            return response()->json(['error' => 'Unauthorized.'], 403);
+        }
+
+        if (!$user->hasPermission('profiles.destroy')) {
+            return response()->json(['error' => 'You do not have permission to delete your profile.'], 403);
         }
 
         if ($applicantProfile->trashed()) {
@@ -1280,9 +1314,7 @@ class ApplicantProfileController extends Controller
             ], 422);
         }
 
-        // Soft delete related records first
         DB::transaction(function () use ($applicantProfile) {
-            // Permanently delete CVs (remove file + force delete)
             foreach ($applicantProfile->cvs as $cv) {
                 if ($cv->cv_path && Storage::disk('public')->exists($cv->cv_path)) {
                     Storage::disk('public')->delete($cv->cv_path);
@@ -1290,19 +1322,16 @@ class ApplicantProfileController extends Controller
                 $cv->forceDelete();
             }
 
-            // Delete job histories, education, achievements (these don't have soft delete, so just delete)
             $applicantProfile->jobHistories()->delete();
             $applicantProfile->educationHistories()->delete();
             $applicantProfile->achievements()->delete();
 
-            // Delete profile photo file and clear path
             if ($applicantProfile->photo_path && Storage::disk('public')->exists($applicantProfile->photo_path)) {
                 Storage::disk('public')->delete($applicantProfile->photo_path);
             }
             $applicantProfile->photo_path = null;
             $applicantProfile->save();
 
-            // Soft delete the profile
             $applicantProfile->delete();
         });
 
@@ -1317,7 +1346,17 @@ class ApplicantProfileController extends Controller
      */
     public function restore(int $id)
     {
-        // Find by applicant_profile.id (not user_id)
+        $user = Auth::user();
+
+        // Check if user is logged in
+        if (!$user instanceof User) {
+            abort(401);
+        }
+
+        if (!$user->hasPermission('profiles.restore')) {
+            return response()->json(['error' => 'You do not have permission to restore profiles.'], 403);
+        }
+
         $profile = ApplicantProfile::withTrashed()->find($id);
 
         if (!$profile) {
@@ -1335,12 +1374,9 @@ class ApplicantProfileController extends Controller
         }
 
         DB::transaction(function () use ($profile) {
-            // Restore CVs
             ApplicantCv::withTrashed()
                 ->where('applicant_profile_id', $profile->id)
                 ->restore();
-
-            // Restore the profile
             $profile->restore();
         });
 
@@ -1362,7 +1398,6 @@ class ApplicantProfileController extends Controller
     private function handlePhotoUpload(UploadedFile $photo, int $userId): string
     {
         $fileName = 'profile_' . $userId . '_' . time() . '.' . $photo->getClientOriginalExtension();
-
         return $photo->storeAs('profile_photos', $fileName, 'public');
     }
 
@@ -1371,9 +1406,19 @@ class ApplicantProfileController extends Controller
      */
     public function downloadCV(ApplicantProfile $applicantProfile)
     {
-        // Only allow viewing own CV
-        if (Auth::id() !== $applicantProfile->user_id) {
+        $user = Auth::user();
+
+        // Check if user is logged in
+        if (!$user instanceof User) {
+            abort(401);
+        }
+
+        if ($user->id !== $applicantProfile->user_id) {
             abort(403);
+        }
+
+        if (!$user->hasPermission('profiles.download_cv')) {
+            return redirect()->back()->with('error', 'You do not have permission to download CV.');
         }
 
         if ($applicantProfile->trashed()) {
@@ -1398,8 +1443,19 @@ class ApplicantProfileController extends Controller
      */
     public function getProfileData(ApplicantProfile $applicantProfile)
     {
-        if (Auth::id() !== $applicantProfile->user_id) {
+        $user = Auth::user();
+
+        // Check if user is logged in
+        if (!$user instanceof User) {
+            abort(401);
+        }
+
+        if ($user->id !== $applicantProfile->user_id) {
             abort(403);
+        }
+
+        if (!$user->hasPermission('profiles.get_data')) {
+            return response()->json(['error' => 'Unauthorized.'], 403);
         }
 
         return response()->json([
@@ -1417,6 +1473,17 @@ class ApplicantProfileController extends Controller
      */
     public function bulkDelete(Request $request)
     {
+        $user = Auth::user();
+
+        // Check if user is logged in
+        if (!$user instanceof User) {
+            abort(401);
+        }
+
+        if (!$user->hasPermission('profiles.bulk_delete')) {
+            return redirect()->back()->with('error', 'You do not have permission to bulk delete profiles.');
+        }
+
         $request->validate([
             'profile_ids' => 'required|array',
             'profile_ids.*' => 'exists:applicant_profiles,id',
@@ -1432,6 +1499,17 @@ class ApplicantProfileController extends Controller
      */
     public function bulkRestore(Request $request)
     {
+        $user = Auth::user();
+
+        // Check if user is logged in
+        if (!$user instanceof User) {
+            abort(401);
+        }
+
+        if (!$user->hasPermission('profiles.bulk_restore')) {
+            return redirect()->back()->with('error', 'You do not have permission to bulk restore profiles.');
+        }
+
         $request->validate([
             'profile_ids' => 'required|array',
             'profile_ids.*' => 'exists:applicant_profiles,id',
@@ -1449,37 +1527,36 @@ class ApplicantProfileController extends Controller
      */
     public function forceDelete(int $id)
     {
-        // Find by applicant_profile.id
-        $profile = ApplicantProfile::withTrashed()->findOrFail($id);
+        $user = Auth::user();
 
-        // Only allow if user is admin
-        $authUser = Auth::user();
-        if ($this->userHasRole($authUser, 'super-admin') || $this->userHasRole($authUser, 'admin')) {
-            // Delete CV files
-            foreach ($profile->cvs as $cv) {
-                if ($cv->cv_path && Storage::disk('public')->exists($cv->cv_path)) {
-                    Storage::disk('public')->delete($cv->cv_path);
-                }
-                $cv->forceDelete();
-            }
-
-            // Delete photo if exists
-            if ($profile->photo_path && Storage::disk('public')->exists($profile->photo_path)) {
-                Storage::disk('public')->delete($profile->photo_path);
-            }
-
-            // Delete related records
-            $profile->jobHistories()->forceDelete();
-            $profile->educationHistories()->forceDelete();
-            $profile->achievements()->forceDelete();
-
-            // Force delete the profile
-            $profile->forceDelete();
-
-            return back()->with('success', 'Profile permanently deleted.');
+        // Check if user is logged in
+        if (!$user instanceof User) {
+            abort(401);
         }
 
-        return back()->with('error', 'You do not have permission to permanently delete profiles.');
+        if (!$user->hasPermission('profiles.force_delete')) {
+            return back()->with('error', 'You do not have permission to permanently delete profiles.');
+        }
+
+        $profile = ApplicantProfile::withTrashed()->findOrFail($id);
+
+        foreach ($profile->cvs as $cv) {
+            if ($cv->cv_path && Storage::disk('public')->exists($cv->cv_path)) {
+                Storage::disk('public')->delete($cv->cv_path);
+            }
+            $cv->forceDelete();
+        }
+
+        if ($profile->photo_path && Storage::disk('public')->exists($profile->photo_path)) {
+            Storage::disk('public')->delete($profile->photo_path);
+        }
+
+        $profile->jobHistories()->forceDelete();
+        $profile->educationHistories()->forceDelete();
+        $profile->achievements()->forceDelete();
+        $profile->forceDelete();
+
+        return back()->with('success', 'Profile permanently deleted.');
     }
 
     /**
@@ -1487,15 +1564,23 @@ class ApplicantProfileController extends Controller
      */
     public function export(Request $request)
     {
+        $user = Auth::user();
+
+        // Check if user is logged in
+        if (!$user instanceof User) {
+            abort(401);
+        }
+
+        if (!$user->hasPermission('profiles.export')) {
+            return back()->with('error', 'You do not have permission to export profiles.');
+        }
+
         $request->validate([
             'format' => 'required|in:csv,xlsx',
         ]);
 
         $query = ApplicantProfile::with(['user']);
-
-        // Apply filters from request
         $this->applyFiltersToQuery($query, $request);
-
         $profiles = $query->get();
 
         if ($profiles->isEmpty()) {
@@ -1504,7 +1589,6 @@ class ApplicantProfileController extends Controller
 
         $filename = 'applicant_profiles_' . date('Y-m-d_His');
 
-        // Prepare CSV data
         $csvData = [];
         foreach ($profiles as $profile) {
             $csvData[] = [
@@ -1531,16 +1615,10 @@ class ApplicantProfileController extends Controller
             ];
         }
 
-        // Create CSV file
         $output = fopen('php://temp', 'w');
-
-        // Add UTF-8 BOM for Excel compatibility
         fprintf($output, chr(0xEF) . chr(0xBB) . chr(0xBF));
-
-        // Add headers
         fputcsv($output, array_keys($csvData[0]));
 
-        // Add data rows
         foreach ($csvData as $row) {
             fputcsv($output, $row);
         }
@@ -1570,7 +1648,15 @@ class ApplicantProfileController extends Controller
     {
         $user = Auth::user();
 
-        // Get or create profile
+        // Check if user is logged in
+        if (!$user instanceof User) {
+            abort(401);
+        }
+
+        if (!$user->hasPermission('profiles.upload_cv')) {
+            return response()->json(['error' => 'You do not have permission to upload CV.'], 403);
+        }
+
         $profile = ApplicantProfile::where('user_id', $user->id)->first();
         if (!$profile) {
             return response()->json([
@@ -1582,7 +1668,6 @@ class ApplicantProfileController extends Controller
             'cv' => 'required|file|mimes:pdf,doc,docx|max:5120',
         ]);
 
-        // Check max limit
         $activeCount = ApplicantCv::where('applicant_profile_id', $profile->id)
             ->where('status', 'active')
             ->count();
@@ -1599,14 +1684,13 @@ class ApplicantProfileController extends Controller
             ->max('order_position');
         $nextPosition = is_null($maxPosition) ? 0 : $maxPosition + 1;
 
-        // Create CV with ACTIVE status immediately (different from ProfileCompletionController)
         $cv = ApplicantCv::create([
             'applicant_profile_id' => $profile->id,
             'cv_path' => $path,
             'original_name' => $validated['cv']->getClientOriginalName(),
             'order_position' => $nextPosition,
-            'is_primary' => $activeCount === 0, // Make primary if first CV
-            'status' => 'active', // ✅ Active immediately for profile management
+            'is_primary' => $activeCount === 0,
+            'status' => 'active',
         ]);
 
         return response()->json([
@@ -1630,19 +1714,24 @@ class ApplicantProfileController extends Controller
     {
         $user = Auth::user();
 
-        // Check ownership
+        // Check if user is logged in
+        if (!$user instanceof User) {
+            abort(401);
+        }
+
         if ($cv->applicantProfile->user_id !== $user->id) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
-        // Delete file from storage
+        if (!$user->hasPermission('profiles.destroy_cv')) {
+            return response()->json(['error' => 'You do not have permission to delete CV.'], 403);
+        }
+
         if ($cv->cv_path && Storage::disk('public')->exists($cv->cv_path)) {
             Storage::disk('public')->delete($cv->cv_path);
         }
 
         $cv->forceDelete();
-
-        // Reorder remaining CVs
         ApplicantCv::reorderCvs($cv->applicant_profile_id);
 
         return response()->json([
@@ -1658,9 +1747,17 @@ class ApplicantProfileController extends Controller
     {
         $user = Auth::user();
 
-        // Check ownership
+        // Check if user is logged in
+        if (!$user instanceof User) {
+            abort(401);
+        }
+
         if ($cv->applicantProfile->user_id !== $user->id) {
             return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        if (!$user->hasPermission('profiles.set_primary_cv')) {
+            return response()->json(['error' => 'You do not have permission to set primary CV.'], 403);
         }
 
         $cv->setAsPrimary();

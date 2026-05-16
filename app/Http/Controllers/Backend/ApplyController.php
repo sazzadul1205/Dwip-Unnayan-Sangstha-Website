@@ -14,7 +14,7 @@ use App\Models\JobListing;
 use App\Models\Application;
 use App\Models\ApplicantCv;
 use App\Models\ApplicantProfile;
-
+use App\Models\User;
 // ATS Components
 use App\Services\ATSService;
 use Illuminate\Support\Facades\DB;
@@ -36,6 +36,17 @@ class ApplyController extends Controller
     public function index(Request $request)
     {
         $user = Auth::user();
+
+        // Check if user is logged in
+        if (!$user instanceof User) {
+            abort(401);
+        }
+
+        // Check permission to view own applications
+        if (!$user->hasPermission('apply.view')) {
+            return redirect()->route('unauthorized.access')
+                ->with('error', 'You do not have permission to view your applications.');
+        }
 
         // Get all applications (active and soft-deleted) with pagination
         $applications = Application::withTrashed()
@@ -101,14 +112,24 @@ class ApplyController extends Controller
      */
     public function create(string $slug)
     {
+        $user = Auth::user();
+
+        // Check if user is logged in
+        if (!$user instanceof User) {
+            abort(401);
+        }
+
+        // Check permission to create application
+        if (!$user->hasPermission('apply.create')) {
+            return redirect()->route('unauthorized.access')
+                ->with('error', 'You do not have permission to apply for jobs.');
+        }
+
         $jobListing = JobListing::where('slug', $slug)
             ->where('is_active', true)
             ->whereNull('deleted_at')
             ->where('application_deadline', '>=', now())
             ->firstOrFail();
-
-        // Get the authenticated user's profile
-        $user = Auth::user();
 
         // Get or create applicant profile
         $applicantProfile = $user->applicantProfile;
@@ -185,15 +206,25 @@ class ApplyController extends Controller
     /**
      * Store a new application
      */
-    public function store(Request $request, string  $slug)
+    public function store(Request $request, string $slug)
     {
+        $user = Auth::user();
+
+        // Check if user is logged in
+        if (!$user instanceof User) {
+            abort(401);
+        }
+
+        // Check permission to store application
+        if (!$user->hasPermission('apply.store')) {
+            return redirect()->back()->with('error', 'You do not have permission to submit applications.');
+        }
+
         $jobListing = JobListing::where('slug', $slug)
             ->where('is_active', true)
             ->whereNull('deleted_at')
             ->where('application_deadline', '>=', now())
             ->firstOrFail();
-
-        $user = Auth::user();
 
         // Check for existing application (including soft deleted)
         $existingApplication = Application::withTrashed()
@@ -402,6 +433,19 @@ class ApplyController extends Controller
      */
     public function show(int $id)
     {
+        $user = Auth::user();
+
+        // Check if user is logged in
+        if (!$user instanceof User) {
+            abort(401);
+        }
+
+        // Check permission to view own application
+        if (!$user->hasPermission('apply.show')) {
+            return redirect()->route('unauthorized.access')
+                ->with('error', 'You do not have permission to view application details.');
+        }
+
         $application = Application::withTrashed()
             ->with(['jobListing', 'jobListing.employer', 'applicantProfile'])
             ->where('user_id', Auth::id())
@@ -546,6 +590,20 @@ class ApplyController extends Controller
      */
     public function recalculateAts(int $id)
     {
+        $user = Auth::user();
+
+        // Check if user is logged in
+        if (!$user instanceof User) {
+            abort(401);
+        }
+
+        if (!$user->hasPermission('apply.recalculate_ats')) {
+            if (request()->wantsJson()) {
+                return response()->json(['error' => 'Unauthorized'], 403);
+            }
+            return redirect()->back()->with('error', 'You do not have permission to recalculate ATS scores.');
+        }
+
         $application = Application::where('user_id', Auth::id())
             ->findOrFail($id);
 
@@ -599,6 +657,18 @@ class ApplyController extends Controller
      */
     public function edit(int $id)
     {
+        $user = Auth::user();
+
+        // Check if user is logged in
+        if (!$user instanceof User) {
+            abort(401);
+        }
+
+        if (!$user->hasPermission('apply.edit')) {
+            return redirect()->route('unauthorized.access')
+                ->with('error', 'You do not have permission to edit applications.');
+        }
+
         $application = Application::with(['jobListing', 'applicantProfile'])
             ->where('user_id', Auth::id())
             ->findOrFail($id);
@@ -609,7 +679,6 @@ class ApplyController extends Controller
                 ->with('error', 'You cannot edit this application as it has already been reviewed.');
         }
 
-        $user = Auth::user();
         $applicantProfile = $application->applicantProfile ?? $user->applicantProfile;
 
         // Get user's CVs
@@ -692,6 +761,17 @@ class ApplyController extends Controller
      */
     public function update(Request $request, int $id)
     {
+        $user = Auth::user();
+
+        // Check if user is logged in
+        if (!$user instanceof User) {
+            abort(401);
+        }
+
+        if (!$user->hasPermission('apply.update')) {
+            return redirect()->back()->with('error', 'You do not have permission to update applications.');
+        }
+
         $application = Application::where('user_id', Auth::id())
             ->findOrFail($id);
 
@@ -781,6 +861,17 @@ class ApplyController extends Controller
      */
     public function getAtsStatus(int $id)
     {
+        $user = Auth::user();
+
+        // Check if user is logged in
+        if (!$user instanceof User) {
+            abort(401);
+        }
+
+        if (!$user->hasPermission('apply.ats_status')) {
+            return response()->json(['error' => 'Unauthorized'], 403);
+        }
+
         $application = Application::where('user_id', Auth::id())
             ->findOrFail($id);
 
@@ -797,6 +888,17 @@ class ApplyController extends Controller
      */
     public function destroy(int $id)
     {
+        $user = Auth::user();
+
+        // Check if user is logged in
+        if (!$user instanceof User) {
+            abort(401);
+        }
+
+        if (!$user->hasPermission('apply.destroy')) {
+            return redirect()->back()->with('error', 'You do not have permission to withdraw applications.');
+        }
+
         $application = Application::where('user_id', Auth::id())
             ->findOrFail($id);
 
@@ -827,6 +929,17 @@ class ApplyController extends Controller
      */
     public function restore(int $id)
     {
+        $user = Auth::user();
+
+        // Check if user is logged in
+        if (!$user instanceof User) {
+            abort(401);
+        }
+
+        if (!$user->hasPermission('apply.restore')) {
+            return redirect()->back()->with('error', 'You do not have permission to restore applications.');
+        }
+
         $application = Application::withTrashed()
             ->where('user_id', Auth::id())
             ->findOrFail($id);
@@ -854,6 +967,17 @@ class ApplyController extends Controller
      */
     public function forceDelete(int $id)
     {
+        $user = Auth::user();
+
+        // Check if user is logged in
+        if (!$user instanceof User) {
+            abort(401);
+        }
+
+        if (!$user->hasPermission('apply.force_delete')) {
+            return redirect()->back()->with('error', 'You do not have permission to permanently delete applications.');
+        }
+
         $application = Application::withTrashed()
             ->where('user_id', Auth::id())
             ->findOrFail($id);
@@ -864,7 +988,7 @@ class ApplyController extends Controller
         }
 
         try {
-            // Delete associated resume file if exists
+            // Delete associated resume file if exists            
             if ($application->resume_path && Storage::disk('public')->exists($application->resume_path)) {
                 Storage::disk('public')->delete($application->resume_path);
             }
@@ -897,6 +1021,16 @@ class ApplyController extends Controller
     public function trashed(Request $request)
     {
         $user = Auth::user();
+
+        // Check if user is logged in
+        if (!$user instanceof User) {
+            abort(401);
+        }
+
+        if (!$user->hasPermission('apply.trashed')) {
+            return redirect()->route('unauthorized.access')
+                ->with('error', 'You do not have permission to view trashed applications.');
+        }
 
         $query = Application::onlyTrashed()
             ->where('user_id', $user->id)

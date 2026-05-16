@@ -65,14 +65,15 @@ trait HasRoles
     foreach ($this->roles as $role) {
       if ($role->relationLoaded('permissions')) {
         foreach ($role->permissions as $permission) {
-          if ($permission->pivot->granted) {
+          // Check if granted via pivot
+          if ($permission->pivot && $permission->pivot->granted) {
             $permissions[] = $permission->slug;
           }
         }
       }
     }
 
-    return array_unique($permissions);
+    return array_unique(array_values($permissions));
   }
 
     /* =========================================================
@@ -215,25 +216,10 @@ trait HasRoles
    */
   public function hasPermission(string $permissionSlug): bool
   {
-    // Check legacy permission first (fallback)
-    if ($this->checkLegacyPermission($permissionSlug)) {
-      return true;
-    }
-
     // Check through RBAC roles
     $hasPermission = $this->roles()
-      ->join(
-        'role_permissions',
-        'roles.id',
-        '=',
-        'role_permissions.role_id'
-      )
-      ->join(
-        'permissions',
-        'role_permissions.permission_id',
-        '=',
-        'permissions.id'
-      )
+      ->join('role_permissions', 'roles.id', '=', 'role_permissions.role_id')
+      ->join('permissions', 'role_permissions.permission_id', '=', 'permissions.id')
       ->where('permissions.slug', $permissionSlug)
       ->where('role_permissions.granted', true)
       ->exists();
@@ -337,94 +323,5 @@ trait HasRoles
     $required = $levels[$requiredLevel] ?? 0;
 
     return $userLevel >= $required;
-  }
-
-    /* =========================================================
-     | LEGACY ROLE SUPPORT
-     |========================================================= */
-
-  /**
-   * Fallback permissions based on legacy role field.
-   */
-  protected function checkLegacyPermission(
-    string $permissionSlug
-  ): bool {
-    $legacyPermissions = [
-      'admin' => [
-        'profile.view.any',
-        'profile.edit.any',
-        'profile.delete.any',
-        'job.view.any',
-        'job.edit.any',
-        'job.delete.any',
-        'application.view.any',
-        'application.shortlist',
-        'application.reject',
-        'application.hire',
-        'category.view',
-        'category.create',
-        'category.edit',
-        'category.delete',
-        'location.view',
-        'location.create',
-        'location.edit',
-        'location.delete',
-        'user.view',
-        'user.create',
-        'user.edit',
-        'user.delete',
-        'role.view',
-        'role.create',
-        'role.edit',
-        'role.delete',
-        'report.jobs',
-        'report.applications',
-        'report.users',
-        'dashboard.admin',
-        'cv.view',
-        'cv.download',
-      ],
-
-      'employer' => [
-        'profile.edit.own',
-        'job.create',
-        'job.view.own',
-        'job.edit.own',
-        'job.delete.own',
-        'job.publish',
-        'application.view.for_own_jobs',
-        'application.shortlist',
-        'application.reject',
-        'application.add_notes',
-        'dashboard.employer',
-      ],
-
-      'job_seeker' => [
-        'profile.edit.own',
-        'profile.view.own',
-        'job.view.any',
-        'application.view.own',
-        'application.apply',
-        'application.withdraw',
-        'dashboard.job_seeker',
-        'cv.upload',
-        'cv.delete',
-        'cv.set_primary',
-        'cv.view',
-      ],
-    ];
-
-    /**
-     * Legacy role field from users table.
-     *
-     * @var string|null $userRole
-     */
-    $userRole = $this->role ?? null;
-
-    return in_array(
-      $permissionSlug,
-      $legacyPermissions[$userRole] ?? [],
-      true
-    );
   }
 }

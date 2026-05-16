@@ -2,7 +2,7 @@
 
 namespace App\Console\Commands;
 
-use App\Http\Controllers\JobListingController;
+use App\Http\Controllers\JobListing\JobListingController;
 use Illuminate\Console\Command;
 
 class UpdateJobStatuses extends Command

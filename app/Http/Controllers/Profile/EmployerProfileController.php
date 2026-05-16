@@ -3,12 +3,23 @@
 
 namespace App\Http\Controllers\Profile;
 
+// Controllers
 use App\Http\Controllers\Controller;
+
+// Models
 use App\Models\User;
+
+// Requests
 use Illuminate\Http\Request;
+
+// Facades
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+
+// Validation
 use Illuminate\Validation\Rule;
+
+// Inertia
 use Inertia\Inertia;
 
 class EmployerProfileController extends Controller
@@ -24,9 +35,10 @@ class EmployerProfileController extends Controller
             abort(401);
         }
 
-        // Ensure the authenticated user has employer role via RBAC
-        if (!$user->hasAnyRole(['employer-admin', 'hr-manager', 'recruiter'])) {
-            abort(403, 'Unauthorized action.');
+        // Check permission instead of role
+        if (!$user->hasPermission('employer_profile.edit')) {
+            return redirect()->route('unauthorized.access')
+                ->with('error', 'You do not have permission to edit employer profile.');
         }
 
         // Get user's highest role for display
@@ -53,8 +65,10 @@ class EmployerProfileController extends Controller
             abort(401);
         }
 
-        if (!$user->hasAnyRole(['employer-admin', 'hr-manager', 'recruiter'])) {
-            abort(403);
+        // Check permission instead of role
+        if (!$user->hasPermission('employer_profile.update')) {
+            return redirect()->route('unauthorized.access')
+                ->with('error', 'You do not have permission to update employer profile.');
         }
 
         $validated = $request->validate([
@@ -82,8 +96,10 @@ class EmployerProfileController extends Controller
             abort(401);
         }
 
-        if (!$user->hasAnyRole(['employer-admin', 'hr-manager', 'recruiter'])) {
-            abort(403);
+        // Check permission instead of role
+        if (!$user->hasPermission('employer_profile.update_password')) {
+            return redirect()->route('unauthorized.access')
+                ->with('error', 'You do not have permission to update password.');
         }
 
         $request->validate([

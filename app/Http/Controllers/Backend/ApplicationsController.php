@@ -10,11 +10,11 @@ use App\Http\Controllers\Controller;
 use App\Mail\ApplicationEmail;
 
 // Models
+use App\Models\User;
+use App\Models\Location;
+use App\Models\JobListing;
 use App\Models\Application;
 use App\Models\JobCategory;
-use App\Models\JobListing;
-use App\Models\Location;
-use App\Models\User;
 // HTTP
 use Illuminate\Http\Request;
 
@@ -22,6 +22,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 
 // Facades
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
@@ -40,6 +41,19 @@ class ApplicationsController extends Controller
      */
     public function index(Request $request)
     {
+        $user = Auth::user();
+
+        // Check if user is logged in
+        if (!$user instanceof User) {
+            abort(401);
+        }
+
+        // Check permission to view all applications
+        if (!$user->hasPermission('applications.view')) {
+            return redirect()->route('unauthorized.access')
+                ->with('error', 'You do not have permission to view applications.');
+        }
+
         $query = Application::with([
             'jobListing' => function ($q) {
                 $q->with(['category', 'locations']);
@@ -302,8 +316,21 @@ class ApplicationsController extends Controller
     /**
      * Display applications for a specific job with comprehensive filtering
      */
-    public function jobApplications(Request $request, $jobId)
+    public function jobApplications(Request $request, int $jobId)
     {
+        $user = Auth::user();
+
+        // Check if user is logged in
+        if (!$user instanceof User) {
+            abort(401);
+        }
+
+        // Check permission to view applications for jobs
+        if (!$user->hasPermission('applications.job_applications')) {
+            return redirect()->route('unauthorized.access')
+                ->with('error', 'You do not have permission to view job applications.');
+        }
+
         $job = JobListing::with('employer', 'category')->findOrFail($jobId);
 
         $query = Application::with(['applicantProfile.user', 'statusTimelines'])
@@ -511,6 +538,18 @@ class ApplicationsController extends Controller
      */
     public function show(int $id)
     {
+        $user = Auth::user();
+
+        // Check if user is logged in
+        if (!$user instanceof User) {
+            abort(401);
+        }
+
+        if (!$user->hasPermission('applications.show')) {
+            return redirect()->route('unauthorized.access')
+                ->with('error', 'You do not have permission to view application details.');
+        }
+
         $application = Application::with([
             'jobListing' => function ($q) {
                 $q->with(['employer', 'category', 'locations']);
@@ -552,6 +591,17 @@ class ApplicationsController extends Controller
      */
     public function updateStatus(Request $request, int $id)
     {
+        $user = Auth::user();
+
+        // Check if user is logged in
+        if (!$user instanceof User) {
+            abort(401);
+        }
+
+        if (!$user->hasPermission('applications.status.update')) {
+            return redirect()->back()->with('error', 'You do not have permission to update application status.');
+        }
+
         $request->validate([
             'status' => 'required|in:pending,shortlisted,rejected,hired',
             'notes' => 'nullable|string'
@@ -568,6 +618,17 @@ class ApplicationsController extends Controller
      */
     public function bulkUpdateStatus(Request $request)
     {
+        $user = Auth::user();
+
+        // Check if user is logged in
+        if (!$user instanceof User) {
+            abort(401);
+        }
+
+        if (!$user->hasPermission('applications.bulk_status.update')) {
+            return redirect()->back()->with('error', 'You do not have permission to bulk update application status.');
+        }
+
         $request->validate([
             'application_ids' => 'required|array',
             'application_ids.*' => 'exists:applications,id',
@@ -591,6 +652,17 @@ class ApplicationsController extends Controller
      */
     public function destroy(int $id)
     {
+        $user = Auth::user();
+
+        // Check if user is logged in
+        if (!$user instanceof User) {
+            abort(401);
+        }
+
+        if (!$user->hasPermission('applications.destroy')) {
+            return redirect()->back()->with('error', 'You do not have permission to delete applications.');
+        }
+
         $application = Application::findOrFail($id);
         $application->delete();
 
@@ -602,6 +674,17 @@ class ApplicationsController extends Controller
      */
     public function bulkDelete(Request $request)
     {
+        $user = Auth::user();
+
+        // Check if user is logged in
+        if (!$user instanceof User) {
+            abort(401);
+        }
+
+        if (!$user->hasPermission('applications.bulk_delete')) {
+            return redirect()->back()->with('error', 'You do not have permission to bulk delete applications.');
+        }
+
         $request->validate([
             'application_ids' => 'required|array',
             'application_ids.*' => 'exists:applications,id',
@@ -617,6 +700,17 @@ class ApplicationsController extends Controller
      */
     public function restore(int $id)
     {
+        $user = Auth::user();
+
+        // Check if user is logged in
+        if (!$user instanceof User) {
+            abort(401);
+        }
+
+        if (!$user->hasPermission('applications.restore')) {
+            return redirect()->back()->with('error', 'You do not have permission to restore applications.');
+        }
+
         $application = Application::withTrashed()->findOrFail($id);
         $application->restore();
 
@@ -628,6 +722,17 @@ class ApplicationsController extends Controller
      */
     public function bulkRestore(Request $request)
     {
+        $user = Auth::user();
+
+        // Check if user is logged in
+        if (!$user instanceof User) {
+            abort(401);
+        }
+
+        if (!$user->hasPermission('applications.bulk_restore')) {
+            return redirect()->back()->with('error', 'You do not have permission to bulk restore applications.');
+        }
+
         $request->validate([
             'application_ids' => 'required|array',
             'application_ids.*' => 'exists:applications,id',
@@ -645,6 +750,17 @@ class ApplicationsController extends Controller
      */
     public function forceDelete(int $id)
     {
+        $user = Auth::user();
+
+        // Check if user is logged in
+        if (!$user instanceof User) {
+            abort(401);
+        }
+
+        if (!$user->hasPermission('applications.force_delete')) {
+            return redirect()->back()->with('error', 'You do not have permission to permanently delete applications.');
+        }
+
         $application = Application::withTrashed()->findOrFail($id);
 
         // Delete resume file if exists
@@ -663,6 +779,17 @@ class ApplicationsController extends Controller
      */
     public function downloadResume(int $id)
     {
+        $user = Auth::user();
+
+        // Check if user is logged in
+        if (!$user instanceof User) {
+            abort(401);
+        }
+
+        if (!$user->hasPermission('applications.download_resume')) {
+            return redirect()->back()->with('error', 'You do not have permission to download resumes.');
+        }
+
         $application = Application::findOrFail($id);
         $resumePath = $application->getActualResumePath();
 
@@ -699,6 +826,17 @@ class ApplicationsController extends Controller
      */
     public function bulkDownloadResumes(Request $request)
     {
+        $user = Auth::user();
+
+        // Check if user is logged in
+        if (!$user instanceof User) {
+            abort(401);
+        }
+
+        if (!$user->hasPermission('applications.bulk_download_resumes')) {
+            return redirect()->back()->with('error', 'You do not have permission to bulk download resumes.');
+        }
+
         $request->validate([
             'application_ids' => 'required|array',
             'application_ids.*' => 'exists:applications,id'
@@ -978,6 +1116,17 @@ class ApplicationsController extends Controller
      */
     public function sendEmail(Request $request, int $id)
     {
+        $user = Auth::user();
+
+        // Check if user is logged in
+        if (!$user instanceof User) {
+            abort(401);
+        }
+
+        if (!$user->hasPermission('applications.email.send')) {
+            return response()->json(['error' => 'You do not have permission to send emails.'], 403);
+        }
+
         $request->validate([
             'subject' => 'required|string|max:255',
             'content' => 'required|string',
@@ -1030,6 +1179,17 @@ class ApplicationsController extends Controller
      */
     public function sendBulkEmail(Request $request)
     {
+        $user = Auth::user();
+
+        // Check if user is logged in
+        if (!$user instanceof User) {
+            abort(401);
+        }
+
+        if (!$user->hasPermission('applications.bulk_email.send')) {
+            return response()->json(['error' => 'You do not have permission to send bulk emails.'], 403);
+        }
+
         $request->validate([
             'application_ids' => 'required|array',
             'application_ids.*' => 'exists:applications,id',
@@ -1100,6 +1260,17 @@ class ApplicationsController extends Controller
      */
     public function exportApplications(Request $request, $jobId = null)
     {
+        $user = Auth::user();
+
+        // Check if user is logged in
+        if (!$user instanceof User) {
+            abort(401);
+        }
+
+        if (!$user->hasPermission('applications.export')) {
+            return redirect()->back()->with('error', 'You do not have permission to export applications.');
+        }
+
         $request->validate([
             'status' => 'nullable|in:pending,shortlisted,rejected,hired',
             'search' => 'nullable|string',
@@ -1185,6 +1356,17 @@ class ApplicationsController extends Controller
      */
     public function exportSingleApplication(Request $request, int $id)
     {
+        $user = Auth::user();
+
+        // Check if user is logged in
+        if (!$user instanceof User) {
+            abort(401);
+        }
+
+        if (!$user->hasPermission('applications.export_single')) {
+            return redirect()->back()->with('error', 'You do not have permission to export application.');
+        }
+
         $request->validate([
             'format' => 'required|in:csv,xlsx',
         ]);
@@ -1262,6 +1444,20 @@ class ApplicationsController extends Controller
      */
     public function recalculateAts(int $id)
     {
+        $user = Auth::user();
+
+        // Check if user is logged in
+        if (!$user instanceof User) {
+            abort(401);
+        }
+
+        if (!$user->hasPermission('applications.recalculate_ats')) {
+            if (request()->header('X-Inertia')) {
+                return redirect()->back()->with('error', 'You do not have permission to recalculate ATS scores.');
+            }
+            return response()->json(['error' => 'Unauthorized'], 403);
+        }
+
         $application = Application::with('jobListing')->findOrFail($id);
 
         if (!$application->jobListing) {

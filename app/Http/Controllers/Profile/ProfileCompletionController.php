@@ -35,32 +35,21 @@ class ProfileCompletionController extends Controller
     }
 
     /**
-     * Helper method to check user role safely
-     */
-    private function userHasRole(?User $user, string $roleSlug): bool
-    {
-        if (!$user) {
-            return false;
-        }
-
-        if (method_exists($user, 'hasRole')) {
-            return $user->hasRole($roleSlug);
-        }
-
-        // Fallback to direct relationship check
-        return $user->roles()->where('slug', $roleSlug)->exists();
-    }
-
-    /**
      * Show the profile completion page.
      */
     public function show(): Response|RedirectResponse
     {
         $user = Auth::user();
 
-        // Check if user is a job seeker via RBAC using safe method
-        if (!$this->userHasRole($user, 'job-seeker')) {
-            return redirect()->route('dashboard');
+        // Check if user is logged in
+        if (!$user instanceof User) {
+            abort(401);
+        }
+
+        // Check if user has permission to complete profile (job seekers only)
+        if (!$user->hasPermission('profile_completion.show')) {
+            return redirect()->route('dashboard')
+                ->with('error', 'You do not have permission to access profile completion.');
         }
 
         $profile = ApplicantProfile::where('user_id', $user->id)->first();
@@ -126,7 +115,7 @@ class ProfileCompletionController extends Controller
                 'social_links' => $profile->social_links ?? [],
                 'experience_years' => $profile->experience_years,
                 'current_job_title' => $profile->current_job_title,
-                'photo_path' => $profile->photo_path ?? null, // FIXED: Changed from $validated to $profile
+                'photo_path' => $profile->photo_path ?? null,
                 'cvs' => $profile->cvs->map(function ($cv) {
                     return [
                         'id' => $cv->id,
@@ -178,8 +167,15 @@ class ProfileCompletionController extends Controller
     {
         $user = Auth::user();
 
-        if (!$this->userHasRole($user, 'job-seeker')) {
-            return redirect()->route('dashboard');
+        // Check if user is logged in
+        if (!$user instanceof User) {
+            abort(401);
+        }
+
+        // Check permission to complete profile
+        if (!$user->hasPermission('profile_completion.store')) {
+            return redirect()->route('dashboard')
+                ->with('error', 'You do not have permission to complete profile.');
         }
 
         $validated = $request->validate([
@@ -261,7 +257,6 @@ class ProfileCompletionController extends Controller
 
                 // Update photo separately if provided
                 if ($photoPath) {
-                    // Delete old photo if exists
                     if ($profile->photo_path && Storage::disk('public')->exists($profile->photo_path)) {
                         Storage::disk('public')->delete($profile->photo_path);
                     }
@@ -285,7 +280,6 @@ class ProfileCompletionController extends Controller
                     $this->handleAchievements($profile->id, $validated['achievements']);
                 }
 
-                // Once profile is completed, activate any pending CVs
                 $this->activatePendingCvs($profile->id);
             });
 
@@ -322,6 +316,15 @@ class ProfileCompletionController extends Controller
     {
         $user = Auth::user();
 
+        // Check if user is logged in
+        if (!$user instanceof User) {
+            abort(401);
+        }
+
+        if (!$user->hasPermission('profile_completion.upload_photo')) {
+            return response()->json(['error' => 'You do not have permission to upload photo.'], 403);
+        }
+
         $request->validate([
             'photo' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
@@ -331,7 +334,6 @@ class ProfileCompletionController extends Controller
             $this->placeholderProfileData($user)
         );
 
-        // Delete old photo if exists
         if ($profile->photo_path && Storage::disk('public')->exists($profile->photo_path)) {
             Storage::disk('public')->delete($profile->photo_path);
         }
@@ -356,6 +358,16 @@ class ProfileCompletionController extends Controller
     public function deletePhoto(Request $request)
     {
         $user = Auth::user();
+
+        // Check if user is logged in
+        if (!$user instanceof User) {
+            abort(401);
+        }
+
+        if (!$user->hasPermission('profile_completion.delete_photo')) {
+            return response()->json(['error' => 'You do not have permission to delete photo.'], 403);
+        }
+
         $profile = ApplicantProfile::where('user_id', $user->id)->first();
 
         if ($profile && $profile->photo_path) {
@@ -424,7 +436,6 @@ class ProfileCompletionController extends Controller
 
             // Upload new CV
             if (isset($cvData['file']) && $cvData['file'] instanceof UploadedFile) {
-                // Check max limit before creating
                 if ($activeCount >= ApplicantCv::MAX_CVS_PER_PROFILE) {
                     throw ValidationException::withMessages([
                         'cvs' => sprintf('Maximum %d active CVs allowed.', ApplicantCv::MAX_CVS_PER_PROFILE)
@@ -451,7 +462,6 @@ class ProfileCompletionController extends Controller
             }
         }
 
-        // Reorder CVs after changes
         ApplicantCv::reorderCvs($profileId);
     }
 
@@ -462,6 +472,15 @@ class ProfileCompletionController extends Controller
     {
         $user = Auth::user();
 
+        // Check if user is logged in
+        if (!$user instanceof User) {
+            abort(401);
+        }
+
+        if (!$user->hasPermission('profile_completion.upload_cv')) {
+            return response()->json(['error' => 'You do not have permission to upload CV.'], 403);
+        }
+
         $validated = $request->validate([
             'cv' => 'required|file|mimes:pdf,doc,docx|max:5120',
         ]);
@@ -471,7 +490,6 @@ class ProfileCompletionController extends Controller
             $this->placeholderProfileData($user)
         );
 
-        // Check max limit
         if (ApplicantCv::hasReachedMaxEntries($profile->id, true)) {
             return response()->json([
                 'message' => sprintf('Maximum %d CVs reached.', ApplicantCv::MAX_CVS_PER_PROFILE),
@@ -513,8 +531,17 @@ class ProfileCompletionController extends Controller
     {
         $user = Auth::user();
 
+        // Check if user is logged in
+        if (!$user instanceof User) {
+            abort(401);
+        }
+
         if ($cv->applicantProfile?->user_id !== $user->id) {
             abort(403);
+        }
+
+        if (!$user->hasPermission('profile_completion.destroy_cv')) {
+            return back()->with('error', 'You do not have permission to delete CV.');
         }
 
         if ($cv->cv_path && Storage::disk('public')->exists($cv->cv_path)) {
@@ -534,8 +561,17 @@ class ProfileCompletionController extends Controller
     {
         $user = Auth::user();
 
+        // Check if user is logged in
+        if (!$user instanceof User) {
+            abort(401);
+        }
+
         if ($cv->applicantProfile?->user_id !== $user->id) {
             abort(403);
+        }
+
+        if (!$user->hasPermission('profile_completion.set_primary_cv')) {
+            return back()->with('error', 'You do not have permission to set primary CV.');
         }
 
         if ($cv->status !== 'active') {
@@ -560,7 +596,6 @@ class ProfileCompletionController extends Controller
             ->where('status', 'active')
             ->count();
 
-        // Calculate how many can be activated (max 3 total)
         $canActivate = min($pendingCount, ApplicantCv::MAX_CVS_PER_PROFILE - $activeCount);
 
         if ($canActivate > 0) {
@@ -571,7 +606,6 @@ class ProfileCompletionController extends Controller
 
             ApplicantCv::reorderCvs($profileId);
 
-            // Ensure there's a primary CV
             $primary = ApplicantCv::getPrimaryCv($profileId);
             if (!$primary) {
                 $first = ApplicantCv::where('applicant_profile_id', $profileId)
@@ -605,7 +639,7 @@ class ProfileCompletionController extends Controller
     }
 
     /**
-     * Handle Job Histories with max limit validation - FIXED
+     * Handle Job Histories with max limit validation
      */
     private function handleJobHistories(int $profileId, array $jobs): void
     {
@@ -644,7 +678,6 @@ class ProfileCompletionController extends Controller
                 }
             }
 
-            // Create new entry
             if (($existingCount + $newCount) >= JobHistory::MAX_ENTRIES_PER_PROFILE) {
                 throw ValidationException::withMessages([
                     'job_histories' => sprintf('Maximum %d job history entries allowed.', JobHistory::MAX_ENTRIES_PER_PROFILE)
@@ -657,7 +690,7 @@ class ProfileCompletionController extends Controller
     }
 
     /**
-     * Handle Education Histories with max limit validation - FIXED
+     * Handle Education Histories with max limit validation
      */
     private function handleEducationHistories(int $profileId, array $educations): void
     {
@@ -690,7 +723,6 @@ class ProfileCompletionController extends Controller
                 }
             }
 
-            // Create new entry
             if (($existingCount + $newCount) >= EducationHistory::MAX_ENTRIES_PER_PROFILE) {
                 throw ValidationException::withMessages([
                     'education_histories' => sprintf('Maximum %d education history entries allowed.', EducationHistory::MAX_ENTRIES_PER_PROFILE)
@@ -703,7 +735,7 @@ class ProfileCompletionController extends Controller
     }
 
     /**
-     * Handle Achievements with max limit validation - FIXED
+     * Handle Achievements with max limit validation
      */
     private function handleAchievements(int $profileId, array $achievements): void
     {
@@ -735,7 +767,6 @@ class ProfileCompletionController extends Controller
                 }
             }
 
-            // Create new entry
             if (($existingCount + $newCount) >= Achievement::MAX_ACHIEVEMENTS_PER_PROFILE) {
                 throw ValidationException::withMessages([
                     'achievements' => sprintf('Maximum %d achievements allowed.', Achievement::MAX_ACHIEVEMENTS_PER_PROFILE)

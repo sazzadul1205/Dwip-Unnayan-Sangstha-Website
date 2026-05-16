@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Backend;
 use App\Http\Controllers\Controller;
 use App\Models\Role;
 use App\Models\Permission;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -35,6 +36,19 @@ class RoleController extends Controller
      */
     public function index(Request $request)
     {
+        $user = Auth::user();
+
+        // Check if user is logged in
+        if (!$user instanceof User) {
+            abort(401);
+        }
+
+        // Check permission to view roles
+        if (!$user->hasPermission('roles.view')) {
+            return redirect()->route('unauthorized.access')
+                ->with('error', 'You do not have permission to view roles.');
+        }
+
         $query = Role::with(['creator', 'updater']);
 
         // Filter by status
@@ -115,6 +129,19 @@ class RoleController extends Controller
      */
     public function create()
     {
+        $user = Auth::user();
+
+        // Check if user is logged in
+        if (!$user instanceof User) {
+            abort(401);
+        }
+
+        // Check permission to create role
+        if (!$user->hasPermission('roles.create')) {
+            return redirect()->route('unauthorized.access')
+                ->with('error', 'You do not have permission to create roles.');
+        }
+
         // Get all permissions grouped by module
         $permissions = Permission::active()
             ->orderBy('module')
@@ -157,6 +184,18 @@ class RoleController extends Controller
      */
     public function store(Request $request)
     {
+        $user = Auth::user();
+
+        // Check if user is logged in
+        if (!$user instanceof User) {
+            abort(401);
+        }
+
+        // Check permission to store role
+        if (!$user->hasPermission('roles.store')) {
+            return redirect()->back()->with('error', 'You do not have permission to store roles.');
+        }
+
         $validated = $request->validate([
             'name' => 'required|string|max:255|unique:roles,name',
             'slug' => 'required|string|max:255|unique:roles,slug|regex:/^[a-z0-9-]+$/',
@@ -230,6 +269,19 @@ class RoleController extends Controller
      */
     public function show(int $id)
     {
+        $user = Auth::user();
+
+        // Check if user is logged in
+        if (!$user instanceof User) {
+            abort(401);
+        }
+
+        // Check permission to show role
+        if (!$user->hasPermission('roles.show')) {
+            return redirect()->route('unauthorized.access')
+                ->with('error', 'You do not have permission to view role details.');
+        }
+
         $role = Role::with(['creator', 'updater'])
             ->withTrashed()
             ->findOrFail($id);
@@ -316,6 +368,19 @@ class RoleController extends Controller
      */
     public function edit(int $id)
     {
+        $user = Auth::user();
+
+        // Check if user is logged in
+        if (!$user instanceof User) {
+            abort(401);
+        }
+
+        // Check permission to edit role
+        if (!$user->hasPermission('roles.edit')) {
+            return redirect()->route('unauthorized.access')
+                ->with('error', 'You do not have permission to edit roles.');
+        }
+
         $role = Role::findOrFail($id);
 
         if ($this->roleIsNonDeletable($role)) {
@@ -397,6 +462,18 @@ class RoleController extends Controller
      */
     public function update(Request $request, int $id)
     {
+        $user = Auth::user();
+
+        // Check if user is logged in
+        if (!$user instanceof User) {
+            abort(401);
+        }
+
+        // Check permission to update role
+        if (!$user->hasPermission('roles.update')) {
+            return redirect()->back()->with('error', 'You do not have permission to update roles.');
+        }
+
         $role = Role::findOrFail($id);
 
         if ($this->roleIsNonDeletable($role)) {
@@ -476,6 +553,18 @@ class RoleController extends Controller
      */
     public function destroy(int $id)
     {
+        $user = Auth::user();
+
+        // Check if user is logged in
+        if (!$user instanceof User) {
+            abort(401);
+        }
+
+        // Check permission to delete role
+        if (!$user->hasPermission('roles.destroy')) {
+            return redirect()->back()->with('error', 'You do not have permission to delete roles.');
+        }
+
         $role = Role::findOrFail($id);
 
         // Prevent deleting system roles
@@ -532,6 +621,18 @@ class RoleController extends Controller
      */
     public function restore(int $id)
     {
+        $user = Auth::user();
+
+        // Check if user is logged in
+        if (!$user instanceof User) {
+            abort(401);
+        }
+
+        // Check permission to restore role
+        if (!$user->hasPermission('roles.restore')) {
+            return redirect()->back()->with('error', 'You do not have permission to restore roles.');
+        }
+
         $role = Role::onlyTrashed()->findOrFail($id);
 
         try {
@@ -560,6 +661,19 @@ class RoleController extends Controller
      */
     public function trashed(Request $request)
     {
+        $user = Auth::user();
+
+        // Check if user is logged in
+        if (!$user instanceof User) {
+            abort(401);
+        }
+
+        // Check permission to view trashed roles
+        if (!$user->hasPermission('roles.trashed')) {
+            return redirect()->route('unauthorized.access')
+                ->with('error', 'You do not have permission to view trashed roles.');
+        }
+
         $query = Role::onlyTrashed()->with(['creator', 'updater']);
 
         // Search
@@ -604,6 +718,18 @@ class RoleController extends Controller
      */
     public function forceDelete(int $id)
     {
+        $user = Auth::user();
+
+        // Check if user is logged in
+        if (!$user instanceof User) {
+            abort(401);
+        }
+
+        // Check permission to force delete role
+        if (!$user->hasPermission('roles.force_delete')) {
+            return redirect()->back()->with('error', 'You do not have permission to permanently delete roles.');
+        }
+
         $role = Role::onlyTrashed()->findOrFail($id);
 
         // Prevent force deleting system roles
@@ -647,6 +773,18 @@ class RoleController extends Controller
      */
     public function bulkDelete(Request $request)
     {
+        $user = Auth::user();
+
+        // Check if user is logged in
+        if (!$user instanceof User) {
+            abort(401);
+        }
+
+        // Check permission for bulk delete
+        if (!$user->hasPermission('roles.bulk_delete')) {
+            return redirect()->back()->with('error', 'You do not have permission to bulk delete roles.');
+        }
+
         $request->validate([
             'role_ids' => 'required|array',
             'role_ids.*' => 'exists:roles,id',
@@ -702,6 +840,18 @@ class RoleController extends Controller
      */
     public function bulkRestore(Request $request)
     {
+        $user = Auth::user();
+
+        // Check if user is logged in
+        if (!$user instanceof User) {
+            abort(401);
+        }
+
+        // Check permission for bulk restore
+        if (!$user->hasPermission('roles.bulk_restore')) {
+            return redirect()->back()->with('error', 'You do not have permission to bulk restore roles.');
+        }
+
         $request->validate([
             'role_ids' => 'required|array',
             'role_ids.*' => 'exists:roles,id',
@@ -725,6 +875,21 @@ class RoleController extends Controller
      */
     public function toggleStatus(int $id)
     {
+        $user = Auth::user();
+
+        // Check if user is logged in
+        if (!$user instanceof User) {
+            abort(401);
+        }
+
+        // Check permission to toggle role status
+        if (!$user->hasPermission('roles.toggle_status')) {
+            if (request()->wantsJson()) {
+                return response()->json(['error' => 'Unauthorized'], 403);
+            }
+            return redirect()->back()->with('error', 'You do not have permission to change role status.');
+        }
+
         $role = Role::findOrFail($id);
 
         // Prevent toggling protected system roles
@@ -765,6 +930,18 @@ class RoleController extends Controller
      */
     public function clone(int $id)
     {
+        $user = Auth::user();
+
+        // Check if user is logged in
+        if (!$user instanceof User) {
+            abort(401);
+        }
+
+        // Check permission to clone role
+        if (!$user->hasPermission('roles.clone')) {
+            return redirect()->back()->with('error', 'You do not have permission to clone roles.');
+        }
+
         $originalRole = Role::with(['grantedPermissions', 'moduleAccess'])->findOrFail($id);
 
         if ($this->roleIsNonDeletable($originalRole)) {
@@ -836,6 +1013,18 @@ class RoleController extends Controller
      */
     public function export(Request $request)
     {
+        $user = Auth::user();
+
+        // Check if user is logged in
+        if (!$user instanceof User) {
+            abort(401);
+        }
+
+        // Check permission to export roles
+        if (!$user->hasPermission('roles.export')) {
+            return redirect()->back()->with('error', 'You do not have permission to export roles.');
+        }
+
         $query = Role::with(['creator', 'updater']);
 
         // Apply filters similar to index

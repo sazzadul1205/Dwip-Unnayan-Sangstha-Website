@@ -25,6 +25,10 @@ class PublicJobListingController extends Controller
      */
     public function index(Request $request)
     {
+        // Public access - no permission check needed
+        // But we check if user is logged in for personalized features
+        $user = Auth::user();
+
         // Base query - only active, non-deleted jobs with upcoming deadlines
         $query = JobListing::where('is_active', true)
             ->whereNull('deleted_at')
@@ -50,14 +54,14 @@ class PublicJobListingController extends Controller
             });
         }
 
-        // Category filter (by slug) - FIXED: Use id instead of slug
+        // Category filter (by slug)
         if ($request->filled('category')) {
             $query->whereHas('category', function ($q) use ($request) {
                 $q->where('slug', $request->category);
             });
         }
 
-        // Location filter (by id) - FIXED: Use proper relationship query
+        // Location filter (by id)
         if ($request->filled('location')) {
             $query->whereHas('locations', function ($q) use ($request) {
                 $q->where('locations.id', $request->location);
@@ -264,8 +268,11 @@ class PublicJobListingController extends Controller
     /**
      * Display a single job listing and register a view
      */
-    public function show($slug)
+    public function show(string $slug)
     {
+        // Public access - no permission check needed
+        $user = Auth::user();
+
         $jobListing = JobListing::where('slug', $slug)
             ->where('is_active', true)
             ->whereNull('deleted_at')
@@ -286,7 +293,6 @@ class PublicJobListingController extends Controller
         if (!$alreadyViewed) {
             JobView::recordView($jobListing->id, Auth::id(), $ipAddress);
             $jobListing->incrementViews();
-            // Refresh the views count
             $jobListing->refresh();
         }
 
@@ -423,6 +429,9 @@ class PublicJobListingController extends Controller
      */
     public function popular()
     {
+        // Public API endpoint - no strict permission needed
+        // But we can add optional authentication check if needed
+
         $popularJobs = JobListing::where('is_active', true)
             ->whereNull('deleted_at')
             ->where('application_deadline', '>=', now())
@@ -454,6 +463,8 @@ class PublicJobListingController extends Controller
      */
     public function trending()
     {
+        // Public API endpoint - no strict permission needed
+
         $trendingJobs = JobListing::where('is_active', true)
             ->whereNull('deleted_at')
             ->where('application_deadline', '>=', now())

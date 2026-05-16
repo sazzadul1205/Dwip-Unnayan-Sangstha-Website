@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Backend;
 
 use App\Http\Controllers\Controller;
 use App\Models\JobCategory;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
@@ -17,6 +18,19 @@ class JobCategoryController extends Controller
      */
     public function index(Request $request)
     {
+        $user = Auth::user();
+
+        // Check if user is logged in
+        if (!$user instanceof User) {
+            abort(401);
+        }
+
+        // Check permission to view categories
+        if (!$user->hasPermission('categories.view')) {
+            return redirect()->route('unauthorized.access')
+                ->with('error', 'You do not have permission to view categories.');
+        }
+
         $query = JobCategory::withTrashed();
 
         // Filter by status
@@ -69,6 +83,18 @@ class JobCategoryController extends Controller
      */
     public function store(Request $request)
     {
+        $user = Auth::user();
+
+        // Check if user is logged in
+        if (!$user instanceof User) {
+            abort(401);
+        }
+
+        // Check permission to create category
+        if (!$user->hasPermission('categories.create')) {
+            return redirect()->back()->with('error', 'You do not have permission to create categories.');
+        }
+
         $validated = $request->validate([
             'name' => 'required|string|max:255|unique:job_categories,name',
             'is_active' => 'boolean',
@@ -95,6 +121,18 @@ class JobCategoryController extends Controller
      */
     public function update(Request $request, int|string $category)
     {
+        $user = Auth::user();
+
+        // Check if user is logged in
+        if (!$user instanceof User) {
+            abort(401);
+        }
+
+        // Check permission to edit category
+        if (!$user->hasPermission('categories.edit')) {
+            return redirect()->back()->with('error', 'You do not have permission to edit categories.');
+        }
+
         $jobCategory = JobCategory::findOrFail($category);
 
         $validated = $request->validate([
@@ -140,6 +178,18 @@ class JobCategoryController extends Controller
      */
     public function destroy(int|string $category)
     {
+        $user = Auth::user();
+
+        // Check if user is logged in
+        if (!$user instanceof User) {
+            abort(401);
+        }
+
+        // Check permission to delete category
+        if (!$user->hasPermission('categories.delete')) {
+            return redirect()->back()->with('error', 'You do not have permission to delete categories.');
+        }
+
         $jobCategory = JobCategory::findOrFail($category);
 
         // Check if category has related job listings
@@ -180,6 +230,18 @@ class JobCategoryController extends Controller
      */
     public function toggleActive(int|string $category)
     {
+        $user = Auth::user();
+
+        // Check if user is logged in
+        if (!$user instanceof User) {
+            abort(401);
+        }
+
+        // Check permission to toggle category status
+        if (!$user->hasPermission('categories.toggle_active')) {
+            return redirect()->back()->with('error', 'You do not have permission to change category status.');
+        }
+
         $jobCategory = JobCategory::findOrFail($category);
 
         try {
@@ -209,6 +271,18 @@ class JobCategoryController extends Controller
      */
     public function restore(int $id)
     {
+        $user = Auth::user();
+
+        // Check if user is logged in
+        if (!$user instanceof User) {
+            abort(401);
+        }
+
+        // Check permission to restore category
+        if (!$user->hasPermission('categories.restore')) {
+            return redirect()->back()->with('error', 'You do not have permission to restore categories.');
+        }
+
         $category = JobCategory::onlyTrashed()->findOrFail($id);
 
         // Check if restoring would cause duplicate name/slug
@@ -246,6 +320,18 @@ class JobCategoryController extends Controller
      */
     public function forceDelete(int $id)
     {
+        $user = Auth::user();
+
+        // Check if user is logged in
+        if (!$user instanceof User) {
+            abort(401);
+        }
+
+        // Check permission to force delete category
+        if (!$user->hasPermission('categories.force_delete')) {
+            return redirect()->back()->with('error', 'You do not have permission to permanently delete categories.');
+        }
+
         $category = JobCategory::onlyTrashed()->findOrFail($id);
 
         // Check if category has related job listings
@@ -281,6 +367,18 @@ class JobCategoryController extends Controller
      */
     public function bulkDelete(Request $request)
     {
+        $user = Auth::user();
+
+        // Check if user is logged in
+        if (!$user instanceof User) {
+            abort(401);
+        }
+
+        // Check permission for bulk delete
+        if (!$user->hasPermission('categories.bulk_delete')) {
+            return redirect()->back()->with('error', 'You do not have permission to bulk delete categories.');
+        }
+
         $request->validate([
             'category_ids' => 'required|array',
             'category_ids.*' => 'exists:job_categories,id',
@@ -334,6 +432,18 @@ class JobCategoryController extends Controller
      */
     public function bulkRestore(Request $request)
     {
+        $user = Auth::user();
+
+        // Check if user is logged in
+        if (!$user instanceof User) {
+            abort(401);
+        }
+
+        // Check permission for bulk restore
+        if (!$user->hasPermission('categories.bulk_restore')) {
+            return redirect()->back()->with('error', 'You do not have permission to bulk restore categories.');
+        }
+
         $request->validate([
             'category_ids' => 'required|array',
             'category_ids.*' => 'exists:job_categories,id',
@@ -357,6 +467,18 @@ class JobCategoryController extends Controller
      */
     public function bulkForceDelete(Request $request)
     {
+        $user = Auth::user();
+
+        // Check if user is logged in
+        if (!$user instanceof User) {
+            abort(401);
+        }
+
+        // Check permission for bulk force delete
+        if (!$user->hasPermission('categories.bulk_force_delete')) {
+            return redirect()->back()->with('error', 'You do not have permission to permanently delete categories.');
+        }
+
         $request->validate([
             'category_ids' => 'required|array',
             'category_ids.*' => 'exists:job_categories,id',
@@ -410,6 +532,18 @@ class JobCategoryController extends Controller
      */
     public function bulkActivate(Request $request)
     {
+        $user = Auth::user();
+
+        // Check if user is logged in
+        if (!$user instanceof User) {
+            abort(401);
+        }
+
+        // Check permission for bulk activate
+        if (!$user->hasPermission('categories.bulk_activate')) {
+            return redirect()->back()->with('error', 'You do not have permission to bulk activate categories.');
+        }
+
         $request->validate([
             'category_ids' => 'required|array',
             'category_ids.*' => 'exists:job_categories,id',
@@ -433,6 +567,18 @@ class JobCategoryController extends Controller
      */
     public function bulkDeactivate(Request $request)
     {
+        $user = Auth::user();
+
+        // Check if user is logged in
+        if (!$user instanceof User) {
+            abort(401);
+        }
+
+        // Check permission for bulk deactivate
+        if (!$user->hasPermission('categories.bulk_deactivate')) {
+            return redirect()->back()->with('error', 'You do not have permission to bulk deactivate categories.');
+        }
+
         $request->validate([
             'category_ids' => 'required|array',
             'category_ids.*' => 'exists:job_categories,id',
@@ -456,6 +602,18 @@ class JobCategoryController extends Controller
      */
     public function getActiveCategories()
     {
+        // Public AJAX endpoint - check if user is authenticated at least
+        $user = Auth::user();
+
+        // Check if user is logged in
+        if (!$user instanceof User) {
+            abort(401);
+        }
+
+        if (!$user || !$user->hasPermission('categories.get_active')) {
+            return response()->json(['error' => 'Unauthorized'], 403);
+        }
+
         $categories = JobCategory::active()
             ->orderBy('name')
             ->get(['id', 'name', 'slug']);

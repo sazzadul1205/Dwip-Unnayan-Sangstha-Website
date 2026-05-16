@@ -19,6 +19,19 @@ class UserController extends Controller
      */
     public function index(Request $request)
     {
+        $user = Auth::user();
+
+        // Check if user is logged in
+        if (!$user instanceof User) {
+            abort(401);
+        }
+
+        // Check permission to view users
+        if (!$user->hasPermission('users.view')) {
+            return redirect()->route('unauthorized.access')
+                ->with('error', 'You do not have permission to view users.');
+        }
+
         $query = User::withTrashed()->with('roles');
 
         // Filter by status (active/deleted)
@@ -118,6 +131,18 @@ class UserController extends Controller
      */
     public function store(Request $request)
     {
+        $user = Auth::user();
+
+        // Check if user is logged in
+        if (!$user instanceof User) {
+            abort(401);
+        }
+
+        // Check permission to create user
+        if (!$user->hasPermission('users.create')) {
+            return redirect()->back()->with('error', 'You do not have permission to create users.');
+        }
+
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
@@ -164,6 +189,18 @@ class UserController extends Controller
      */
     public function update(Request $request, int $id)
     {
+        $authUser = Auth::user();
+
+        // Check if user is logged in
+        if (!$authUser instanceof User) {
+            abort(401);
+        }
+
+        // Check permission to update user
+        if (!$authUser->hasPermission('users.update')) {
+            return redirect()->back()->with('error', 'You do not have permission to update users.');
+        }
+
         $user = User::findOrFail($id);
 
         $validated = $request->validate([
@@ -212,6 +249,18 @@ class UserController extends Controller
      */
     public function verify(int $id)
     {
+        $authUser = Auth::user();
+
+        // Check if user is logged in
+        if (!$authUser instanceof User) {
+            abort(401);
+        }
+
+        // Check permission to verify user
+        if (!$authUser->hasPermission('users.verify')) {
+            return redirect()->back()->with('error', 'You do not have permission to verify users.');
+        }
+
         $user = User::findOrFail($id);
 
         if ($user->email_verified_at) {
@@ -236,6 +285,18 @@ class UserController extends Controller
      */
     public function destroy(int $id)
     {
+        $authUser = Auth::user();
+
+        // Check if user is logged in
+        if (!$authUser instanceof User) {
+            abort(401);
+        }
+
+        // Check permission to delete user
+        if (!$authUser->hasPermission('users.destroy')) {
+            return redirect()->back()->with('error', 'You do not have permission to delete users.');
+        }
+
         $user = User::findOrFail($id);
 
         // Prevent self-deletion
@@ -277,6 +338,18 @@ class UserController extends Controller
      */
     public function restore(int $id)
     {
+        $authUser = Auth::user();
+
+        // Check if user is logged in
+        if (!$authUser instanceof User) {
+            abort(401);
+        }
+
+        // Check permission to restore user
+        if (!$authUser->hasPermission('users.restore')) {
+            return redirect()->back()->with('error', 'You do not have permission to restore users.');
+        }
+
         $user = User::onlyTrashed()->findOrFail($id);
 
         try {
@@ -304,6 +377,18 @@ class UserController extends Controller
      */
     public function forceDelete(int $id)
     {
+        $authUser = Auth::user();
+
+        // Check if user is logged in
+        if (!$authUser instanceof User) {
+            abort(401);
+        }
+
+        // Check permission to force delete user
+        if (!$authUser->hasPermission('users.force_delete')) {
+            return redirect()->back()->with('error', 'You do not have permission to permanently delete users.');
+        }
+
         $user = User::onlyTrashed()->findOrFail($id);
 
         try {
@@ -332,6 +417,18 @@ class UserController extends Controller
      */
     public function bulkDelete(Request $request)
     {
+        $authUser = Auth::user();
+
+        // Check if user is logged in
+        if (!$authUser instanceof User) {
+            abort(401);
+        }
+
+        // Check permission for bulk delete
+        if (!$authUser->hasPermission('users.bulk_delete')) {
+            return redirect()->back()->with('error', 'You do not have permission to bulk delete users.');
+        }
+
         $request->validate([
             'user_ids' => 'required|array',
             'user_ids.*' => 'exists:users,id',
@@ -393,6 +490,18 @@ class UserController extends Controller
      */
     public function bulkRestore(Request $request)
     {
+        $authUser = Auth::user();
+
+        // Check if user is logged in
+        if (!$authUser instanceof User) {
+            abort(401);
+        }
+
+        // Check permission for bulk restore
+        if (!$authUser->hasPermission('users.bulk_restore')) {
+            return redirect()->back()->with('error', 'You do not have permission to bulk restore users.');
+        }
+
         $request->validate([
             'user_ids' => 'required|array',
             'user_ids.*' => 'exists:users,id',

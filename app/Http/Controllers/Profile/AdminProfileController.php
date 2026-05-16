@@ -3,12 +3,23 @@
 
 namespace App\Http\Controllers\Profile;
 
-use App\Http\Controllers\Controller;
+// Models
 use App\Models\User;
+
+// Controllers
+use App\Http\Controllers\Controller;
+
+// Requests
 use Illuminate\Http\Request;
+
+// Facades
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+
+// Validation
 use Illuminate\Validation\Rule;
+
+// Inertia
 use Inertia\Inertia;
 
 class AdminProfileController extends Controller
@@ -24,9 +35,10 @@ class AdminProfileController extends Controller
       abort(401);
     }
 
-    // Ensure the authenticated user has admin or super-admin role via RBAC
-    if (!$user->hasAnyRole(['admin', 'super-admin'])) {
-      abort(403, 'Unauthorized action.');
+    // Check permission instead of role
+    if (!$user->hasPermission('admin_profile.edit')) {
+      return redirect()->route('unauthorized.access')
+        ->with('error', 'You do not have permission to edit admin profile.');
     }
 
     // Get user's highest role for display
@@ -53,8 +65,10 @@ class AdminProfileController extends Controller
       abort(401);
     }
 
-    if (!$user->hasAnyRole(['admin', 'super-admin'])) {
-      abort(403);
+    // Check permission instead of role
+    if (!$user->hasPermission('admin_profile.update')) {
+      return redirect()->route('unauthorized.access')
+        ->with('error', 'You do not have permission to update admin profile.');
     }
 
     $validated = $request->validate([
@@ -82,8 +96,10 @@ class AdminProfileController extends Controller
       abort(401);
     }
 
-    if (!$user->hasAnyRole(['admin', 'super-admin'])) {
-      abort(403);
+    // Check permission instead of role
+    if (!$user->hasPermission('admin_profile.update_password')) {
+      return redirect()->route('unauthorized.access')
+        ->with('error', 'You do not have permission to update password.');
     }
 
     $request->validate([

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Backend;
 
 use App\Http\Controllers\Controller;
 use App\Models\Location;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
@@ -16,6 +17,19 @@ class LocationController extends Controller
      */
     public function index(Request $request)
     {
+        $user = Auth::user();
+
+        // Check if user is logged in
+        if (!$user instanceof User) {
+            abort(401);
+        }
+
+        // Check permission to view locations
+        if (!$user->hasPermission('locations.view')) {
+            return redirect()->route('unauthorized.access')
+                ->with('error', 'You do not have permission to view locations.');
+        }
+
         $query = Location::withTrashed();
 
         // Filter by status
@@ -71,6 +85,18 @@ class LocationController extends Controller
      */
     public function store(Request $request)
     {
+        $user = Auth::user();
+
+        // Check if user is logged in
+        if (!$user instanceof User) {
+            abort(401);
+        }
+
+        // Check permission to create location
+        if (!$user->hasPermission('locations.create')) {
+            return redirect()->back()->with('error', 'You do not have permission to create locations.');
+        }
+
         $validated = $request->validate([
             'name' => 'required|string|max:255|unique:locations,name',
             'address' => 'nullable|string|max:500',
@@ -106,6 +132,18 @@ class LocationController extends Controller
      */
     public function update(Request $request, Location $location)
     {
+        $user = Auth::user();
+
+        // Check if user is logged in
+        if (!$user instanceof User) {
+            abort(401);
+        }
+
+        // Check permission to edit location
+        if (!$user->hasPermission('locations.edit')) {
+            return redirect()->back()->with('error', 'You do not have permission to edit locations.');
+        }
+
         $validated = $request->validate([
             'name' => 'required|string|max:255|unique:locations,name,' . $location->id,
             'address' => 'nullable|string|max:500',
@@ -141,6 +179,18 @@ class LocationController extends Controller
      */
     public function toggleActive(Location $location)
     {
+        $user = Auth::user();
+
+        // Check if user is logged in
+        if (!$user instanceof User) {
+            abort(401);
+        }
+
+        // Check permission to toggle location status
+        if (!$user->hasPermission('locations.toggle_active')) {
+            return redirect()->back()->with('error', 'You do not have permission to change location status.');
+        }
+
         try {
             $newStatus = !$location->is_active;
             $location->update(['is_active' => $newStatus]);
@@ -168,6 +218,18 @@ class LocationController extends Controller
      */
     public function destroy(Location $location)
     {
+        $user = Auth::user();
+
+        // Check if user is logged in
+        if (!$user instanceof User) {
+            abort(401);
+        }
+
+        // Check permission to delete location
+        if (!$user->hasPermission('locations.delete')) {
+            return redirect()->back()->with('error', 'You do not have permission to delete locations.');
+        }
+
         // Check if location is used in any job listings
         $jobListingsCount = $location->jobListings()->count();
 
@@ -209,8 +271,20 @@ class LocationController extends Controller
     /**
      * Restore a soft-deleted location
      */
-    public function restore($id)
+    public function restore(int $id)
     {
+        $user = Auth::user();
+
+        // Check if user is logged in
+        if (!$user instanceof User) {
+            abort(401);
+        }
+
+        // Check permission to restore location
+        if (!$user->hasPermission('locations.restore')) {
+            return redirect()->back()->with('error', 'You do not have permission to restore locations.');
+        }
+
         $location = Location::onlyTrashed()->findOrFail($id);
 
         try {
@@ -236,8 +310,20 @@ class LocationController extends Controller
     /**
      * Permanently delete a soft-deleted location (force delete)
      */
-    public function forceDelete($id)
+    public function forceDelete(int $id)
     {
+        $user = Auth::user();
+
+        // Check if user is logged in
+        if (!$user instanceof User) {
+            abort(401);
+        }
+
+        // Check permission to force delete location
+        if (!$user->hasPermission('locations.force_delete')) {
+            return redirect()->back()->with('error', 'You do not have permission to permanently delete locations.');
+        }
+
         $location = Location::onlyTrashed()->findOrFail($id);
 
         // Check if location is used in any job listings
@@ -264,7 +350,6 @@ class LocationController extends Controller
                 'error' => $e->getMessage(),
             ]);
 
-
             return redirect()->back()->with('error', 'Failed to permanently delete location: ' . $e->getMessage());
         }
     }
@@ -274,6 +359,18 @@ class LocationController extends Controller
      */
     public function bulkDelete(Request $request)
     {
+        $user = Auth::user();
+
+        // Check if user is logged in
+        if (!$user instanceof User) {
+            abort(401);
+        }
+
+        // Check permission for bulk delete
+        if (!$user->hasPermission('locations.bulk_delete')) {
+            return redirect()->back()->with('error', 'You do not have permission to bulk delete locations.');
+        }
+
         $request->validate([
             'location_ids' => 'required|array',
             'location_ids.*' => 'exists:locations,id',
@@ -327,6 +424,18 @@ class LocationController extends Controller
      */
     public function bulkRestore(Request $request)
     {
+        $user = Auth::user();
+
+        // Check if user is logged in
+        if (!$user instanceof User) {
+            abort(401);
+        }
+
+        // Check permission for bulk restore
+        if (!$user->hasPermission('locations.bulk_restore')) {
+            return redirect()->back()->with('error', 'You do not have permission to bulk restore locations.');
+        }
+
         $request->validate([
             'location_ids' => 'required|array',
             'location_ids.*' => 'exists:locations,id',
@@ -350,6 +459,18 @@ class LocationController extends Controller
      */
     public function bulkActivate(Request $request)
     {
+        $user = Auth::user();
+
+        // Check if user is logged in
+        if (!$user instanceof User) {
+            abort(401);
+        }
+
+        // Check permission for bulk activate
+        if (!$user->hasPermission('locations.bulk_activate')) {
+            return redirect()->back()->with('error', 'You do not have permission to bulk activate locations.');
+        }
+
         $request->validate([
             'location_ids' => 'required|array',
             'location_ids.*' => 'exists:locations,id',
@@ -373,6 +494,18 @@ class LocationController extends Controller
      */
     public function bulkDeactivate(Request $request)
     {
+        $user = Auth::user();
+
+        // Check if user is logged in
+        if (!$user instanceof User) {
+            abort(401);
+        }
+
+        // Check permission for bulk deactivate
+        if (!$user->hasPermission('locations.bulk_deactivate')) {
+            return redirect()->back()->with('error', 'You do not have permission to bulk deactivate locations.');
+        }
+
         $request->validate([
             'location_ids' => 'required|array',
             'location_ids.*' => 'exists:locations,id',
@@ -396,6 +529,18 @@ class LocationController extends Controller
      */
     public function getActiveLocations()
     {
+        // Public AJAX endpoint - check if user is authenticated at least
+        $user = Auth::user();
+
+        // Check if user is logged in
+        if (!$user instanceof User) {
+            abort(401);
+        }
+
+        if (!$user || !$user->hasPermission('locations.get_active')) {
+            return response()->json(['error' => 'Unauthorized'], 403);
+        }
+
         $locations = Location::where('is_active', true)
             ->orderBy('name')
             ->get(['id', 'name', 'address']);
