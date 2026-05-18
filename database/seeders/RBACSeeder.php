@@ -15,26 +15,42 @@ class RBACSeeder extends Seeder
     $adminUser = DB::table('users')->where('email', 'admin@jobportal.com')->first();
     $createdBy = $superAdmin?->id ?? $adminUser?->id ?? 1;
 
+    // Disable foreign key checks to allow truncation
+    DB::statement('SET FOREIGN_KEY_CHECKS=0');
+
+    // Clear existing data in correct order
+    DB::table('user_roles')->truncate();
+    DB::table('role_permissions')->truncate();
+    DB::table('role_module_access')->truncate();
+    DB::table('permissions')->truncate();
+    DB::table('roles')->truncate();
+
+    // Re-enable foreign key checks
+    DB::statement('SET FOREIGN_KEY_CHECKS=1');
+
     // ==========================================
-    // 1. INSERT ALL PERMISSIONS (WITH DUPLICATE HANDLING)
+    // 1. INSERT ALL PERMISSIONS (NO DUPLICATE NAMES)
     // ==========================================
     $permissions = [
-      // Dashboard Module (4)
+      // Dashboard Module
       ['name' => 'View Dashboard', 'slug' => 'dashboard.view', 'module' => 'dashboard', 'action' => 'view'],
       ['name' => 'View Dashboard Stats', 'slug' => 'dashboard.stats.view', 'module' => 'dashboard', 'action' => 'stats_view'],
       ['name' => 'View Dashboard Quick Actions', 'slug' => 'dashboard.quick_actions.view', 'module' => 'dashboard', 'action' => 'quick_actions_view'],
       ['name' => 'View Dashboard Recent Activity', 'slug' => 'dashboard.recent_activity.view', 'module' => 'dashboard', 'action' => 'recent_activity_view'],
+      ['name' => 'Job Seeker Dashboard', 'slug' => 'dashboard.job_seeker', 'module' => 'dashboard', 'action' => 'job_seeker'],
+      ['name' => 'Employer Dashboard', 'slug' => 'dashboard.employer', 'module' => 'dashboard', 'action' => 'employer'],
+      ['name' => 'Admin Dashboard', 'slug' => 'dashboard.admin', 'module' => 'dashboard', 'action' => 'admin'],
 
-      // Job Listings Module (16)
+      // Job Listings Module - Core CRUD
       ['name' => 'View Job Listings', 'slug' => 'job_listings.view', 'module' => 'job_listings', 'action' => 'view'],
       ['name' => 'Create Job Listing', 'slug' => 'job_listings.create', 'module' => 'job_listings', 'action' => 'create'],
-      ['name' => 'Store Job Listing', 'slug' => 'job_listings.store', 'module' => 'job_listings', 'action' => 'store'],
       ['name' => 'Edit Job Listing', 'slug' => 'job_listings.edit', 'module' => 'job_listings', 'action' => 'edit'],
       ['name' => 'Update Job Listing', 'slug' => 'job_listings.update', 'module' => 'job_listings', 'action' => 'update'],
-      ['name' => 'Show Job Listing', 'slug' => 'job_listings.show', 'module' => 'job_listings', 'action' => 'show'],
       ['name' => 'Delete Job Listing', 'slug' => 'job_listings.destroy', 'module' => 'job_listings', 'action' => 'destroy'],
       ['name' => 'Restore Job Listing', 'slug' => 'job_listings.restore', 'module' => 'job_listings', 'action' => 'restore'],
       ['name' => 'Force Delete Job Listing', 'slug' => 'job_listings.force_delete', 'module' => 'job_listings', 'action' => 'force_delete'],
+      ['name' => 'Show Job Listing', 'slug' => 'job_listings.show', 'module' => 'job_listings', 'action' => 'show'],
+      ['name' => 'Store Job Listing', 'slug' => 'job_listings.store', 'module' => 'job_listings', 'action' => 'store'],
       ['name' => 'Toggle Job Active', 'slug' => 'job_listings.toggle_active', 'module' => 'job_listings', 'action' => 'toggle_active'],
       ['name' => 'Bulk Activate Jobs', 'slug' => 'job_listings.bulk_activate', 'module' => 'job_listings', 'action' => 'bulk_activate'],
       ['name' => 'Bulk Deactivate Jobs', 'slug' => 'job_listings.bulk_deactivate', 'module' => 'job_listings', 'action' => 'bulk_deactivate'],
@@ -43,7 +59,12 @@ class RBACSeeder extends Seeder
       ['name' => 'Job Statistics', 'slug' => 'job_listings.statistics', 'module' => 'job_listings', 'action' => 'statistics'],
       ['name' => 'Update Job Statuses', 'slug' => 'job_listings.update_statuses', 'module' => 'job_listings', 'action' => 'update_statuses'],
 
-      // Public Job Listings Module (7)
+      // Job View Permissions
+      ['name' => 'View Any Job', 'slug' => 'job.view.any', 'module' => 'job_listings', 'action' => 'view_any'],
+      ['name' => 'View Own Job', 'slug' => 'job.view.own', 'module' => 'job_listings', 'action' => 'view_own'],
+      ['name' => 'Edit Own Job', 'slug' => 'job.edit.own', 'module' => 'job_listings', 'action' => 'edit_own'],
+
+      // Public Job Listings Module
       ['name' => 'View Public Jobs', 'slug' => 'public_jobs.view', 'module' => 'public_jobs', 'action' => 'view'],
       ['name' => 'Show Public Job', 'slug' => 'public_jobs.show', 'module' => 'public_jobs', 'action' => 'show'],
       ['name' => 'View Popular Jobs', 'slug' => 'public_jobs.popular', 'module' => 'public_jobs', 'action' => 'popular'],
@@ -52,7 +73,7 @@ class RBACSeeder extends Seeder
       ['name' => 'Share Job', 'slug' => 'public_jobs.share', 'module' => 'public_jobs', 'action' => 'share'],
       ['name' => 'Print Job Details', 'slug' => 'public_jobs.print', 'module' => 'public_jobs', 'action' => 'print'],
 
-      // Applications Module (for Employers/Admins) (17)
+      // Applications Module - Core
       ['name' => 'View Applications', 'slug' => 'applications.view', 'module' => 'applications', 'action' => 'view'],
       ['name' => 'View Own Job Applications', 'slug' => 'applications.view.for_own_jobs', 'module' => 'applications', 'action' => 'view_for_own_jobs'],
       ['name' => 'Show Application', 'slug' => 'applications.show', 'module' => 'applications', 'action' => 'show'],
@@ -70,8 +91,16 @@ class RBACSeeder extends Seeder
       ['name' => 'Export Applications', 'slug' => 'applications.export', 'module' => 'applications', 'action' => 'export'],
       ['name' => 'Export Single Application', 'slug' => 'applications.export_single', 'module' => 'applications', 'action' => 'export_single'],
       ['name' => 'Recalculate ATS', 'slug' => 'applications.recalculate_ats', 'module' => 'applications', 'action' => 'recalculate_ats'],
+      ['name' => 'Manage All Applications', 'slug' => 'applications.manage', 'module' => 'applications', 'action' => 'manage'],
+      ['name' => 'Job Applications View', 'slug' => 'applications.job_applications', 'module' => 'applications', 'action' => 'job_applications'],
 
-      // Apply Module (for Job Seekers - Self Service) (13)
+      // Application View Permissions
+      ['name' => 'View Own Applications', 'slug' => 'application.view.own', 'module' => 'applications', 'action' => 'view_own'],
+      ['name' => 'View Any Application', 'slug' => 'application.view.any', 'module' => 'applications', 'action' => 'view_any'],
+      ['name' => 'Shortlist Application', 'slug' => 'application.shortlist', 'module' => 'applications', 'action' => 'shortlist'],
+      ['name' => 'Reject Application', 'slug' => 'application.reject', 'module' => 'applications', 'action' => 'reject'],
+
+      // Apply Module (Job Seekers)
       ['name' => 'View My Applications', 'slug' => 'apply.view', 'module' => 'apply', 'action' => 'view'],
       ['name' => 'View My Own Applications', 'slug' => 'apply.view.own', 'module' => 'apply', 'action' => 'view_own'],
       ['name' => 'Create New Application', 'slug' => 'apply.create', 'module' => 'apply', 'action' => 'create'],
@@ -86,7 +115,7 @@ class RBACSeeder extends Seeder
       ['name' => 'Recalculate My ATS Score', 'slug' => 'apply.recalculate_ats', 'module' => 'apply', 'action' => 'recalculate_ats'],
       ['name' => 'Get My ATS Status', 'slug' => 'apply.ats_status', 'module' => 'apply', 'action' => 'ats_status'],
 
-      // Job Categories Module (13)
+      // Job Categories Module
       ['name' => 'View Categories', 'slug' => 'categories.view', 'module' => 'categories', 'action' => 'view'],
       ['name' => 'Create Category', 'slug' => 'categories.create', 'module' => 'categories', 'action' => 'create'],
       ['name' => 'Edit Category', 'slug' => 'categories.edit', 'module' => 'categories', 'action' => 'edit'],
@@ -100,8 +129,10 @@ class RBACSeeder extends Seeder
       ['name' => 'Bulk Deactivate Categories', 'slug' => 'categories.bulk_deactivate', 'module' => 'categories', 'action' => 'bulk_deactivate'],
       ['name' => 'Bulk Force Delete Categories', 'slug' => 'categories.bulk_force_delete', 'module' => 'categories', 'action' => 'bulk_force_delete'],
       ['name' => 'Get Active Categories', 'slug' => 'categories.get_active', 'module' => 'categories', 'action' => 'get_active'],
+      ['name' => 'Manage Categories', 'slug' => 'categories.manage', 'module' => 'categories', 'action' => 'manage'],
+      ['name' => 'View Category', 'slug' => 'category.view', 'module' => 'categories', 'action' => 'category_view'],
 
-      // Locations Module (13)
+      // Locations Module
       ['name' => 'View Locations', 'slug' => 'locations.view', 'module' => 'locations', 'action' => 'view'],
       ['name' => 'Create Location', 'slug' => 'locations.create', 'module' => 'locations', 'action' => 'create'],
       ['name' => 'Edit Location', 'slug' => 'locations.edit', 'module' => 'locations', 'action' => 'edit'],
@@ -115,8 +146,10 @@ class RBACSeeder extends Seeder
       ['name' => 'Bulk Deactivate Locations', 'slug' => 'locations.bulk_deactivate', 'module' => 'locations', 'action' => 'bulk_deactivate'],
       ['name' => 'Bulk Force Delete Locations', 'slug' => 'locations.bulk_force_delete', 'module' => 'locations', 'action' => 'bulk_force_delete'],
       ['name' => 'Get Active Locations', 'slug' => 'locations.get_active', 'module' => 'locations', 'action' => 'get_active'],
+      ['name' => 'Manage Locations', 'slug' => 'locations.manage', 'module' => 'locations', 'action' => 'manage'],
+      ['name' => 'View Location', 'slug' => 'location.view', 'module' => 'locations', 'action' => 'location_view'],
 
-      // Applicant Profiles Module (28)
+      // Applicant Profiles Module
       ['name' => 'View Applicant Profiles', 'slug' => 'profiles.view', 'module' => 'profiles', 'action' => 'view'],
       ['name' => 'View Any Profile', 'slug' => 'profiles.view.any', 'module' => 'profiles', 'action' => 'view_any'],
       ['name' => 'View My Own Profile', 'slug' => 'profiles.view.own', 'module' => 'profiles', 'action' => 'view_own'],
@@ -145,8 +178,10 @@ class RBACSeeder extends Seeder
       ['name' => 'Download CV Document', 'slug' => 'profiles.download_cv', 'module' => 'profiles', 'action' => 'download_cv'],
       ['name' => 'View Profile Photo', 'slug' => 'profiles.photo', 'module' => 'profiles', 'action' => 'photo'],
       ['name' => 'Get Profile Data', 'slug' => 'profiles.get_data', 'module' => 'profiles', 'action' => 'get_data'],
+      ['name' => 'Manage Profiles', 'slug' => 'profiles.manage', 'module' => 'profiles', 'action' => 'manage'],
+      ['name' => 'Delete Any Profile', 'slug' => 'profiles.delete.any', 'module' => 'profiles', 'action' => 'delete_any'],
 
-      // Profile Completion Module (7)
+      // Profile Completion Module
       ['name' => 'Show Profile Completion', 'slug' => 'profile_completion.show', 'module' => 'profile_completion', 'action' => 'show'],
       ['name' => 'Store Profile Completion', 'slug' => 'profile_completion.store', 'module' => 'profile_completion', 'action' => 'store'],
       ['name' => 'Upload Profile Photo', 'slug' => 'profile_completion.upload_photo', 'module' => 'profile_completion', 'action' => 'upload_photo'],
@@ -155,23 +190,24 @@ class RBACSeeder extends Seeder
       ['name' => 'Delete Pending CV', 'slug' => 'profile_completion.destroy_cv', 'module' => 'profile_completion', 'action' => 'destroy_cv'],
       ['name' => 'Set Primary Pending CV', 'slug' => 'profile_completion.set_primary_cv', 'module' => 'profile_completion', 'action' => 'set_primary_cv'],
 
-      // Admin Profile Module (3)
+      // Admin Profile Module
       ['name' => 'Edit Admin Profile', 'slug' => 'admin_profile.edit', 'module' => 'admin_profile', 'action' => 'edit'],
       ['name' => 'Update Admin Profile', 'slug' => 'admin_profile.update', 'module' => 'admin_profile', 'action' => 'update'],
       ['name' => 'Update Admin Password', 'slug' => 'admin_profile.update_password', 'module' => 'admin_profile', 'action' => 'update_password'],
 
-      // Employer Profile Module (4)
+      // Employer Profile Module
       ['name' => 'View Employer Profile', 'slug' => 'employer_profile.view', 'module' => 'employer_profile', 'action' => 'view'],
       ['name' => 'Edit Employer Profile', 'slug' => 'employer_profile.edit', 'module' => 'employer_profile', 'action' => 'edit'],
       ['name' => 'Update Employer Profile', 'slug' => 'employer_profile.update', 'module' => 'employer_profile', 'action' => 'update'],
       ['name' => 'Update Employer Password', 'slug' => 'employer_profile.update_password', 'module' => 'employer_profile', 'action' => 'update_password'],
 
-      // Notifications Module (3)
+      // Notifications Module
       ['name' => 'View Notifications', 'slug' => 'notifications.view', 'module' => 'notifications', 'action' => 'view'],
       ['name' => 'Mark Notification Read', 'slug' => 'notifications.mark_read', 'module' => 'notifications', 'action' => 'mark_read'],
       ['name' => 'Mark All Notifications Read', 'slug' => 'notifications.mark_all_read', 'module' => 'notifications', 'action' => 'mark_all_read'],
+      ['name' => 'View Notification', 'slug' => 'notification.view', 'module' => 'notifications', 'action' => 'notification_view'],
 
-      // Roles Module (15)
+      // Roles Module
       ['name' => 'View Roles', 'slug' => 'roles.view', 'module' => 'roles', 'action' => 'view'],
       ['name' => 'Create Role', 'slug' => 'roles.create', 'module' => 'roles', 'action' => 'create'],
       ['name' => 'Store Role', 'slug' => 'roles.store', 'module' => 'roles', 'action' => 'store'],
@@ -187,8 +223,12 @@ class RBACSeeder extends Seeder
       ['name' => 'Toggle Role Status', 'slug' => 'roles.toggle_status', 'module' => 'roles', 'action' => 'toggle_status'],
       ['name' => 'Clone Role', 'slug' => 'roles.clone', 'module' => 'roles', 'action' => 'clone'],
       ['name' => 'Export Roles', 'slug' => 'roles.export', 'module' => 'roles', 'action' => 'export'],
+      ['name' => 'View Role', 'slug' => 'role.view', 'module' => 'roles', 'action' => 'role_view'],
+      ['name' => 'Create Role Action', 'slug' => 'role.create', 'module' => 'roles', 'action' => 'role_create'],
+      ['name' => 'Edit Role Action', 'slug' => 'role.edit', 'module' => 'roles', 'action' => 'role_edit'],
+      ['name' => 'Delete Role Action', 'slug' => 'role.delete', 'module' => 'roles', 'action' => 'role_delete'],
 
-      // Users Module (9)
+      // Users Module
       ['name' => 'View Users', 'slug' => 'users.view', 'module' => 'users', 'action' => 'view'],
       ['name' => 'Create User', 'slug' => 'users.create', 'module' => 'users', 'action' => 'create'],
       ['name' => 'Update User', 'slug' => 'users.update', 'module' => 'users', 'action' => 'update'],
@@ -198,74 +238,53 @@ class RBACSeeder extends Seeder
       ['name' => 'Bulk Delete Users', 'slug' => 'users.bulk_delete', 'module' => 'users', 'action' => 'bulk_delete'],
       ['name' => 'Bulk Restore Users', 'slug' => 'users.bulk_restore', 'module' => 'users', 'action' => 'bulk_restore'],
       ['name' => 'Verify User Email', 'slug' => 'users.verify', 'module' => 'users', 'action' => 'verify'],
+      ['name' => 'View User', 'slug' => 'user.view', 'module' => 'users', 'action' => 'user_view'],
+      ['name' => 'Create User Action', 'slug' => 'user.create', 'module' => 'users', 'action' => 'user_create'],
+      ['name' => 'Edit User Action', 'slug' => 'user.edit', 'module' => 'users', 'action' => 'user_edit'],
 
-      // Permissions Module (5)
+      // Permissions Module
       ['name' => 'View Permissions', 'slug' => 'permissions.view', 'module' => 'permissions', 'action' => 'view'],
       ['name' => 'Create Permission', 'slug' => 'permissions.create', 'module' => 'permissions', 'action' => 'create'],
       ['name' => 'Edit Permission', 'slug' => 'permissions.edit', 'module' => 'permissions', 'action' => 'edit'],
       ['name' => 'Delete Permission', 'slug' => 'permissions.delete', 'module' => 'permissions', 'action' => 'delete'],
       ['name' => 'Bulk Assign Permissions', 'slug' => 'permissions.bulk_assign', 'module' => 'permissions', 'action' => 'bulk_assign'],
 
-      // Statistics Module (5)
+      // Statistics Module
       ['name' => 'View Statistics', 'slug' => 'statistics.view', 'module' => 'statistics', 'action' => 'view'],
       ['name' => 'Export Statistics', 'slug' => 'statistics.export', 'module' => 'statistics', 'action' => 'export'],
-      ['name' => 'ATS Statistics', 'slug' => 'statistics.ats', 'module' => 'statistics', 'action' => 'ats'],
-      ['name' => 'Employer Statistics', 'slug' => 'statistics.employers', 'module' => 'statistics', 'action' => 'employers'],
-      ['name' => 'Job Statistics', 'slug' => 'statistics.jobs', 'module' => 'statistics', 'action' => 'jobs'],
+      ['name' => 'ATS Stats', 'slug' => 'statistics.ats', 'module' => 'statistics', 'action' => 'ats'],
+      ['name' => 'Employer Stats', 'slug' => 'statistics.employers', 'module' => 'statistics', 'action' => 'employers'],
+      ['name' => 'Job Stats', 'slug' => 'statistics.jobs', 'module' => 'statistics', 'action' => 'jobs'],
+      ['name' => 'Manage Statistics', 'slug' => 'statistics.manage', 'module' => 'statistics', 'action' => 'manage'],
+      ['name' => 'View Job Reports', 'slug' => 'report.jobs', 'module' => 'reports', 'action' => 'jobs'],
 
-      // ==========================================
-      // MISSING PERMISSIONS FROM CONTROLLER ANALYSIS
-      // ==========================================
-
-      // Additional missing Apply permissions
-      ['name' => 'Manage All Applications', 'slug' => 'applications.manage', 'module' => 'applications', 'action' => 'manage'],
-      ['name' => 'Job Applications View', 'slug' => 'applications.job_applications', 'module' => 'applications', 'action' => 'job_applications'],
-
-      // Additional missing Job Categories permissions
-      ['name' => 'Manage Categories', 'slug' => 'categories.manage', 'module' => 'categories', 'action' => 'manage'],
-
-      // Additional missing Locations permissions
-      ['name' => 'Manage Locations', 'slug' => 'locations.manage', 'module' => 'locations', 'action' => 'manage'],
-
-      // Additional missing Profiles permissions
-      ['name' => 'Manage Profiles', 'slug' => 'profiles.manage', 'module' => 'profiles', 'action' => 'manage'],
-      ['name' => 'Delete Any Profile', 'slug' => 'profiles.delete.any', 'module' => 'profiles', 'action' => 'delete_any'],
-
-      // Additional missing Admin Profile permissions
+      // Admin Management
       ['name' => 'Manage Admins', 'slug' => 'admin.manage', 'module' => 'admin', 'action' => 'manage'],
       ['name' => 'View Admins', 'slug' => 'admin.view', 'module' => 'admin', 'action' => 'view'],
       ['name' => 'Create Admin', 'slug' => 'admin.create', 'module' => 'admin', 'action' => 'create'],
       ['name' => 'Update Admin', 'slug' => 'admin.update', 'module' => 'admin', 'action' => 'update'],
       ['name' => 'Delete Admin', 'slug' => 'admin.destroy', 'module' => 'admin', 'action' => 'destroy'],
 
-      // Additional missing Employer permissions
+      // Employer Management
       ['name' => 'Manage Employers', 'slug' => 'employer.manage', 'module' => 'employer', 'action' => 'manage'],
       ['name' => 'View Employers', 'slug' => 'employer.view', 'module' => 'employer', 'action' => 'view'],
       ['name' => 'Update Employer', 'slug' => 'employer.update', 'module' => 'employer', 'action' => 'update'],
       ['name' => 'Delete Employer', 'slug' => 'employer.destroy', 'module' => 'employer', 'action' => 'destroy'],
-
-      // Additional missing Statistics permissions
-      ['name' => 'Manage Statistics', 'slug' => 'statistics.manage', 'module' => 'statistics', 'action' => 'manage'],
     ];
 
-    // Insert permissions with proper duplicate handling
+    // Insert permissions using updateOrInsert to avoid duplicates
     foreach ($permissions as $permission) {
-      // First, delete any existing permission with the same name or slug to avoid conflicts
-      DB::table('permissions')
-        ->where('slug', $permission['slug'])
-        ->orWhere('name', $permission['name'])
-        ->delete();
-
-      // Then insert fresh
-      DB::table('permissions')->insert([
-        'name' => $permission['name'],
-        'slug' => $permission['slug'],
-        'module' => $permission['module'],
-        'action' => $permission['action'],
-        'is_active' => true,
-        'created_at' => now(),
-        'updated_at' => now(),
-      ]);
+      DB::table('permissions')->updateOrInsert(
+        ['slug' => $permission['slug']],
+        [
+          'name' => $permission['name'],
+          'module' => $permission['module'],
+          'action' => $permission['action'],
+          'is_active' => true,
+          'created_at' => now(),
+          'updated_at' => now(),
+        ]
+      );
     }
 
     // ==========================================
@@ -337,10 +356,17 @@ class RBACSeeder extends Seeder
     foreach ($roles as $role) {
       DB::table('roles')->updateOrInsert(
         ['slug' => $role['slug']],
-        array_merge($role, [
+        [
+          'name' => $role['name'],
+          'description' => $role['description'],
+          'level' => $role['level'],
+          'is_default' => $role['is_default'],
+          'is_active' => $role['is_active'],
+          'created_by' => $role['created_by'],
+          'updated_by' => $role['updated_by'],
           'created_at' => now(),
           'updated_at' => now(),
-        ])
+        ]
       );
     }
 
@@ -371,24 +397,18 @@ class RBACSeeder extends Seeder
 
     // Super Admin gets ALL permissions
     foreach ($allPermissionIds as $permissionId) {
-      DB::table('role_permissions')->insert([
-        'role_id' => $superAdminRoleId,
-        'permission_id' => $permissionId,
-        'granted' => true,
-        'created_at' => now(),
-        'updated_at' => now(),
-      ]);
+      DB::table('role_permissions')->updateOrInsert(
+        ['role_id' => $superAdminRoleId, 'permission_id' => $permissionId],
+        ['granted' => true, 'created_at' => now(), 'updated_at' => now()]
+      );
     }
 
-    // Admin gets ALL permissions (same as Super Admin)
+    // Admin gets ALL permissions
     foreach ($allPermissionIds as $permissionId) {
-      DB::table('role_permissions')->insert([
-        'role_id' => $adminRoleId,
-        'permission_id' => $permissionId,
-        'granted' => true,
-        'created_at' => now(),
-        'updated_at' => now(),
-      ]);
+      DB::table('role_permissions')->updateOrInsert(
+        ['role_id' => $adminRoleId, 'permission_id' => $permissionId],
+        ['granted' => true, 'created_at' => now(), 'updated_at' => now()]
+      );
     }
 
     // Employer Admin permissions
@@ -397,6 +417,7 @@ class RBACSeeder extends Seeder
       'dashboard.stats.view',
       'dashboard.quick_actions.view',
       'dashboard.recent_activity.view',
+      'dashboard.employer',
       'job_listings.view',
       'job_listings.create',
       'job_listings.store',
@@ -406,6 +427,9 @@ class RBACSeeder extends Seeder
       'job_listings.destroy',
       'job_listings.toggle_active',
       'job_listings.applications',
+      'job.view.any',
+      'job.view.own',
+      'job.edit.own',
       'applications.view',
       'applications.view.for_own_jobs',
       'applications.show',
@@ -415,51 +439,61 @@ class RBACSeeder extends Seeder
       'applications.bulk_download_resumes',
       'applications.email.send',
       'applications.bulk_email.send',
+      'application.view.own',
+      'application.view.any',
+      'application.shortlist',
+      'application.reject',
       'categories.view',
+      'category.view',
       'categories.get_active',
       'locations.view',
+      'location.view',
       'locations.get_active',
       'employer_profile.view',
       'employer_profile.edit',
       'employer_profile.update',
       'employer_profile.update_password',
       'notifications.view',
+      'notification.view',
       'notifications.mark_read',
       'notifications.mark_all_read',
       'statistics.view',
       'statistics.ats',
       'statistics.employers',
       'statistics.jobs',
+      'report.jobs',
     ];
 
     foreach ($employerAdminPermissionSlugs as $slug) {
       $permId = DB::table('permissions')->where('slug', $slug)->value('id');
       if ($permId) {
-        DB::table('role_permissions')->insert([
-          'role_id' => $employerAdminRoleId,
-          'permission_id' => $permId,
-          'granted' => true,
-          'created_at' => now(),
-          'updated_at' => now(),
-        ]);
+        DB::table('role_permissions')->updateOrInsert(
+          ['role_id' => $employerAdminRoleId, 'permission_id' => $permId],
+          ['granted' => true, 'created_at' => now(), 'updated_at' => now()]
+        );
       }
     }
 
     // HR Manager permissions
     $hrManagerPermissionSlugs = [
       'dashboard.view',
+      'dashboard.employer',
       'job_listings.view',
       'job_listings.create',
       'job_listings.store',
       'job_listings.edit',
       'job_listings.update',
       'job_listings.show',
+      'job.view.any',
+      'job.view.own',
       'applications.view',
       'applications.view.for_own_jobs',
       'applications.show',
       'applications.status.update',
       'applications.download_resume',
       'applications.email.send',
+      'application.view.own',
+      'application.shortlist',
       'categories.view',
       'locations.view',
       'employer_profile.view',
@@ -473,13 +507,10 @@ class RBACSeeder extends Seeder
     foreach ($hrManagerPermissionSlugs as $slug) {
       $permId = DB::table('permissions')->where('slug', $slug)->value('id');
       if ($permId) {
-        DB::table('role_permissions')->insert([
-          'role_id' => $hrManagerRoleId,
-          'permission_id' => $permId,
-          'granted' => true,
-          'created_at' => now(),
-          'updated_at' => now(),
-        ]);
+        DB::table('role_permissions')->updateOrInsert(
+          ['role_id' => $hrManagerRoleId, 'permission_id' => $permId],
+          ['granted' => true, 'created_at' => now(), 'updated_at' => now()]
+        );
       }
     }
 
@@ -492,11 +523,15 @@ class RBACSeeder extends Seeder
       'job_listings.edit',
       'job_listings.update',
       'job_listings.show',
+      'job.view.any',
+      'job.view.own',
       'applications.view',
       'applications.view.for_own_jobs',
       'applications.show',
       'applications.status.update',
       'applications.download_resume',
+      'application.view.own',
+      'application.shortlist',
       'categories.view',
       'locations.view',
       'employer_profile.view',
@@ -509,19 +544,17 @@ class RBACSeeder extends Seeder
     foreach ($recruiterPermissionSlugs as $slug) {
       $permId = DB::table('permissions')->where('slug', $slug)->value('id');
       if ($permId) {
-        DB::table('role_permissions')->insert([
-          'role_id' => $recruiterRoleId,
-          'permission_id' => $permId,
-          'granted' => true,
-          'created_at' => now(),
-          'updated_at' => now(),
-        ]);
+        DB::table('role_permissions')->updateOrInsert(
+          ['role_id' => $recruiterRoleId, 'permission_id' => $permId],
+          ['granted' => true, 'created_at' => now(), 'updated_at' => now()]
+        );
       }
     }
 
     // Job Seeker permissions
     $jobSeekerPermissionSlugs = [
       'dashboard.view',
+      'dashboard.job_seeker',
       'public_jobs.view',
       'public_jobs.show',
       'public_jobs.popular',
@@ -529,6 +562,7 @@ class RBACSeeder extends Seeder
       'public_jobs.bookmark',
       'public_jobs.share',
       'public_jobs.print',
+      'job.view.any',
       'apply.view',
       'apply.view.own',
       'apply.create',
@@ -540,6 +574,7 @@ class RBACSeeder extends Seeder
       'apply.restore',
       'apply.recalculate_ats',
       'apply.ats_status',
+      'application.view.own',
       'profiles.view.own',
       'profiles.show',
       'profiles.edit.own',
@@ -568,6 +603,7 @@ class RBACSeeder extends Seeder
       'profile_completion.destroy_cv',
       'profile_completion.set_primary_cv',
       'notifications.view',
+      'notification.view',
       'notifications.mark_read',
       'notifications.mark_all_read',
     ];
@@ -575,13 +611,10 @@ class RBACSeeder extends Seeder
     foreach ($jobSeekerPermissionSlugs as $slug) {
       $permId = DB::table('permissions')->where('slug', $slug)->value('id');
       if ($permId) {
-        DB::table('role_permissions')->insert([
-          'role_id' => $jobSeekerRoleId,
-          'permission_id' => $permId,
-          'granted' => true,
-          'created_at' => now(),
-          'updated_at' => now(),
-        ]);
+        DB::table('role_permissions')->updateOrInsert(
+          ['role_id' => $jobSeekerRoleId, 'permission_id' => $permId],
+          ['granted' => true, 'created_at' => now(), 'updated_at' => now()]
+        );
       }
     }
 
@@ -589,7 +622,6 @@ class RBACSeeder extends Seeder
     // 4. SET ROLE MODULE ACCESS
     // ==========================================
 
-    // Clear existing role_module_access
     DB::table('role_module_access')->whereIn('role_id', [
       $superAdminRoleId,
       $adminRoleId,
@@ -600,7 +632,7 @@ class RBACSeeder extends Seeder
     ])->delete();
 
     $moduleAccess = [
-      // Super Admin - Full access to everything
+      // Super Admin
       ['role_id' => $superAdminRoleId, 'module' => 'dashboard', 'access_level' => 'manage'],
       ['role_id' => $superAdminRoleId, 'module' => 'job_listings', 'access_level' => 'manage'],
       ['role_id' => $superAdminRoleId, 'module' => 'public_jobs', 'access_level' => 'manage'],
@@ -619,8 +651,9 @@ class RBACSeeder extends Seeder
       ['role_id' => $superAdminRoleId, 'module' => 'users', 'access_level' => 'manage'],
       ['role_id' => $superAdminRoleId, 'module' => 'permissions', 'access_level' => 'manage'],
       ['role_id' => $superAdminRoleId, 'module' => 'statistics', 'access_level' => 'manage'],
+      ['role_id' => $superAdminRoleId, 'module' => 'reports', 'access_level' => 'manage'],
 
-      // Admin - Full access to everything
+      // Admin
       ['role_id' => $adminRoleId, 'module' => 'dashboard', 'access_level' => 'manage'],
       ['role_id' => $adminRoleId, 'module' => 'job_listings', 'access_level' => 'manage'],
       ['role_id' => $adminRoleId, 'module' => 'public_jobs', 'access_level' => 'manage'],
@@ -639,8 +672,9 @@ class RBACSeeder extends Seeder
       ['role_id' => $adminRoleId, 'module' => 'users', 'access_level' => 'manage'],
       ['role_id' => $adminRoleId, 'module' => 'permissions', 'access_level' => 'manage'],
       ['role_id' => $adminRoleId, 'module' => 'statistics', 'access_level' => 'manage'],
+      ['role_id' => $adminRoleId, 'module' => 'reports', 'access_level' => 'manage'],
 
-      // Employer Admin - Write access to job and application modules
+      // Employer Admin
       ['role_id' => $employerAdminRoleId, 'module' => 'dashboard', 'access_level' => 'write'],
       ['role_id' => $employerAdminRoleId, 'module' => 'job_listings', 'access_level' => 'write'],
       ['role_id' => $employerAdminRoleId, 'module' => 'applications', 'access_level' => 'write'],
@@ -649,8 +683,9 @@ class RBACSeeder extends Seeder
       ['role_id' => $employerAdminRoleId, 'module' => 'employer_profile', 'access_level' => 'write'],
       ['role_id' => $employerAdminRoleId, 'module' => 'notifications', 'access_level' => 'write'],
       ['role_id' => $employerAdminRoleId, 'module' => 'statistics', 'access_level' => 'read'],
+      ['role_id' => $employerAdminRoleId, 'module' => 'reports', 'access_level' => 'read'],
 
-      // HR Manager - Write access to job and application modules
+      // HR Manager
       ['role_id' => $hrManagerRoleId, 'module' => 'dashboard', 'access_level' => 'write'],
       ['role_id' => $hrManagerRoleId, 'module' => 'job_listings', 'access_level' => 'write'],
       ['role_id' => $hrManagerRoleId, 'module' => 'applications', 'access_level' => 'write'],
@@ -659,7 +694,7 @@ class RBACSeeder extends Seeder
       ['role_id' => $hrManagerRoleId, 'module' => 'employer_profile', 'access_level' => 'write'],
       ['role_id' => $hrManagerRoleId, 'module' => 'notifications', 'access_level' => 'read'],
 
-      // Recruiter - Read/Write basic job functions
+      // Recruiter
       ['role_id' => $recruiterRoleId, 'module' => 'dashboard', 'access_level' => 'read'],
       ['role_id' => $recruiterRoleId, 'module' => 'job_listings', 'access_level' => 'write'],
       ['role_id' => $recruiterRoleId, 'module' => 'applications', 'access_level' => 'write'],
@@ -668,7 +703,7 @@ class RBACSeeder extends Seeder
       ['role_id' => $recruiterRoleId, 'module' => 'employer_profile', 'access_level' => 'write'],
       ['role_id' => $recruiterRoleId, 'module' => 'notifications', 'access_level' => 'read'],
 
-      // Job Seeker - Read/write own data only
+      // Job Seeker
       ['role_id' => $jobSeekerRoleId, 'module' => 'dashboard', 'access_level' => 'read'],
       ['role_id' => $jobSeekerRoleId, 'module' => 'public_jobs', 'access_level' => 'read'],
       ['role_id' => $jobSeekerRoleId, 'module' => 'apply', 'access_level' => 'write'],
@@ -678,13 +713,10 @@ class RBACSeeder extends Seeder
     ];
 
     foreach ($moduleAccess as $access) {
-      DB::table('role_module_access')->insert([
-        'role_id' => $access['role_id'],
-        'module' => $access['module'],
-        'access_level' => $access['access_level'],
-        'created_at' => now(),
-        'updated_at' => now(),
-      ]);
+      DB::table('role_module_access')->updateOrInsert(
+        ['role_id' => $access['role_id'], 'module' => $access['module']],
+        ['access_level' => $access['access_level'], 'created_at' => now(), 'updated_at' => now()]
+      );
     }
 
     // ==========================================
@@ -693,7 +725,7 @@ class RBACSeeder extends Seeder
     $users = DB::table('users')->whereNull('deleted_at')->get();
 
     foreach ($users as $user) {
-      $roleSlug = 'job-seeker'; // Default role
+      $roleSlug = 'job-seeker';
 
       if ($user->email === 'superadmin@jobportal.com') {
         $roleSlug = 'super-admin';

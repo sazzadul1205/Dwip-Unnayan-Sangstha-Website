@@ -27,18 +27,15 @@ class ApplicantProfileSeeder extends Seeder
             'Network Administrator'
         ];
 
-        // Get all job seeker user IDs - Without 'role' column, we need to get users who have job_seeker role via RBAC
-        // For seeding purposes, we'll get users who are NOT employers (based on email patterns or manual selection)
-        $allUsers = DB::table('users')->get();
-
-        // For seeding, we'll consider users without 'company' in email as job seekers
-        // In production, you'd check user_roles table, but during seeding RBAC runs after this
-        $jobSeekerUsers = $allUsers->filter(function ($user) {
-            return !str_contains($user->email, '@company.com')
-                && $user->email !== 'admin@jobportal.com'
-                && $user->email !== 'superadmin@jobportal.com'
-                && $user->email !== 'hrmanager@company.com';
-        });
+        // Get all job seeker user IDs via RBAC user_roles table
+        $jobSeekerUsers = DB::table('users')
+            ->join('user_roles', 'users.id', '=', 'user_roles.user_id')
+            ->join('roles', 'roles.id', '=', 'user_roles.role_id')
+            ->whereIn('roles.slug', ['job-seeker'])
+            ->where('user_roles.is_active', true)
+            ->select('users.*')
+            ->distinct()
+            ->get();
 
         $profiles = [];
 

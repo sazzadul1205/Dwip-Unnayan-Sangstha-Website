@@ -14,43 +14,61 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // Run the database seeds in correct order
+        // ==========================================
+        // STEP 1: Base data (no dependencies)
+        // ==========================================
         $this->call([
-            // Base data first
             LocationSeeder::class,
             JobCategorySeeder::class,
-
-            // Users first (without role column)
-            UserSeeder::class,
-
-            // Profiles after users
-            ApplicantProfileSeeder::class,
-
-            // Job listings
-            JobListingSeeder::class,
-            JobListingLocationSeeder::class,
-
-            // User history/data
-            JobHistorySeeder::class,
-            EducationHistorySeeder::class,
-            AchievementSeeder::class,
-
-            // Applications and tracking
-            ApplicationSeeder::class,
-            StatusTimelineSeeder::class,
-            JobViewSeeder::class,
-
-            // RBAC - MUST run after UserSeeder to assign roles to existing users
-            RBACSeeder::class,
         ]);
 
-        // Clean storage directories
+        // ==========================================
+        // STEP 2: Create users (no RBAC yet)
+        // ==========================================
+        $this->call(UserSeeder::class);
+
+        // ==========================================
+        // STEP 3: Assign roles to users (RBAC FIRST!)
+        // This must run BEFORE any seeder that needs role information
+        // ==========================================
+        $this->call(RBACSeeder::class);
+
+        // ==========================================
+        // STEP 4: Create profiles (after roles are assigned)
+        // ==========================================
+        $this->call(ApplicantProfileSeeder::class);
+
+        // ==========================================
+        // STEP 5: Create job listings
+        // ==========================================
+        $this->call(JobListingSeeder::class);
+        $this->call(JobListingLocationSeeder::class);
+
+        // ==========================================
+        // STEP 6: Create user history/data
+        // ==========================================
+        $this->call(JobHistorySeeder::class);
+        $this->call(EducationHistorySeeder::class);
+        $this->call(AchievementSeeder::class);
+
+        // ==========================================
+        // STEP 7: Create applications (needs roles to identify job seekers)
+        // ==========================================
+        $this->call(ApplicationSeeder::class);
+        $this->call(StatusTimelineSeeder::class);
+        $this->call(JobViewSeeder::class);
+
+        // ==========================================
+        // STEP 8: Clean storage directories
+        // ==========================================
         Storage::disk('public')->deleteDirectory('cvs');
         Storage::disk('public')->deleteDirectory('profile_photos');
         Storage::disk('public')->deleteDirectory('applicant-cvs');
         Storage::disk('public')->deleteDirectory('applicant-photos');
 
-        // Optional: Create a test user
+        // ==========================================
+        // STEP 9: Create test user
+        // ==========================================
         User::updateOrCreate(
             ['email' => 'test@example.com'],
             [

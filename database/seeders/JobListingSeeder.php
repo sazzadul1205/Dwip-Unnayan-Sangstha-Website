@@ -67,11 +67,23 @@ class JobListingSeeder extends Seeder
             ['Photoshop', 'Illustrator', 'Figma']
         ];
 
-        // Get employer users - users with @company.com email or hrmanager@company.com
+        // Get employer users via RBAC user_roles table
         $employers = DB::table('users')
-            ->where('email', 'like', '%@company.com')
-            ->orWhere('email', 'hrmanager@company.com')
+            ->join('user_roles', 'users.id', '=', 'user_roles.user_id')
+            ->join('roles', 'roles.id', '=', 'user_roles.role_id')
+            ->whereIn('roles.slug', ['employer-admin', 'hr-manager', 'recruiter'])
+            ->where('user_roles.is_active', true)
+            ->select('users.*')
+            ->distinct()
             ->get();
+
+        // Fallback: if no employers found, get users with @company.com email
+        if ($employers->isEmpty()) {
+            $employers = DB::table('users')
+                ->where('email', 'like', '%@company.com')
+                ->orWhere('email', 'hrmanager@company.com')
+                ->get();
+        }
 
         $categories = DB::table('job_categories')->get();
 
@@ -99,6 +111,8 @@ class JobListingSeeder extends Seeder
 
             $keywords = explode(' ', $title);
 
+            $employerId = $employers->isNotEmpty() ? $employers->random()->id : 1;
+
             $jobs[] = [
                 'title' => $title,
                 'slug' => Str::slug($title . '-' . $i . '-' . Str::random(8)),
@@ -121,7 +135,7 @@ class JobListingSeeder extends Seeder
                 'publish_at' => now()->subDays(rand(0, 30)),
                 'views_count' => rand(0, 500),
                 'is_active' => true,
-                'user_id' => $employers->random()->id,
+                'user_id' => $employerId,
                 'required_facebook_link' => rand(0, 1) == 1,
                 'required_linkedin_link' => rand(0, 1) == 1,
                 'created_at' => now(),
