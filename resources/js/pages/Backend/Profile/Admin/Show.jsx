@@ -14,7 +14,7 @@ import Swal from 'sweetalert2';
 
 // Auth
 import { useAuth } from '@/hooks/useAuth';
-import { Can } from '../../../components/Auth/Can';
+import { Can } from '../../../../components/Auth/Can';
 
 // Icons
 import {

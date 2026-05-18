@@ -10,8 +10,8 @@ import { Head, Link, router, usePage } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 
 // Auth
-import { useAuth } from '@/hooks/useAuth';
-import { Can } from '@/components/Auth';
+import { useAuth } from '../../../../hooks/useAuth';
+import { Can } from '../../../../components/Auth/Can';
 
 // Icons
 import {
