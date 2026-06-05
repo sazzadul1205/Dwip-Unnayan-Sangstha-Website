@@ -981,7 +981,7 @@ class FrontendController extends Controller
      */
     public function projectsPrograms(): Response
     {
-        return Inertia::render('Frontend/ProjectsPrograms', $this->getSharedData());
+        return Inertia::render('Frontend/ProjectsPrograms/ProjectsPrograms', $this->getSharedData());
     }
 
     /**

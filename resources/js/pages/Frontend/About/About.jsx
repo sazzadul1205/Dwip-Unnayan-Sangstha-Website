@@ -14,27 +14,30 @@ import HeroFigureSection from "./HeroFigureSection/HeroFigureSection";
 import FAQSection from "./FAQSection/FAQSection";
 
 const About = ({
+  // Shared 
   topBarData,
   navbarData,
   footerData,
-  bannerData,
-  visionAndMissionData,
-  backgroundData,
-  legalData,
-  interventionalData,
-  evolutionaryChangesData,
-  governanceData,
+
+  // Page Pacific
+  faqData,
   cardsData,
+  legalData,
+  bannerData,
   programsData,
   trainingData,
-  faqData,
+  backgroundData,
+  governanceData,
+  interventionalData,
+  visionAndMissionData,
+  evolutionaryChangesData,
 }) => {
 
   return (
     <PublicLayout topBarData={topBarData} navbarData={navbarData} footerData={footerData} >
-      <Head title="DUS - Dwip Unnayan Society | Empowering Communities" />
+      <Head title="About Us | DUS - Dwip Unnayan Society | Empowering Communities" />
 
-      <BannerSection bannerData={bannerData} />
+      <BannerSection bannerData={bannerData} sectionId='about-us-banner' />
 
       <HeroFigureSection
         layout="text-left"

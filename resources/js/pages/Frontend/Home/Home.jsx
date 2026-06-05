@@ -18,32 +18,45 @@ import ProgramImpactSection from "./ProgramImpactSection/ProgramImpactSection";
 import UpcomingEventsSection from "./UpcomingEventsSection/UpcomingEventsSection";
 
 export default function Home({
-  bannerData,
-  aboutUsData,
-  ourActionData,
-  whereWeWorkData,
-  ourProgramsData,
-  storiesData,
-  upcomingEventsData,
-  jobsData,
-  programImpactData,
+  // Shared 
   topBarData,
   navbarData,
-  footerData
+  footerData,
+
+  // Page Pacific
+  jobsData,
+  bannerData,
+  storiesData,
+  aboutUsData,
+  ourActionData,
+  ourProgramsData,
+  whereWeWorkData,
+  programImpactData,
+  upcomingEventsData,
+
 }) {
   return (
     <PublicLayout topBarData={topBarData} navbarData={navbarData} footerData={footerData}>
-      <Head title="DUS - Dwip Unnayan Society | Empowering Communities" />
+      <Head title="Home | DUS - Dwip Unnayan Society | Empowering Communities" />
 
       <BannerSection bannerData={bannerData} />
+
       <AboutUsSection aboutUsData={aboutUsData} />
+
       <OurActionSection actionData={ourActionData} />
+
       <WhereWeWorkSection workData={whereWeWorkData} />
+
       <OurProgramsSection programsData={ourProgramsData} />
+
       <StoriesSection storiesData={storiesData} />
+
       <UpcomingEventsSection eventsData={upcomingEventsData} />
+
       <JobsSection jobsData={jobsData} />
+
       <ProgramImpactSection impactData={programImpactData} />
+
     </PublicLayout>
   );
 }
