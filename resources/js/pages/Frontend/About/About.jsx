@@ -7,11 +7,11 @@ import { Head } from "@inertiajs/react";
 import PublicLayout from '../../../layouts/PublicLayout';
 
 // Sections
-import LegalSection from "./LegalSection/LegalSection";
+import FAQSection from "./FAQSection/FAQSection";
 import CardsSection from "./CardsSection/CardsSection";
+import LegalSection from "./LegalSection/LegalSection";
 import BannerSection from "./BannerSection/BannerSection";
 import HeroFigureSection from "./HeroFigureSection/HeroFigureSection";
-import FAQSection from "./FAQSection/FAQSection";
 
 const About = ({
   // Shared 

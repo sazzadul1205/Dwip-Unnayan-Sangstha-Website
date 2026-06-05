@@ -1329,19 +1329,211 @@ class FrontendController extends Controller
     }
 
     /**
-     * Display the about sub-page: Vision & Mission
-     */
-    public function aboutVisionMission(): Response
-    {
-        return Inertia::render('Frontend/About/VisionMission', $this->getSharedData());
-    }
-
-    /**
      * Display the projects & programs page
      */
     public function projectsPrograms(): Response
     {
-        return Inertia::render('Frontend/ProjectsPrograms/ProjectsPrograms', $this->getSharedData());
+        // Get storage URL from config
+        $storageUrl = asset('storage');
+
+        // Banner Data for sub-page
+        $bannerData = [
+            'background' => [
+                'src' => 'https://placehold.co/1920x589',
+                'alt' => 'Background'
+            ],
+            'overlay' => [
+                'darkOverlay' => 'bg-black/40 lg:bg-black/50',
+                'gradient' => 'bg-gradient-to-r from-black/85 via-black/10 to-transparent'
+            ],
+            'content' => [
+                'title' => [
+                    'text' => 'Meet Our Charity Projects',
+                    'className' => 'font-bold leading-tight'
+                ],
+            ],
+        ];
+
+        // Our Programs Data
+        $ourProgramsData = [
+
+            'programs' => [
+                [
+                    'id' => 1,
+                    'title' => 'Micro-Finance <br /> Program',
+                    'description' => 'Micro finance Program is the core program of all DUS activities. DUS has been implementing its major program in partnership with Palli Karma Sahayak Foundation (PKSF) since 2000. It provides collateral free micro-credit to its around 40K+ group members where 97 percent are female. Under this program, DUS has savings scheme for poor women who has no access in mainstream banks due to lack of capital and assets.',
+                    'image' => $storageUrl . '/OurPrograms/945e2496664a40b12a1cddd6561e954cdc78e255.webp',
+                    'bgColor' => 'bg-[#E6F3E7]',
+                    'link' => '/programs/micro-finance'
+                ],
+                [
+                    'id' => 2,
+                    'title' => 'Climate Change and Disaster Management Program',
+                    'description' => 'DUS is geographically located at very exposed disaster risk area of Coastal Bangladesh, most of its beneficiaries as well as core staffs of the organization and volunteers including general members are experienced by the influence of topography & living experience with the community, to cope with and face any natural disaster. Further during its lifetime DUS was active in major emergency in relief and rehabilitation programs following Nov. 1970 cyclone relief, 1988/1991-cyclone recovery, 1998 flood response, SIDR 2007 etc. DUS is now moving beyond relief and rehabilitation into institutionalized preparedness, risk reduction and management interventions as well as long term adaptation strategies as consequence of lessons learnt while helping communities cope with the devastating effects of Cyclone SIDR, which struck in November 2007.',
+                    'image' => $storageUrl . '/OurPrograms/a03fa6dba9fcdac0a5aedf2d337b118228a03298.webp',
+                    'bgColor' => 'bg-[#F3EDE6]',
+                    'link' => '/programs/climate-change'
+                ],
+                [
+                    'id' => 3,
+                    'title' => 'Community Radio',
+                    'description' => 'Strengthening Hatiya Island community for pioneering-connecting and empowering their Voice for Change Bangladesh Government has already acknowledged the importance of community radio and announced the Community Radio Installation, Broadcast & Operation Policy. Bangladesh is the 2nd country in South Asia in formulating policy for Community Radio. Meanwhile, Govt.',
+                    'image' => $storageUrl . '/OurPrograms/e280b627b1771904c38022aac2566b932e248887.webp',
+                    'bgColor' => 'bg-[#E8E6F3]',
+                    'link' => '/programs/community-radio'
+                ],
+                [
+                    'id' => 4,
+                    'title' => 'DWIP Education Program',
+                    'description' => 'Lorem, ipsum dolor sit amet consectetur adipisicing elit. Repellendus earum, pariatur voluptate dicta velit eligendi? Assumenda perspiciatis tempora mollitia temporibus sequi quasi quae dolor voluptate repudiandae culpa a corporis non qui nemo iure inventore blanditiis, reiciendis nulla veniam magni. Dignissimos deserunt provident saepe molestiae incidunt expedita voluptates ipsa iure. Nulla. Lorem ipsum dolor sit amet consectetur adipisicing elit. Nobis alias harum labore consectetur omnis, excepturi earum, non rem libero voluptate est. Rerum explicabo provident beatae cumque quidem, a accusantium obcaecati repellat. Pariatur quisquam aliquam aperiam dignissimos labore molestiae sit nesciunt blanditiis ut veniam repellat voluptatibus rerum, molestias voluptatem voluptate praesentium.',
+                    'image' => 'https://placehold.co/700x500',
+                    'bgColor' => 'bg-[#EEF3E6]',
+                    'link' => '/programs/dwip-education'
+                ],
+                [
+                    'id' => 5,
+                    'title' => 'Information and Communication Technology (ICT)',
+                    'description' => 'Lorem, ipsum dolor sit amet consectetur adipisicing elit. Repellendus earum, pariatur voluptate dicta velit eligendi? Assumenda perspiciatis tempora mollitia temporibus sequi quasi quae dolor voluptate repudiandae culpa a corporis non qui nemo iure inventore blanditiis, reiciendis nulla veniam magni. Dignissimos deserunt provident saepe molestiae incidunt expedita voluptates ipsa iure. Nulla. Lorem ipsum dolor sit amet consectetur adipisicing elit. Nobis alias harum labore consectetur omnis, excepturi earum, non rem libero voluptate est. Rerum explicabo provident beatae cumque quidem, a accusantium obcaecati repellat. Pariatur quisquam aliquam aperiam dignissimos labore molestiae sit nesciunt blanditiis ut veniam repellat voluptatibus rerum, molestias voluptatem voluptate praesentium.',
+                    'image' => 'https://placehold.co/700x500',
+                    'bgColor' => 'bg-[#E6F3F1]',
+                    'link' => '/programs/information-and-communication-technology'
+                ],
+                [
+                    'id' => 6,
+                    'title' => 'Research and Documentation',
+                    'description' => 'Lorem, ipsum dolor sit amet consectetur adipisicing elit. Repellendus earum, pariatur voluptate dicta velit eligendi? Assumenda perspiciatis tempora mollitia temporibus sequi quasi quae dolor voluptate repudiandae culpa a corporis non qui nemo iure inventore blanditiis, reiciendis nulla veniam magni. Dignissimos deserunt provident saepe molestiae incidunt expedita voluptates ipsa iure. Nulla. Lorem ipsum dolor sit amet consectetur adipisicing elit. Nobis alias harum labore consectetur omnis, excepturi earum, non rem libero voluptate est. Rerum explicabo provident beatae cumque quidem, a accusantium obcaecati repellat. Pariatur quisquam aliquam aperiam dignissimos labore molestiae sit nesciunt blanditiis ut veniam repellat voluptatibus rerum, molestias voluptatem voluptate praesentium.',
+                    'image' => 'https://placehold.co/700x500',
+                    'bgColor' => 'bg-[#F3E6EA]',
+                    'link' => '/programs/research-and-documentation'
+                ],
+                [
+                    'id' => 7,
+                    'title' => 'Livelihood Restoration Project',
+                    'description' => 'Lorem, ipsum dolor sit amet consectetur adipisicing elit. Repellendus earum, pariatur voluptate dicta velit eligendi? Assumenda perspiciatis tempora mollitia temporibus sequi quasi quae dolor voluptate repudiandae culpa a corporis non qui nemo iure inventore blanditiis, reiciendis nulla veniam magni. Dignissimos deserunt provident saepe molestiae incidunt expedita voluptates ipsa iure. Nulla. Lorem ipsum dolor sit amet consectetur adipisicing elit. Nobis alias harum labore consectetur omnis, excepturi earum, non rem libero voluptate est. Rerum explicabo provident beatae cumque quidem, a accusantium obcaecati repellat. Pariatur quisquam aliquam aperiam dignissimos labore molestiae sit nesciunt blanditiis ut veniam repellat voluptatibus rerum, molestias voluptatem voluptate praesentium.',
+                    'image' => 'https://placehold.co/700x500',
+                    'bgColor' => 'bg-[#E6ECF3]',
+                    'link' => '/programs/livelihood-restoration-project'
+                ],
+                [
+                    'id' => 8,
+                    'title' => 'Group Member Insurance/ Savings Scheme',
+                    'description' => 'Lorem, ipsum dolor sit amet consectetur adipisicing elit. Repellendus earum, pariatur voluptate dicta velit eligendi? Assumenda perspiciatis tempora mollitia temporibus sequi quasi quae dolor voluptate repudiandae culpa a corporis non qui nemo iure inventore blanditiis, reiciendis nulla veniam magni. Dignissimos deserunt provident saepe molestiae incidunt expedita voluptates ipsa iure. Nulla. Lorem ipsum dolor sit amet consectetur adipisicing elit. Nobis alias harum labore consectetur omnis, excepturi earum, non rem libero voluptate est. Rerum explicabo provident beatae cumque quidem, a accusantium obcaecati repellat. Pariatur quisquam aliquam aperiam dignissimos labore molestiae sit nesciunt blanditiis ut veniam repellat voluptatibus rerum, molestias voluptatem voluptate praesentium.',
+                    'image' => 'https://placehold.co/700x500',
+                    'bgColor' => 'bg-[#F3E6F1]',
+                    'link' => '/programs/group-member-insurance-savings-scheme'
+                ],
+                [
+                    'id' => 9,
+                    'title' => 'Social Development Program',
+                    'description' => 'Lorem, ipsum dolor sit amet consectetur adipisicing elit. Repellendus earum, pariatur voluptate dicta velit eligendi? Assumenda perspiciatis tempora mollitia temporibus sequi quasi quae dolor voluptate repudiandae culpa a corporis non qui nemo iure inventore blanditiis, reiciendis nulla veniam magni. Dignissimos deserunt provident saepe molestiae incidunt expedita voluptates ipsa iure. Nulla. Lorem ipsum dolor sit amet consectetur adipisicing elit. Nobis alias harum labore consectetur omnis, excepturi earum, non rem libero voluptate est. Rerum explicabo provident beatae cumque quidem, a accusantium obcaecati repellat. Pariatur quisquam aliquam aperiam dignissimos labore molestiae sit nesciunt blanditiis ut veniam repellat voluptatibus rerum, molestias voluptatem voluptate praesentium.',
+                    'image' => 'https://placehold.co/700x500',
+                    'bgColor' => 'bg-[#F3E6EA]',
+                    'link' => '/programs/social-development-program'
+                ],
+                [
+                    'id' => 10,
+                    'title' => 'Legal and Human Rights',
+                    'description' => 'Lorem, ipsum dolor sit amet consectetur adipisicing elit. Repellendus earum, pariatur voluptate dicta velit eligendi? Assumenda perspiciatis tempora mollitia temporibus sequi quasi quae dolor voluptate repudiandae culpa a corporis non qui nemo iure inventore blanditiis, reiciendis nulla veniam magni. Dignissimos deserunt provident saepe molestiae incidunt expedita voluptates ipsa iure. Nulla. Lorem ipsum dolor sit amet consectetur adipisicing elit. Nobis alias harum labore consectetur omnis, excepturi earum, non rem libero voluptate est. Rerum explicabo provident beatae cumque quidem, a accusantium obcaecati repellat. Pariatur quisquam aliquam aperiam dignissimos labore molestiae sit nesciunt blanditiis ut veniam repellat voluptatibus rerum, molestias voluptatem voluptate praesentium.',
+                    'image' => 'https://placehold.co/700x500',
+                    'bgColor' => 'bg-[#E6F1F3]',
+                    'link' => '/programs/legal-and-human-rights'
+                ],
+                [
+                    'id' => 11,
+                    'title' => 'WATSAN Program',
+                    'description' => 'Lorem, ipsum dolor sit amet consectetur adipisicing elit. Repellendus earum, pariatur voluptate dicta velit eligendi? Assumenda perspiciatis tempora mollitia temporibus sequi quasi quae dolor voluptate repudiandae culpa a corporis non qui nemo iure inventore blanditiis, reiciendis nulla veniam magni. Dignissimos deserunt provident saepe molestiae incidunt expedita voluptates ipsa iure. Nulla. Lorem ipsum dolor sit amet consectetur adipisicing elit. Nobis alias harum labore consectetur omnis, excepturi earum, non rem libero voluptate est. Rerum explicabo provident beatae cumque quidem, a accusantium obcaecati repellat. Pariatur quisquam aliquam aperiam dignissimos labore molestiae sit nesciunt blanditiis ut veniam repellat voluptatibus rerum, molestias voluptatem voluptate praesentium.',
+                    'image' => 'https://placehold.co/700x500',
+                    'bgColor' => 'bg-[#F2F3E6]',
+                    'link' => '/programs/watsan-program'
+                ],
+                [
+                    'id' => 12,
+                    'title' => 'Research and Documentation',
+                    'description' => 'Lorem, ipsum dolor sit amet consectetur adipisicing elit. Repellendus earum, pariatur voluptate dicta velit eligendi? Assumenda perspiciatis tempora mollitia temporibus sequi quasi quae dolor voluptate repudiandae culpa a corporis non qui nemo iure inventore blanditiis, reiciendis nulla veniam magni. Dignissimos deserunt provident saepe molestiae incidunt expedita voluptates ipsa iure. Nulla. Lorem ipsum dolor sit amet consectetur adipisicing elit. Nobis alias harum labore consectetur omnis, excepturi earum, non rem libero voluptate est. Rerum explicabo provident beatae cumque quidem, a accusantium obcaecati repellat. Pariatur quisquam aliquam aperiam dignissimos labore molestiae sit nesciunt blanditiis ut veniam repellat voluptatibus rerum, molestias voluptatem voluptate praesentium.',
+                    'image' => 'https://placehold.co/700x500',
+                    'bgColor' => 'bg-[#F3E9E6]',
+                    'link' => '/programs/research-and-documentation'
+                ],
+                [
+                    'id' => 13,
+                    'title' => 'Training & Other Facilities',
+                    'description' => 'Lorem, ipsum dolor sit amet consectetur adipisicing elit. Repellendus earum, pariatur voluptate dicta velit eligendi? Assumenda perspiciatis tempora mollitia temporibus sequi quasi quae dolor voluptate repudiandae culpa a corporis non qui nemo iure inventore blanditiis, reiciendis nulla veniam magni. Dignissimos deserunt provident saepe molestiae incidunt expedita voluptates ipsa iure. Nulla. Lorem ipsum dolor sit amet consectetur adipisicing elit. Nobis alias harum labore consectetur omnis, excepturi earum, non rem libero voluptate est. Rerum explicabo provident beatae cumque quidem, a accusantium obcaecati repellat. Pariatur quisquam aliquam aperiam dignissimos labore molestiae sit nesciunt blanditiis ut veniam repellat voluptatibus rerum, molestias voluptatem voluptate praesentium.',
+                    'image' => 'https://placehold.co/700x500',
+                    'bgColor' => 'bg-[#E6EDF3]',
+                    'link' => '/programs/training-and-other-facilities'
+                ],
+                [
+                    'id' => 14,
+                    'title' => 'Tourism & Hospitality',
+                    'description' => 'Lorem, ipsum dolor sit amet consectetur adipisicing elit. Repellendus earum, pariatur voluptate dicta velit eligendi? Assumenda perspiciatis tempora mollitia temporibus sequi quasi quae dolor voluptate repudiandae culpa a corporis non qui nemo iure inventore blanditiis, reiciendis nulla veniam magni. Dignissimos deserunt provident saepe molestiae incidunt expedita voluptates ipsa iure. Nulla. Lorem ipsum dolor sit amet consectetur adipisicing elit. Nobis alias harum labore consectetur omnis, excepturi earum, non rem libero voluptate est. Rerum explicabo provident beatae cumque quidem, a accusantium obcaecati repellat. Pariatur quisquam aliquam aperiam dignissimos labore molestiae sit nesciunt blanditiis ut veniam repellat voluptatibus rerum, molestias voluptatem voluptate praesentium.',
+                    'image' => 'https://placehold.co/700x500',
+                    'bgColor' => 'bg-[#EAE6F3]',
+                    'link' => '/programs/tourism-and-hospitality'
+                ],
+
+            ]
+        ];
+
+        // FAQ Data
+        $faqData = [
+            'section' => [
+                'title' => 'Key Questions Answered About Our Us',
+                'subtitle' => 'Explore our Frequently Asked Questions for answers about our charity\'s mission, projects, and how to help.'
+            ],
+            'faqs' => [
+                [
+                    'id' => 1,
+                    'question' => 'What is the mission of your charity?',
+                    'answer' => 'Any company that is using spreadsheets and emails to manage the people side of their business is wasting time on admin and making life more difficult for themselves. A well-designed HR system like PiHR automates menial tasks allowing business owners to focus on the strategic work of growing the business. It improves the recruitment process, enriches payroll management, provides real-time feedback, improves employees, improves data security, helps make decisions.',
+                ],
+                [
+                    'id' => 2,
+                    'question' => 'Who benefits from your programs?',
+                    'answer' => 'Our programs benefit underprivileged communities, women and children, disaster-affected families, and landless poor in coastal areas of Bangladesh.',
+                ],
+                [
+                    'id' => 3,
+                    'question' => 'Can I make a recurring donation?',
+                    'answer' => 'Yes, you can make recurring donations monthly, quarterly, or annually. Visit our donation page to set up your recurring contribution.',
+                ],
+                [
+                    'id' => 4,
+                    'question' => 'Can I visit the projects I support?',
+                    'answer' => 'Yes, we welcome donors to visit our project sites. Please contact our office in advance to arrange a visit and meet the communities you are supporting.',
+                ],
+                [
+                    'id' => 5,
+                    'question' => 'How can I get involved?',
+                    'answer' => 'You can get involved by donating, volunteering, sponsoring a child, or becoming a community ambassador. Visit our "Get Involved" page for more details.',
+                ],
+                [
+                    'id' => 6,
+                    'question' => 'How can I make a donation?',
+                    'answer' => 'You can make a donation online through our secure payment portal, bank transfer, or by visiting our office. We accept one-time and recurring donations.',
+                ],
+                [
+                    'id' => 7,
+                    'question' => 'How do you maintain accountability?',
+                    'answer' => 'We maintain transparency through regular audits, annual reports, community feedback mechanisms, and public disclosure of our financial statements.',
+                ],
+                [
+                    'id' => 8,
+                    'question' => 'Are donations tax-deductible?',
+                    'answer' => 'Yes, donations to DUS are tax-deductible under applicable tax laws. You will receive a receipt for your donation for tax purposes.',
+                ]
+            ]
+        ];
+
+
+        // Merge shared data with page-specific data
+        return Inertia::render('Frontend/ProjectsAndPrograms/ProjectsAndPrograms', array_merge(
+            $this->getSharedData(),
+            [
+                'faqData' => $faqData,
+                'bannerData' => $bannerData,
+                'ourProgramsData' => $ourProgramsData,
+            ]
+        ));
     }
 
     /**
