@@ -71,14 +71,9 @@ Route::get('/about/{slug}', [FrontendController::class, 'aboutDetails'])->name('
 Route::get('/projects-programs', [FrontendController::class, 'projectsPrograms'])->name('frontend.projects-programs');
 Route::get('/projects-programs/{slug}', [FrontendController::class, 'projectsProgramsDetails'])->name('frontend.projects-programs.details');
 
-Route::get('/workplace-area', [FrontendController::class, 'workplaceArea'])->name('frontend.workplace-area');
-Route::get('/posts', [FrontendController::class, 'posts'])->name('frontend.posts');
-Route::get('/posts/{slug}', [FrontendController::class, 'showPost'])->name('frontend.posts.show');
-Route::get('/media', [FrontendController::class, 'media'])->name('frontend.media');
-Route::get('/get-involved', [FrontendController::class, 'getInvolved'])->name('frontend.get-involved');
-Route::get('/jobs-frontend', [FrontendController::class, 'jobs'])->name('frontend.jobs');
-Route::get('/jobs-frontend/{slug}', [FrontendController::class, 'showJob'])->name('frontend.jobs.show');
-
+// Blogs
+Route::get('/blogs', [FrontendController::class, 'blogs'])->name('frontend.blogs');
+Route::get('/blogs/{slug}', [FrontendController::class, 'blogDetails'])->name('frontend.blogs.details');
 
 // Public job listings (no auth) - Using PublicJobListingController
 Route::get('/jobs', [PublicJobListingController::class, 'index'])->name('public.jobs.index');

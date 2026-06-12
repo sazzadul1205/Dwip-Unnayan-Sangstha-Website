@@ -10,9 +10,9 @@ const BannerSection = ({ bannerData, sectionId }) => {
   }
 
   // Safely access nested properties with fallbacks
-  const background = bannerData.background || {};
-  const overlay = bannerData.overlay || {};
-  const content = bannerData.content || {};
+  const background = bannerData?.background || {};
+  const overlay = bannerData?.overlay || {};
+  const content = bannerData?.content || {};
   const title = content.title || {};
   const description = content.description || {};
 

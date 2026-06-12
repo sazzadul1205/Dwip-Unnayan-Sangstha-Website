@@ -13,10 +13,10 @@ import Footer from '../components/Shared/Footer';
 
 const PublicLayout = ({ children, topBarData, navbarData, footerData, storageUrl }) => {
   return (
-    <div className='bg-white' >
+    <div >
       <TopBar topBarData={topBarData} storageUrl={storageUrl} />
       <Navbar navbarData={navbarData} />
-      <main className=" mx-auto">{children}</main>
+      <main className="mx-auto">{children}</main>
       <Footer footerData={footerData} storageUrl={storageUrl} />
     </div>
   );

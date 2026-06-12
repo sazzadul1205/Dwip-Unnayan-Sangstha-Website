@@ -2305,64 +2305,328 @@ class FrontendController extends Controller
     }
 
     /**
-     * Display the workplace area page
+     * Display the blogs page (frontend public blogs listing)
      */
-    public function workplaceArea(): Response
+    public function blogs(): Response
     {
-        return Inertia::render('Frontend/WorkplaceArea', $this->getSharedData());
-    }
+        $asset = function ($path) {
+            return route('asset', ['path' => ltrim($path, '/')]);
+        };
 
-    /**
-     * Display the posts page
-     */
-    public function posts(): Response
-    {
-        return Inertia::render('Frontend/Posts', $this->getSharedData());
-    }
+        // Banner Data for sub-page
+        $bannerData = [
+            'background' => [
+                'src' => $asset('OurPrograms/db1b2b6eae5fc260b4204f8257dadbd5a7aa0af7.png'),
+                'alt' => 'Background'
+            ],
+            'overlay' => [
+                'darkOverlay' => 'bg-black/40 lg:bg-black/50',
+                'gradient' => 'bg-gradient-to-r from-black/85 via-black/10 to-transparent'
+            ],
+            'content' => [
+                'title' => [
+                    'text' => 'Blog',
+                    'className' => 'font-bold leading-tight'
+                ],
+            ],
+        ];
 
-    /**
-     * Display a single post
-     */
-    public function showPost(string $slug): Response
-    {
-        return Inertia::render('Frontend/PostShow', array_merge(
+        // Main Blog Data
+        $mainBlog = [
+            'id' => 1,
+            'date' => "June 6, 2023",
+            'title' => "Invest in Kindness, Reap a Better Future",
+            'description' => "Micro finance Program is the core program of all DUS activities. DUS has been implementing its major program in partnership with Palli Karma Sahayak Foundation (PKSF) since 2000. It provides collateral free micro-credit to its around 40K+ group members where 97 percent are female. Under this program, DUS has savings scheme for poor women who has no access in mainstream banks due to lack of capital and assets. Most of the targeted beneficiaries of DUS are poor women, marginal farmers and small micro entrepreneurs. Major borrowers are women who used these loan funds to promote various income generating activities for their earnings and employments. As a result, micro finance program has positive impact on poverty reduction especially at grass root level, income enhancement, consumption, the promotion of rural businesses, education and health and finally the empowerment of women and their employment in rural island communities.",
+            'image' => "https://placehold.co/750x450",
+            'slug' => "invest-in-kindness-reap-a-better-future",
+            'tags' => ["Kindness", "Future", "Investment"],
+            'createdBy' => "Admin",
+            'timerRead' => "5 min read"
+        ];
+
+        // Blog Posts Data (10 posts as before)
+        $blogPosts = [
+            [
+                'id' => 2,
+                'date' => "June 5, 2023",
+                'title' => "How Technology is Changing Education",
+                'description' => "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.",
+                'image' => "https://placehold.co/420x250",
+                'slug' => "how-technology-is-changing-education",
+                'tags' => ["Technology", "Education", "Innovation"],
+                'createdBy' => "Admin",
+                'timerRead' => "4 min read"
+            ],
+            [
+                'id' => 3,
+                'date' => "June 4, 2023",
+                'title' => "Sustainable Living: Small Changes, Big Impact",
+                'description' => "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.",
+                'image' => "https://placehold.co/420x250",
+                'slug' => "sustainable-living-small-changes-big-impact",
+                'tags' => ["Sustainability", "Environment", "Lifestyle"],
+                'createdBy' => "Admin",
+                'timerRead' => "6 min read"
+            ],
+            [
+                'id' => 4,
+                'date' => "June 3, 2023",
+                'title' => "The Future of Remote Work",
+                'description' => "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.",
+                'image' => "https://placehold.co/420x250",
+                'slug' => "the-future-of-remote-work",
+                'tags' => ["Work", "Technology", "Future"],
+                'createdBy' => "Admin",
+                'timerRead' => "5 min read"
+            ],
+            [
+                'id' => 5,
+                'date' => "June 2, 2023",
+                'title' => "Mental Health Awareness in the Workplace",
+                'description' => "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.",
+                'image' => "https://placehold.co/420x250",
+                'slug' => "mental-health-awareness-in-the-workplace",
+                'tags' => ["Health", "Wellness", "Workplace"],
+                'createdBy' => "Admin",
+                'timerRead' => "7 min read"
+            ],
+            [
+                'id' => 6,
+                'date' => "June 1, 2023",
+                'title' => "Innovations in Renewable Energy",
+                'description' => "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.",
+                'image' => "https://placehold.co/420x250",
+                'slug' => "innovations-in-renewable-energy",
+                'tags' => ["Energy", "Innovation", "Sustainability"],
+                'createdBy' => "Admin",
+                'timerRead' => "5 min read"
+            ],
+            [
+                'id' => 7,
+                'date' => "May 31, 2023",
+                'title' => "Building a Personal Brand Online",
+                'description' => "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.",
+                'image' => "https://placehold.co/420x250",
+                'slug' => "building-a-personal-brand-online",
+                'tags' => ["Branding", "Marketing", "Career"],
+                'createdBy' => "Admin",
+                'timerRead' => "4 min read"
+            ],
+            [
+                'id' => 8,
+                'date' => "May 30, 2023",
+                'title' => "The Art of Effective Communication",
+                'description' => "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.",
+                'image' => "https://placehold.co/420x250",
+                'slug' => "the-art-of-effective-communication",
+                'tags' => ["Communication", "Skills", "Leadership"],
+                'createdBy' => "Admin",
+                'timerRead' => "6 min read"
+            ],
+            [
+                'id' => 9,
+                'date' => "May 29, 2023",
+                'title' => "Financial Planning for Young Professionals",
+                'description' => "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.",
+                'image' => "https://placehold.co/420x250",
+                'slug' => "financial-planning-for-young-professionals",
+                'tags' => ["Finance", "Planning", "Career"],
+                'createdBy' => "Admin",
+                'timerRead' => "5 min read"
+            ],
+            [
+                'id' => 10,
+                'date' => "May 28, 2023",
+                'title' => "Tech is Changing the World",
+                'description' => "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.",
+                'image' => "https://placehold.co/420x250",
+                'slug' => "tech-is-changing-the-world",
+                'tags' => ["Technology", "Innovation", "Future"],
+                'createdBy' => "Admin",
+                'timerRead' => "4 min read"
+            ]
+        ];
+
+        // FAQ Data
+        $faqData = [
+            'section' => [
+                'title' => 'Key Questions Answered About Our Blogs',
+                'subtitle' => 'Explore our Frequently Asked Questions for answers about our charity\'s blog content, mission, projects, and how to help.'
+            ],
+            'faqs' => [
+                [
+                    'id' => 1,
+                    'question' => 'What is the mission of your charity?',
+                    'answer' => 'Any company that is using spreadsheets and emails to manage the people side of their business is wasting time on admin and making life more difficult for themselves. A well-designed HR system like PiHR automates menial tasks allowing business owners to focus on the strategic work of growing the business. It improves the recruitment process, enriches payroll management, provides real-time feedback, improves employees, improves data security, helps make decisions.',
+                ],
+                [
+                    'id' => 2,
+                    'question' => 'Who benefits from your programs?',
+                    'answer' => 'Our programs benefit underprivileged communities, women and children, disaster-affected families, and landless poor in coastal areas of Bangladesh.',
+                ],
+                [
+                    'id' => 3,
+                    'question' => 'Can I make a recurring donation?',
+                    'answer' => 'Yes, you can make recurring donations monthly, quarterly, or annually. Visit our donation page to set up your recurring contribution.',
+                ],
+                [
+                    'id' => 4,
+                    'question' => 'Can I visit the projects I support?',
+                    'answer' => 'Yes, we welcome donors to visit our project sites. Please contact our office in advance to arrange a visit and meet the communities you are supporting.',
+                ],
+                [
+                    'id' => 5,
+                    'question' => 'How can I get involved?',
+                    'answer' => 'You can get involved by donating, volunteering, sponsoring a child, or becoming a community ambassador. Visit our "Get Involved" page for more details.',
+                ],
+                [
+                    'id' => 6,
+                    'question' => 'How can I make a donation?',
+                    'answer' => 'You can make a donation online through our secure payment portal, bank transfer, or by visiting our office. We accept one-time and recurring donations.',
+                ],
+                [
+                    'id' => 7,
+                    'question' => 'How do you maintain accountability?',
+                    'answer' => 'We maintain transparency through regular audits, annual reports, community feedback mechanisms, and public disclosure of our financial statements.',
+                ],
+                [
+                    'id' => 8,
+                    'question' => 'Are donations tax-deductible?',
+                    'answer' => 'Yes, donations to DUS are tax-deductible under applicable tax laws. You will receive a receipt for your donation for tax purposes.',
+                ]
+            ]
+        ];
+
+        return Inertia::render('Frontend/Blogs/Blogs', array_merge(
             $this->getSharedData(),
-            ['slug' => $slug]
+            [
+                'bannerData' => $bannerData,
+                'faqData' => $faqData,
+                'mainBlog' => $mainBlog,
+                'blogPosts' => $blogPosts,
+            ]
         ));
     }
 
     /**
-     * Display the media page
+     * Backward-compatible blog details implementation.
      */
-    public function media(): Response
+    public function blogDetails(string $slug): Response
     {
-        return Inertia::render('Frontend/Media', $this->getSharedData());
-    }
+        $asset = function ($path) {
+            return route('asset', ['path' => ltrim($path, '/')]);
+        };
 
-    /**
-     * Display the get involved page
-     */
-    public function getInvolved(): Response
-    {
-        return Inertia::render('Frontend/GetInvolved', $this->getSharedData());
-    }
+        // Full blog posts data with HTML content
+        $blogPostsData = [
+            'invest-in-kindness-reap-a-better-future' => [
+                'id' => 1,
+                'date' => "June 6, 2023",
+                'title' => "Invest in Kindness, Reap a Better Future",
+                'description' => "Micro finance Program is the core program of all DUS activities. DUS has been implementing its major program in partnership with Palli Karma Sahayak Foundation (PKSF) since 2000. It provides collateral free micro-credit to its around 40K+ group members where 97 percent are female.",
+                'image' => "https://placehold.co/750x450",
+                'slug' => "invest-in-kindness-reap-a-better-future",
+                'tags' => ["Kindness", "Future", "Investment"],
+                'createdBy' => "Admin",
+                'timerRead' => "5 min read",
+                'fullContent' => '
+                <div class="space-y-6">
+                    <div>
+                        <p class="font-400 text-base sm:text-lg lg:text-xl text-[#333333] leading-relaxed mb-4">Micro finance Program is the core program of all DUS activities. DUS has been implementing its major program in partnership with <strong class="text-[#009BE2]">Palli Karma Sahayak Foundation (PKSF)</strong> since 2000. It provides collateral free micro-credit to its around 40K+ group members where 97 percent are female.</p>
+                        
+                        <p class="font-400 text-base sm:text-lg lg:text-xl text-[#333333] leading-relaxed mb-4">Under this program, DUS has savings scheme for poor women who has no access in mainstream banks due to lack of capital and assets. Most of the targeted beneficiaries of DUS are poor women, marginal farmers and small micro entrepreneurs.</p>
+                        
+                        <p class="font-400 text-base sm:text-lg lg:text-xl text-[#333333] leading-relaxed mb-4">Major borrowers are women who used these loan funds to promote various income generating activities for their earnings and employments. As a result, micro finance program has positive impact on poverty reduction especially at grass root level, income enhancement, consumption, the promotion of rural businesses, education and health and finally the empowerment of women and their employment in rural island communities.</p>
+                        
+                        <h2 class="font-700 text-2xl sm:text-3xl lg:text-4xl text-[#080C14] mt-8 mb-4">The Power of Microfinance</h2>
+                        <p class="font-400 text-base sm:text-lg lg:text-xl text-[#333333] leading-relaxed mb-4">Microfinance has proven to be one of the most effective tools for poverty alleviation in developing countries. By providing small loans to those who lack access to traditional banking services, we enable families to start businesses, generate income, and build a better future for their children.</p>
+                        
+                        <h2 class="font-700 text-2xl sm:text-3xl lg:text-4xl text-[#080C14] mt-8 mb-4">Success Stories</h2>
+                        <p class="font-400 text-base sm:text-lg lg:text-xl text-[#333333] leading-relaxed mb-4">Take the story of Fatema, a mother of three from Hatiya Island. With a small loan of BDT 15,000, she started a tailoring business. Today, she employs two other women from her community and has been able to send all her children to school.</p>
+                        
+                        <div class="bg-white/50 rounded-lg p-6 mt-6 mb-6">
+                            <h3 class="font-600 text-xl sm:text-2xl text-[#080C14] mb-3">Key Impact Statistics</h3>
+                            <ul class="list-disc pl-6 space-y-2">
+                                <li class="font-400 text-base sm:text-lg text-[#333333]">40,000+ active group members</li>
+                                <li class="font-400 text-base sm:text-lg text-[#333333]">97% female beneficiaries</li>
+                                <li class="font-400 text-base sm:text-lg text-[#333333]">Over 95% loan recovery rate</li>
+                                <li class="font-400 text-base sm:text-lg text-[#333333]">Operating in 50+ villages</li>
+                                <li class="font-400 text-base sm:text-lg text-[#333333]">BDT 50+ crore distributed in loans</li>
+                            </ul>
+                        </div>
+                        
+                        <h2 class="font-700 text-2xl sm:text-3xl lg:text-4xl text-[#080C14] mt-8 mb-4">Looking Ahead</h2>
+                        <p class="font-400 text-base sm:text-lg lg:text-xl text-[#333333] leading-relaxed">As we continue to expand our microfinance program, we remain committed to reaching more underserved communities. Your support helps us create lasting change and build a more equitable future for all.</p>
+                    </div>
+                </div>
+            '
+            ],
+            'how-technology-is-changing-education' => [
+                'id' => 2,
+                'date' => "June 5, 2023",
+                'title' => "How Technology is Changing Education",
+                'description' => "Discover how digital tools and innovative technologies are transforming the educational landscape for underprivileged communities.",
+                'image' => "https://placehold.co/750x450",
+                'slug' => "how-technology-is-changing-education",
+                'tags' => ["Technology", "Education", "Innovation"],
+                'createdBy' => "Admin",
+                'timerRead' => "4 min read",
+                'fullContent' => '
+                <div class="space-y-6">
+                    <div>
+                        <p class="font-400 text-base sm:text-lg lg:text-xl text-[#333333] leading-relaxed mb-4">Technology is revolutionizing education in ways we could never have imagined. From digital classrooms to online learning platforms, students now have access to a world of knowledge at their fingertips.</p>
+                        
+                        <p class="font-400 text-base sm:text-lg lg:text-xl text-[#333333] leading-relaxed mb-4">In remote areas like Hatiya Island, technology is bridging the gap between rural and urban education. Our <strong class="text-[#009BE2]">Digital Learning Centers</strong> provide students with access to computers, internet connectivity, and online educational resources.</p>
+                        
+                        <h2 class="font-700 text-2xl sm:text-3xl lg:text-4xl text-[#080C14] mt-8 mb-4">Key Technological Interventions</h2>
+                        <ul class="list-disc pl-6 space-y-3 mb-6">
+                            <li class="font-400 text-base sm:text-lg lg:text-xl text-[#333333] leading-relaxed">Computer literacy programs for students and teachers</li>
+                            <li class="font-400 text-base sm:text-lg lg:text-xl text-[#333333] leading-relaxed">Online scholarship applications and tracking systems</li>
+                            <li class="font-400 text-base sm:text-lg lg:text-xl text-[#333333] leading-relaxed">Digital libraries with thousands of e-books and resources</li>
+                            <li class="font-400 text-base sm:text-lg lg:text-xl text-[#333333] leading-relaxed">Virtual tutoring and mentorship programs</li>
+                        </ul>
+                        
+                        <div class="bg-white/50 rounded-lg p-6 mt-6">
+                            <h3 class="font-600 text-xl sm:text-2xl text-[#080C14] mb-3">Impact So Far</h3>
+                            <ul class="list-disc pl-6 space-y-2">
+                                <li class="font-400 text-base sm:text-lg text-[#333333]">1,500+ students trained in basic computer skills</li>
+                                <li class="font-400 text-base sm:text-lg text-[#333333]">50 teachers equipped with digital teaching tools</li>
+                                <li class="font-400 text-base sm:text-lg text-[#333333]">10 community ICT centers established</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            '
+            ],
+        ];
 
-    /**
-     * Display the jobs page (frontend public jobs listing)
-     */
-    public function jobs(): Response
-    {
-        return Inertia::render('Frontend/Jobs', $this->getSharedData());
-    }
+        // Check if the blog post exists
+        if (!isset($blogPostsData[$slug])) {
+            abort(404, 'Blog post not found');
+        }
 
-    /**
-     * Display a single job (frontend)
-     */
-    public function showJob(string $slug): Response
-    {
-        return Inertia::render('Frontend/JobShow', array_merge(
+        $blogData = $blogPostsData[$slug];
+
+        // Banner Data for blog details page
+        $bannerData = [
+            'background' => [
+                'src' => $asset('OurPrograms/db1b2b6eae5fc260b4204f8257dadbd5a7aa0af7.png'),
+                'alt' => 'Background'
+            ],
+            'overlay' => [
+                'darkOverlay' => 'bg-black/40 lg:bg-black/70',
+            ],
+
+        ];
+
+
+        return Inertia::render('Frontend/BlogDetails/BlogDetails', array_merge(
             $this->getSharedData(),
-            ['slug' => $slug]
+            [
+                'slug' => $slug,
+                'bannerData' => $bannerData,
+                'blogData' => $blogData,
+            ]
         ));
     }
 }
