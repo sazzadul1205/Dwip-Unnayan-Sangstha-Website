@@ -380,7 +380,7 @@ export default function Login({ status, canResetPassword, googleAuthEnabled }) {
                           <Lock className="h-3 w-3 text-[#706f6c] shrink-0" />
                           <span className="text-[#706f6c]">Password:</span>
                           <span className="font-mono font-medium text-[#1b1b18] text-xs">
-                            {currentAccount.password}
+                            Hidden
                           </span>
                         </div>
                       </div>
@@ -400,14 +400,14 @@ export default function Login({ status, canResetPassword, googleAuthEnabled }) {
                 <div className="mt-6 p-3 rounded-lg bg-white/50 backdrop-blur-sm">
                   <p className="text-xs text-[#706f6c] text-center">
                     <span className="inline-block mr-1">💡</span>
-                    Use <strong className="font-mono">↑</strong> and <strong className="font-mono">↓</strong> buttons to cycle through accounts
+                    Use the navigation buttons to cycle through demo accounts
                   </p>
                 </div>
 
                 {/* User count info */}
                 <div className="mt-4 text-center">
                   <p className="text-xs text-[#706f6c]">
-                    👥 2 Admins + 1 Employer + 50+ Job Seekers
+                    2 Admins + 1 Employer + 50+ Job Seekers
                   </p>
                 </div>
               </div>
