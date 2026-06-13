@@ -113,10 +113,8 @@ class FrontendController extends Controller
                 ['name' => 'Home', 'href' => '/'],
                 ['name' => 'About', 'href' => '/about'],
                 ['name' => 'Projects & Programs', 'href' => '/projects-programs'],
-                ['name' => 'Workplace Area', 'href' => '/workplace-area'],
-                ['name' => 'Posts', 'href' => '/posts'],
-                ['name' => 'Media', 'href' => '/media'],
-                ['name' => 'Get Involved', 'href' => '/get-involved'],
+                ['name' => 'Blogs', 'href' => '/blogs'],
+             
             ],
             'button' => [
                 'text' => 'Contact Us',
@@ -2530,35 +2528,50 @@ class FrontendController extends Controller
                 'createdBy' => "Admin",
                 'timerRead' => "5 min read",
                 'fullContent' => '
-                <div class="space-y-6">
-                    <div>
-                        <p class="font-400 text-base sm:text-lg lg:text-xl text-[#333333] leading-relaxed mb-4">Micro finance Program is the core program of all DUS activities. DUS has been implementing its major program in partnership with <strong class="text-[#009BE2]">Palli Karma Sahayak Foundation (PKSF)</strong> since 2000. It provides collateral free micro-credit to its around 40K+ group members where 97 percent are female.</p>
-                        
-                        <p class="font-400 text-base sm:text-lg lg:text-xl text-[#333333] leading-relaxed mb-4">Under this program, DUS has savings scheme for poor women who has no access in mainstream banks due to lack of capital and assets. Most of the targeted beneficiaries of DUS are poor women, marginal farmers and small micro entrepreneurs.</p>
-                        
-                        <p class="font-400 text-base sm:text-lg lg:text-xl text-[#333333] leading-relaxed mb-4">Major borrowers are women who used these loan funds to promote various income generating activities for their earnings and employments. As a result, micro finance program has positive impact on poverty reduction especially at grass root level, income enhancement, consumption, the promotion of rural businesses, education and health and finally the empowerment of women and their employment in rural island communities.</p>
-                        
-                        <h2 class="font-700 text-2xl sm:text-3xl lg:text-4xl text-[#080C14] mt-8 mb-4">The Power of Microfinance</h2>
-                        <p class="font-400 text-base sm:text-lg lg:text-xl text-[#333333] leading-relaxed mb-4">Microfinance has proven to be one of the most effective tools for poverty alleviation in developing countries. By providing small loans to those who lack access to traditional banking services, we enable families to start businesses, generate income, and build a better future for their children.</p>
-                        
-                        <h2 class="font-700 text-2xl sm:text-3xl lg:text-4xl text-[#080C14] mt-8 mb-4">Success Stories</h2>
-                        <p class="font-400 text-base sm:text-lg lg:text-xl text-[#333333] leading-relaxed mb-4">Take the story of Fatema, a mother of three from Hatiya Island. With a small loan of BDT 15,000, she started a tailoring business. Today, she employs two other women from her community and has been able to send all her children to school.</p>
-                        
-                        <div class="bg-white/50 rounded-lg p-6 mt-6 mb-6">
-                            <h3 class="font-600 text-xl sm:text-2xl text-[#080C14] mb-3">Key Impact Statistics</h3>
-                            <ul class="list-disc pl-6 space-y-2">
-                                <li class="font-400 text-base sm:text-lg text-[#333333]">40,000+ active group members</li>
-                                <li class="font-400 text-base sm:text-lg text-[#333333]">97% female beneficiaries</li>
-                                <li class="font-400 text-base sm:text-lg text-[#333333]">Over 95% loan recovery rate</li>
-                                <li class="font-400 text-base sm:text-lg text-[#333333]">Operating in 50+ villages</li>
-                                <li class="font-400 text-base sm:text-lg text-[#333333]">BDT 50+ crore distributed in loans</li>
-                            </ul>
+                    <div class="space-y-6">
+                        <div>
+                            <p class="font-400 text-base sm:text-lg lg:text-xl text-[#333333] leading-relaxed mb-4">Micro finance Program is the core program of all DUS activities. DUS has been implementing its major program in partnership with <strong class="text-[#009BE2]">Palli Karma Sahayak Foundation (PKSF)</strong> since 2000. It provides collateral free micro-credit to its around 40K+ group members where 97 percent are female.</p>
+                            
+                            <p class="font-400 text-base sm:text-lg lg:text-xl text-[#333333] leading-relaxed mb-4">Under this program, DUS has savings scheme for poor women who has no access in mainstream banks due to lack of capital and assets. Most of the targeted beneficiaries of DUS are poor women, marginal farmers and small micro entrepreneurs.</p>
+                            
+                            <p class="font-400 text-base sm:text-lg lg:text-xl text-[#333333] leading-relaxed mb-4">Major borrowers are women who used these loan funds to promote various income generating activities for their earnings and employments. As a result, micro finance program has positive impact on poverty reduction especially at grass root level, income enhancement, consumption, the promotion of rural businesses, education and health and finally the empowerment of women and their employment in rural island communities.</p>
+                            
+                            <h2 class="font-700 text-2xl sm:text-3xl lg:text-4xl text-[#080C14] mt-8 mb-4">The Power of Microfinance</h2>
+                            <p class="font-400 text-base sm:text-lg lg:text-xl text-[#333333] leading-relaxed mb-4">Microfinance has proven to be one of the most effective tools for poverty alleviation in developing countries. By providing small loans to those who lack access to traditional banking services, we enable families to start businesses, generate income, and build a better future for their children.</p>
+                            
+                            <!-- Two Images Side by Side -->
+                            <div class="flex flex-col sm:flex-row gap-12 my-8">
+                                <img 
+                                    src="https://placehold.co/460x400" 
+                                    alt="Microfinance beneficiaries"
+                                    class="w-full sm:w-115 h-100 object-cover rounded-2xl shadow-lg"
+                                />
+                                <img 
+                                    src="https://placehold.co/460x400" 
+                                    alt="Community empowerment"
+                                    class="w-full sm:w-115 h-100 object-cover rounded-2xl shadow-lg"
+                                />
+                            </div>
+                            
+                            <h2 class="font-700 text-2xl sm:text-3xl lg:text-4xl text-[#080C14] mt-8 mb-4">Success Stories</h2>
+                            <p class="font-400 text-base sm:text-lg lg:text-xl text-[#333333] leading-relaxed mb-4">Take the story of Fatema, a mother of three from Hatiya Island. With a small loan of BDT 15,000, she started a tailoring business. Today, she employs two other women from her community and has been able to send all her children to school.</p>
+                            
+                            <div class="bg-white/50 rounded-lg p-6 mt-6 mb-6">
+                                <h3 class="font-600 text-xl sm:text-2xl text-[#080C14] mb-3">Key Impact Statistics</h3>
+                                <ul class="list-disc pl-6 space-y-2">
+                                    <li class="font-400 text-base sm:text-lg text-[#333333]">40,000+ active group members</li>
+                                    <li class="font-400 text-base sm:text-lg text-[#333333]">97% female beneficiaries</li>
+                                    <li class="font-400 text-base sm:text-lg text-[#333333]">Over 95% loan recovery rate</li>
+                                    <li class="font-400 text-base sm:text-lg text-[#333333]">Operating in 50+ villages</li>
+                                    <li class="font-400 text-base sm:text-lg text-[#333333]">BDT 50+ crore distributed in loans</li>
+                                </ul>
+                            </div>
+                            
+                            <h2 class="font-700 text-2xl sm:text-3xl lg:text-4xl text-[#080C14] mt-8 mb-4">Looking Ahead</h2>
+                            <p class="font-400 text-base sm:text-lg lg:text-xl text-[#333333] leading-relaxed">As we continue to expand our microfinance program, we remain committed to reaching more underserved communities. Your support helps us create lasting change and build a more equitable future for all.</p>
+                            
                         </div>
-                        
-                        <h2 class="font-700 text-2xl sm:text-3xl lg:text-4xl text-[#080C14] mt-8 mb-4">Looking Ahead</h2>
-                        <p class="font-400 text-base sm:text-lg lg:text-xl text-[#333333] leading-relaxed">As we continue to expand our microfinance program, we remain committed to reaching more underserved communities. Your support helps us create lasting change and build a more equitable future for all.</p>
                     </div>
-                </div>
             '
             ],
             'how-technology-is-changing-education' => [
@@ -2572,32 +2585,184 @@ class FrontendController extends Controller
                 'createdBy' => "Admin",
                 'timerRead' => "4 min read",
                 'fullContent' => '
-                <div class="space-y-6">
-                    <div>
-                        <p class="font-400 text-base sm:text-lg lg:text-xl text-[#333333] leading-relaxed mb-4">Technology is revolutionizing education in ways we could never have imagined. From digital classrooms to online learning platforms, students now have access to a world of knowledge at their fingertips.</p>
-                        
-                        <p class="font-400 text-base sm:text-lg lg:text-xl text-[#333333] leading-relaxed mb-4">In remote areas like Hatiya Island, technology is bridging the gap between rural and urban education. Our <strong class="text-[#009BE2]">Digital Learning Centers</strong> provide students with access to computers, internet connectivity, and online educational resources.</p>
-                        
-                        <h2 class="font-700 text-2xl sm:text-3xl lg:text-4xl text-[#080C14] mt-8 mb-4">Key Technological Interventions</h2>
-                        <ul class="list-disc pl-6 space-y-3 mb-6">
-                            <li class="font-400 text-base sm:text-lg lg:text-xl text-[#333333] leading-relaxed">Computer literacy programs for students and teachers</li>
-                            <li class="font-400 text-base sm:text-lg lg:text-xl text-[#333333] leading-relaxed">Online scholarship applications and tracking systems</li>
-                            <li class="font-400 text-base sm:text-lg lg:text-xl text-[#333333] leading-relaxed">Digital libraries with thousands of e-books and resources</li>
-                            <li class="font-400 text-base sm:text-lg lg:text-xl text-[#333333] leading-relaxed">Virtual tutoring and mentorship programs</li>
+            <div class="space-y-6">
+                <div>
+                    <p class="font-400 text-base sm:text-lg lg:text-xl text-[#333333] leading-relaxed mb-4">Technology is revolutionizing education in ways we could never have imagined. From digital classrooms to online learning platforms, students now have access to a world of knowledge at their fingertips.</p>
+                    
+                    <p class="font-400 text-base sm:text-lg lg:text-xl text-[#333333] leading-relaxed mb-4">In remote areas like Hatiya Island, technology is bridging the gap between rural and urban education. Our <strong class="text-[#009BE2]">Digital Learning Centers</strong> provide students with access to computers, internet connectivity, and online educational resources.</p>
+                    
+                    <h2 class="font-700 text-2xl sm:text-3xl lg:text-4xl text-[#080C14] mt-8 mb-4">Key Technological Interventions</h2>
+                    <ul class="list-disc pl-6 space-y-3 mb-6">
+                        <li class="font-400 text-base sm:text-lg lg:text-xl text-[#333333] leading-relaxed">Computer literacy programs for students and teachers</li>
+                        <li class="font-400 text-base sm:text-lg lg:text-xl text-[#333333] leading-relaxed">Online scholarship applications and tracking systems</li>
+                        <li class="font-400 text-base sm:text-lg lg:text-xl text-[#333333] leading-relaxed">Digital libraries with thousands of e-books and resources</li>
+                        <li class="font-400 text-base sm:text-lg lg:text-xl text-[#333333] leading-relaxed">Virtual tutoring and mentorship programs</li>
+                    </ul>
+                    
+                    <div class="bg-white/50 rounded-lg p-6 mt-6">
+                        <h3 class="font-600 text-xl sm:text-2xl text-[#080C14] mb-3">Impact So Far</h3>
+                        <ul class="list-disc pl-6 space-y-2">
+                            <li class="font-400 text-base sm:text-lg text-[#333333]">1,500+ students trained in basic computer skills</li>
+                            <li class="font-400 text-base sm:text-lg text-[#333333]">50 teachers equipped with digital teaching tools</li>
+                            <li class="font-400 text-base sm:text-lg text-[#333333]">10 community ICT centers established</li>
                         </ul>
-                        
-                        <div class="bg-white/50 rounded-lg p-6 mt-6">
-                            <h3 class="font-600 text-xl sm:text-2xl text-[#080C14] mb-3">Impact So Far</h3>
-                            <ul class="list-disc pl-6 space-y-2">
-                                <li class="font-400 text-base sm:text-lg text-[#333333]">1,500+ students trained in basic computer skills</li>
-                                <li class="font-400 text-base sm:text-lg text-[#333333]">50 teachers equipped with digital teaching tools</li>
-                                <li class="font-400 text-base sm:text-lg text-[#333333]">10 community ICT centers established</li>
-                            </ul>
-                        </div>
                     </div>
                 </div>
-            '
+            </div>
+        '
             ],
+            'sustainable-living-small-changes-big-impact' => [
+                'id' => 3,
+                'date' => "June 4, 2023",
+                'title' => "Sustainable Living: Small Changes, Big Impact",
+                'description' => "Learn how simple lifestyle changes can contribute to environmental sustainability and community well-being.",
+                'image' => "https://placehold.co/750x450",
+                'slug' => "sustainable-living-small-changes-big-impact",
+                'tags' => ["Sustainability", "Environment", "Lifestyle"],
+                'createdBy' => "Admin",
+                'timerRead' => "6 min read",
+                'fullContent' => '
+            <div class="space-y-6">
+                <div>
+                    <p class="font-400 text-base sm:text-lg lg:text-xl text-[#333333] leading-relaxed mb-4">Sustainable living is not just a trend—it\'s a necessity for our planet\'s future. Small changes in our daily habits can collectively make a significant impact on environmental conservation.</p>
+                    
+                    <h2 class="font-700 text-2xl sm:text-3xl lg:text-4xl text-[#080C14] mt-8 mb-4">Simple Steps for Sustainable Living</h2>
+                    <ul class="list-disc pl-6 space-y-3 mb-6">
+                        <li class="font-400 text-base sm:text-lg lg:text-xl text-[#333333] leading-relaxed">Reduce, reuse, and recycle waste materials</li>
+                        <li class="font-400 text-base sm:text-lg lg:text-xl text-[#333333] leading-relaxed">Conserve water and electricity at home</li>
+                        <li class="font-400 text-base sm:text-lg lg:text-xl text-[#333333] leading-relaxed">Support local farmers and sustainable agriculture</li>
+                        <li class="font-400 text-base sm:text-lg lg:text-xl text-[#333333] leading-relaxed">Plant trees and maintain home gardens</li>
+                    </ul>
+                </div>
+            </div>
+        '
+            ],
+        ];
+
+        // All blog posts for related posts (excluding current one)
+        $allBlogPosts = [
+            [
+                'id' => 1,
+                'date' => "June 6, 2023",
+                'title' => "Invest in Kindness, Reap a Better Future",
+                'description' => "Micro finance Program is the core program of all DUS activities...",
+                'image' => "https://placehold.co/420x250",
+                'slug' => "invest-in-kindness-reap-a-better-future",
+                'tags' => ["Kindness", "Future", "Investment"],
+                'createdBy' => "Admin",
+                'timerRead' => "5 min read"
+            ],
+            [
+                'id' => 2,
+                'date' => "June 5, 2023",
+                'title' => "How Technology is Changing Education",
+                'description' => "Discover how digital tools and innovative technologies are transforming education...",
+                'image' => "https://placehold.co/420x250",
+                'slug' => "how-technology-is-changing-education",
+                'tags' => ["Technology", "Education", "Innovation"],
+                'createdBy' => "Admin",
+                'timerRead' => "4 min read"
+            ],
+            [
+                'id' => 3,
+                'date' => "June 4, 2023",
+                'title' => "Sustainable Living: Small Changes, Big Impact",
+                'description' => "Learn how simple lifestyle changes can contribute to environmental sustainability...",
+                'image' => "https://placehold.co/420x250",
+                'slug' => "sustainable-living-small-changes-big-impact",
+                'tags' => ["Sustainability", "Environment", "Lifestyle"],
+                'createdBy' => "Admin",
+                'timerRead' => "6 min read"
+            ],
+            [
+                'id' => 4,
+                'date' => "June 3, 2023",
+                'title' => "The Future of Remote Work",
+                'description' => "Exploring how remote work is reshaping the modern workplace and creating new opportunities...",
+                'image' => "https://placehold.co/420x250",
+                'slug' => "the-future-of-remote-work",
+                'tags' => ["Work", "Technology", "Future"],
+                'createdBy' => "Admin",
+                'timerRead' => "5 min read"
+            ],
+            [
+                'id' => 5,
+                'date' => "June 2, 2023",
+                'title' => "Mental Health Awareness in the Workplace",
+                'description' => "Understanding the importance of mental health support and wellness programs at work...",
+                'image' => "https://placehold.co/420x250",
+                'slug' => "mental-health-awareness-in-the-workplace",
+                'tags' => ["Health", "Wellness", "Workplace"],
+                'createdBy' => "Admin",
+                'timerRead' => "7 min read"
+            ],
+        ];
+
+        // Get related blogs (excluding current, limit to 3)
+        $relatedBlogs = array_filter($allBlogPosts, function ($post) use ($slug) {
+            return $post['slug'] !== $slug;
+        });
+        $relatedBlogs = array_slice($relatedBlogs, 0, 3);
+
+        // Upcoming Events Data
+        $upcomingEventsData = [
+            'section' => [
+                'title' => 'Upcoming Events & Community Actions',
+                'description' => 'Read real stories from the field, community experiences, and thought-provoking perspectives that reflect our mission and impact.',
+                'button' => [
+                    'text' => 'Explore All Events',
+                    'link' => '/events'
+                ]
+            ],
+            'image' => [
+                'src' => $asset('UpcomingEvent/8107b01ed92d05bd5a6861d1ca3a78ccbffc6289.webp'),
+                'alt' => 'Events Image',
+                'className' => 'mt-15 rounded-2xl h-139.25 w-auto'
+            ],
+            'events' => [
+                [
+                    'id' => 1,
+                    'date' => [
+                        'day' => '25',
+                        'month' => 'Apr',
+                        'weekday' => 'THU',
+                        'dayNumber' => '1',
+                        'time' => '10:30AM'
+                    ],
+                    'location' => 'International Convention City Bashundhara - ICCB',
+                    'title' => 'Participate in our community clean-up day and make a difference together',
+                    'description' => 'Let\'s shape the future of the food industry together! Participate at the 9th Food Bangladesh Int\'l Expo 2026,',
+                    'link' => '/events/community-cleanup'
+                ],
+                [
+                    'id' => 2,
+                    'date' => [
+                        'day' => '28',
+                        'month' => 'Apr',
+                        'weekday' => 'SUN',
+                        'dayNumber' => '2',
+                        'time' => '02:00PM'
+                    ],
+                    'location' => 'Dhaka University Campus - Dhaka',
+                    'title' => 'Education for All: Scholarship Distribution Ceremony',
+                    'description' => 'Join us as we distribute scholarships to underprivileged students and celebrate their achievements in pursuing quality education.',
+                    'link' => '/events/scholarship-ceremony'
+                ],
+                [
+                    'id' => 3,
+                    'date' => [
+                        'day' => '05',
+                        'month' => 'May',
+                        'weekday' => 'MON',
+                        'dayNumber' => '3',
+                        'time' => '09:00AM'
+                    ],
+                    'location' => 'Hatiya Island Community Center - Noakhali',
+                    'title' => 'Climate Adaptation Workshop for Coastal Communities',
+                    'description' => 'Learn sustainable farming techniques and disaster preparedness strategies to combat climate change impacts in coastal areas.',
+                    'link' => '/events/climate-workshop'
+                ]
+            ]
         ];
 
         // Check if the blog post exists
@@ -2616,9 +2781,7 @@ class FrontendController extends Controller
             'overlay' => [
                 'darkOverlay' => 'bg-black/40 lg:bg-black/70',
             ],
-
         ];
-
 
         return Inertia::render('Frontend/BlogDetails/BlogDetails', array_merge(
             $this->getSharedData(),
@@ -2626,6 +2789,8 @@ class FrontendController extends Controller
                 'slug' => $slug,
                 'bannerData' => $bannerData,
                 'blogData' => $blogData,
+                'relatedBlogs' => $relatedBlogs,
+                'upcomingEventsData' => $upcomingEventsData,
             ]
         ));
     }

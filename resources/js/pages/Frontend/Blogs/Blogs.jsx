@@ -33,7 +33,10 @@ const Blogs = ({
 
       <BannerSection bannerData={bannerData} sectionId='blogs-banner' />
 
-      <BlogSection mainBlog={mainBlog} blogPosts={blogPosts} />
+      <BlogSection
+        mainBlog={mainBlog}
+        blogPosts={blogPosts}
+      />
 
       <FAQSection faqData={faqData} />
     </PublicLayout>
