@@ -37,7 +37,7 @@ trait SharedDataTrait
     $transformedData = $this->transformAssetUrls($mockSharedData, $asset);
 
     return [
-      'topBarData' => $transformedData['top_bar_configs']['data'],
+      'topbarData' => $transformedData['top_bar_configs']['data'],
       'navbarData' => $transformedData['navbar_configs']['data'],
       'footerData' => $transformedData['footer_configs']['data'],
     ];
@@ -130,7 +130,6 @@ trait SharedDataTrait
           ['name' => 'About', 'href' => '/about'],
           ['name' => 'Projects & Programs', 'href' => '/projects-programs'],
           ['name' => 'Blogs', 'href' => '/blogs'],
-          ['name' => 'Contact Us', 'href' => '/contact'],
         ],
         'button' => [
           'text' => 'Contact Us',

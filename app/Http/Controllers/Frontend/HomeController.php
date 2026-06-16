@@ -37,14 +37,14 @@ class HomeController extends Controller
       // Table: where_we_work_data (JSON stored in database)
       'where_we_work_data' => $this->getWhereWeWorkData(),
 
-      // Table: our_programs_data (JSON stored in database)
-      'our_programs_data' => $this->getOurProgramsData(),
+      // Table: our_programs_data (JSON stored in database) - FETCHING FROM SHARED TRAIT
+      'our_programs_data' => $this->getOurProgramsData($asset),
 
       // Table: stories_data (JSON stored in database)
       'stories_data' => $this->getStoriesData(),
 
-      // Table: upcoming_events_data (JSON stored in database)
-      'upcoming_events_data' => $this->getUpcomingEventsData(),
+      // Table: upcoming_events_data (JSON stored in database) - FETCHING FROM SHARED TRAIT
+      'upcoming_events_data' => $this->getUpcomingEventsDataFromTrait($asset),
 
       // Table: jobs_data (JSON stored in database)
       'jobs_data' => $this->getJobsData(),
@@ -180,6 +180,8 @@ class HomeController extends Controller
         'data_key' => 'upcomingEventsData',
         'prop_name' => 'eventsData',
         'display_order' => 7,
+        'is_fixed_section' => false,
+        'customProps' => [],
         'created_at' => '2024-01-01 00:00:00',
         'updated_at' => '2024-01-01 00:00:00'
       ],
@@ -397,10 +399,30 @@ class HomeController extends Controller
   }
 
   /**
-   * Get Our Programs Data (Table: our_programs_data - JSON stored)
+   * Get Our Programs Data from Shared Trait
+   * Fetches from getAllProgramsData() and limits to first 4 programs
    */
-  private function getOurProgramsData(): array
+  private function getOurProgramsData(callable $asset): array
   {
+    // Get all programs from SharedDataTrait
+    $allPrograms = $this->getAllProgramsData($asset);
+
+    // Take only the first 4 programs
+    $limitedPrograms = array_slice($allPrograms, 0, 4, true);
+
+    // Build the programs array for the home page
+    $programs = [];
+    foreach ($limitedPrograms as $slug => $program) {
+      $programs[] = [
+        'id' => $program['id'],
+        'title' => $program['title'],
+        'description' => $program['fullContentHtml'],
+        'image' => $program['image'],
+        'bgColor' => $program['bgColor'],
+        'link' => $program['link'],
+      ];
+    }
+
     return [
       'id' => 1,
       'page' => 'home',
@@ -414,51 +436,33 @@ class HomeController extends Controller
             'link' => '/projects-programs'
           ]
         ],
-        'programs' => [
-          [
-            'id' => 1,
-            'title' => 'Micro-Finance <br /> Program',
-            'description' => '<div class="space-y-3"><p class="font-400 text-[16px] sm:text-[18px] lg:text-[20px] text-[#524B48] leading-relaxed">Micro finance Program is the core program of DUS activities implemented in partnership with <strong class="text-[#009BE2]">Palli Karma Sahayak Foundation (PKSF)</strong> since 2000. It provides collateral free micro-credit to 40K+ group members where 97% are female.</p><p class="font-400 text-[16px] sm:text-[18px] lg:text-[20px] text-[#524B48] leading-relaxed">The program includes savings schemes for poor women with no access to mainstream banks, helping them promote income generating activities and achieve economic empowerment.</p></div>',
-            'image' => 'asset:OurPrograms/945e2496664a40b12a1cddd6561e954cdc78e255.webp',
-            'bgColor' => 'bg-[#E6F3E7]',
-            'link' => '/projects-programs/micro-finance'
-          ],
-          [
-            'id' => 2,
-            'title' => 'Climate Change and <br /> Disaster Management',
-            'description' => '<div class="space-y-3"><p class="font-400 text-[16px] sm:text-[18px] lg:text-[20px] text-[#524B48] leading-relaxed">DUS operates in highly disaster-prone coastal areas of Bangladesh, working with communities to build <strong class="text-[#009BE2]">resilience against natural disasters</strong> like cyclones, floods, and storm surges.</p><p class="font-400 text-[16px] sm:text-[18px] lg:text-[20px] text-[#524B48] leading-relaxed">Moving beyond relief, we focus on institutionalized preparedness, risk reduction, early warning systems, and long-term climate adaptation strategies for vulnerable coastal communities.</p></div>',
-            'image' => 'asset:OurPrograms/a03fa6dba9fcdac0a5aedf2d337b118228a03298.webp',
-            'bgColor' => 'bg-[#F3EDE6]',
-            'link' => '/projects-programs/climate-change'
-          ],
-          [
-            'id' => 3,
-            'title' => 'Community Radio',
-            'description' => '<div class="space-y-3"><p class="font-400 text-[16px] sm:text-[18px] lg:text-[20px] text-[#524B48] leading-relaxed">Empowering Hatiya Island communities by giving them a <strong class="text-[#009BE2]">voice for change</strong> through community radio. Bangladesh is the 2nd country in South Asia with a Community Radio Policy.</p><p class="font-400 text-[16px] sm:text-[18px] lg:text-[20px] text-[#524B48] leading-relaxed">The radio broadcasts agricultural information, health awareness, local news, women empowerment programs, and cultural content, reaching thousands of listeners daily.</p></div>',
-            'image' => 'asset:OurPrograms/e280b627b1771904c38022aac2566b932e248887.webp',
-            'bgColor' => 'bg-[#E8E6F3]',
-            'link' => '/projects-programs/community-radio'
-          ],
-          [
-            'id' => 4,
-            'title' => 'Research and <br /> Documentation',
-            'description' => '<div class="space-y-3"><p class="font-400 text-[16px] sm:text-[18px] lg:text-[20px] text-[#524B48] leading-relaxed">DUS has a strong <strong class="text-[#009BE2]">Research and Documentation Cell</strong> conducting quality research in education, health, livelihood, environment, human rights, and social justice.</p><p class="font-400 text-[16px] sm:text-[18px] lg:text-[20px] text-[#524B48] leading-relaxed">The cell engages in surveys, impact assessments, and documentation of best practices, helping shape effective development interventions and policy advocacy.</p></div>',
-            'image' => 'asset:OurPrograms/a496922a3fc00992b6c454822d60bde51dc001e5.webp',
-            'bgColor' => 'bg-[#F3E6EA]',
-            'link' => '/projects-programs/research-documentation'
-          ],
-          [
-            'id' => 5,
-            'title' => 'WATSAN <br /> Program',
-            'description' => '<div class="space-y-3"><p class="font-400 text-[16px] sm:text-[18px] lg:text-[20px] text-[#524B48] leading-relaxed">Providing sustainable <strong class="text-[#009BE2]">water and sanitation services</strong> to rural communities with support from the Netherland Government, implemented in Nangolia Char and Nalerchar under Hatiya Upazilla.</p><p class="font-400 text-[16px] sm:text-[18px] lg:text-[20px] text-[#524B48] leading-relaxed">Target: 4,605 households with sanitation, 250 deep tube wells for safe water, and hygiene education for 20,000 people.</p></div>',
-            'image' => 'asset:OurPrograms/be14c45848898048e7b7832affc4dc713b032e10.webp',
-            'bgColor' => 'bg-[#F2F3E6]',
-            'link' => '/projects-programs/watsan'
-          ]
-        ]
+        'programs' => $programs
       ],
       'created_at' => '2024-01-01 00:00:00',
       'updated_at' => '2024-01-01 00:00:00'
+    ];
+  }
+
+  /**
+   * Get Upcoming Events Data from Shared Trait
+   * Fetches from getUpcomingEventsConfigs() and transforms asset URLs
+   */
+  private function getUpcomingEventsDataFromTrait(callable $asset): array
+  {
+    // Get config from SharedDataTrait
+    $config = $this->getUpcomingEventsConfigs();
+
+    // Transform asset URLs inside the config data
+    $transformedData = $this->transformAssetUrls($config['data'], $asset);
+
+    // Return in the same format as other data providers
+    return [
+      'id' => $config['id'],
+      'page' => 'home',
+      'section_key' => 'upcoming-events',
+      'data' => $transformedData,
+      'created_at' => $config['created_at'] ?? '2024-01-01 00:00:00',
+      'updated_at' => $config['updated_at'] ?? '2024-01-01 00:00:00'
     ];
   }
 
@@ -524,52 +528,6 @@ class HomeController extends Controller
             'title' => 'Providing Clean Water to Remote Villages',
             'description' => 'Access to clean water is a basic human right...',
             'link' => '/stories/clean-water'
-          ]
-        ]
-      ],
-      'created_at' => '2024-01-01 00:00:00',
-      'updated_at' => '2024-01-01 00:00:00'
-    ];
-  }
-
-  /**
-   * Get Upcoming Events Data (Table: upcoming_events_data - JSON stored)
-   */
-  private function getUpcomingEventsData(): array
-  {
-    return [
-      'id' => 1,
-      'page' => 'home',
-      'section_key' => 'upcoming-events',
-      'data' => [
-        'section' => [
-          'title' => 'Upcoming Events',
-          'description' => 'Join us in making a difference through these upcoming events and initiatives.'
-        ],
-        'events' => [
-          [
-            'id' => 1,
-            'title' => 'Annual Charity Gala',
-            'date' => 'December 15, 2024',
-            'location' => 'Dhaka, Bangladesh',
-            'description' => 'Join us for an evening of celebration and fundraising to support our education programs.',
-            'link' => '/events/annual-charity-gala'
-          ],
-          [
-            'id' => 2,
-            'title' => 'Community Health Camp',
-            'date' => 'January 5-7, 2025',
-            'location' => 'Hatiya, Noakhali',
-            'description' => 'Free health checkups and medical consultation for underserved communities.',
-            'link' => '/events/community-health-camp'
-          ],
-          [
-            'id' => 3,
-            'title' => 'Climate Action Workshop',
-            'date' => 'February 10, 2025',
-            'location' => 'Chattogram',
-            'description' => 'Learn about climate resilience strategies and disaster preparedness.',
-            'link' => '/events/climate-action-workshop'
           ]
         ]
       ],
@@ -723,11 +681,15 @@ class HomeController extends Controller
       }
 
       $dataTable = $config['data_table'];
-      $propName = $config['prop_name'];
       $dataKey = $config['data_key'];
 
       if (isset($mockData[$dataTable]) && isset($mockData[$dataTable]['data'])) {
         $pageData[$dataKey] = $mockData[$dataTable]['data'];
+      }
+
+      // Add customProps to section config (optional)
+      if (!empty($config['customProps']) && isset($pageData[$dataKey])) {
+        $pageData[$dataKey]['_customProps'] = $config['customProps'];
       }
     }
 
@@ -740,7 +702,9 @@ class HomeController extends Controller
           'enabled' => $config['enabled'],
           'propName' => $config['prop_name'],
           'dataKey' => $config['data_key'],
-          'order' => $config['display_order']
+          'order' => $config['display_order'],
+          'customProps' => $config['customProps'] ?? [],
+          'isFixedSection' => $config['is_fixed_section'] ?? false,
         ];
       }, $sectionConfigs)
     ];

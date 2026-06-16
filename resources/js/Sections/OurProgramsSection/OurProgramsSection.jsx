@@ -22,8 +22,6 @@ const OurProgramsSection = ({
   paddingX = 'px-5 sm:px-10 md:px-20 lg:px-50',
   sectionClassName = '',
 }) => {
-  console.log(programsData);
-
   const [visibleCards, setVisibleCards] = useState([]);
   const cardsRef = useRef([]);
 
@@ -109,6 +107,7 @@ const OurProgramsSection = ({
     <section
       id="our-programs"
       className={`${bgColor} ${paddingX} ${paddingY} ${sectionClassName}`}
+      
     >
       {/* Header - Only show if there's header content */}
       {showHeader && (
