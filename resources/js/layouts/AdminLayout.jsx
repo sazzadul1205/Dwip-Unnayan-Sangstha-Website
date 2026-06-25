@@ -434,99 +434,15 @@ const AdminLayout = ({ children }) => {
       'shared-data.view', 'shared-data.manage'
     ])) {
       const cmsSubItems = [];
-
-      // CMS Dashboard
-      if (hasPermission('cms.dashboard')) {
-        cmsSubItems.push({
-          name: 'Dashboard',
-          href: '/backend/admin', // Direct URL
-          icon: FiHome,
-        });
-      }
-
+      
       // Pages
-      if (hasAnyPermission(['pages.view', 'pages.manage'])) {
+      if (hasAnyPermission(['pages.view'])) {
         cmsSubItems.push({
           name: 'Pages',
           href: '/backend/admin/pages',
           icon: FaFileAlt,
         });
-        if (hasPermission('pages.create')) {
-          cmsSubItems.push({
-            name: 'Create Page',
-            href: '/backend/admin/pages/create',
-            icon: FiPlusCircle,
-            highlight: true,
-          });
-        }
-      }
-
-      // About Content
-      if (hasAnyPermission(['about.view', 'about.manage'])) {
-        cmsSubItems.push({
-          name: 'About Content',
-          href: '/backend/admin/about',
-          icon: FaUsers,
-        });
-        if (hasPermission('about.create')) {
-          cmsSubItems.push({
-            name: 'Create About',
-            href: '/backend/admin/about/create',
-            icon: FiPlusCircle,
-            highlight: true,
-          });
-        }
-      }
-
-      // Blogs
-      if (hasAnyPermission(['blogs.view', 'blogs.manage'])) {
-        cmsSubItems.push({
-          name: 'Blogs',
-          href: '/backend/admin/blogs',
-          icon: FaNewspaper,
-        });
-        if (hasPermission('blogs.create')) {
-          cmsSubItems.push({
-            name: 'Create Blog',
-            href: '/backend/admin/blogs/create',
-            icon: FiPlusCircle,
-            highlight: true,
-          });
-        }
-      }
-
-      // Programs
-      if (hasAnyPermission(['programs.view', 'programs.manage'])) {
-        cmsSubItems.push({
-          name: 'Programs',
-          href: '/backend/admin/programs',
-          icon: FaBriefcaseSolid,
-        });
-        if (hasPermission('programs.create')) {
-          cmsSubItems.push({
-            name: 'Create Program',
-            href: '/backend/admin/programs/create',
-            icon: FiPlusCircle,
-            highlight: true,
-          });
-        }
-      }
-
-      // Custom Sections
-      if (hasAnyPermission(['custom-sections.view', 'custom-sections.manage'])) {
-        cmsSubItems.push({
-          name: 'Custom',
-          href: '/backend/admin/custom-sections',
-          icon: FaCog,
-        });
-        if (hasPermission('custom-sections.create')) {
-          cmsSubItems.push({
-            name: 'Create Custom',
-            href: '/backend/admin/custom-sections/create',
-            icon: FiPlusCircle,
-            highlight: true,
-          });
-        }
+    
       }
 
       // Shared Data
@@ -536,14 +452,6 @@ const AdminLayout = ({ children }) => {
           href: '/backend/admin/shared-data',
           icon: FaDatabase,
         });
-        if (hasPermission('shared-data.create')) {
-          cmsSubItems.push({
-            name: 'Create Shared Data',
-            href: '/backend/admin/shared-data/create',
-            icon: FiPlusCircle,
-            highlight: true,
-          });
-        }
       }
 
       if (cmsSubItems.length > 0) {
