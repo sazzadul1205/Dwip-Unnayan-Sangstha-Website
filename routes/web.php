@@ -60,6 +60,8 @@ use App\Http\Controllers\Auth\Shared\VerifyEmailController;
 use App\Http\Controllers\Cms\CmsController;
 use App\Http\Controllers\Cms\PageController;
 use App\Http\Controllers\Cms\SharedDataController;
+use App\Models\pages\Page;
+use App\Models\pages\Program;
 // Laravel
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -528,3 +530,80 @@ Route::prefix('data')->group(function () {
     Route::get('about_content.json', [ContentApiController::class, 'aboutContent']);
     Route::get('jobs.json', [ContentApiController::class, 'jobs']);
 });
+
+
+/*
+|--------------------------------------------------------------------------
+| COMBINED NAVIGATION API
+|--------------------------------------------------------------------------
+*/
+
+// Combined endpoint for navigation items (pages + programs)
+Route::get('/data/navigation.json', function (Request $request) {
+    // Get all active pages (excluding -details)
+    $pages = Page::where('is_active', true)
+        ->where('slug', 'not like', '%-details')
+        ->select('id', 'slug', 'name')
+        ->orderBy('name')
+        ->get()
+        ->map(function ($page) {
+            return [
+                'id' => $page->id,
+                'slug' => $page->slug,
+                'name' => $page->name,
+                'type' => 'page',
+                'url' => '/' . $page->slug
+            ];
+        });
+
+    // Get all active programs
+    $programs = Program::where('is_active', true)
+        ->select('id', 'slug', 'title as name')
+        ->orderBy('display_order')
+        ->get()
+        ->map(function ($program) {
+            return [
+                'id' => $program->id,
+                'slug' => $program->slug,
+                'name' => $program->name,
+                'type' => 'program',
+                'url' => '/projects-programs/' . $program->slug
+            ];
+        });
+
+    // Combine and sort
+    $items = $pages->concat($programs)->sortBy('name')->values();
+
+    return response()->json([
+        'success' => true,
+        'items' => $items,
+        'pages' => $pages,
+        'programs' => $programs
+    ]);
+})->name('data.navigation');
+
+// Individual endpoints for backward compatibility
+Route::get('/api/pages', function (Request $request) {
+    $pages = Page::where('is_active', true)
+        ->where('slug', 'not like', '%-details')
+        ->select('id', 'slug', 'name')
+        ->orderBy('name')
+        ->get();
+
+    return response()->json([
+        'success' => true,
+        'pages' => $pages
+    ]);
+})->name('api.pages');
+
+Route::get('/api/programs', function (Request $request) {
+    $programs = Program::where('is_active', true)
+        ->select('id', 'slug', 'title as name')
+        ->orderBy('display_order')
+        ->get();
+
+    return response()->json([
+        'success' => true,
+        'programs' => $programs
+    ]);
+})->name('api.programs');
