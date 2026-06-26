@@ -57,11 +57,14 @@ use App\Http\Controllers\Auth\Shared\PasswordResetLinkController;
 use App\Http\Controllers\Auth\Shared\VerifyEmailController;
 
 // Controllers - CMS
-use App\Http\Controllers\Cms\CmsController;
 use App\Http\Controllers\Cms\PageController;
 use App\Http\Controllers\Cms\SharedDataController;
+use App\Http\Controllers\Cms\BlogController as CmsBlogController;
+
+// Models
 use App\Models\pages\Page;
 use App\Models\pages\Program;
+
 // Laravel
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -496,6 +499,17 @@ Route::middleware(['auth', 'verified', 'profile.complete'])->group(function () {
             Route::prefix('shared')->name('shared.')->group(function () {
                 Route::get('/', [SharedDataController::class, 'index'])->name('index');
                 Route::put('/update/{id}', [SharedDataController::class, 'update'])->name('update');
+            });
+
+            Route::prefix('blogs')->name('blogs.')->group(function () {
+                Route::get('/', [CMSBlogController::class, 'index'])->name('index');
+                Route::post('/store', [CMSBlogController::class, 'store'])->name('store');
+                Route::put('/update/{id}', [CMSBlogController::class, 'update'])->name('update');
+                Route::post('/toggle-status/{id}', [CMSBlogController::class, 'toggleStatus'])->name('toggle-status');
+                Route::post('/toggle-featured/{id}', [CMSBlogController::class, 'toggleFeatured'])->name('toggle-featured');
+                Route::delete('/destroy/{id}', [CMSBlogController::class, 'destroy'])->name('destroy');
+                Route::post('/restore/{id}', [CMSBlogController::class, 'restore'])->name('restore');
+                Route::delete('/force-delete/{id}', [CMSBlogController::class, 'forceDelete'])->name('force-delete');
             });
         });
     });
