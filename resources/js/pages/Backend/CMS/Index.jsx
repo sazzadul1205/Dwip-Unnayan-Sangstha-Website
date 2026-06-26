@@ -1,8 +1,10 @@
+/* eslint-disable no-undef */
+/* eslint-disable import/order */
 // resources/js/pages/Backend/CMS/Index.jsx
 
 // React
 import { useState, useEffect } from 'react';
-import { Head, router, usePage } from '@inertiajs/react';
+import { Head, Link, router, usePage } from '@inertiajs/react';
 
 // Layout
 import AuthenticatedLayout from '../../../layouts/AuthenticatedLayout';
@@ -128,7 +130,7 @@ export default function Index({ items, protectedPages = [] }) {
 
     setFormData({
       ...formData,
-      name: name,
+      name,
       slug: shouldAutoUpdate ? autoSlug : currentSlug
     });
   };
@@ -581,24 +583,23 @@ export default function Index({ items, protectedPages = [] }) {
                           ) : (
                             // Actions for active items
                             <>
-                              {/* Section List Button */}
-                              <button
-                                // onClick={() => openModal(item)}
-                                className={`p-2 rounded-lg transition text-yellow-600 hover:bg-yellow-50 cursor-pointer`}
-                                title='Sections List'
-                                disabled={protectedPage}
+                              {/* Section List Button - NOW CONNECTED to Sections page */}
+                              <Link
+                                href={route('backend.cms.sections.page.sections', item.id)}
+                                className="p-2 rounded-lg transition text-yellow-600 hover:bg-yellow-50 cursor-pointer hover:scale-110"
+                                title='Manage Sections'
                               >
                                 <BsStack size={16} />
-                              </button>
+                              </Link>
 
                               {/* Edit Button */}
                               <button
                                 onClick={() => openModal(item)}
                                 className={`p-2 rounded-lg transition ${protectedPage
                                   ? 'text-gray-400 cursor-not-allowed'
-                                  : 'text-blue-600 hover:bg-red-50 cursor-pointer'
-                                  }`} s
-                                title={protectedPage ? 'Protected page cannot be deleted' : 'Edit'}
+                                  : 'text-blue-600 hover:bg-blue-50 cursor-pointer hover:scale-110'
+                                  }`}
+                                title={protectedPage ? 'Protected page cannot be edited' : 'Edit'}
                                 disabled={protectedPage}
                               >
                                 <FaEdit size={16} />
@@ -609,7 +610,7 @@ export default function Index({ items, protectedPages = [] }) {
                                 onClick={() => confirmDelete(item)}
                                 className={`p-2 rounded-lg transition ${protectedPage
                                   ? 'text-gray-400 cursor-not-allowed'
-                                  : 'text-red-600 hover:bg-red-50 cursor-pointer'
+                                  : 'text-red-600 hover:bg-red-50 cursor-pointer hover:scale-110'
                                   }`}
                                 title={protectedPage ? 'Protected page cannot be deleted' : 'Delete'}
                                 disabled={protectedPage}

@@ -252,6 +252,8 @@ const AdminLayout = ({ children }) => {
     if (hasPermission('0')) items.push({ name: 'Pages', routeName: 'backend.cms.pages.index', icon: FiSettings });
     if (hasPermission('0')) items.push({ name: 'Shared Data', routeName: 'backend.cms.shared.index', icon: FiSettings });
     if (hasPermission('0')) items.push({ name: 'Blogs', routeName: 'backend.cms.blogs.index', icon: FiSettings });
+    if (hasPermission('0')) items.push({ name: 'Programs', routeName: 'backend.cms.programs.index', icon: FiSettings });
+    if (hasPermission('0')) items.push({ name: 'About', routeName: 'backend.cms.about.index', icon: FiSettings });
 
     return items;
   }, [hasAnyPermission, hasPermission, notificationMeta.unread_count]);

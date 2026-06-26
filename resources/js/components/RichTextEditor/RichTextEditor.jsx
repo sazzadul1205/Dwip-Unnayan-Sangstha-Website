@@ -3,7 +3,7 @@
  * 
  * A WYSIWYG (What You See Is What You Get) text editor for blog content.
  * Generates clean HTML with Tailwind CSS classes matching the blog seeder format.
- * Supports text formatting, lists, headers, colors, and image insertion.
+ * Supports text formatting, lists, headers, colors.
  * 
  * @param {string} value - HTML content to display/edit
  * @param {function} onChange - Callback function when content changes
@@ -27,11 +27,11 @@ import {
   FaListUl,
   FaListOl,
   FaPalette,
-  FaImage,
+  // FaImage, // Commented out - image functionality disabled
   // FaHeading, // Commented out - not currently used
   // FaParagraph, // Commented out - not currently used
 } from 'react-icons/fa';
-import Swal from 'sweetalert2';
+// import Swal from 'sweetalert2'; // Commented out - image functionality disabled
 
 const RichTextEditor = ({
   value = '',
@@ -49,7 +49,7 @@ const RichTextEditor = ({
   const savedRangeRef = useRef(null);
   const isInitialized = useRef(false);
   const typingTimeout = useRef(null);
-  const fileInputRef = useRef(null);
+  // const fileInputRef = useRef(null); // Commented out - image functionality disabled
 
   // ============================================================
   // STATE - Component state management
@@ -66,8 +66,8 @@ const RichTextEditor = ({
   const [showColorPicker, setShowColorPicker] = useState(false);
   // Default color matches the seeder's text color: #333333
   const [selectedColor, setSelectedColor] = useState('#333333');
-  const [showImageOptions, setShowImageOptions] = useState(false);
-  const [uploadingImage, setUploadingImage] = useState(false);
+  // const [showImageOptions, setShowImageOptions] = useState(false); // Commented out - image functionality disabled
+  // const [uploadingImage, setUploadingImage] = useState(false); // Commented out - image functionality disabled
 
   // ============================================================
   // STYLES - Button styling constants
@@ -139,13 +139,13 @@ const RichTextEditor = ({
     }, 100);
   }, [onChange]);
 
-  const handleContentChange = () => {
-    if (editorRef.current) {
-      const html = editorRef.current.innerHTML;
-      isInternalUpdate.current = true;
-      onChange(html);
-    }
-  };
+  // const handleContentChange = () => {
+  //   if (editorRef.current) {
+  //     const html = editorRef.current.innerHTML;
+  //     isInternalUpdate.current = true;
+  //     onChange(html);
+  //   }
+  // };
 
   // ============================================================
   // COMMAND EXECUTION
@@ -249,9 +249,10 @@ const RichTextEditor = ({
   }, [exec]);
 
   // ============================================================
-  // IMAGE HANDLING
+  // IMAGE HANDLING - COMMENTED OUT
   // ============================================================
 
+  /*
   const handleImageUpload = () => {
     fileInputRef.current?.click();
   };
@@ -377,6 +378,7 @@ const RichTextEditor = ({
     document.execCommand('insertHTML', false, sideBySideHtml);
     handleContentChange();
   };
+  */
 
   // ============================================================
   // LIFECYCLE EFFECTS
@@ -552,7 +554,8 @@ const RichTextEditor = ({
             )}
           </div>
 
-          {/* ===== IMAGE UPLOAD ===== */}
+          {/* ===== IMAGE UPLOAD - COMMENTED OUT ===== */}
+          {/*
           <div className="flex items-center gap-1 border-r border-gray-300 pr-3 mr-3 relative">
             <button
               type="button"
@@ -602,6 +605,7 @@ const RichTextEditor = ({
               className="hidden"
             />
           </div>
+          */}
 
           {/* ===== LISTS ===== */}
           <div className="flex items-center gap-1">
@@ -748,7 +752,7 @@ const RichTextEditor = ({
           margin-bottom: 0.75rem;
         }
         
-        /* Images */
+        /* Images - kept for future use */
         .editor-placeholder img {
           max-width: 100%;
           height: auto;

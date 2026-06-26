@@ -60,6 +60,9 @@ use App\Http\Controllers\Auth\Shared\VerifyEmailController;
 use App\Http\Controllers\Cms\PageController;
 use App\Http\Controllers\Cms\SharedDataController;
 use App\Http\Controllers\Cms\BlogController as CmsBlogController;
+use App\Http\Controllers\Cms\SectionController as CmsSectionController;
+use App\Http\Controllers\Cms\ProgramController as CmsProgramController;
+use App\Http\Controllers\Cms\AboutContentController as CmsAboutContentController;
 
 // Models
 use App\Models\pages\Page;
@@ -495,12 +498,24 @@ Route::middleware(['auth', 'verified', 'profile.complete'])->group(function () {
                 Route::delete('/force-delete/{id}', [PageController::class, 'forceDelete'])->name('force-delete');
             });
 
+            Route::prefix('sections')->name('sections.')->group(function () {
+                Route::get('/page/{pageId}', [CMSSectionController::class, 'index'])->name('page.sections');
+                Route::post('/store/{pageId}', [CMSSectionController::class, 'store'])->name('store');
+                Route::put('/update/{pageId}/{sectionId}', [CMSSectionController::class, 'update'])->name('update');
+                Route::post('/toggle-status/{pageId}/{sectionId}', [CMSSectionController::class, 'toggleStatus'])->name('toggle-status');
+                Route::post('/update-order/{pageId}', [CMSSectionController::class, 'updateOrder'])->name('update-order');
+                Route::delete('/destroy/{pageId}/{sectionId}', [CMSSectionController::class, 'destroy'])->name('destroy');
+                Route::get('/available-components', [CMSSectionController::class, 'getAvailableComponents'])->name('available-components');
+                Route::get('/data-tables', [CMSSectionController::class, 'getDataTables'])->name('data-tables');
+            });
+
             // Shared Data Management (Edit only)
             Route::prefix('shared')->name('shared.')->group(function () {
                 Route::get('/', [SharedDataController::class, 'index'])->name('index');
                 Route::put('/update/{id}', [SharedDataController::class, 'update'])->name('update');
             });
 
+            // Blogs
             Route::prefix('blogs')->name('blogs.')->group(function () {
                 Route::get('/', [CMSBlogController::class, 'index'])->name('index');
                 Route::post('/store', [CMSBlogController::class, 'store'])->name('store');
@@ -510,6 +525,32 @@ Route::middleware(['auth', 'verified', 'profile.complete'])->group(function () {
                 Route::delete('/destroy/{id}', [CMSBlogController::class, 'destroy'])->name('destroy');
                 Route::post('/restore/{id}', [CMSBlogController::class, 'restore'])->name('restore');
                 Route::delete('/force-delete/{id}', [CMSBlogController::class, 'forceDelete'])->name('force-delete');
+            });
+
+            // Programs
+            Route::prefix('programs')->name('programs.')->group(function () {
+                Route::get('/', [CMSProgramController::class, 'index'])->name('index');
+                Route::post('/store', [CMSProgramController::class, 'store'])->name('store');
+                Route::put('/update/{id}', [CMSProgramController::class, 'update'])->name('update');
+                Route::post('/toggle-status/{id}', [CMSProgramController::class, 'toggleStatus'])->name('toggle-status');
+                Route::post('/toggle-featured/{id}', [CMSProgramController::class, 'toggleFeatured'])->name('toggle-featured');
+                Route::post('/update-order', [CMSProgramController::class, 'updateOrder'])->name('update-order');
+                Route::delete('/destroy/{id}', [CMSProgramController::class, 'destroy'])->name('destroy');
+                Route::post('/restore/{id}', [CMSProgramController::class, 'restore'])->name('restore');
+                Route::delete('/force-delete/{id}', [CMSProgramController::class, 'forceDelete'])->name('force-delete');
+            });
+
+            // About Content
+            Route::prefix('about')->name('about.')->group(function () {
+                Route::get('/', [CMSAboutContentController::class, 'index'])->name('index');
+                Route::post('/store', [CMSAboutContentController::class, 'store'])->name('store');
+                Route::put('/update/{id}', [CMSAboutContentController::class, 'update'])->name('update');
+                Route::post('/toggle-status/{id}', [CMSAboutContentController::class, 'toggleStatus'])->name('toggle-status');
+                Route::post('/toggle-featured/{id}', [CMSAboutContentController::class, 'toggleFeatured'])->name('toggle-featured');
+                Route::post('/update-order', [CMSAboutContentController::class, 'updateOrder'])->name('update-order');
+                Route::delete('/destroy/{id}', [CMSAboutContentController::class, 'destroy'])->name('destroy');
+                Route::post('/restore/{id}', [CMSAboutContentController::class, 'restore'])->name('restore');
+                Route::delete('/force-delete/{id}', [CMSAboutContentController::class, 'forceDelete'])->name('force-delete');
             });
         });
     });
