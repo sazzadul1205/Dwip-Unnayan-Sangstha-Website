@@ -56,8 +56,8 @@ const DynamicSectionRenderer = ({
   pageData,
   globalProps = {}
 }) => {
-  console.log("section", section);
-  console.log("pageData", pageData?.pageData);
+  // console.log("section", section);
+  // console.log("pageData", pageData?.pageData);
   // console.log("globalProps", globalProps);
 
   // ============================================

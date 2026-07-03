@@ -3,6 +3,8 @@
 
 namespace App\Http\Controllers\Frontend;
 
+use App\Models\pages\SharedData;
+
 trait SharedDataTrait
 {
   /**
@@ -10,37 +12,27 @@ trait SharedDataTrait
    */
   public function getSharedData(): array
   {
-    // Asset helper function using route
     $asset = function ($path) {
       return route('asset', ['path' => ltrim($path, '/')]);
     };
 
-    // Mock SQL Data Structure for Shared Components
-    $mockSharedData = [
-      // Table: top_bar_configs
-      'top_bar_configs' => $this->getTopBarConfigs(),
-
-      // Table: navbar_configs
-      'navbar_configs' => $this->getNavbarConfigs(),
-
-      // Table: footer_configs
-      'footer_configs' => $this->getFooterConfigs(),
-
-      // Table: upcoming_events_configs
-      'upcoming_events_configs' => $this->getUpcomingEventsConfigs(),
-
-      // Table: faq_configs
-      'faq_configs' => $this->getFaqConfigs(),
+    $sharedTypes = [
+      'topbar' => 'topbarData',
+      'navbar' => 'navbarData',
+      'footer' => 'footerData',
     ];
 
-    // Transform asset URLs and build response
-    $transformedData = $this->transformAssetUrls($mockSharedData, $asset);
+    $sharedData = [];
 
-    return [
-      'topbarData' => $transformedData['top_bar_configs']['data'],
-      'navbarData' => $transformedData['navbar_configs']['data'],
-      'footerData' => $transformedData['footer_configs']['data'],
-    ];
+    foreach ($sharedTypes as $type => $key) {
+      $record = SharedData::where('type', $type)
+        ->where('is_active', true)
+        ->first();
+
+      $sharedData[$key] = $record ? $this->transformAssetUrls($record->data ?? [], $asset) : [];
+    }
+
+    return $sharedData;
   }
 
   /**
@@ -129,7 +121,7 @@ trait SharedDataTrait
           ['name' => 'Home', 'href' => '/'],
           ['name' => 'About', 'href' => '/about'],
           ['name' => 'Projects & Programs', 'href' => '/projects-programs'],
-          ['name' => 'Blogs', 'href' => '/blogs'],
+          ['name' => 'Blogs', 'href' => '/blog'],
         ],
         'button' => [
           'text' => 'Contact Us',
@@ -191,7 +183,7 @@ trait SharedDataTrait
           ['name' => 'Working Area', 'url' => '/working-area'],
           ['name' => 'Publication', 'url' => '/publication'],
           ['name' => 'Mission & Visions', 'url' => '/mission-visions'],
-          ['name' => 'Blogs', 'url' => '/blogs'],
+          ['name' => 'Blogs', 'url' => '/blog'],
           ['name' => 'Contact Us', 'url' => '/contact-us']
         ],
         'programs' => [

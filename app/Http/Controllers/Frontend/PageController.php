@@ -132,7 +132,6 @@ class PageController extends Controller
     foreach ($sectionConfigs as $config) {
       switch ($config->data_table) {
         case 'shared_data':
-          // Map data_key to SharedData type
           $type = $this->mapDataKeyToSharedType($config->data_key);
           if ($type) {
             $needs['shared_data'][] = $type;
@@ -142,6 +141,7 @@ class PageController extends Controller
           $needs['programs'] = true;
           break;
         case 'blog':
+        case 'blogs':  // ← Add support for plural
           $needs['blogs'] = true;
           break;
         case 'about_content':
@@ -241,6 +241,7 @@ class PageController extends Controller
         case 'about':
           $detail = $this->contentService->getAboutContent($detailSlug);
           break;
+        case 'blog':
         case 'blogs':
           $detail = $this->contentService->getBlog($detailSlug);
           break;
@@ -261,7 +262,6 @@ class PageController extends Controller
   {
     $pageData = [];
 
-    // Map section configs to actual data
     foreach ($sectionConfigs as $config) {
       $dataTable = $config->data_table;
       $dataKey   = $config->data_key;
@@ -279,8 +279,13 @@ class PageController extends Controller
           }
           break;
         case 'blog':
+        case 'blogs':  // ← Add support for plural
           if (isset($fetchedData['blogs'])) {
-            $pageData[$dataKey] = $fetchedData['blogs'];
+            if ($detailSlug && $pageSlug === 'blogs' && $dataKey === 'relatedBlogsData') {
+              $pageData[$dataKey] = $this->filterRelatedBlogs($fetchedData['blogs'], $fetchedData['detail'] ?? null);
+            } else {
+              $pageData[$dataKey] = $fetchedData['blogs'];
+            }
           }
           break;
         case 'about_content':
@@ -309,8 +314,9 @@ class PageController extends Controller
         case 'about':
           $pageData['contentSectionData'] = $detail;
           break;
+        case 'blog':
         case 'blogs':
-          $pageData['blogData'] = $detail;
+          $pageData['blogData'] = $this->normalizeBlogDetail($detail);
           break;
         case 'projects-programs':
           $pageData['programContentData'] = $detail;
@@ -319,5 +325,65 @@ class PageController extends Controller
     }
 
     return $pageData;
+  }
+
+  /**
+   * Filter related blogs for the detail page.
+   */
+  private function filterRelatedBlogs($blogs, $currentBlog = null): array
+  {
+    $items = collect($blogs);
+
+    if ($items->isEmpty()) {
+      return [];
+    }
+
+    $currentId = $currentBlog->id ?? $currentBlog['id'] ?? null;
+    $currentSlug = $currentBlog->slug ?? $currentBlog['slug'] ?? null;
+
+    return $items
+      ->filter(function ($blog) use ($currentId, $currentSlug) {
+        $blogId = $blog->id ?? $blog['id'] ?? null;
+        $blogSlug = $blog->slug ?? $blog['slug'] ?? null;
+        $isFeatured = $blog->is_featured ?? $blog['is_featured'] ?? false;
+
+        if ($blogId !== null && $currentId !== null && $blogId === $currentId) {
+          return false;
+        }
+
+        if ($blogSlug !== null && $currentSlug !== null && $blogSlug === $currentSlug) {
+          return false;
+        }
+
+        return !($isFeatured === true || $isFeatured === 1);
+      })
+      ->values()
+      ->take(3)
+      ->all();
+  }
+
+  /**
+   * Normalize blog detail data to the shape expected by the frontend.
+   */
+  private function normalizeBlogDetail($detail): array
+  {
+    if ($detail instanceof \Illuminate\Database\Eloquent\Model) {
+      return [
+        'id' => $detail->id,
+        'slug' => $detail->slug,
+        'title' => $detail->title,
+        'excerpt' => $detail->excerpt,
+        'fullContent' => $detail->full_content,
+        'image' => $detail->image,
+        'date' => $detail->date,
+        'createdBy' => $detail->author,
+        'timerRead' => $detail->read_time,
+        'tags' => $detail->tags ?? [],
+        'isFeatured' => (bool) ($detail->is_featured ?? false),
+        'isActive' => (bool) ($detail->is_active ?? false),
+      ];
+    }
+
+    return $detail;
   }
 }
