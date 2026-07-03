@@ -7,6 +7,9 @@ import { CiLocationOn } from "react-icons/ci";
 // Update this path to match your actual ArrowIcon location
 import ArrowIcon from '../../components/Shared/ArrowIcon';
 
+/**
+ * Utility function to check if value exists
+ */
 const hasValue = (value) => {
   if (value === undefined || value === null) return false;
   if (typeof value === 'string') return value.trim().length > 0;
@@ -15,21 +18,69 @@ const hasValue = (value) => {
   return true;
 };
 
+/**
+ * UpcomingEventsSection Component
+ * 
+ * @param {Object} props
+ * @param {Object} props.data - Events data from API (from DynamicSectionRenderer)
+ * @param {Object} props.eventsData - Events data from API (direct prop)
+ * @param {string} props.bgColor - Background color (optional)
+ * @param {string} props.paddingY - Vertical padding classes
+ * @param {string} props.paddingX - Horizontal padding classes
+ * @param {string} props.sectionClassName - Additional CSS classes
+ * 
+ * @returns {JSX.Element} Rendered upcoming events section
+ */
 const UpcomingEventsSection = ({
-  eventsData,
-  data, // Alternative prop name
+  data,           // From DynamicSectionRenderer
+  eventsData,     // Direct prop (legacy support)
   bgColor = 'bg-[#FFFFFF]',
   paddingY = 'py-12 sm:py-16 md:py-25 lg:py-37.5',
   paddingX = 'px-5 sm:px-10 md:px-20 lg:px-50',
   sectionClassName = '',
 }) => {
-  // Use either eventsData or data prop
-  const actualData = eventsData || data || {};
+  // ============================================
+  // RESOLVE DATA
+  // ============================================
+  // Try multiple sources for the data
+  let resolvedData = data || eventsData || {};
 
-  if (!hasValue(actualData)) return null;
+  // ============================================
+  // NORMALIZE DATA STRUCTURE
+  // ============================================
+  // Check if the data is wrapped in a 'data' property
+  // This happens when the API returns { id, page_slug, section_key, data: { ... } }
+  if (resolvedData && resolvedData.data && typeof resolvedData.data === 'object') {
+    resolvedData = resolvedData.data;
+  }
 
-  const { section = {}, image = {}, events = [] } = actualData;
+  // If resolvedData is still empty, try to check if it has the expected structure
+  if (resolvedData && typeof resolvedData === 'object' && !hasValue(resolvedData)) {
+    console.warn('UpcomingEventsSection - No data found, checking if data is in a different location');
 
+    // Sometimes the data might be directly in the props as the component name
+    // Check if the data is actually in the events prop directly
+    if (data && typeof data === 'object' && Object.keys(data).length === 0) {
+      console.warn('UpcomingEventsSection - data prop is empty object, this might indicate the data is being passed incorrectly');
+    }
+  }
+
+  // ============================================
+  // EARLY RETURN - No data
+  // ============================================
+  if (!hasValue(resolvedData)) {
+    console.warn('UpcomingEventsSection - No valid data found, returning null');
+    return null;
+  }
+
+  // ============================================
+  // SAFE DESTRUCTURING WITH DEFAULTS
+  // ============================================
+  const { section = {}, image = {}, events = [] } = resolvedData;
+
+  // ============================================
+  // CHECK FOR CONTENT
+  // ============================================
   const hasTitle = hasValue(section.title);
   const hasDescription = hasValue(section.description);
   const hasButton = hasValue(section.button?.text);
@@ -37,8 +88,14 @@ const UpcomingEventsSection = ({
   const hasEvents = hasValue(events);
   const hasAnyContent = hasTitle || hasDescription || hasButton || hasImage || hasEvents;
 
-  if (!hasAnyContent) return null;
+  if (!hasAnyContent) {
+    console.warn('UpcomingEventsSection - No content found, returning null');
+    return null;
+  }
 
+  // ============================================
+  // RENDER
+  // ============================================
   return (
     <section id='upcoming-events' className={`${bgColor} ${paddingX} ${paddingY} ${sectionClassName}`}>
       <div className='flex flex-col lg:flex-row justify-between gap-8 lg:gap-25'>

@@ -105,11 +105,11 @@ Route::get('/', [PageController::class, 'show'])->name('home');
 
 // Pages without detail
 Route::get('/{pageSlug}', [PageController::class, 'show'])
-    ->where('pageSlug', 'about|blogs|contact|projects-programs');
+    ->where('pageSlug', 'about|blog|blogs|contact|projects-programs');
 
 // Pages with detail (about, blogs, projects-programs)
 Route::get('/{pageSlug}/{detailSlug}', [PageController::class, 'show'])
-    ->where('pageSlug', 'about|blogs|projects-programs');
+    ->where('pageSlug', 'about|blog|blogs|projects-programs');
 
 /*
 |--------------------------------------------------------------------------

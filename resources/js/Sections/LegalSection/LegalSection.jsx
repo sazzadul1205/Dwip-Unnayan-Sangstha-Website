@@ -15,8 +15,24 @@ const hasValue = (value) => {
   return true;
 };
 
+/**
+ * LegalSection Component
+ * 
+ * @param {Object} props
+ * @param {Object} props.data - Legal data from API (from DynamicSectionRenderer)
+ * @param {Object} props.legalData - Legal data from API (direct prop - legacy)
+ * @param {string} props.bgColor - Background color (optional)
+ * @param {string} props.height - Height classes (default: 'h-125 md:h-147.25')
+ * @param {string} props.paddingY - Vertical padding classes
+ * @param {string} props.paddingX - Horizontal padding classes
+ * @param {string} props.sectionClassName - Additional CSS classes
+ * @param {string} props.sectionId - Section ID (default: 'legal')
+ * 
+ * @returns {JSX.Element} Rendered legal section
+ */
 const LegalSection = ({
-  legalData,
+  data,           // From DynamicSectionRenderer
+  legalData,      // Direct prop (legacy support)
   bgColor = '',
   height = 'h-125 md:h-147.25',
   paddingY = '',
@@ -24,19 +40,40 @@ const LegalSection = ({
   sectionClassName = '',
   sectionId = 'legal',
 }) => {
-  // Early return if no data
-  if (!hasValue(legalData)) {
+  // ============================================
+  // RESOLVE DATA
+  // ============================================
+  // Use data prop if available, fallback to legalData
+  let resolvedData = data || legalData;
+
+  // ============================================
+  // EARLY RETURN - No data
+  // ============================================
+  if (!hasValue(resolvedData)) {
     return null;
   }
 
-  // Safe destructuring with defaults
+  // ============================================
+  // NORMALIZE DATA STRUCTURE
+  // ============================================
+  // Check if the data is wrapped in a 'data' property
+  // This happens when the API returns { id, page_slug, section_key, data: { ... } }
+  if (resolvedData.data && typeof resolvedData.data === 'object') {
+    resolvedData = resolvedData.data;
+  }
+
+  // ============================================
+  // SAFE DESTRUCTURING WITH DEFAULTS
+  // ============================================
   const {
     background = {},
     overlay = {},
     textBox = {}
-  } = legalData;
+  } = resolvedData;
 
-  // Check if there's any content to display
+  // ============================================
+  // CHECK FOR CONTENT
+  // ============================================
   const hasBackground = hasValue(background.src);
   const hasOverlay = hasValue(overlay.darkOverlay);
   const hasTitle = hasValue(textBox.title) || hasValue(textBox.titleLine2);
@@ -48,6 +85,9 @@ const LegalSection = ({
     return null;
   }
 
+  // ============================================
+  // RENDER
+  // ============================================
   return (
     <section
       id={sectionId}
@@ -64,11 +104,11 @@ const LegalSection = ({
 
       {/* Dark Overlay - Only render if darkOverlay class exists */}
       {hasValue(overlay.darkOverlay) && (
-        <div className={`absolute inset-0 ${overlay.darkOverlay}`}></div>
+        <div className={`absolute inset-0 ${overlay.darkOverlay}`} />
       )}
 
       {/* Additional overlay for mobile to ensure text readability */}
-      <div className="absolute inset-0 bg-black/40 md:hidden"></div>
+      <div className="absolute inset-0 bg-black/40 md:hidden" />
 
       {/* White Box Text - Positioned at bottom right - Only show if there's content */}
       {(hasTitle || hasButton) && (

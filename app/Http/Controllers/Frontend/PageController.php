@@ -31,7 +31,7 @@ class PageController extends Controller
     $component = $this->resolveComponent($pageSlug, $detailSlug);
 
     // 2. Get the page slug used for section configs
-    $configSlug = $detailSlug ? $pageSlug . '-details' : $pageSlug;
+    $configSlug = $this->resolveConfigSlug($pageSlug, $detailSlug);
 
     // 3. Fetch section configs from the database using the service
     $sectionConfigs = $this->contentService->getPageSections($configSlug);
@@ -81,10 +81,26 @@ class PageController extends Controller
   }
 
   /**
+   * Normalize route slugs to the seeded page slugs used by the CMS.
+   */
+  private function resolveConfigSlug(string $pageSlug, ?string $detailSlug): string
+  {
+    $normalized = $pageSlug === 'blogs' || $pageSlug === 'blog' ? 'blog' : $pageSlug;
+
+    if ($detailSlug) {
+      return $normalized === 'blog' ? 'blog-details' : $normalized . '-details';
+    }
+
+    return $normalized;
+  }
+
+  /**
    * Map page slug + detail flag to the correct Inertia component.
    */
   private function resolveComponent(string $pageSlug, ?string $detailSlug): string
   {
+    $normalizedPageSlug = $pageSlug === 'blog' ? 'blogs' : $pageSlug;
+
     $pageMap = [
       'home'              => 'Frontend/Home/Home',
       'about'             => 'Frontend/About/About',
@@ -100,10 +116,10 @@ class PageController extends Controller
     ];
 
     if ($detailSlug) {
-      return $detailMap[$pageSlug] ?? abort(404);
+      return $detailMap[$normalizedPageSlug] ?? abort(404);
     }
 
-    return $pageMap[$pageSlug] ?? 'Frontend/DynamicPage';
+    return $pageMap[$normalizedPageSlug] ?? 'Frontend/DynamicPage';
   }
 
   /**

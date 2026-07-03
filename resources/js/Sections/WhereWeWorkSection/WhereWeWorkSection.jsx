@@ -4,28 +4,64 @@ import React from 'react';
 
 // Utility function to check if value exists
 const hasValue = (value) => {
-  if (!value && value !== 0) return false;
+  if (value === undefined || value === null) return false;
   if (typeof value === 'string') return value.trim().length > 0;
   if (Array.isArray(value)) return value.length > 0;
+  if (typeof value === 'object') return Object.keys(value).length > 0;
   return true;
 };
 
+/**
+ * WhereWeWorkSection Component
+ * 
+ * @param {Object} props
+ * @param {Object} props.data - Where We Work data from API (from DynamicSectionRenderer)
+ * @param {Object} props.workData - Where We Work data from API (direct prop)
+ * @param {string} props.bgColor - Background color (optional)
+ * @param {string} props.paddingY - Vertical padding classes
+ * @param {string} props.paddingX - Horizontal padding classes
+ * @param {string} props.sectionClassName - Additional CSS classes
+ * 
+ * @returns {JSX.Element} Rendered where we work section
+ */
 const WhereWeWorkSection = ({
-  workData,
+  data,           // From DynamicSectionRenderer
+  workData,       // Direct prop (legacy support)
   bgColor = 'bg-white',
   paddingY = 'py-10 sm:py-15 md:py-25 lg:py-37.5',
   paddingX = 'px-5 sm:px-10 md:px-20 lg:px-50',
   sectionClassName = '',
 }) => {
-  // Early return if no data
-  if (!hasValue(workData)) return null;
+  // Use data prop if available, fallback to workData
+  let resolvedData = data || workData;
 
-  const { section = {}, stats = [], image = {} } = workData;
+  // ============================================
+  // EARLY RETURN - No data
+  // ============================================
+  if (!hasValue(resolvedData)) return null;
 
-  // Early return if no content
+  // ============================================
+  // NORMALIZE DATA STRUCTURE
+  // ============================================
+  // Check if the data is wrapped in a 'data' property
+  // This happens when the API returns { id, page_slug, section_key, data: { ... } }
+  if (resolvedData.data && typeof resolvedData.data === 'object') {
+    resolvedData = resolvedData.data;
+  }
+
+  // ============================================
+  // SAFE DESTRUCTURING WITH DEFAULTS
+  // ============================================
+  const { section = {}, stats = [], image = {} } = resolvedData;
+
+  // ============================================
+  // EARLY RETURN - No content
+  // ============================================
   if (!section.title && !stats.length && !image.src) return null;
 
-  // Determine grid columns based on number of stats
+  // ============================================
+  // HELPER: Determine grid columns based on number of stats
+  // ============================================
   const getGridCols = () => {
     if (stats.length <= 3) {
       return 'grid-cols-1'; // Single column for 3 or fewer stats
@@ -33,6 +69,9 @@ const WhereWeWorkSection = ({
     return 'grid-cols-1 sm:grid-cols-2'; // 2 columns for 4+ stats on tablet and up
   };
 
+  // ============================================
+  // RENDER
+  // ============================================
   return (
     <section
       id='where-we-work'

@@ -5,6 +5,16 @@
 
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 
+@layer base {
+    html {
+        scroll-behavior: smooth;
+    }
+}
+
+* {
+    font-family: 'Bricolage Grotesque', sans-serif;
+}
+
 /* =========================
    FONT UTILITY HELPERS
 ========================= */

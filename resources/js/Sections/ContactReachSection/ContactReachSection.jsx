@@ -15,8 +15,27 @@ const hasValue = (value) => {
   return true;
 };
 
+/**
+ * ContactReachSection Component
+ * 
+ * @param {Object} props
+ * @param {Object} props.data - Contact reach data from API (from DynamicSectionRenderer)
+ * @param {Object} props.reachData - Contact reach data from API (direct prop - legacy)
+ * @param {string} props.image - Image URL (direct prop - legacy)
+ * @param {string} props.title - Section title (default: "Reach out to us today!")
+ * @param {string} props.buttonText - Submit button text (default: "Submit Message")
+ * @param {string} props.bgColor - Background color (optional)
+ * @param {string} props.paddingY - Vertical padding classes
+ * @param {string} props.paddingX - Horizontal padding classes
+ * @param {string} props.sectionClassName - Additional CSS classes
+ * @param {string} props.sectionId - Section ID (default: 'contact-reach')
+ * 
+ * @returns {JSX.Element} Rendered contact reach section
+ */
 const ContactReachSection = ({
-  image,
+  data,           // From DynamicSectionRenderer
+  reachData,      // Direct prop (legacy support)
+  image,          // Direct prop (legacy support)
   title = "Reach out to us today!",
   buttonText = "Submit Message",
   bgColor = 'bg-[#F5F5F5]',
@@ -25,15 +44,53 @@ const ContactReachSection = ({
   sectionClassName = '',
   sectionId = 'contact-reach',
 }) => {
-  const inputClassName =
-    'mt-2 w-full rounded-xl border border-[#D6DCEF] bg-white px-5 py-4 text-[16px] text-[#080C14] outline-none transition-colors placeholder:text-[#A6B0D1] focus:border-[#009BE2]';
+  // ============================================
+  // RESOLVE DATA
+  // ============================================
+  // Use data prop if available, fallback to reachData or direct image prop
+  let resolvedData = data || reachData;
 
-  // Early return if no image (optional - you might want to render form even without image)
-  if (!hasValue(image)) {
-    // Still render the form, just without the image
+  // ============================================
+  // NORMALIZE DATA STRUCTURE
+  // ============================================
+  let resolvedImage = image;
+  let resolvedTitle = title;
+  let resolvedButtonText = buttonText;
+
+  if (hasValue(resolvedData)) {
+    // Check if the data is wrapped in a 'data' property
+    if (resolvedData.data && typeof resolvedData.data === 'object') {
+      resolvedData = resolvedData.data;
+    }
+
+    // Extract values from resolved data
+    if (hasValue(resolvedData.image)) {
+      resolvedImage = resolvedData.image;
+    }
+    if (hasValue(resolvedData.title)) {
+      resolvedTitle = resolvedData.title;
+    }
+    if (hasValue(resolvedData.buttonText)) {
+      resolvedButtonText = resolvedData.buttonText;
+    }
+  }
+
+  // ============================================
+  // CHECK FOR IMAGE (optional - form still renders)
+  // ============================================
+  if (!hasValue(resolvedImage)) {
     console.warn('ContactReachSection: No image provided');
   }
 
+  // ============================================
+  // INPUT CLASS NAME
+  // ============================================
+  const inputClassName =
+    'mt-2 w-full rounded-xl border border-[#D6DCEF] bg-white px-5 py-4 text-[16px] text-[#080C14] outline-none transition-colors placeholder:text-[#A6B0D1] focus:border-[#009BE2]';
+
+  // ============================================
+  // RENDER
+  // ============================================
   return (
     <section
       id={sectionId}
@@ -41,10 +98,10 @@ const ContactReachSection = ({
     >
       {/* Left Image Section - Full height on desktop */}
       <div className='w-full lg:w-1/2 relative'>
-        {hasValue(image) && (
+        {hasValue(resolvedImage) && (
           <>
             <img
-              src={image}
+              src={resolvedImage}
               alt='Contact Reach'
               className='w-full h-full object-cover lg:max-h-none max-h-100'
             />
@@ -56,9 +113,9 @@ const ContactReachSection = ({
 
       {/* Right Section */}
       <div className={`w-full lg:w-1/2 ${paddingX} ${paddingY}`}>
-        {hasValue(title) && (
+        {hasValue(resolvedTitle) && (
           <h3 className='font-bold text-2xl sm:text-3xl md:text-4xl lg:text-[40px] text-center lg:text-left'>
-            {title}
+            {resolvedTitle}
           </h3>
         )}
 
@@ -106,7 +163,7 @@ const ContactReachSection = ({
             type="submit"
             className="w-full rounded-xl bg-[#0999DC] px-6 py-4 sm:py-5 text-[16px] sm:text-[18px] font-semibold text-white transition-colors hover:bg-[#0789C6] flex items-center justify-center gap-2"
           >
-            <span>{buttonText}</span>
+            <span>{resolvedButtonText}</span>
             <ArrowIcon className="w-5 h-5" />
           </button>
         </form>

@@ -12,8 +12,24 @@ const hasValue = (value) => {
   return true;
 };
 
+/**
+ * PageBannerSection Component
+ * 
+ * @param {Object} props
+ * @param {Object} props.data - Banner data from API (from DynamicSectionRenderer)
+ * @param {Object} props.bannerData - Banner data from API (direct prop)
+ * @param {string} props.bgColor - Background color (optional)
+ * @param {string} props.height - Height classes (default: 'h-125 md:h-147.25')
+ * @param {string} props.paddingY - Vertical padding classes
+ * @param {string} props.paddingX - Horizontal padding classes
+ * @param {string} props.sectionClassName - Additional CSS classes
+ * @param {string} props.sectionId - Section ID (default: 'page-banner')
+ * 
+ * @returns {JSX.Element} Rendered page banner section
+ */
 const PageBannerSection = ({
-  bannerData,
+  data,           // From DynamicSectionRenderer
+  bannerData,     // Direct prop (legacy support)
   bgColor = '',
   height = 'h-125 md:h-147.25',
   paddingY = '',
@@ -21,22 +37,43 @@ const PageBannerSection = ({
   sectionClassName = '',
   sectionId = 'page-banner',
 }) => {
-  // Early return if no data (SAME pattern)
-  if (!hasValue(bannerData)) {
+  // ============================================
+  // RESOLVE DATA
+  // ============================================
+  // Use data prop if available, fallback to bannerData
+  let resolvedData = data || bannerData;
+
+  // ============================================
+  // EARLY RETURN - No data
+  // ============================================
+  if (!hasValue(resolvedData)) {
     return null;
   }
 
-  // Safe destructuring with defaults (SAME pattern)
+  // ============================================
+  // NORMALIZE DATA STRUCTURE
+  // ============================================
+  // Check if the data is wrapped in a 'data' property
+  // This happens when the API returns { id, page_slug, section_key, data: { ... } }
+  if (resolvedData.data && typeof resolvedData.data === 'object') {
+    resolvedData = resolvedData.data;
+  }
+
+  // ============================================
+  // SAFE DESTRUCTURING WITH DEFAULTS
+  // ============================================
   const {
     background = {},
     overlay = {},
     content = {},
-  } = bannerData;
+  } = resolvedData;
 
   const title = content.title || {};
   const description = content.description || {};
 
-  // Check if there's any content to display
+  // ============================================
+  // CHECK FOR CONTENT
+  // ============================================
   const hasTitle = hasValue(title.text);
   const hasDescription = hasValue(description.text);
   const hasBackground = hasValue(background.src);
@@ -48,6 +85,9 @@ const PageBannerSection = ({
     return null;
   }
 
+  // ============================================
+  // RENDER
+  // ============================================
   return (
     <section
       id={sectionId}
@@ -64,16 +104,16 @@ const PageBannerSection = ({
 
       {/* Dark Overlay - Only render if darkOverlay class exists */}
       {hasValue(overlay.darkOverlay) && (
-        <div className={`absolute inset-0 ${overlay.darkOverlay}`}></div>
+        <div className={`absolute inset-0 ${overlay.darkOverlay}`} />
       )}
 
       {/* Left Dark Gradient - Only render if gradient class exists */}
       {hasValue(overlay.gradient) && (
-        <div className={`absolute inset-0 ${overlay.gradient}`}></div>
+        <div className={`absolute inset-0 ${overlay.gradient}`} />
       )}
 
       {/* Additional overlay for mobile to ensure text readability */}
-      <div className="absolute inset-0 bg-black/40 md:hidden"></div>
+      <div className="absolute inset-0 bg-black/40 md:hidden" />
 
       {/* Content - Only render if there's content to show */}
       {(hasTitle || hasDescription) && (

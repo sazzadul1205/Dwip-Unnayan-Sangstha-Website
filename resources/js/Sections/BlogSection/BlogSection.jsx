@@ -18,7 +18,26 @@ const hasValue = (value) => {
   return true;
 };
 
+/**
+ * BlogSection Component
+ * 
+ * @param {Object} props
+ * @param {Object} props.data - Blog data from API (from DynamicSectionRenderer)
+ * @param {Object} props.blogData - Blog data from API (direct prop - legacy)
+ * @param {Object} props.mainBlog - Main blog post (direct prop - legacy)
+ * @param {Array} props.blogPosts - Blog posts array (direct prop - legacy)
+ * @param {string} props.sectionTitle - Section title (default: 'Latest Stories')
+ * @param {string} props.bgColor - Background color (optional)
+ * @param {string} props.paddingY - Vertical padding classes
+ * @param {string} props.paddingX - Horizontal padding classes
+ * @param {string} props.sectionClassName - Additional CSS classes
+ * @param {string} props.sectionId - Section ID (default: 'blog-section')
+ * 
+ * @returns {JSX.Element} Rendered blog section
+ */
 const BlogSection = ({
+  data,           // From DynamicSectionRenderer
+  blogData,       // Direct prop (legacy support)
   mainBlog = null,
   blogPosts = [],
   sectionTitle = 'Latest Stories',
@@ -28,25 +47,98 @@ const BlogSection = ({
   sectionClassName = '',
   sectionId = 'blog-section',
 }) => {
-  // Check if main blog exists and has required fields
-  const hasMainBlog = hasValue(mainBlog) && hasValue(mainBlog.title) && hasValue(mainBlog.image);
-  const hasBlogPosts = hasValue(blogPosts) && blogPosts.length > 0;
+  // ============================================
+  // RESOLVE DATA
+  // ============================================
+  // Use data prop if available, fallback to blogData or direct props
+  let resolvedData = data || blogData;
+
+  console.log('BlogSection - resolvedData (raw):', resolvedData);
+
+  // ============================================
+  // NORMALIZE DATA STRUCTURE
+  // ============================================
+  let resolvedMainBlog = mainBlog;
+  let resolvedBlogPosts = blogPosts;
+  let resolvedSectionTitle = sectionTitle;
+
+  if (hasValue(resolvedData)) {
+    // Check if the data is wrapped in a 'data' property
+    if (resolvedData.data && typeof resolvedData.data === 'object') {
+      console.log('BlogSection - Using nested data property');
+      resolvedData = resolvedData.data;
+    }
+
+    // If resolvedData is an object, extract properties
+    if (typeof resolvedData === 'object') {
+      // Extract main blog
+      if (hasValue(resolvedData.mainBlog)) {
+        resolvedMainBlog = resolvedData.mainBlog;
+        console.log('BlogSection - Found mainBlog in data');
+      } else if (hasValue(resolvedData.main)) {
+        resolvedMainBlog = resolvedData.main;
+        console.log('BlogSection - Found main in data');
+      } else if (hasValue(resolvedData.featured)) {
+        resolvedMainBlog = resolvedData.featured;
+        console.log('BlogSection - Found featured in data');
+      }
+
+      // Extract blog posts
+      if (Array.isArray(resolvedData.blogPosts)) {
+        resolvedBlogPosts = resolvedData.blogPosts;
+        console.log('BlogSection - Found blogPosts in data');
+      } else if (Array.isArray(resolvedData.posts)) {
+        resolvedBlogPosts = resolvedData.posts;
+        console.log('BlogSection - Found posts in data');
+      } else if (Array.isArray(resolvedData.items)) {
+        resolvedBlogPosts = resolvedData.items;
+        console.log('BlogSection - Found items in data');
+      } else if (Array.isArray(resolvedData.blogs)) {
+        resolvedBlogPosts = resolvedData.blogs;
+        console.log('BlogSection - Found blogs in data');
+      }
+
+      // Extract section title
+      if (hasValue(resolvedData.sectionTitle)) {
+        resolvedSectionTitle = resolvedData.sectionTitle;
+        console.log('BlogSection - Found sectionTitle in data');
+      } else if (hasValue(resolvedData.title)) {
+        resolvedSectionTitle = resolvedData.title;
+        console.log('BlogSection - Found title in data');
+      }
+    }
+  }
+
+  console.log('BlogSection - resolvedMainBlog:', resolvedMainBlog);
+  console.log('BlogSection - resolvedBlogPosts:', resolvedBlogPosts);
+  console.log('BlogSection - resolvedSectionTitle:', resolvedSectionTitle);
+
+  // ============================================
+  // CHECK FOR CONTENT
+  // ============================================
+  const hasMainBlog = hasValue(resolvedMainBlog) &&
+    hasValue(resolvedMainBlog.title) &&
+    hasValue(resolvedMainBlog.image);
+  const hasBlogPosts = hasValue(resolvedBlogPosts) && resolvedBlogPosts.length > 0;
 
   // If no blog data at all, don't render anything
   if (!hasMainBlog && !hasBlogPosts) {
     return null;
   }
 
+  // ============================================
+  // RENDER
+  // ============================================
   return (
     <section
       id={sectionId}
       className={`${bgColor} ${paddingX} ${paddingY} ${sectionClassName}`}
     >
       {/* Section Title */}
-      {hasValue(sectionTitle) && (
+      {hasValue(resolvedSectionTitle) && (
         <div className="mb-8 sm:mb-10 md:mb-12 lg:mb-15">
           <h2 className="text-[#080C14] font-extrabold text-[28px] sm:text-[34px] md:text-[40px] lg:text-[50px] leading-tight">
-            {sectionTitle}
+            {resolvedSectionTitle}
           </h2>
         </div>
       )}
@@ -55,10 +147,10 @@ const BlogSection = ({
       {hasMainBlog && (
         <div className='flex flex-col lg:flex-row items-center gap-8 lg:gap-12.5 shadow-lg p-5 sm:p-6 md:p-7.5 rounded-2xl bg-white'>
           {/* Main Blog Image */}
-          {hasValue(mainBlog.image) && (
+          {hasValue(resolvedMainBlog.image) && (
             <img
-              src={mainBlog.image}
-              alt={mainBlog.title || "Main blog image"}
+              src={resolvedMainBlog.image}
+              alt={resolvedMainBlog.title || "Main blog image"}
               className="w-full lg:w-187.5 h-auto lg:h-112.5 object-cover object-center rounded-2xl"
             />
           )}
@@ -66,30 +158,30 @@ const BlogSection = ({
           {/* Main Blog Content */}
           <div className="flex-1 w-full">
             {/* Date */}
-            {hasValue(mainBlog.date) && (
+            {hasValue(resolvedMainBlog.date) && (
               <label className='font-normal text-[14px] sm:text-[16px] text-[#009BE2] pb-2 block'>
-                {mainBlog.date}
+                {resolvedMainBlog.date}
               </label>
             )}
 
             {/* Heading */}
-            {hasValue(mainBlog.title) && (
+            {hasValue(resolvedMainBlog.title) && (
               <h2 className='font-semibold text-[24px] sm:text-[30px] lg:text-[36px] leading-tight sm:leading-snug pb-3 sm:pb-5'>
-                {mainBlog.title}
+                {resolvedMainBlog.title}
               </h2>
             )}
 
             {/* Description - Use excerpt or description */}
-            {hasValue(mainBlog.excerpt) && (
+            {hasValue(resolvedMainBlog.excerpt) && (
               <p className='font-normal text-[16px] sm:text-[18px] lg:text-[20px] line-clamp-5 text-gray-700'>
-                {mainBlog.excerpt}
+                {resolvedMainBlog.excerpt}
               </p>
             )}
 
             {/* Button */}
-            {hasValue(mainBlog.slug) && (
+            {hasValue(resolvedMainBlog.slug) && (
               <Link
-                href={`/blogs/${mainBlog.slug}`}
+                href={`/blogs/${resolvedMainBlog.slug}`}
                 className="mt-4 sm:mt-6 bricolage-grotesque flex items-center gap-2 font-500 lg:font-600 text-[14px] sm:text-[16px] lg:text-[20px] text-[#009BE2] group hover:text-[#080C14] transition-colors duration-300 w-fit"
               >
                 Read more
@@ -103,7 +195,7 @@ const BlogSection = ({
       {/* Blogs Grid - Only show if blogPosts array has items */}
       {hasBlogPosts && (
         <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6 md:gap-7.5 ${hasMainBlog ? 'pt-10 sm:pt-12 md:pt-15' : ''}`}>
-          {blogPosts.map((post) => (
+          {resolvedBlogPosts.map((post) => (
             <div key={post.id} className='shadow-2xl p-5 sm:p-6 md:p-7.5 rounded-2xl hover:shadow-3xl transition-shadow duration-300 bg-white'>
               {/* Post Image */}
               {hasValue(post.image) && (

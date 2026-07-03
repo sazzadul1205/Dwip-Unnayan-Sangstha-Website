@@ -15,8 +15,24 @@ const hasValue = (value) => {
   return true;
 };
 
+/**
+ * CardsSection Component
+ * 
+ * @param {Object} props
+ * @param {Object} props.data - Cards data from API (from DynamicSectionRenderer)
+ * @param {Object} props.cardsData - Cards data from API (direct prop - legacy)
+ * @param {string} props.bgColor - Background color (optional)
+ * @param {string} props.paddingY - Vertical padding classes
+ * @param {string} props.paddingX - Horizontal padding classes
+ * @param {string} props.gap - Gap between cards (default: 'gap-6 sm:gap-8 md:gap-12 lg:gap-25')
+ * @param {string} props.sectionClassName - Additional CSS classes
+ * @param {string} props.sectionId - Section ID (default: 'cards')
+ * 
+ * @returns {JSX.Element} Rendered cards section
+ */
 const CardsSection = ({
-  cardsData,
+  data,           // From DynamicSectionRenderer
+  cardsData,      // Direct prop (legacy support)
   bgColor = 'bg-white',
   paddingY = 'py-8 sm:py-12 md:py-20 lg:py-37.5',
   paddingX = 'px-4 sm:px-8 md:px-16 lg:px-50',
@@ -24,21 +40,45 @@ const CardsSection = ({
   sectionClassName = '',
   sectionId = 'cards',
 }) => {
-  // Early return if no data
-  if (!hasValue(cardsData)) {
+  // ============================================
+  // RESOLVE DATA
+  // ============================================
+  // Use data prop if available, fallback to cardsData
+  let resolvedData = data || cardsData;
+
+  // ============================================
+  // EARLY RETURN - No data
+  // ============================================
+  if (!hasValue(resolvedData)) {
     return null;
   }
 
-  // Safe destructuring with defaults
-  const { cards = [] } = cardsData;
+  // ============================================
+  // NORMALIZE DATA STRUCTURE
+  // ============================================
+  // Check if the data is wrapped in a 'data' property
+  // This happens when the API returns { id, page_slug, section_key, data: { ... } }
+  if (resolvedData.data && typeof resolvedData.data === 'object') {
+    resolvedData = resolvedData.data;
+  }
 
-  // Check if there are any cards to display
+  // ============================================
+  // SAFE DESTRUCTURING WITH DEFAULTS
+  // ============================================
+  const { cards = [] } = resolvedData;
+
+  // ============================================
+  // CHECK FOR CARDS
+  // ============================================
   const hasCards = hasValue(cards);
 
   if (!hasCards) {
     return null;
   }
 
+  // ============================================
+  // RENDER
+  // ============================================
   return (
     <section
       id={sectionId}

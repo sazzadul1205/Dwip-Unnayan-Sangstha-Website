@@ -12,6 +12,7 @@ use App\Models\pages\SectionConfig;
 use App\Models\pages\SharedData;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 
 class ContentService
 {
@@ -91,11 +92,28 @@ class ContentService
   /**
    * Get shared data by type (topbar, navbar, footer, faq, upcoming-events).
    */
-  public function getSharedData(string $type): ?SharedData
+   public function getSharedData(string $type): ?SharedData
   {
-    return Cache::remember("shared.{$type}", $this->cacheMinutes, function () use ($type) {
+    // DEBUG: Check what's in the database
+    $dbResult = SharedData::ofType($type)->active()->first();
+    
+    Log::info("getSharedData({$type}) - Direct DB query", [
+      'found' => $dbResult ? 'yes' : 'no',
+      'id' => $dbResult ? $dbResult->id : null,
+      'has_data' => $dbResult && $dbResult->data ? 'yes' : 'no',
+      'data_preview' => $dbResult ? substr(json_encode($dbResult->data), 0, 200) : null,
+    ]);
+    
+    $result = Cache::remember("shared.{$type}", $this->cacheMinutes, function () use ($type) {
       return SharedData::ofType($type)->active()->first();
     });
+    
+    Log::info("getSharedData({$type}) - From Cache", [
+      'found' => $result ? 'yes' : 'no',
+      'has_data' => $result && $result->data ? 'yes' : 'no',
+    ]);
+    
+    return $result;
   }
 
   /**

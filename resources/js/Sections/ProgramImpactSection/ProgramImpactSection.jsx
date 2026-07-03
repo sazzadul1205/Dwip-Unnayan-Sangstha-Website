@@ -12,32 +12,78 @@ const hasValue = (value) => {
   return true;
 };
 
+/**
+ * ProgramImpactSection Component
+ * 
+ * @param {Object} props
+ * @param {Object} props.data - Program Impact data from API (from DynamicSectionRenderer)
+ * @param {Object} props.impactData - Program Impact data from API (direct prop)
+ * @param {string} props.bgColor - Background color (optional)
+ * @param {string} props.paddingY - Vertical padding classes
+ * @param {string} props.paddingX - Horizontal padding classes
+ * @param {string} props.sectionClassName - Additional CSS classes
+ * @param {string} props.sectionId - Section ID (default: 'program-impact')
+ * 
+ * @returns {JSX.Element} Rendered program impact section
+ */
 const ProgramImpactSection = ({
-  impactData,
+  data,           // From DynamicSectionRenderer
+  impactData,     // Direct prop (legacy support)
   bgColor = 'bg-white',
   paddingY = 'py-12 sm:py-16 md:py-25 lg:py-37.5',
   paddingX = 'px-5 sm:px-10 md:px-20 lg:px-75',
   sectionClassName = '',
   sectionId = 'program-impact',
 }) => {
+  // ============================================
+  // HOOKS - Must be called before any conditional returns
+  // ============================================
   const [index, setIndex] = useState(0);
 
-  // Early return if no data (SAME pattern)
-  if (!hasValue(impactData)) return null;
+  // ============================================
+  // RESOLVE DATA
+  // ============================================
+  // Use data prop if available, fallback to impactData
+  let resolvedData = data || impactData;
 
-  // Safe destructuring with defaults (SAME pattern)
-  const { section = {}, sdgImages = [] } = impactData;
+  // ============================================
+  // EARLY RETURN - No data
+  // ============================================
+  if (!hasValue(resolvedData)) return null;
+
+  // ============================================
+  // NORMALIZE DATA STRUCTURE
+  // ============================================
+  // Check if the data is wrapped in a 'data' property
+  // This happens when the API returns { id, page_slug, section_key, data: { ... } }
+  if (resolvedData.data && typeof resolvedData.data === 'object') {
+    resolvedData = resolvedData.data;
+  }
+
+  // ============================================
+  // SAFE DESTRUCTURING WITH DEFAULTS
+  // ============================================
+  const { section = {}, sdgImages = [] } = resolvedData;
   const images = section?.mainImage?.images || [];
 
+  // ============================================
+  // CHECK FOR CONTENT
+  // ============================================
   const hasImages = hasValue(images);
   const hasTitle = hasValue(section.title);
   const hasSdgImages = hasValue(sdgImages);
 
-  // Early return if no content (SAME pattern)
+  // Early return if no content
   if (!hasImages && !hasTitle && !hasSdgImages) return null;
 
+  // ============================================
+  // HELPER: Go to slide
+  // ============================================
   const goToSlide = (i) => setIndex(i);
 
+  // ============================================
+  // RENDER
+  // ============================================
   return (
     <section
       id={sectionId}
@@ -64,8 +110,8 @@ const ProgramImpactSection = ({
                       key={i}
                       onClick={() => goToSlide(i)}
                       className={`transition-all duration-300 rounded-full cursor-pointer ${i === index
-                          ? "w-6 sm:w-8 h-1.5 sm:h-2 bg-white"
-                          : "w-2 sm:w-2.5 h-1.5 sm:h-2 bg-white/50 hover:bg-white/70"
+                        ? "w-6 sm:w-8 h-1.5 sm:h-2 bg-white"
+                        : "w-2 sm:w-2.5 h-1.5 sm:h-2 bg-white/50 hover:bg-white/70"
                         }`}
                       aria-label={`Go to slide ${i + 1}`}
                     />

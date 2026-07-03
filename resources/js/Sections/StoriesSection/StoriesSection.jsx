@@ -15,12 +15,28 @@ const hasValue = (value) => {
   return true;
 };
 
+/**
+ * StoriesSection Component
+ * 
+ * @param {Object} props
+ * @param {Object} props.data - Stories data from API (from DynamicSectionRenderer)
+ * @param {Object} props.storiesData - Stories data from API (direct prop)
+ * @param {string} props.bgColor - Background color (optional)
+ * @param {string} props.paddingY - Vertical padding classes
+ * @param {string} props.sectionClassName - Additional CSS classes
+ * 
+ * @returns {JSX.Element} Rendered stories section
+ */
 const StoriesSection = ({
-  storiesData,
+  data,           // From DynamicSectionRenderer
+  storiesData,    // Direct prop (legacy support)
   bgColor = 'bg-[#F5F5F5]',
   paddingY = 'py-12 sm:py-16 md:py-25 lg:py-37.5',
   sectionClassName = '',
 }) => {
+  // ============================================
+  // HOOKS - Must be called unconditionally
+  // ============================================
   // Refs for DOM elements and drag state
   const scrollContainerRef = useRef(null);
   const startX = useRef(0);
@@ -30,29 +46,41 @@ const StoriesSection = ({
   // State only for cursor styling (triggers re-render)
   const [dragging, setDragging] = useState(false);
 
-  // Don't render if no data
-  if (!hasValue(storiesData)) {
-    return null;
+  // ============================================
+  // RESOLVE DATA
+  // ============================================
+  // Use data prop if available, fallback to storiesData
+  let resolvedData = data || storiesData;
+
+  // ============================================
+  // NORMALIZE DATA STRUCTURE
+  // ============================================
+  // Check if the data is wrapped in a 'data' property
+  // This happens when the API returns { id, page_slug, section_key, data: { ... } }
+  if (resolvedData && resolvedData.data && typeof resolvedData.data === 'object') {
+    resolvedData = resolvedData.data;
   }
 
-  // Safe destructuring with defaults
+  // ============================================
+  // SAFE DESTRUCTURING WITH DEFAULTS
+  // ============================================
   const {
     section = {},
     stories = []
-  } = storiesData;
+  } = resolvedData || {};
 
-  // Check if there's any content to display
+  // ============================================
+  // CHECK FOR CONTENT
+  // ============================================
   const hasTitle = hasValue(section.title);
   const hasDescription = hasValue(section.description);
   const hasStories = hasValue(stories);
 
   const hasAnyContent = hasTitle || hasDescription || hasStories;
 
-  if (!hasAnyContent) {
-    return null;
-  }
-
-  // Set up drag-to-scroll event listeners
+  // ============================================
+  // EFFECT: Set up drag-to-scroll event listeners
+  // ============================================
   useEffect(() => {
     const container = scrollContainerRef.current;
     if (!container) return;
@@ -133,6 +161,17 @@ const StoriesSection = ({
     };
   }, []);
 
+  // ============================================
+  // EARLY RETURN - No data or content
+  // ============================================
+  // Move early returns after all hooks
+  if (!hasValue(resolvedData) || !hasAnyContent) {
+    return null;
+  }
+
+  // ============================================
+  // RENDER
+  // ============================================
   return (
     <section
       id='stories'
@@ -228,8 +267,8 @@ const StoriesSection = ({
 
           {/* Scroll hint indicator - Only show if there are stories */}
           <div className="relative mt-5 pointer-events-none hidden md:block">
-            <div className={`absolute left-0 top-0 bottom-0 w-8 sm:w-10 lg:w-12 bg-linear-to-r from-${bgColor.replace('bg-', '')} to-transparent`}></div>
-            <div className={`absolute right-0 top-0 bottom-0 w-8 sm:w-10 lg:w-12 bg-linear-to-l from-${bgColor.replace('bg-', '')} to-transparent`}></div>
+            <div className={`absolute left-0 top-0 bottom-0 w-8 sm:w-10 lg:w-12 bg-linear-to-r from-${bgColor.replace('bg-', '')} to-transparent`} />
+            <div className={`absolute right-0 top-0 bottom-0 w-8 sm:w-10 lg:w-12 bg-linear-to-l from-${bgColor.replace('bg-', '')} to-transparent`} />
           </div>
         </>
       )}

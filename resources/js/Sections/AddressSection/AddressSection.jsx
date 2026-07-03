@@ -51,7 +51,24 @@ const BuildingIcon = ({ className = "", ...props }) => (
   </svg>
 );
 
+/**
+ * AddressSection Component
+ * 
+ * @param {Object} props
+ * @param {Object} props.data - Address data from API (from DynamicSectionRenderer)
+ * @param {Object} props.addressData - Address data from API (direct prop - legacy)
+ * @param {Array} props.officesLocation - Offices location array (direct prop - legacy)
+ * @param {string} props.bgColor - Background color (optional)
+ * @param {string} props.paddingY - Vertical padding classes
+ * @param {string} props.paddingX - Horizontal padding classes
+ * @param {string} props.sectionClassName - Additional CSS classes
+ * @param {string} props.sectionId - Section ID (default: 'address-section')
+ * 
+ * @returns {JSX.Element} Rendered address section
+ */
 const AddressSection = ({
+  data,           // From DynamicSectionRenderer
+  addressData,    // Direct prop (legacy support)
   officesLocation,
   bgColor = 'bg-[#F5F5F5]',
   paddingY = 'py-10 sm:py-14 lg:py-37.5',
@@ -59,13 +76,87 @@ const AddressSection = ({
   sectionClassName = '',
   sectionId = 'address-section',
 }) => {
-  // Early return if no data
-  if (!hasValue(officesLocation) || officesLocation.length === 0) {
+  // ============================================
+  // HOOKS - Must be called before any conditional returns
+  // ============================================
+  // Initialize with empty array, will be updated after data resolution
+  const [activeOffice, setActiveOffice] = useState(null);
+
+  // ============================================
+  // RESOLVE DATA
+  // ============================================
+  // Use data prop if available, fallback to addressData or officesLocation
+  let resolvedData = data || addressData;
+
+  // ============================================
+  // NORMALIZE DATA STRUCTURE
+  // ============================================
+  let officesArray = officesLocation || [];
+
+  if (hasValue(resolvedData)) {
+    // Check if the data is wrapped in a 'data' property
+    if (resolvedData.data && typeof resolvedData.data === 'object') {
+      // If data.data is an array, use it directly
+      if (Array.isArray(resolvedData.data)) {
+        officesArray = resolvedData.data;
+      } else {
+        // If data.data is an object, use the data property
+        resolvedData = resolvedData.data;
+      }
+    }
+
+    // If we haven't found offices yet, try other properties
+    if (officesArray.length === 0) {
+      // If resolvedData is an array, use it as offices
+      if (Array.isArray(resolvedData)) {
+        officesArray = resolvedData;
+      } else if (typeof resolvedData === 'object') {
+        // Check for various property names that might contain offices
+        if (Array.isArray(resolvedData.officesLocation)) {
+          officesArray = resolvedData.officesLocation;
+        } else if (Array.isArray(resolvedData.offices)) {
+          officesArray = resolvedData.offices;
+        } else if (Array.isArray(resolvedData.locations)) {
+          officesArray = resolvedData.locations;
+        } else {
+          // Try to find any array property that might be offices
+          let foundOffices = false;
+          for (const key in resolvedData) {
+            if (Array.isArray(resolvedData[key]) && resolvedData[key].length > 0) {
+              const firstItem = resolvedData[key][0];
+              if (firstItem && (firstItem.label || firstItem.address || firstItem.mapUrl)) {
+                officesArray = resolvedData[key];
+                foundOffices = true;
+                break;
+              }
+            }
+          }
+          if (!foundOffices) {
+            console.warn('AddressSection - No offices array found in data');
+          }
+        }
+      }
+    }
+  }
+
+  // ============================================
+  // UPDATE ACTIVE OFFICE
+  // ============================================
+  // Set active office to first item if not already set
+  if (hasValue(officesArray) && officesArray.length > 0 && activeOffice === null) {
+    setActiveOffice(officesArray[0]);
+  }
+
+  // ============================================
+  // EARLY RETURN - No data
+  // ============================================
+  if (!hasValue(officesArray) || officesArray.length === 0) {
     return null;
   }
 
-  const [activeOffice, setActiveOffice] = useState(officesLocation[0]);
-
+  // ============================================
+  // RENDER
+  // ============================================
   return (
     <section
       id={sectionId}
@@ -74,16 +165,16 @@ const AddressSection = ({
       {/* Tabs */}
       <div className="max-w-200 mx-auto rounded-[18px] bg-white p-4">
         <div className="flex flex-wrap justify-between gap-3">
-          {officesLocation.map((office) => (
+          {officesArray.map((office) => (
             <button
               key={office.id}
               onClick={() => setActiveOffice(office)}
-              className={`flex items-center justify-center gap-2 sm:gap-3 rounded-2xl px-4 sm:px-5 py-3 sm:py-5 text-[16px] sm:text-[18px] md:text-[24px] font-semibold transition-all shrink-0 cursor-pointer ${activeOffice.id === office.id
-                  ? 'bg-[#FAFAFA] text-[#1396E8]'
-                  : 'bg-white text-[#111827] hover:bg-gray-50'
+              className={`flex items-center justify-center gap-2 sm:gap-3 rounded-2xl px-4 sm:px-5 py-3 sm:py-5 text-[16px] sm:text-[18px] md:text-[24px] font-semibold transition-all shrink-0 cursor-pointer ${activeOffice?.id === office.id
+                ? 'bg-[#FAFAFA] text-[#1396E8]'
+                : 'bg-white text-[#111827] hover:bg-gray-50'
                 }`}
             >
-              <OfficeStar active={activeOffice.id === office.id} />
+              <OfficeStar active={activeOffice?.id === office.id} />
               <span>{office.label}</span>
             </button>
           ))}
@@ -93,7 +184,7 @@ const AddressSection = ({
       {/* Dynamic Map */}
       <div className="relative pt-12">
         <div className="w-full max-w-380 mx-auto rounded-2xl overflow-hidden shadow-lg">
-          {hasValue(activeOffice.mapUrl) && (
+          {hasValue(activeOffice?.mapUrl) && (
             <iframe
               src={activeOffice.mapUrl}
               className="w-full h-100 md:h-228.75 border-0"
@@ -105,7 +196,7 @@ const AddressSection = ({
         </div>
 
         {/* Dynamic Address Card */}
-        {hasValue(activeOffice.address) && (
+        {hasValue(activeOffice?.address) && (
           <div className="absolute left-1/2 -translate-x-1/2 bottom-0 translate-y-1/2 w-[90%] md:w-192.5 z-10">
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5 bg-white py-6 px-7 rounded-2xl shadow-xl">
               <div className='bg-[#F4F8FF] rounded-full p-3.5 shrink-0'>

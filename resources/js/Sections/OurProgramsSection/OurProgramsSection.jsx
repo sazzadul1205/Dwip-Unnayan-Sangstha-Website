@@ -15,49 +15,52 @@ const hasValue = (value) => {
   return true;
 };
 
+// ============================================
+// DEFAULT SECTION DATA
+// ============================================
+const DEFAULT_SECTION = {
+  title: 'Our Programs',
+  description: 'Explore our impactful programs that are transforming lives in coastal communities',
+  button: {
+    text: 'View All Programs',
+    link: '/projects-programs'
+  }
+};
+
+/**
+ * OurProgramsSection Component
+ * 
+ * @param {Object} props
+ * @param {Array|Object} props.data - Our Programs data from API (from DynamicSectionRenderer)
+ * @param {Object} props.programsData - Our Programs data from API (direct prop)
+ * @param {number} props.limit - Number of programs to display (optional)
+ * @param {boolean} props.showFeatured - Only show featured programs (optional)
+ * @param {string} props.bgColor - Background color (optional)
+ * @param {string} props.paddingY - Vertical padding classes
+ * @param {string} props.paddingX - Horizontal padding classes
+ * @param {string} props.sectionClassName - Additional CSS classes
+ * 
+ * @returns {JSX.Element} Rendered our programs section
+ */
 const OurProgramsSection = ({
-  programsData,
+  data,           // From DynamicSectionRenderer
+  programsData,   // Direct prop (legacy support)
+  limit,          // Custom prop: limit number of programs to show
+  showFeatured,   // Custom prop: only show featured programs
   bgColor = 'bg-white',
   paddingY = 'py-12 sm:py-16 lg:py-20',
   paddingX = 'px-5 sm:px-10 md:px-20 lg:px-50',
   sectionClassName = '',
 }) => {
+  // ============================================
+  // HOOKS - Must be called unconditionally at the top
+  // ============================================
   const [visibleCards, setVisibleCards] = useState([]);
   const cardsRef = useRef([]);
 
-  // Don't render if no data
-  if (!hasValue(programsData)) {
-    return null;
-  }
-
-  // Function to strip HTML tags and get plain text
-  const stripHtmlTags = (html) => {
-    if (!html) return '';
-    const temp = document.createElement('div');
-    temp.innerHTML = html;
-    return temp.textContent || temp.innerText || '';
-  };
-
-  // Function to truncate HTML content to ~9 lines
-  const truncateHtml = (html, maxLines = 9) => {
-    if (!html) return '';
-
-    const plainText = stripHtmlTags(html);
-    const words = plainText.split(' ');
-    const wordsPerLine = 20;
-    const maxWords = maxLines * wordsPerLine;
-
-    if (words.length <= maxWords) {
-      return html;
-    }
-
-    let truncatedText = words.slice(0, maxWords).join(' ');
-    truncatedText = truncatedText + '...';
-
-    return `<p class="font-400 text-[16px] sm:text-[18px] lg:text-[20px] text-[#524B48] leading-relaxed">${truncatedText}</p>`;
-  };
-
-  // Function to handle card visibility
+  // ============================================
+  // EFFECT: Handle card visibility - Must be before any conditional returns
+  // ============================================
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
@@ -84,25 +87,127 @@ const OurProgramsSection = ({
     });
 
     return () => observer.disconnect();
-  }, []);
+  }, []); // Empty dependency array - runs once on mount
 
-  // Safe destructuring with defaults
-  const {
-    section = {},
-    programs = []
-  } = programsData;
+  // ============================================
+  // RESOLVE DATA - After hooks
+  // ============================================
+  // Use data prop if available, fallback to programsData
+  let resolvedData = data || programsData;
 
+
+  // ============================================
+  // EARLY RETURN - No data (after hooks)
+  // ============================================
+  if (!hasValue(resolvedData)) {
+    return null;
+  }
+
+  // ============================================
+  // NORMALIZE DATA STRUCTURE
+  // ============================================
+  // Check if the data is wrapped in a 'data' property
+  // This happens when the API returns { id, page_slug, section_key, data: { ... } }
+  if (resolvedData.data && typeof resolvedData.data === 'object') {
+    resolvedData = resolvedData.data;
+  }
+
+  // ============================================
+  // HANDLE DIFFERENT DATA STRUCTURES
+  // ============================================
+  // Case 1: Data is directly an array of programs
+  // { data: [...] } or programsData is an array
+  let programs = [];
+  let section = {};
+
+  if (Array.isArray(resolvedData)) {
+    // Data is an array of programs
+    programs = resolvedData;
+    // Use default section if no section data available
+    section = { ...DEFAULT_SECTION };
+  } else if (resolvedData.programs && Array.isArray(resolvedData.programs)) {
+    // Data has a programs property that is an array
+    programs = resolvedData.programs;
+    // Merge section from data with defaults (data takes precedence)
+    section = { ...DEFAULT_SECTION, ...(resolvedData.section || {}) };
+  } else {
+    // Try to find any array property that might be programs
+    const arrayKeys = Object.keys(resolvedData).filter(key => Array.isArray(resolvedData[key]));
+    if (arrayKeys.length > 0) {
+      programs = resolvedData[arrayKeys[0]];
+      // Merge section from data with defaults (data takes precedence)
+      section = { ...DEFAULT_SECTION, ...(resolvedData.section || {}) };
+    } else {
+      // If no array found, use default section
+      section = { ...DEFAULT_SECTION };
+    }
+  }
+
+  // ============================================
+  // APPLY FILTERS (limit, showFeatured)
+  // ============================================
+  let filteredPrograms = [...programs];
+
+  // Apply showFeatured filter
+  if (showFeatured === true || showFeatured === 'true') {
+    filteredPrograms = filteredPrograms.filter(program => program.is_featured === true || program.is_featured === 1);
+  }
+
+  // Apply limit
+  if (limit && parseInt(limit) > 0) {
+    const limitNum = parseInt(limit);
+    filteredPrograms = filteredPrograms.slice(0, limitNum);
+  }
+
+
+  // ============================================
+  // FUNCTION: Strip HTML tags and get plain text
+  // ============================================
+  const stripHtmlTags = (html) => {
+    if (!html) return '';
+    const temp = document.createElement('div');
+    temp.innerHTML = html;
+    return temp.textContent || temp.innerText || '';
+  };
+
+  // ============================================
+  // FUNCTION: Truncate HTML content to ~9 lines
+  // ============================================
+  const truncateHtml = (html, maxLines = 9) => {
+    if (!html) return '';
+
+    const plainText = stripHtmlTags(html);
+    const words = plainText.split(' ');
+    const wordsPerLine = 20;
+    const maxWords = maxLines * wordsPerLine;
+
+    if (words.length <= maxWords) {
+      return html;
+    }
+
+    let truncatedText = words.slice(0, maxWords).join(' ');
+    truncatedText = `${truncatedText  }...`;
+
+    return `<p class="font-400 text-[16px] sm:text-[18px] lg:text-[20px] text-[#524B48] leading-relaxed">${truncatedText}</p>`;
+  };
+
+  // ============================================
+  // CHECK FOR CONTENT
+  // ============================================
   const hasTitle = hasValue(section.title);
   const hasDescription = hasValue(section.description);
   const hasButton = hasValue(section.button?.text);
 
   const showHeader = hasTitle || hasDescription || hasButton;
-  const hasPrograms = hasValue(programs);
+  const hasPrograms = hasValue(filteredPrograms);
 
   if (!showHeader && !hasPrograms) {
     return null;
   }
 
+  // ============================================
+  // RENDER
+  // ============================================
   return (
     <section
       id="our-programs"
@@ -153,10 +258,10 @@ const OurProgramsSection = ({
             className={`relative ${showHeader ? "mt-16 sm:mt-24 lg:mt-32" : ""
               }`}
             style={{
-              height: `${programs.length * 100}vh`,
+              height: `${filteredPrograms.length * 100}vh`,
             }}
           >
-            {programs.map((program, index) => {
+            {filteredPrograms.map((program, index) => {
               // Skip rendering if program has no content
               if (!hasValue(program) && !program.title && !program.description) {
                 return null;
