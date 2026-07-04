@@ -4,9 +4,11 @@ namespace App\Http\Controllers\Frontend;
 
 use App\Http\Controllers\Controller;
 use App\Services\ContentService;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 use Inertia\Inertia;
 use Inertia\Response;
+use Illuminate\Support\Facades\Log;
 
 class PageController extends Controller
 {
@@ -22,37 +24,45 @@ class PageController extends Controller
   /**
    * Handle all public pages dynamically.
    *
-   * @param  string  $pageSlug     (home, about, blogs, contact, projects-programs)
+   * @param  string  $pageSlug     (home, about, blogs, contact, projects-programs, or any custom page)
    * @param  string|null  $detailSlug  (optional slug for detail pages)
    */
   public function show(string $pageSlug = 'home', ?string $detailSlug = null): Response
   {
-    // 1. Determine which Inertia component to render
+    // 1. Get the page from database
+    $page = $this->getPageBySlug($pageSlug);
+
+    // If page doesn't exist, return 404
+    if (!$page) {
+      abort(404, 'Page not found');
+    }
+
+    // 2. Determine which Inertia component to render
     $component = $this->resolveComponent($pageSlug, $detailSlug);
 
-    // 2. Get the page slug used for section configs
+    // 3. Get the page slug used for section configs
     $configSlug = $this->resolveConfigSlug($pageSlug, $detailSlug);
 
-    // 3. Fetch section configs from the database using the service
+    // 4. Fetch section configs from the database using the service
     $sectionConfigs = $this->contentService->getPageSections($configSlug);
 
     if ($sectionConfigs->isEmpty()) {
       abort(404, 'Page configuration not found');
     }
 
-    // 4. Determine data requirements from configs
+    // 5. Determine data requirements from configs
     $dataNeeds = $this->determineDataNeeds($sectionConfigs);
 
-    // 5. Fetch all required data
+    // 6. Fetch all required data
     $fetchedData = $this->fetchAllData($dataNeeds, $pageSlug, $detailSlug);
 
-    // 6. Build the pageData array with the correct keys
+    // 7. Build the pageData array with the correct keys
     $pageData = $this->buildPageData($sectionConfigs, $fetchedData, $pageSlug, $detailSlug);
 
-    // 7. Get shared layout data (topbar, navbar, footer) from the trait
+    // 8. Get shared layout data (topbar, navbar, footer) from the trait
     $shared = $this->getSharedData();
 
-    // 8. Prepare the section config structure for the frontend
+    // 9. Prepare the section config structure for the frontend
     $sectionConfig = [
       'sections' => $sectionConfigs->map(function ($config) {
         return [
@@ -69,15 +79,46 @@ class PageController extends Controller
       })->toArray(),
     ];
 
-    // 9. Render the Inertia component with all data
+    // 10. Determine page title
+    $pageTitle = $page->title ?? $page->name;
+
+    // Add suffix for detail pages
+    if ($detailSlug && $page->title) {
+      $pageTitle = $page->title . ' - DUS';
+    }
+
+    // 11. Render the Inertia component with all data
     return Inertia::render($component, array_merge(
       $shared,
       [
         'storageUrl'    => config('app.storage_url', ''),
         'sectionConfig' => $sectionConfig,
         'pageData'      => $pageData,
+        'pageName'      => $page->name,
+        'pageTitle'     => $pageTitle,
+        'pageSlug'      => $page->slug,
+        'pageDescription' => $page->description ?? '',
       ]
     ));
+  }
+
+  /**
+   * Get page by slug from database
+   */
+  private function getPageBySlug(string $slug): ?\App\Models\pages\Page
+  {
+    // Normalize slug for special cases
+    if ($slug === 'blogs') {
+      $slug = 'blog';
+    }
+
+    // For detail pages, we need to handle the base slug
+    // The $slug might be 'about-details' but we need to get the page by its actual slug
+    // which is stored as 'about-details' in the pages table
+
+    return \App\Models\pages\Page::where('slug', $slug)
+      ->where('is_active', true)
+      ->first();
   }
 
   /**
@@ -85,10 +126,11 @@ class PageController extends Controller
    */
   private function resolveConfigSlug(string $pageSlug, ?string $detailSlug): string
   {
-    $normalized = $pageSlug === 'blogs' || $pageSlug === 'blog' ? 'blog' : $pageSlug;
+    // Handle 'blogs' alias for 'blog'
+    $normalized = $pageSlug === 'blogs' ? 'blog' : $pageSlug;
 
     if ($detailSlug) {
-      return $normalized === 'blog' ? 'blog-details' : $normalized . '-details';
+      return $normalized . '-details';
     }
 
     return $normalized;
@@ -96,30 +138,35 @@ class PageController extends Controller
 
   /**
    * Map page slug + detail flag to the correct Inertia component.
+   * 
+   * All pages that don't have a specific component will use the GenericPage
    */
   private function resolveComponent(string $pageSlug, ?string $detailSlug): string
   {
-    $normalizedPageSlug = $pageSlug === 'blog' ? 'blogs' : $pageSlug;
+    // Normalize 'blogs' to 'blog'
+    $normalizedPageSlug = $pageSlug === 'blogs' ? 'blog' : $pageSlug;
 
-    $pageMap = [
-      'home'              => 'Frontend/Home/Home',
-      'about'             => 'Frontend/About/About',
-      'blogs'             => 'Frontend/Blogs/Blogs',
-      'contact'           => 'Frontend/ContactUs/ContactUs',
-      'projects-programs' => 'Frontend/ProjectsAndPrograms/ProjectsAndPrograms',
+    // Specific page components (only for special cases)
+    $specificPages = [
+      'home' => 'Frontend/Home/Home',
+      'about' => 'Frontend/About/About',
+      'contact' => 'Frontend/ContactUs/ContactUs',
     ];
 
-    $detailMap = [
-      'about'             => 'Frontend/AboutDetails/AboutDetails',
-      'blogs'             => 'Frontend/BlogDetails/BlogDetails',
+    // Detail page components
+    $detailPages = [
+      'about' => 'Frontend/AboutDetails/AboutDetails',
+      'blog' => 'Frontend/BlogDetails/BlogDetails',
       'projects-programs' => 'Frontend/ProjectsAndProgramsDetails/ProjectsAndProgramsDetails',
     ];
 
     if ($detailSlug) {
-      return $detailMap[$normalizedPageSlug] ?? abort(404);
+      // For detail pages, use specific detail component if exists, otherwise GenericPage
+      return $detailPages[$normalizedPageSlug] ?? 'Frontend/GenericPage';
     }
 
-    return $pageMap[$normalizedPageSlug] ?? 'Frontend/DynamicPage';
+    // For regular pages, use specific page component if exists, otherwise GenericPage
+    return $specificPages[$normalizedPageSlug] ?? 'Frontend/GenericPage';
   }
 
   /**
@@ -141,7 +188,7 @@ class PageController extends Controller
           $needs['programs'] = true;
           break;
         case 'blog':
-        case 'blogs':  // ← Add support for plural
+        case 'blogs':
           $needs['blogs'] = true;
           break;
         case 'about_content':
@@ -152,6 +199,14 @@ class PageController extends Controller
           break;
         case 'custom_section_data':
           $needs['custom'][] = $config->section_key;
+          break;
+        // Add support for additional tables
+        case 'pages':
+          $needs['pages'] = true;
+          break;
+        default:
+          // Unknown data_table - log warning
+          Log::warning("Unknown data_table: {$config->data_table} for section {$config->id}");
           break;
       }
     }
@@ -204,18 +259,21 @@ class PageController extends Controller
 
     // About content (main and detail pages)
     if (!empty($needs['about_content'])) {
-      // For about page, we might need all detail items, or just the main one.
-      // We'll fetch all active about content; the frontend will filter.
       $data['about_content'] = $this->contentService->getAboutDetails();
     }
 
     // Jobs
     if (!empty($needs['jobs'])) {
-      // We might need a method in ContentService to get jobs
-      // For now, we can use the model directly or add a method.
       $data['jobs'] = \App\Models\JobListing::active()
         ->orderBy('views_count', 'desc')
         ->limit(5)
+        ->get();
+    }
+
+    // Pages (if needed for navigation or other purposes)
+    if (!empty($needs['pages'])) {
+      $data['pages'] = \App\Models\pages\Page::where('is_active', true)
+        ->orderBy('name')
         ->get();
     }
 
@@ -237,16 +295,25 @@ class PageController extends Controller
     // Detail item (if detailSlug is provided)
     if ($detailSlug) {
       $detail = null;
-      switch ($pageSlug) {
+      // Determine the base page slug for detail lookup
+      $baseSlug = $pageSlug;
+      if ($pageSlug === 'blogs') {
+        $baseSlug = 'blog';
+      }
+
+      switch ($baseSlug) {
         case 'about':
           $detail = $this->contentService->getAboutContent($detailSlug);
           break;
         case 'blog':
-        case 'blogs':
           $detail = $this->contentService->getBlog($detailSlug);
           break;
         case 'projects-programs':
           $detail = $this->contentService->getProgram($detailSlug);
+          break;
+        default:
+          // For custom detail pages, try to find data in custom_section_data
+          $detail = $this->contentService->getSectionData($pageSlug, $detailSlug);
           break;
       }
       $data['detail'] = $detail;
@@ -279,7 +346,7 @@ class PageController extends Controller
           }
           break;
         case 'blog':
-        case 'blogs':  // ← Add support for plural
+        case 'blogs':
           if (isset($fetchedData['blogs'])) {
             if ($detailSlug && $pageSlug === 'blogs' && $dataKey === 'relatedBlogsData') {
               $pageData[$dataKey] = $this->filterRelatedBlogs($fetchedData['blogs'], $fetchedData['detail'] ?? null);
@@ -298,10 +365,21 @@ class PageController extends Controller
             $pageData[$dataKey] = $fetchedData['jobs'];
           }
           break;
+        case 'pages':
+          if (isset($fetchedData['pages'])) {
+            $pageData[$dataKey] = $fetchedData['pages'];
+          }
+          break;
         case 'custom_section_data':
           $sectionKey = $config->section_key;
           if (isset($fetchedData['custom'][$sectionKey])) {
             $pageData[$dataKey] = $fetchedData['custom'][$sectionKey];
+          }
+          break;
+        default:
+          // For unknown data tables, try to find data in fetchedData
+          if (isset($fetchedData[$dataTable])) {
+            $pageData[$dataKey] = $fetchedData[$dataTable];
           }
           break;
       }
@@ -310,16 +388,26 @@ class PageController extends Controller
     // If it's a detail page, add the detail item with the correct key
     if ($detailSlug && isset($fetchedData['detail'])) {
       $detail = $fetchedData['detail'];
-      switch ($pageSlug) {
+
+      // Determine the base page slug for detail lookup
+      $baseSlug = $pageSlug;
+      if ($pageSlug === 'blogs') {
+        $baseSlug = 'blog';
+      }
+
+      switch ($baseSlug) {
         case 'about':
           $pageData['contentSectionData'] = $detail;
           break;
         case 'blog':
-        case 'blogs':
           $pageData['blogData'] = $this->normalizeBlogDetail($detail);
           break;
         case 'projects-programs':
           $pageData['programContentData'] = $detail;
+          break;
+        default:
+          // For custom detail pages, use a generic key
+          $pageData['detailData'] = $detail;
           break;
       }
     }
@@ -329,8 +417,12 @@ class PageController extends Controller
 
   /**
    * Filter related blogs for the detail page.
+   *
+   * @param Collection|array $blogs
+   * @param Model|array|null $currentBlog
+   * @return array
    */
-  private function filterRelatedBlogs($blogs, $currentBlog = null): array
+  private function filterRelatedBlogs(Collection|array $blogs, Model|array|null $currentBlog = null): array
   {
     $items = collect($blogs);
 
@@ -364,10 +456,13 @@ class PageController extends Controller
 
   /**
    * Normalize blog detail data to the shape expected by the frontend.
+   *
+   * @param Model|array $detail
+   * @return array
    */
-  private function normalizeBlogDetail($detail): array
+  private function normalizeBlogDetail(Model|array $detail): array
   {
-    if ($detail instanceof \Illuminate\Database\Eloquent\Model) {
+    if ($detail instanceof Model) {
       return [
         'id' => $detail->id,
         'slug' => $detail->slug,

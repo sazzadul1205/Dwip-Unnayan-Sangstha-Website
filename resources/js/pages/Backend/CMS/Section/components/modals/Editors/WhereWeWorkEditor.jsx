@@ -16,10 +16,30 @@ import { useImageUpload } from './shared/useImageUpload';
 
 const WhereWeWorkEditor = ({ section, hasData, onDataChange }) => {
   // ===== STATE MANAGEMENT =====
+  const normalizeSectionData = (data) => {
+    if (!data || typeof data !== 'object' || Array.isArray(data)) {
+      return {};
+    }
+
+    const normalizedData = { ...data };
+    normalizedData.section = data.section && typeof data.section === 'object' ? data.section : {};
+    normalizedData.image = data.image && typeof data.image === 'object' ? data.image : {};
+
+    if (Array.isArray(data.stats)) {
+      normalizedData.stats = data.stats.filter(Boolean).map((stat) => (
+        stat && typeof stat === 'object' ? stat : {}
+      ));
+    } else if (data.stats && typeof data.stats === 'object') {
+      normalizedData.stats = [data.stats];
+    } else {
+      normalizedData.stats = [];
+    }
+
+    return normalizedData;
+  };
+
   // Get initial data from section prop using useMemo to prevent unnecessary re-renders
-  const initialData = useMemo(() => {
-    return section?.data?.data || section?.data || {};
-  }, [section?.data]);
+  const initialData = useMemo(() => normalizeSectionData(section?.data?.data || section?.data || {}), [section?.data]);
 
   const [formData, setFormData] = useState(initialData);
 
@@ -108,11 +128,12 @@ const WhereWeWorkEditor = ({ section, hasData, onDataChange }) => {
     let current = newData;
 
     // Store old icon path before removal (for deletion tracking)
-    const items = formData.stats || [];
-    if (items[index]?.icon) {
+    const items = Array.isArray(formData?.stats) ? formData.stats : [];
+    const currentItem = items[index];
+    if (currentItem?.icon) {
       setOldIconPaths(prev => ({
         ...prev,
-        [index]: items[index].icon
+        [index]: currentItem.icon
       }));
       setIconChanges(prev => ({ ...prev, [index]: true }));
     }
@@ -178,11 +199,12 @@ const WhereWeWorkEditor = ({ section, hasData, onDataChange }) => {
     }
 
     // Store old icon path if it exists
-    const items = formData.stats || [];
-    if (items[index]?.icon && !iconChanges[index]) {
+    const items = Array.isArray(formData?.stats) ? formData.stats : [];
+    const currentItem = items[index];
+    if (currentItem?.icon && !iconChanges[index]) {
       setOldIconPaths(prev => ({
         ...prev,
-        [index]: items[index].icon
+        [index]: currentItem.icon
       }));
     }
 
@@ -209,11 +231,12 @@ const WhereWeWorkEditor = ({ section, hasData, onDataChange }) => {
 
   // Remove icon from a stat
   const removeIcon = (index) => {
-    const items = formData.stats || [];
-    if (items[index]?.icon) {
+    const items = Array.isArray(formData?.stats) ? formData.stats : [];
+    const currentItem = items[index];
+    if (currentItem?.icon) {
       setOldIconPaths(prev => ({
         ...prev,
-        [index]: items[index].icon
+        [index]: currentItem.icon
       }));
     }
     updateArrayItem('stats', index, 'icon', '');
@@ -240,7 +263,7 @@ const WhereWeWorkEditor = ({ section, hasData, onDataChange }) => {
     );
   }
 
-  const stats = formData.stats || [];
+  const stats = Array.isArray(formData?.stats) ? formData.stats.filter(Boolean) : [];
 
   // ===== MAIN RENDER =====
   return (

@@ -103,14 +103,13 @@ Route::get('/unauthorized', function () {
 // Public pages – all dynamic
 Route::get('/', [PageController::class, 'show'])->name('home');
 
-// Pages without detail
+// ALL pages - dynamic routing
 Route::get('/{pageSlug}', [PageController::class, 'show'])
-    ->where('pageSlug', 'about|blog|blogs|contact|projects-programs');
+    ->where('pageSlug', '^(?!admin|backend|login|register|dashboard|api|storage).*$');
 
-// Pages with detail (about, blogs, projects-programs)
+// Detail pages
 Route::get('/{pageSlug}/{detailSlug}', [PageController::class, 'show'])
-    ->where('pageSlug', 'about|blog|blogs|projects-programs');
-
+    ->where('pageSlug', '^(?!admin|backend|login|register|dashboard|api|storage).*$');
 /*
 |--------------------------------------------------------------------------
 | AUTHENTICATION ROUTES
