@@ -105,7 +105,7 @@ Route::prefix('api/jobs')->group(function () {
 */
 
 // Public routes (no auth required)
-Route::prefix('seeker')->name('public.jobs.')->group(function () {
+Route::middleware('auth')->prefix('seeker')->name('public.jobs.')->group(function () {
     Route::get('/jobs', [JobListingController::class, 'index'])->name('index');
     Route::get('/jobs/{slug}', [JobListingController::class, 'show'])->name('show');
 });
