@@ -12,6 +12,7 @@ import axios from 'axios';
 
 // Arrow Icon
 import ArrowIcon from '../../components/Shared/ArrowIcon';
+import { Link } from '@inertiajs/react';
 
 // Utility function to check if value exists
 const hasValue = (value) => {
@@ -38,6 +39,7 @@ const hasValue = (value) => {
  * @param {string} sectionClassName - Additional section classes
  * @param {string} apiEndpoint - API endpoint for fetching jobs
  * @param {Object} apiParams - Additional API parameters
+ * @param {string} publicJobsRoute - Route prefix for job links (default: /backend/jobs)
  */
 const JobsSection = ({
   data: propData,
@@ -51,6 +53,7 @@ const JobsSection = ({
   sectionClassName = '',
   apiEndpoint = '/api/jobs',
   apiParams = {},
+  publicJobsRoute = '/backend/jobs',
 }) => {
   // ============================================
   // ✅ HELPER: Parse data if it's a string
@@ -347,22 +350,32 @@ const JobsSection = ({
       }
 
       // Map API jobs to the expected format
-      const mappedJobs = fetchedJobs.map(job => ({
-        id: job.id,
-        title: job.title || 'Untitled Position',
-        description: job.description || job.requirements || 'No description available.',
-        type: job.job_type || job.type || 'Full-time',
-        department: job.department || job.category?.name || 'General',
-        location: job.location || job.locations?.[0]?.name || 'Bangladesh',
-        link: job.link || `/jobs/${job.slug || job.id}`,
-        slug: job.slug,
-        views: job.views_count || 0,
-        salary_min: job.salary_min,
-        salary_max: job.salary_max,
-        is_active: job.is_active,
-        category: job.category,
-        employer: job.employer,
-      }));
+      const mappedJobs = fetchedJobs.map(job => {
+        // ✅ Build the link with /backend/jobs prefix
+        let jobLink;
+        if (job.slug) {
+          jobLink = `${publicJobsRoute}/${job.slug}`;
+        } else {
+          jobLink = `${publicJobsRoute}/${job.id}`;
+        }
+
+        return {
+          id: job.id,
+          title: job.title || 'Untitled Position',
+          description: job.description || job.requirements || 'No description available.',
+          type: job.job_type || job.type || 'Full-time',
+          department: job.department || job.category?.name || 'General',
+          location: job.location || job.locations?.[0]?.name || 'Bangladesh',
+          link: jobLink,
+          slug: job.slug,
+          views: job.views_count || 0,
+          salary_min: job.salary_min,
+          salary_max: job.salary_max,
+          is_active: job.is_active,
+          category: job.category,
+          employer: job.employer,
+        };
+      });
 
       setJobs(mappedJobs);
 
@@ -404,13 +417,19 @@ const JobsSection = ({
         const fallbackJobs = findJobsArray(parsedPropData);
 
         if (fallbackJobs && Array.isArray(fallbackJobs) && fallbackJobs.length > 0) {
-          setError(null); // Clear error since we have fallback data
+          // ✅ Map fallback jobs with correct links
+          const mappedFallbackJobs = fallbackJobs.map(job => ({
+            ...job,
+            link: job.slug ? `${publicJobsRoute}/${job.slug}` : `${publicJobsRoute}/${job.id}`,
+          }));
+          setJobs(mappedFallbackJobs);
+          setError(null);
         }
       }
     } finally {
       setLoading(false);
     }
-  }, [searchTerm, selectedFilter, effectiveLimit, shouldFetchAll, apiEndpoint, apiParams, propData, findJobsArray]);
+  }, [searchTerm, selectedFilter, effectiveLimit, shouldFetchAll, apiEndpoint, apiParams, propData, findJobsArray, publicJobsRoute]);
 
   // ============================================
   // INITIAL FETCH
@@ -692,22 +711,17 @@ const JobsSection = ({
 
                 {/* Apply Button */}
                 <div className='w-full md:w-auto mt-4 md:mt-0'>
-                  <button
-                    onClick={() => {
-                      if (job.link) {
-                        window.location.href = job.link;
-                      }
-                    }}
+                  <Link
+                    href={`${job.link}`}
                     className="bricolage-grotesque border border-[#009BE2] rounded-md text-[#009BE2] px-5 sm:px-6 lg:px-7.5 py-3 sm:py-3.5 lg:py-4 font-600 text-[14px] sm:text-[15px] lg:text-[16px] inline-flex items-center justify-center gap-2 sm:gap-3 group hover:bg-[#009BE2] hover:text-white transition-all duration-300 whitespace-nowrap w-full md:w-auto"
                   >
                     Apply Now
                     <ArrowIcon className="group-hover:translate-x-1 group-hover:-translate-y-1 transition-all duration-300" />
-                  </button>
+                  </Link>
                 </div>
               </div>
             </div>
           ))}
-
 
           {/* No Jobs Found Message (when search returns no results) */}
           {filteredJobs.length === 0 && jobs.length > 0 && (

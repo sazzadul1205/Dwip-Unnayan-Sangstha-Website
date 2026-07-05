@@ -24,7 +24,482 @@ use Illuminate\Support\Facades\Storage;
 class JobListingController extends Controller
 {
     /**
-     * Display a listing of job listings with filtering and pagination
+     * ==========================================
+     * PUBLIC METHODS (No permission checks)
+     * ==========================================
+     */
+
+    /**
+     * Display public job listings for applicants
+     * Only shows active, non-deleted jobs with valid deadlines
+     * Fully queryable with filters and sorting
+     */
+    public function publicIndex(Request $request)
+    {
+        // Base query - only active, non-deleted jobs with upcoming deadlines
+        $query = JobListing::where('is_active', true)
+            ->whereNull('deleted_at')
+            ->where('application_deadline', '>=', now())
+            ->with(['category', 'locations', 'employer'])
+            ->withCount([
+                'applications',
+                'views'
+            ]);
+
+        // Search filter
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('title', 'like', "%{$search}%")
+                    ->orWhere('description', 'like', "%{$search}%")
+                    ->orWhereHas('category', function ($cat) use ($search) {
+                        $cat->where('name', 'like', "%{$search}%");
+                    })
+                    ->orWhereHas('locations', function ($loc) use ($search) {
+                        $loc->where('name', 'like', "%{$search}%");
+                    });
+            });
+        }
+
+        // Category filter (by slug)
+        if ($request->filled('category')) {
+            $query->whereHas('category', function ($q) use ($request) {
+                $q->where('slug', $request->category);
+            });
+        }
+
+        // Location filter (by id)
+        if ($request->filled('location')) {
+            $query->whereHas('locations', function ($q) use ($request) {
+                $q->where('locations.id', $request->location);
+            });
+        }
+
+        // Job type filter
+        if ($request->filled('job_type')) {
+            $query->where('job_type', $request->job_type);
+        }
+
+        // Experience level filter
+        if ($request->filled('experience_level')) {
+            $query->where('experience_level', $request->experience_level);
+        }
+
+        // Salary range filters
+        if ($request->filled('salary_min')) {
+            $query->where('salary_max', '>=', $request->salary_min);
+        }
+        if ($request->filled('salary_max')) {
+            $query->where('salary_min', '<=', $request->salary_max);
+        }
+
+        // Sorting
+        $sort = $request->get('sort', 'latest');
+        switch ($sort) {
+            case 'latest':
+                $query->orderBy('created_at', 'desc');
+                break;
+            case 'oldest':
+                $query->orderBy('created_at', 'asc');
+                break;
+            case 'deadline_soon':
+                $query->orderBy('application_deadline', 'asc');
+                break;
+            case 'deadline_later':
+                $query->orderBy('application_deadline', 'desc');
+                break;
+            case 'salary_high':
+                $query->orderByRaw('COALESCE(salary_max, salary_min, 0) DESC');
+                break;
+            case 'salary_low':
+                $query->orderByRaw('COALESCE(salary_min, salary_max, 0) ASC');
+                break;
+            case 'popular':
+                $query->orderBy('views_count', 'desc');
+                break;
+            case 'most_applied':
+                $query->orderBy('applications_count', 'desc');
+                break;
+            default:
+                $query->orderBy('created_at', 'desc');
+        }
+
+        $jobListings = $query->paginate(12)->through(function ($jobListing) {
+            return [
+                'id' => $jobListing->id,
+                'title' => $jobListing->title,
+                'slug' => $jobListing->slug,
+                'job_type' => $jobListing->job_type,
+                'experience_level' => $jobListing->experience_level,
+                'salary_min' => $jobListing->salary_min,
+                'salary_max' => $jobListing->salary_max,
+                'is_salary_negotiable' => $jobListing->is_salary_negotiable,
+                'as_per_companies_policy' => $jobListing->as_per_companies_policy,
+                'description' => strip_tags(substr($jobListing->description, 0, 150)) . (strlen(strip_tags($jobListing->description)) > 150 ? '...' : ''),
+                'application_deadline' => $jobListing->application_deadline,
+                'views_count' => $jobListing->views_count ?? 0,
+                'applications_count' => $jobListing->applications_count ?? 0,
+                'category' => $jobListing->category ? [
+                    'id' => $jobListing->category->id,
+                    'name' => $jobListing->category->name,
+                    'slug' => $jobListing->category->slug,
+                ] : null,
+                'locations' => $jobListing->locations->map(function ($location) {
+                    return [
+                        'id' => $location->id,
+                        'name' => $location->name,
+                    ];
+                }),
+                'employer' => $jobListing->employer ? [
+                    'id' => $jobListing->employer->id,
+                    'name' => $jobListing->employer->name,
+                    'email' => $jobListing->employer->email,
+                ] : null,
+            ];
+        })->withQueryString();
+
+        // Get categories with counts - ONLY categories that have active jobs
+        $categories = JobCategory::whereHas('jobListings', function ($query) {
+            $query->where('is_active', true)
+                ->whereNull('deleted_at')
+                ->where('application_deadline', '>=', now());
+        })
+            ->withCount(['jobListings' => function ($query) {
+                $query->where('is_active', true)
+                    ->whereNull('deleted_at')
+                    ->where('application_deadline', '>=', now());
+            }])
+            ->active()
+            ->orderBy('name')
+            ->get()
+            ->map(function ($category) {
+                return [
+                    'id' => $category->id,
+                    'name' => $category->name,
+                    'slug' => $category->slug,
+                    'job_listings_count' => $category->job_listings_count,
+                ];
+            });
+
+        // Get locations with counts - ONLY locations that have active jobs
+        $locations = Location::whereHas('jobListings', function ($query) {
+            $query->where('is_active', true)
+                ->whereNull('deleted_at')
+                ->where('application_deadline', '>=', now());
+        })
+            ->withCount(['jobListings' => function ($query) {
+                $query->where('is_active', true)
+                    ->whereNull('deleted_at')
+                    ->where('application_deadline', '>=', now());
+            }])
+            ->active()
+            ->orderBy('name')
+            ->get()
+            ->map(function ($location) {
+                return [
+                    'id' => $location->id,
+                    'name' => $location->name,
+                    'job_listings_count' => $location->job_listings_count,
+                ];
+            });
+
+        // Get unique job types that actually have jobs
+        $jobTypes = JobListing::where('is_active', true)
+            ->whereNull('deleted_at')
+            ->where('application_deadline', '>=', now())
+            ->distinct()
+            ->pluck('job_type')
+            ->toArray();
+
+        // Get unique experience levels that actually have jobs
+        $experienceLevels = JobListing::where('is_active', true)
+            ->whereNull('deleted_at')
+            ->where('application_deadline', '>=', now())
+            ->distinct()
+            ->pluck('experience_level')
+            ->toArray();
+
+        // Get salary range for filtering
+        $salaryStats = JobListing::where('is_active', true)
+            ->whereNull('deleted_at')
+            ->where('application_deadline', '>=', now())
+            ->selectRaw('MIN(COALESCE(salary_min, salary_max)) as min_salary, MAX(COALESCE(salary_max, salary_min)) as max_salary')
+            ->first();
+
+        // Get statistics for the header
+        $totalJobs = JobListing::where('is_active', true)
+            ->whereNull('deleted_at')
+            ->where('application_deadline', '>=', now())
+            ->count();
+
+        $totalViews = JobListing::where('is_active', true)
+            ->whereNull('deleted_at')
+            ->where('application_deadline', '>=', now())
+            ->sum('views_count');
+
+        $totalApplications = JobListing::where('is_active', true)
+            ->whereNull('deleted_at')
+            ->where('application_deadline', '>=', now())
+            ->withCount('applications')
+            ->get()
+            ->sum('applications_count');
+
+        return Inertia::render('Backend/PublicJobListing/Index', [
+            'jobListings' => $jobListings,
+            'categories' => $categories,
+            'locations' => $locations,
+            'jobTypes' => $jobTypes,
+            'experienceLevels' => $experienceLevels,
+            'salaryRange' => [
+                'min' => (int)($salaryStats->min_salary ?? 0),
+                'max' => (int)($salaryStats->max_salary ?? 1000000),
+            ],
+            'filters' => $request->only([
+                'search',
+                'category',
+                'location',
+                'job_type',
+                'experience_level',
+                'salary_min',
+                'salary_max',
+                'sort'
+            ]),
+            'stats' => [
+                'total_jobs' => $totalJobs,
+                'total_views' => $totalViews,
+                'total_applications' => $totalApplications,
+            ]
+        ]);
+    }
+
+    /**
+     * Display a single public job listing and register a view
+     */
+    public function publicShow(string $slug)
+    {
+        $user = Auth::user();
+
+        $jobListing = JobListing::where('slug', $slug)
+            ->where('is_active', true)
+            ->whereNull('deleted_at')
+            ->where('application_deadline', '>=', now())
+            ->with(['category', 'locations', 'employer'])
+            ->withCount([
+                'applications',
+                'views'
+            ])
+            ->firstOrFail();
+
+        // Record view with IP-based uniqueness
+        $ipAddress = request()->ip();
+        $alreadyViewed = JobView::where('job_listing_id', $jobListing->id)
+            ->where('ip_address', $ipAddress)
+            ->exists();
+
+        if (!$alreadyViewed) {
+            JobView::recordView($jobListing->id, Auth::id(), $ipAddress);
+            $jobListing->incrementViews();
+            $jobListing->refresh();
+        }
+
+        // Get total views count
+        $totalViews = $jobListing->views()->count();
+
+        // Check if current user has already applied
+        $hasApplied = false;
+        $existingApplication = null;
+
+        if (Auth::check()) {
+            $existingApplication = $jobListing->applications()
+                ->where('user_id', Auth::id())
+                ->first();
+            $hasApplied = !is_null($existingApplication);
+        }
+
+        // Get application statistics for this job
+        $applications = $jobListing->applications()->get();
+        $applicationStats = [
+            'total' => $applications->count(),
+            'pending' => $applications->where('status', 'pending')->count(),
+            'shortlisted' => $applications->where('status', 'shortlisted')->count(),
+            'rejected' => $applications->where('status', 'rejected')->count(),
+            'hired' => $applications->where('status', 'hired')->count(),
+        ];
+
+        // Calculate average ATS score
+        $completedATS = $applications->filter(function ($app) {
+            return $app->isAtsCompleted() && $app->ats_score && isset($app->ats_score['percentage']);
+        });
+
+        $averageAtsScore = null;
+        if ($completedATS->count() > 0) {
+            $totalScore = $completedATS->sum(function ($app) {
+                return $app->ats_score['percentage'] ?? 0;
+            });
+            $averageAtsScore = round($totalScore / $completedATS->count(), 2);
+        }
+
+        // Get related jobs (same category) with view and application counts
+        $relatedJobs = JobListing::where('category_id', $jobListing->category_id)
+            ->where('id', '!=', $jobListing->id)
+            ->where('is_active', true)
+            ->whereNull('deleted_at')
+            ->where('application_deadline', '>=', now())
+            ->with(['category', 'locations'])
+            ->withCount(['applications', 'views'])
+            ->limit(3)
+            ->get()
+            ->map(function ($job) {
+                return [
+                    'id' => $job->id,
+                    'title' => $job->title,
+                    'slug' => $job->slug,
+                    'job_type' => $job->job_type,
+                    'salary_min' => $job->salary_min,
+                    'salary_max' => $job->salary_max,
+                    'is_salary_negotiable' => $job->is_salary_negotiable,
+                    'as_per_companies_policy' => $job->as_per_companies_policy,
+                    'application_deadline' => $job->application_deadline,
+                    'views_count' => $job->views_count ?? 0,
+                    'applications_count' => $job->applications_count ?? 0,
+                    'category' => $job->category ? [
+                        'id' => $job->category->id,
+                        'name' => $job->category->name,
+                        'slug' => $job->category->slug,
+                    ] : null,
+                    'locations' => $job->locations->map(function ($location) {
+                        return [
+                            'id' => $location->id,
+                            'name' => $location->name,
+                        ];
+                    }),
+                ];
+            });
+
+        return Inertia::render('Backend/PublicJobListing/Show', [
+            'jobListing' => [
+                'id' => $jobListing->id,
+                'title' => $jobListing->title,
+                'slug' => $jobListing->slug,
+                'description' => $jobListing->description,
+                'requirements' => $jobListing->requirements,
+                'job_type' => $jobListing->job_type,
+                'experience_level' => $jobListing->experience_level,
+                'salary_min' => $jobListing->salary_min,
+                'salary_max' => $jobListing->salary_max,
+                'is_salary_negotiable' => $jobListing->is_salary_negotiable,
+                'as_per_companies_policy' => $jobListing->as_per_companies_policy,
+                'education_requirement' => $jobListing->education_requirement,
+                'education_details' => $jobListing->education_details,
+                'benefits' => $jobListing->benefits,
+                'skills' => $jobListing->skills,
+                'responsibilities' => $jobListing->responsibilities,
+                'keywords' => $jobListing->keywords,
+                'application_deadline' => $jobListing->application_deadline,
+                'publish_at' => $jobListing->publish_at,
+                'is_active' => $jobListing->is_active,
+                'required_linkedin_link' => $jobListing->required_linkedin_link,
+                'required_facebook_link' => $jobListing->required_facebook_link,
+                'views_count' => $totalViews,
+                'applications_count' => $jobListing->applications_count ?? 0,
+                'created_at' => $jobListing->created_at,
+                'updated_at' => $jobListing->updated_at,
+                'category' => $jobListing->category ? [
+                    'id' => $jobListing->category->id,
+                    'name' => $jobListing->category->name,
+                    'slug' => $jobListing->category->slug,
+                ] : null,
+                'locations' => $jobListing->locations->map(function ($location) {
+                    return [
+                        'id' => $location->id,
+                        'name' => $location->name,
+                    ];
+                }),
+                'employer' => $jobListing->employer ? [
+                    'id' => $jobListing->employer->id,
+                    'name' => $jobListing->employer->name,
+                    'email' => $jobListing->employer->email,
+                ] : null,
+            ],
+            'userData' => Auth::user(),
+            'hasApplied' => $hasApplied,
+            'existingApplication' => $existingApplication,
+            'relatedJobs' => $relatedJobs,
+            'applicationStats' => $applicationStats,
+            'averageAtsScore' => $averageAtsScore,
+        ]);
+    }
+
+    /**
+     * Get popular jobs based on views (Public API)
+     */
+    public function publicPopular()
+    {
+        $popularJobs = JobListing::where('is_active', true)
+            ->whereNull('deleted_at')
+            ->where('application_deadline', '>=', now())
+            ->with(['category', 'locations'])
+            ->withCount(['applications', 'views'])
+            ->orderBy('views_count', 'desc')
+            ->limit(10)
+            ->get()
+            ->map(function ($job) {
+                return [
+                    'id' => $job->id,
+                    'title' => $job->title,
+                    'slug' => $job->slug,
+                    'job_type' => $job->job_type,
+                    'salary_min' => $job->salary_min,
+                    'salary_max' => $job->salary_max,
+                    'views_count' => $job->views_count ?? 0,
+                    'applications_count' => $job->applications_count ?? 0,
+                    'category' => $job->category ? $job->category->name : null,
+                    'locations' => $job->locations->pluck('name')->toArray(),
+                ];
+            });
+
+        return response()->json($popularJobs);
+    }
+
+    /**
+     * Get trending jobs based on recent applications (Public API)
+     */
+    public function publicTrending()
+    {
+        $trendingJobs = JobListing::where('is_active', true)
+            ->whereNull('deleted_at')
+            ->where('application_deadline', '>=', now())
+            ->with(['category', 'locations'])
+            ->withCount(['applications', 'views'])
+            ->orderBy('applications_count', 'desc')
+            ->limit(10)
+            ->get()
+            ->map(function ($job) {
+                return [
+                    'id' => $job->id,
+                    'title' => $job->title,
+                    'slug' => $job->slug,
+                    'job_type' => $job->job_type,
+                    'salary_min' => $job->salary_min,
+                    'salary_max' => $job->salary_max,
+                    'views_count' => $job->views_count ?? 0,
+                    'applications_count' => $job->applications_count ?? 0,
+                    'category' => $job->category ? $job->category->name : null,
+                    'locations' => $job->locations->pluck('name')->toArray(),
+                ];
+            });
+
+        return response()->json($trendingJobs);
+    }
+
+    /**
+     * ==========================================
+     * ADMIN METHODS (With permission checks)
+     * ==========================================
+     */
+
+    /**
+     * Display a listing of job listings with filtering and pagination (Admin)
      */
     public function index(Request $request)
     {
@@ -271,7 +746,6 @@ class JobListingController extends Controller
     {
         $user = Auth::user();
 
-        // Check if user is logged in
         if (!$user instanceof User) {
             abort(401);
         }
@@ -297,7 +771,6 @@ class JobListingController extends Controller
     {
         $user = Auth::user();
 
-        // Check if user is logged in
         if (!$user instanceof User) {
             abort(401);
         }
@@ -307,7 +780,6 @@ class JobListingController extends Controller
                 ->with('error', 'You do not have permission to create job listings.');
         }
 
-        // Validate the request
         $validated = $request->validate([
             'title' => 'required|string|min:5|max:255',
             'category_id' => 'required|exists:job_categories,id',
@@ -334,7 +806,6 @@ class JobListingController extends Controller
             'required_facebook_link' => 'boolean',
         ]);
 
-        // Prepare data for creation
         $data = [
             'title' => $validated['title'],
             'category_id' => $validated['category_id'],
@@ -360,14 +831,11 @@ class JobListingController extends Controller
             'views_count' => 0,
         ];
 
-        // Generate unique slug
         $data['slug'] = $this->generateUniqueSlug($data['title']);
         $data['is_active'] = $this->determineInitialStatus($data);
 
-        // Create the job listing
         $jobListing = JobListing::create($data);
 
-        // Handle locations relationship
         if (isset($validated['location_ids']) && is_array($validated['location_ids'])) {
             $jobListing->locations()->sync($validated['location_ids']);
         }
@@ -383,13 +851,12 @@ class JobListingController extends Controller
     }
 
     /**
-     * Display the specified job listing
+     * Display the specified job listing (Admin)
      */
     public function show(JobListing $jobListing)
     {
         $user = Auth::user();
 
-        // Check if user is logged in
         if (!$user instanceof User) {
             abort(401);
         }
@@ -413,10 +880,8 @@ class JobListingController extends Controller
             );
         }
 
-        // Load relationships
         $jobListing->load(['category', 'locations', 'employer']);
 
-        // Get application stats with ATS scores
         $applications = $jobListing->applications()
             ->withTrashed()
             ->with(['user', 'applicantProfile'])
@@ -431,7 +896,6 @@ class JobListingController extends Controller
             'hired' => $applications->where('status', 'hired')->count(),
         ];
 
-        // Calculate average ATS score
         $completedATS = $applications->filter(function ($app) {
             return $app->isAtsCompleted() && $app->ats_score && isset($app->ats_score['percentage']);
         });
@@ -444,7 +908,6 @@ class JobListingController extends Controller
             $averageAtsScore = round($totalScore / $completedATS->count(), 2);
         }
 
-        // Get recent applications
         $recentApplications = $jobListing->applications()
             ->withTrashed()
             ->with(['user', 'applicantProfile'])
@@ -512,7 +975,6 @@ class JobListingController extends Controller
     {
         $user = Auth::user();
 
-        // Check if user is logged in
         if (!$user instanceof User) {
             abort(401);
         }
@@ -568,7 +1030,6 @@ class JobListingController extends Controller
     {
         $user = Auth::user();
 
-        // Check if user is logged in
         if (!$user instanceof User) {
             abort(401);
         }
@@ -660,7 +1121,6 @@ class JobListingController extends Controller
     {
         $user = Auth::user();
 
-        // Check if user is logged in
         if (!$user instanceof User) {
             abort(401);
         }
@@ -670,18 +1130,13 @@ class JobListingController extends Controller
                 ->with('error', 'You do not have permission to delete job listings.');
         }
 
-        // Start a transaction to ensure data consistency
         DB::beginTransaction();
 
         try {
-            // Soft delete all related applications first
             $applicationsCount = $jobListing->applications()->count();
 
             if ($applicationsCount > 0) {
-                // Soft delete all applications for this job
-                $jobListing->applications()->delete(); // This uses SoftDeletes
-
-                // Log the deletion for audit purposes
+                $jobListing->applications()->delete();
                 Log::info('Job listing and associated applications soft deleted', [
                     'job_id' => $jobListing->id,
                     'job_title' => $jobListing->title,
@@ -690,13 +1145,12 @@ class JobListingController extends Controller
                 ]);
             }
 
-            // Soft delete the job listing itself
             $jobListing->delete();
 
             DB::commit();
 
             return redirect()->route('backend.listing.index')
-                ->with('success', "Job listing and {$applicationsCount} associated application(s) moved to trash. You can restore them later if needed.");
+                ->with('success', "Job listing and {$applicationsCount} associated application(s) moved to trash.");
         } catch (\Exception $e) {
             DB::rollBack();
 
@@ -717,7 +1171,6 @@ class JobListingController extends Controller
     {
         $user = Auth::user();
 
-        // Check if user is logged in
         if (!$user instanceof User) {
             abort(401);
         }
@@ -747,7 +1200,6 @@ class JobListingController extends Controller
     {
         $user = Auth::user();
 
-        // Check if user is logged in
         if (!$user instanceof User) {
             abort(401);
         }
@@ -785,7 +1237,6 @@ class JobListingController extends Controller
     {
         $user = Auth::user();
 
-        // Check if user is logged in
         if (!$user instanceof User) {
             abort(401);
         }
@@ -814,105 +1265,12 @@ class JobListingController extends Controller
     }
 
     /**
-     * Generate a unique slug for a job listing
-     */
-    protected function generateUniqueSlug(string $title, $excludeId = null)
-    {
-        $slug = Str::slug($title);
-        $originalSlug = $slug;
-        $counter = 1;
-
-        $query = JobListing::where('slug', $slug);
-
-        if ($excludeId) {
-            $query->where('id', '!=', $excludeId);
-        }
-
-        while ($query->exists()) {
-            $slug = $originalSlug . '-' . $counter;
-            $query = JobListing::where('slug', $slug);
-            if ($excludeId) {
-                $query->where('id', '!=', $excludeId);
-            }
-            $counter++;
-        }
-
-        return $slug;
-    }
-
-    /**
-     * Determine initial status when creating a new job
-     */
-    protected function determineInitialStatus(array $data)
-    {
-        $now = Carbon::now();
-
-        // If is_active is explicitly set in the request, use that
-        if (isset($data['is_active'])) {
-            return filter_var($data['is_active'], FILTER_VALIDATE_BOOLEAN);
-        }
-
-        // Check if there's an application deadline that's already passed
-        if (isset($data['application_deadline']) && $data['application_deadline']) {
-            $deadline = Carbon::parse($data['application_deadline']);
-            if ($deadline < $now) {
-                return false; // Job is already expired
-            }
-        }
-
-        // Check publish date
-        if (isset($data['publish_at']) && $data['publish_at']) {
-            $publishDate = Carbon::parse($data['publish_at']);
-
-            // If publish date is in the future, keep inactive until it arrives
-            if ($publishDate > $now) {
-                return false;
-            }
-        }
-
-        // Default to active
-        return true;
-    }
-
-    /**
-     * Determine status from dates when updating a job
-     */
-    protected function determineStatusFromDates(array $data, JobListing $existingJob)
-    {
-        $now = Carbon::now();
-
-        // Use new deadline if provided, otherwise use existing
-        $deadline = isset($data['application_deadline']) && $data['application_deadline']
-            ? Carbon::parse($data['application_deadline'])
-            : ($existingJob->application_deadline ? Carbon::parse($existingJob->application_deadline) : null);
-
-        // Use new publish date if provided, otherwise use existing
-        $publishDate = isset($data['publish_at']) && $data['publish_at']
-            ? Carbon::parse($data['publish_at'])
-            : ($existingJob->publish_at ? Carbon::parse($existingJob->publish_at) : null);
-
-        // Check if deadline is passed
-        if ($deadline && $deadline < $now) {
-            return false;
-        }
-
-        // Check if publish date is in the future
-        if ($publishDate && $publishDate > $now) {
-            return false;
-        }
-
-        // Default to active
-        return true;
-    }
-
-    /**
      * Restore a soft-deleted job listing and its applications
      */
     public function restore(int $id)
     {
         $user = Auth::user();
 
-        // Check if user is logged in
         if (!$user instanceof User) {
             abort(401);
         }
@@ -929,14 +1287,11 @@ class JobListingController extends Controller
                 ->with('error', 'This job listing is not in trash.');
         }
 
-        // Start transaction
         DB::beginTransaction();
 
         try {
-            // Restore the job listing
             $jobListing->restore();
 
-            // Restore all related applications (they use SoftDeletes too)
             $restoredApplications = Application::onlyTrashed()
                 ->where('job_listing_id', $jobListing->id)
                 ->restore();
@@ -972,7 +1327,6 @@ class JobListingController extends Controller
     {
         $user = Auth::user();
 
-        // Check if user is logged in
         if (!$user instanceof User) {
             abort(401);
         }
@@ -992,12 +1346,10 @@ class JobListingController extends Controller
         DB::beginTransaction();
 
         try {
-            // Get all applications (including trashed)
             $applications = Application::withTrashed()
                 ->where('job_listing_id', $jobListing->id)
                 ->get();
 
-            // Delete resume files from storage for each application
             foreach ($applications as $application) {
                 $resumePath = $application->getActualResumePath();
                 if ($resumePath && Storage::disk('public')->exists($resumePath)) {
@@ -1008,14 +1360,10 @@ class JobListingController extends Controller
                     ]);
                 }
 
-                // Permanently delete the application
                 $application->forceDelete();
             }
 
-            // Detach location relationships
             $jobListing->locations()->detach();
-
-            // Permanently delete the job listing
             $jobListing->forceDelete();
 
             DB::commit();
@@ -1049,7 +1397,6 @@ class JobListingController extends Controller
     {
         $user = Auth::user();
 
-        // Check if user is logged in
         if (!$user instanceof User) {
             abort(401);
         }
@@ -1077,7 +1424,6 @@ class JobListingController extends Controller
     {
         $user = Auth::user();
 
-        // Check if user is logged in
         if (!$user instanceof User) {
             abort(401);
         }
@@ -1105,7 +1451,6 @@ class JobListingController extends Controller
     {
         $user = Auth::user();
 
-        // Check if user is logged in
         if (!$user instanceof User) {
             abort(401);
         }
@@ -1146,10 +1491,8 @@ class JobListingController extends Controller
      */
     public function statistics(Request $request)
     {
-
         $user = Auth::user();
 
-        // Check if user is logged in
         if (!$user instanceof User) {
             abort(401);
         }
@@ -1167,13 +1510,11 @@ class JobListingController extends Controller
         // JOB LISTINGS STATISTICS
         // ==========================================
 
-        // Total jobs query
         $totalJobsQuery = JobListing::query();
         $activeJobsQuery = JobListing::where('is_active', true)->whereNull('deleted_at');
         $inactiveJobsQuery = JobListing::where('is_active', false)->whereNull('deleted_at');
         $trashedJobsQuery = JobListing::onlyTrashed();
 
-        // Jobs by type
         $jobsByType = JobListing::select('job_type', DB::raw('count(*) as total'))
             ->whereNull('deleted_at')
             ->groupBy('job_type')
@@ -1186,7 +1527,6 @@ class JobListingController extends Controller
                 ];
             });
 
-        // Jobs by experience level
         $jobsByExperience = JobListing::select('experience_level', DB::raw('count(*) as total'))
             ->whereNull('deleted_at')
             ->groupBy('experience_level')
@@ -1199,7 +1539,6 @@ class JobListingController extends Controller
                 ];
             });
 
-        // Jobs by category (top 10)
         $jobsByCategory = JobCategory::withCount(['jobListings' => function ($query) {
             $query->whereNull('deleted_at');
         }])
@@ -1214,7 +1553,6 @@ class JobListingController extends Controller
                 ];
             });
 
-        // Jobs by location (top 10)
         $jobsByLocation = Location::withCount(['jobListings' => function ($query) {
             $query->whereNull('deleted_at');
         }])
@@ -1229,7 +1567,6 @@ class JobListingController extends Controller
                 ];
             });
 
-        // Monthly job creation trend (last 12 months)
         $monthlyJobs = JobListing::select(
             DB::raw('YEAR(created_at) as year'),
             DB::raw('MONTH(created_at) as month'),
@@ -1253,14 +1590,12 @@ class JobListingController extends Controller
         // APPLICATIONS STATISTICS
         // ==========================================
 
-        // Total applications
         $totalApplicationsQuery = Application::query();
         $pendingApplicationsQuery = Application::where('status', 'pending');
         $shortlistedApplicationsQuery = Application::where('status', 'shortlisted');
         $rejectedApplicationsQuery = Application::where('status', 'rejected');
         $hiredApplicationsQuery = Application::where('status', 'hired');
 
-        // Apply date filter if set
         if ($startDate) {
             $totalApplicationsQuery->where('created_at', '>=', $startDate);
             $pendingApplicationsQuery->where('created_at', '>=', $startDate);
@@ -1274,31 +1609,29 @@ class JobListingController extends Controller
             $trashedJobsQuery->where('deleted_at', '>=', $startDate);
         }
 
-        // Applications by status
         $applicationsByStatus = [
             [
                 'name' => 'Pending',
                 'value' => $pendingApplicationsQuery->count(),
-                'color' => '#f59e0b' // Amber
+                'color' => '#f59e0b'
             ],
             [
                 'name' => 'Shortlisted',
                 'value' => $shortlistedApplicationsQuery->count(),
-                'color' => '#3b82f6' // Blue
+                'color' => '#3b82f6'
             ],
             [
                 'name' => 'Rejected',
                 'value' => $rejectedApplicationsQuery->count(),
-                'color' => '#ef4444' // Red
+                'color' => '#ef4444'
             ],
             [
                 'name' => 'Hired',
                 'value' => $hiredApplicationsQuery->count(),
-                'color' => '#10b981' // Green
+                'color' => '#10b981'
             ]
         ];
 
-        // Monthly application trend (last 12 months)
         $monthlyApplications = Application::select(
             DB::raw('YEAR(created_at) as year'),
             DB::raw('MONTH(created_at) as month'),
@@ -1317,7 +1650,6 @@ class JobListingController extends Controller
                 ];
             });
 
-        // Applications by job (top 10)
         $applicationsByJob = JobListing::withCount('applications')
             ->orderBy('applications_count', 'desc')
             ->limit(10)
@@ -1330,7 +1662,6 @@ class JobListingController extends Controller
                 ];
             });
 
-        // Average ATS score by job type
         $atsScoreByJobType = JobListing::select('job_type', DB::raw('AVG(JSON_EXTRACT(ats_score, "$.percentage")) as avg_score'))
             ->join('applications', 'job_listings.id', '=', 'applications.job_listing_id')
             ->whereNotNull('applications.ats_score')
@@ -1348,7 +1679,6 @@ class JobListingController extends Controller
         // EMPLOYER STATISTICS
         // ==========================================
 
-        // Top employers by job count
         $topEmployers = User::query()
             ->whereHas('roles', function ($q) {
                 $q->whereIn('slug', ['employer-admin', 'hr-manager', 'recruiter']);
@@ -1367,7 +1697,6 @@ class JobListingController extends Controller
                 ];
             });
 
-        // Top employers by application count
         $topEmployersByApplications = User::query()
             ->whereHas('roles', function ($q) {
                 $q->whereIn('slug', ['employer-admin', 'hr-manager', 'recruiter']);
@@ -1404,11 +1733,9 @@ class JobListingController extends Controller
             'conversion_rate' => $this->calculateConversionRate($totalApplicationsQuery->count(), $hiredApplicationsQuery->count()),
         ];
 
-        // Calculate percentage changes (compared to previous period)
         $previousStartDate = $startDate ? Carbon::parse($startDate)->subDays($this->getDateRangeDays($dateRange)) : null;
         $previousSummary = $this->getPreviousPeriodStats($previousStartDate, $dateRange);
 
-        // Calculate trends
         $trends = [
             'total_jobs' => $this->calculateTrend($previousSummary['total_jobs'], $summary['total_jobs']),
             'total_applications' => $this->calculateTrend($previousSummary['total_applications'], $summary['total_applications']),
@@ -1433,6 +1760,12 @@ class JobListingController extends Controller
             'filters' => $request->only(['date_range']),
         ]);
     }
+
+    /**
+     * ==========================================
+     * HELPER METHODS (Shared)
+     * ==========================================
+     */
 
     /**
      * Get start date based on date range
@@ -1473,7 +1806,7 @@ class JobListingController extends Controller
     }
 
     /**
-     * Get previous period stats - FIXED method signature and implementation
+     * Get previous period stats
      */
     protected function getPreviousPeriodStats(?Carbon $previousStartDate, string $dateRange): array
     {
@@ -1578,5 +1911,86 @@ class JobListingController extends Controller
         ];
 
         return $colors[$id % count($colors)];
+    }
+
+    /**
+     * Generate a unique slug for a job listing
+     */
+    protected function generateUniqueSlug(string $title, $excludeId = null)
+    {
+        $slug = Str::slug($title);
+        $originalSlug = $slug;
+        $counter = 1;
+
+        $query = JobListing::where('slug', $slug);
+
+        if ($excludeId) {
+            $query->where('id', '!=', $excludeId);
+        }
+
+        while ($query->exists()) {
+            $slug = $originalSlug . '-' . $counter;
+            $query = JobListing::where('slug', $slug);
+            if ($excludeId) {
+                $query->where('id', '!=', $excludeId);
+            }
+            $counter++;
+        }
+
+        return $slug;
+    }
+
+    /**
+     * Determine initial status when creating a new job
+     */
+    protected function determineInitialStatus(array $data)
+    {
+        $now = Carbon::now();
+
+        if (isset($data['is_active'])) {
+            return filter_var($data['is_active'], FILTER_VALIDATE_BOOLEAN);
+        }
+
+        if (isset($data['application_deadline']) && $data['application_deadline']) {
+            $deadline = Carbon::parse($data['application_deadline']);
+            if ($deadline < $now) {
+                return false;
+            }
+        }
+
+        if (isset($data['publish_at']) && $data['publish_at']) {
+            $publishDate = Carbon::parse($data['publish_at']);
+            if ($publishDate > $now) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Determine status from dates when updating a job
+     */
+    protected function determineStatusFromDates(array $data, JobListing $existingJob)
+    {
+        $now = Carbon::now();
+
+        $deadline = isset($data['application_deadline']) && $data['application_deadline']
+            ? Carbon::parse($data['application_deadline'])
+            : ($existingJob->application_deadline ? Carbon::parse($existingJob->application_deadline) : null);
+
+        $publishDate = isset($data['publish_at']) && $data['publish_at']
+            ? Carbon::parse($data['publish_at'])
+            : ($existingJob->publish_at ? Carbon::parse($existingJob->publish_at) : null);
+
+        if ($deadline && $deadline < $now) {
+            return false;
+        }
+
+        if ($publishDate && $publishDate > $now) {
+            return false;
+        }
+
+        return true;
     }
 }

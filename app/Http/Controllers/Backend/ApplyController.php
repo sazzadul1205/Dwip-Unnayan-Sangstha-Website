@@ -42,12 +42,6 @@ class ApplyController extends Controller
             abort(401);
         }
 
-        // Check permission to view own applications
-        if (!$user->hasPermission('apply.view')) {
-            return redirect()->route('unauthorized.access')
-                ->with('error', 'You do not have permission to view your applications.');
-        }
-
         // Get all applications (active and soft-deleted) with pagination
         $applications = Application::withTrashed()
             ->where('user_id', $user->id)
@@ -117,12 +111,6 @@ class ApplyController extends Controller
         // Check if user is logged in
         if (!$user instanceof User) {
             abort(401);
-        }
-
-        // Check permission to create application
-        if (!$user->hasPermission('apply.create')) {
-            return redirect()->route('unauthorized.access')
-                ->with('error', 'You do not have permission to apply for jobs.');
         }
 
         $jobListing = JobListing::where('slug', $slug)
@@ -213,11 +201,6 @@ class ApplyController extends Controller
         // Check if user is logged in
         if (!$user instanceof User) {
             abort(401);
-        }
-
-        // Check permission to store application
-        if (!$user->hasPermission('apply.store')) {
-            return redirect()->back()->with('error', 'You do not have permission to submit applications.');
         }
 
         $jobListing = JobListing::where('slug', $slug)
@@ -440,12 +423,6 @@ class ApplyController extends Controller
             abort(401);
         }
 
-        // Check permission to view own application
-        if (!$user->hasPermission('apply.show')) {
-            return redirect()->route('unauthorized.access')
-                ->with('error', 'You do not have permission to view application details.');
-        }
-
         $application = Application::withTrashed()
             ->with(['jobListing', 'jobListing.employer', 'applicantProfile'])
             ->where('user_id', Auth::id())
@@ -597,13 +574,6 @@ class ApplyController extends Controller
             abort(401);
         }
 
-        if (!$user->hasPermission('apply.recalculate_ats')) {
-            if (request()->wantsJson()) {
-                return response()->json(['error' => 'Unauthorized'], 403);
-            }
-            return redirect()->back()->with('error', 'You do not have permission to recalculate ATS scores.');
-        }
-
         $application = Application::where('user_id', Auth::id())
             ->findOrFail($id);
 
@@ -662,11 +632,6 @@ class ApplyController extends Controller
         // Check if user is logged in
         if (!$user instanceof User) {
             abort(401);
-        }
-
-        if (!$user->hasPermission('apply.edit')) {
-            return redirect()->route('unauthorized.access')
-                ->with('error', 'You do not have permission to edit applications.');
         }
 
         $application = Application::with(['jobListing', 'applicantProfile'])
@@ -768,10 +733,6 @@ class ApplyController extends Controller
             abort(401);
         }
 
-        if (!$user->hasPermission('apply.update')) {
-            return redirect()->back()->with('error', 'You do not have permission to update applications.');
-        }
-
         $application = Application::where('user_id', Auth::id())
             ->findOrFail($id);
 
@@ -868,10 +829,6 @@ class ApplyController extends Controller
             abort(401);
         }
 
-        if (!$user->hasPermission('apply.ats_status')) {
-            return response()->json(['error' => 'Unauthorized'], 403);
-        }
-
         $application = Application::where('user_id', Auth::id())
             ->findOrFail($id);
 
@@ -893,10 +850,6 @@ class ApplyController extends Controller
         // Check if user is logged in
         if (!$user instanceof User) {
             abort(401);
-        }
-
-        if (!$user->hasPermission('apply.destroy')) {
-            return redirect()->back()->with('error', 'You do not have permission to withdraw applications.');
         }
 
         $application = Application::where('user_id', Auth::id())
@@ -936,10 +889,6 @@ class ApplyController extends Controller
             abort(401);
         }
 
-        if (!$user->hasPermission('apply.restore')) {
-            return redirect()->back()->with('error', 'You do not have permission to restore applications.');
-        }
-
         $application = Application::withTrashed()
             ->where('user_id', Auth::id())
             ->findOrFail($id);
@@ -972,10 +921,6 @@ class ApplyController extends Controller
         // Check if user is logged in
         if (!$user instanceof User) {
             abort(401);
-        }
-
-        if (!$user->hasPermission('apply.force_delete')) {
-            return redirect()->back()->with('error', 'You do not have permission to permanently delete applications.');
         }
 
         $application = Application::withTrashed()
@@ -1025,11 +970,6 @@ class ApplyController extends Controller
         // Check if user is logged in
         if (!$user instanceof User) {
             abort(401);
-        }
-
-        if (!$user->hasPermission('apply.trashed')) {
-            return redirect()->route('unauthorized.access')
-                ->with('error', 'You do not have permission to view trashed applications.');
         }
 
         $query = Application::onlyTrashed()

@@ -158,6 +158,7 @@ class PageController extends Controller
       'blog' => 'Frontend/BlogDetails/BlogDetails',
       'projects-programs' => 'Frontend/ProjectsAndProgramsDetails/ProjectsAndProgramsDetails',
       'publications' => 'Frontend/PublicationDetails/PublicationDetails',
+      'jobs' => 'Frontend/JobsDetails/JobsDetails',
     ];
 
     if ($detailSlug) {
@@ -170,6 +171,8 @@ class PageController extends Controller
   /**
    * Analyze section configs to determine what data we need.
    */
+  // app/Http/Controllers/Frontend/PageController.php
+
   private function determineDataNeeds(Collection $sectionConfigs): array
   {
     $needs = ['shared_data' => []];
@@ -193,7 +196,10 @@ class PageController extends Controller
           $needs['about_content'] = true;
           break;
         case 'jobs':
-          $needs['jobs'] = true;
+          $needs['jobs'] = true; 
+          break;
+        case 'job_details': 
+          $needs['job_details'] = true;
           break;
         case 'publications':
           $needs['publications'] = true;

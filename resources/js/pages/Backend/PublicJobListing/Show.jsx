@@ -1,10 +1,11 @@
+/* eslint-disable no-undef */
 // resources/js/Pages/Public/JobListings/Show.jsx
 
 // React
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 
 // Inertia
-import { Head, router, usePage } from '@inertiajs/react';
+import { Head, router } from '@inertiajs/react';
 
 // Icons
 import {
@@ -42,11 +43,9 @@ import AuthenticatedLayout from '../../../layouts/AuthenticatedLayout';
 
 // Auth
 import { useAuth } from '../../../hooks/useAuth';
-import { Can } from '../../../components/Auth/Can';
 
 export default function PublicJobListingShow({
   jobListing,
-  userData,
   hasApplied,
   relatedJobs,
   applicationStats,
@@ -99,16 +98,6 @@ export default function PublicJobListingShow({
   };
 
   // Format date and time
-  const formatDateTime = (date) => {
-    if (!date) return 'N/A';
-    return new Date(date).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  };
 
   // Get days left
   const getDaysLeft = (deadline) => {
@@ -206,15 +195,6 @@ export default function PublicJobListingShow({
     return 'Not specified';
   };
 
-  // Get ATS score color
-  const getAtsScoreColor = (score) => {
-    if (!score) return 'bg-gray-100 text-gray-600';
-    if (score >= 80) return 'bg-emerald-100 text-emerald-800';
-    if (score >= 60) return 'bg-sky-100 text-sky-800';
-    if (score >= 40) return 'bg-amber-100 text-amber-800';
-    return 'bg-rose-100 text-rose-800';
-  };
-
   // Apply Handler
   const handleApply = () => {
     if (!isAuthenticated) {
@@ -229,7 +209,7 @@ export default function PublicJobListingShow({
         cancelButtonText: 'Cancel',
       }).then((result) => {
         if (result.isConfirmed) {
-          router.visit(route('login', { redirect: route('public.jobs.show', jobListing.slug) }));
+          router.visit(route('login', { redirect: route('backend.public-jobs.show', jobListing.slug) }));
         }
       });
       return;
@@ -255,7 +235,7 @@ export default function PublicJobListingShow({
         cancelButtonText: 'Cancel',
       }).then((result) => {
         if (result.isConfirmed) {
-          router.visit(route('login', { redirect: route('public.jobs.show', jobListing.slug) }));
+          router.visit(route('login', { redirect: route('backend.public-jobs.show', jobListing.slug) }));
         }
       });
       return;
@@ -433,7 +413,7 @@ export default function PublicJobListingShow({
       <div className="min-h-screen bg-linear-to-br from-gray-50 via-white to-gray-50">
         {/* Hero Section */}
         <div className="relative bg-linear-to-br from-blue-700 via-blue-600 to-indigo-700 text-white overflow-hidden">
-          <div className="absolute inset-0 bg-black/5"></div>
+          <div className="absolute inset-0 bg-black/5" />
           <div className="relative  mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-10">
             <button
               onClick={() => window.history.back()}
@@ -447,7 +427,7 @@ export default function PublicJobListingShow({
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-3 mb-4 flex-wrap">
                   <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold tracking-tight">{jobListing.title}</h1>
-                  <span className={`inline-flex px-3 py-1 rounded-full text-xs font-semibold backdrop-blur-sm bg-white/20 ring-1 ring-white/30`}>
+                  <span className="inline-flex px-3 py-1 rounded-full text-xs font-semibold backdrop-blur-sm bg-white/20 ring-1 ring-white/30">
                     {getJobTypeLabel(jobListing.job_type)}
                   </span>
                   {jobListing.experience_level && (
@@ -799,7 +779,7 @@ export default function PublicJobListingShow({
                 {relatedJobs.map((job) => (
                   <a
                     key={job.id}
-                    href={route('public.jobs.show', job.slug)}
+                    href={route('backend.public-jobs.show', job.slug)}
                     className="group bg-white rounded-2xl shadow-sm hover:shadow-lg transition-all duration-300 p-5 border border-gray-100 hover:border-blue-200 block"
                   >
                     <h3 className="font-semibold text-gray-900 group-hover:text-blue-600 transition-colors line-clamp-1 mb-2">

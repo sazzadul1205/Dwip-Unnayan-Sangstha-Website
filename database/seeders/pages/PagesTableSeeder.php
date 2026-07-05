@@ -122,6 +122,32 @@ class PagesTableSeeder extends Seeder
                 'created_at' => '2024-01-01 00:00:00',
                 'updated_at' => '2024-01-01 00:00:00',
             ],
+            // ============================================
+            // NEW: JOBS PAGE
+            // ============================================
+            [
+                'id' => 12,
+                'slug' => 'jobs',
+                'name' => 'Jobs',
+                'title' => 'Career Opportunities - DUS',
+                'description' => 'Join our team and make a difference in coastal communities',
+                'is_active' => 1,
+                'created_at' => '2024-01-01 00:00:00',
+                'updated_at' => '2024-01-01 00:00:00',
+            ],
+            // ============================================
+            // NEW: JOBS DETAILS PAGE
+            // ============================================
+            [
+                'id' => 13,
+                'slug' => 'jobs-details',
+                'name' => 'Job Details',
+                'title' => 'Job Details - DUS',
+                'description' => 'Detailed job opportunity information',
+                'is_active' => 1,
+                'created_at' => '2024-01-01 00:00:00',
+                'updated_at' => '2024-01-01 00:00:00',
+            ],
         ];
 
         DB::table('pages')->insert($pages);

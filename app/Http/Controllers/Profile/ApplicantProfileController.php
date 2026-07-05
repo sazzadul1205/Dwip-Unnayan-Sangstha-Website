@@ -52,12 +52,6 @@ class ApplicantProfileController extends Controller
             abort(401);
         }
 
-        // Check permission to view profiles list
-        if (!$user || !$user->hasPermission('profiles.view')) {
-            return redirect()->route('unauthorized.access')
-                ->with('error', 'You do not have permission to view applicant profiles.');
-        }
-
         $query = ApplicantProfile::with([
             'user',
             'cvs' => function ($q) {
@@ -824,11 +818,6 @@ class ApplicantProfileController extends Controller
 
         // If no ID provided, show the authenticated user's profile (owner view)
         if (is_null($id)) {
-            // Check if user can view their own profile
-            if (!$user->hasPermission('profiles.view.own')) {
-                return redirect()->route('unauthorized.access')
-                    ->with('error', 'You do not have permission to view your profile.');
-            }
 
             $profile = ApplicantProfile::withTrashed()
                 ->with([
@@ -854,12 +843,6 @@ class ApplicantProfileController extends Controller
                 ->where('user_id', $user->id)
                 ->first();
         } else {
-            // Viewing another profile - need profiles.view.any permission
-            if (!$user->hasPermission('profiles.view.any')) {
-                return redirect()->route('unauthorized.access')
-                    ->with('error', 'You do not have permission to view other profiles.');
-            }
-
             $profile = ApplicantProfile::withTrashed()
                 ->with([
                     'cvs' => function ($query) {
@@ -892,12 +875,6 @@ class ApplicantProfileController extends Controller
 
         $isOwner = ($user->id === $profile->user_id);
         $canDelete = false;
-
-        if ($isOwner) {
-            $canDelete = $user->hasPermission('profiles.destroy');
-        } else {
-            $canDelete = $user->hasPermission('profiles.delete.any');
-        }
 
         if ($profile) {
             $profile->photo_url = $profile->photo_path
@@ -953,10 +930,6 @@ class ApplicantProfileController extends Controller
         // Only profile owner can update basic info
         if ($user->id !== $applicantProfile->user_id) {
             return response()->json(['error' => 'Unauthorized.'], 403);
-        }
-
-        if (!$user->hasPermission('profiles.update_basic')) {
-            return response()->json(['error' => 'You do not have permission to update basic information.'], 403);
         }
 
         if ($applicantProfile->trashed()) {
@@ -1023,10 +996,6 @@ class ApplicantProfileController extends Controller
             return response()->json(['error' => 'Unauthorized.'], 403);
         }
 
-        if (!$user->hasPermission('profiles.update_professional')) {
-            return response()->json(['error' => 'You do not have permission to update professional information.'], 403);
-        }
-
         if ($applicantProfile->trashed()) {
             return response()->json(['error' => 'Cannot update a deleted profile.'], 422);
         }
@@ -1064,10 +1033,6 @@ class ApplicantProfileController extends Controller
 
         if ($user->id !== $applicantProfile->user_id) {
             return response()->json(['error' => 'Unauthorized.'], 403);
-        }
-
-        if (!$user->hasPermission('profiles.update_work')) {
-            return response()->json(['error' => 'You do not have permission to update work experience.'], 403);
         }
 
         if ($applicantProfile->trashed()) {
@@ -1143,10 +1108,6 @@ class ApplicantProfileController extends Controller
             return response()->json(['error' => 'Unauthorized.'], 403);
         }
 
-        if (!$user->hasPermission('profiles.update_education')) {
-            return response()->json(['error' => 'You do not have permission to update education.'], 403);
-        }
-
         if ($applicantProfile->trashed()) {
             return response()->json(['error' => 'Cannot update a deleted profile.'], 422);
         }
@@ -1208,10 +1169,6 @@ class ApplicantProfileController extends Controller
 
         if ($user->id !== $applicantProfile->user_id) {
             return response()->json(['error' => 'Unauthorized.'], 403);
-        }
-
-        if (!$user->hasPermission('profiles.update_achievements')) {
-            return response()->json(['error' => 'You do not have permission to update achievements.'], 403);
         }
 
         if ($applicantProfile->trashed()) {
@@ -1303,10 +1260,6 @@ class ApplicantProfileController extends Controller
             return response()->json(['error' => 'Unauthorized.'], 403);
         }
 
-        if (!$user->hasPermission('profiles.destroy')) {
-            return response()->json(['error' => 'You do not have permission to delete your profile.'], 403);
-        }
-
         if ($applicantProfile->trashed()) {
             return response()->json([
                 'success' => false,
@@ -1351,10 +1304,6 @@ class ApplicantProfileController extends Controller
         // Check if user is logged in
         if (!$user instanceof User) {
             abort(401);
-        }
-
-        if (!$user->hasPermission('profiles.restore')) {
-            return response()->json(['error' => 'You do not have permission to restore profiles.'], 403);
         }
 
         $profile = ApplicantProfile::withTrashed()->find($id);
@@ -1417,10 +1366,6 @@ class ApplicantProfileController extends Controller
             abort(403);
         }
 
-        if (!$user->hasPermission('profiles.download_cv')) {
-            return redirect()->back()->with('error', 'You do not have permission to download CV.');
-        }
-
         if ($applicantProfile->trashed()) {
             return redirect()->back()->with('error', 'Cannot download CV from a deleted profile.');
         }
@@ -1454,10 +1399,6 @@ class ApplicantProfileController extends Controller
             abort(403);
         }
 
-        if (!$user->hasPermission('profiles.get_data')) {
-            return response()->json(['error' => 'Unauthorized.'], 403);
-        }
-
         return response()->json([
             'profile' => $applicantProfile->load([
                 'cvs',
@@ -1478,10 +1419,6 @@ class ApplicantProfileController extends Controller
         // Check if user is logged in
         if (!$user instanceof User) {
             abort(401);
-        }
-
-        if (!$user->hasPermission('profiles.bulk_delete')) {
-            return redirect()->back()->with('error', 'You do not have permission to bulk delete profiles.');
         }
 
         $request->validate([
@@ -1506,10 +1443,6 @@ class ApplicantProfileController extends Controller
             abort(401);
         }
 
-        if (!$user->hasPermission('profiles.bulk_restore')) {
-            return redirect()->back()->with('error', 'You do not have permission to bulk restore profiles.');
-        }
-
         $request->validate([
             'profile_ids' => 'required|array',
             'profile_ids.*' => 'exists:applicant_profiles,id',
@@ -1532,10 +1465,6 @@ class ApplicantProfileController extends Controller
         // Check if user is logged in
         if (!$user instanceof User) {
             abort(401);
-        }
-
-        if (!$user->hasPermission('profiles.force_delete')) {
-            return back()->with('error', 'You do not have permission to permanently delete profiles.');
         }
 
         $profile = ApplicantProfile::withTrashed()->findOrFail($id);
@@ -1569,10 +1498,6 @@ class ApplicantProfileController extends Controller
         // Check if user is logged in
         if (!$user instanceof User) {
             abort(401);
-        }
-
-        if (!$user->hasPermission('profiles.export')) {
-            return back()->with('error', 'You do not have permission to export profiles.');
         }
 
         $request->validate([
@@ -1653,10 +1578,6 @@ class ApplicantProfileController extends Controller
             abort(401);
         }
 
-        if (!$user->hasPermission('profiles.upload_cv')) {
-            return response()->json(['error' => 'You do not have permission to upload CV.'], 403);
-        }
-
         $profile = ApplicantProfile::where('user_id', $user->id)->first();
         if (!$profile) {
             return response()->json([
@@ -1723,10 +1644,6 @@ class ApplicantProfileController extends Controller
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
-        if (!$user->hasPermission('profiles.destroy_cv')) {
-            return response()->json(['error' => 'You do not have permission to delete CV.'], 403);
-        }
-
         if ($cv->cv_path && Storage::disk('public')->exists($cv->cv_path)) {
             Storage::disk('public')->delete($cv->cv_path);
         }
@@ -1754,10 +1671,6 @@ class ApplicantProfileController extends Controller
 
         if ($cv->applicantProfile->user_id !== $user->id) {
             return response()->json(['message' => 'Unauthorized'], 403);
-        }
-
-        if (!$user->hasPermission('profiles.set_primary_cv')) {
-            return response()->json(['error' => 'You do not have permission to set primary CV.'], 403);
         }
 
         $cv->setAsPrimary();

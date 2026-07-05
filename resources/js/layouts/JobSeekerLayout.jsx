@@ -17,7 +17,7 @@ import {
 } from 'react-icons/fi';
 
 const JobSeekerLayout = ({ children }) => {
-  const { url, props } = usePage();
+  const { props } = usePage();
   const { auth } = props;
   const user = auth?.user;
   const userName = user?.name || 'User';
@@ -27,77 +27,62 @@ const JobSeekerLayout = ({ children }) => {
   // States for sidebar
   const [isCollapsed, setIsCollapsed] = useState(false);
 
-  // Route helper
-  const route = (name, params = {}) => {
-    if (typeof window !== 'undefined' && window.route) {
-      try {
+  // Safe route helper
+  const safeRoute = (name, params = {}) => {
+    try {
+      if (typeof window !== 'undefined' && window.route) {
         return window.route(name, params);
-      } catch (e) {
-        return '#';
       }
+      return '#';
+    } catch (e) {
+      console.warn(`Route '${name}' error:`, e.message);
+      return '#';
     }
-    return '#';
   };
 
-  // Normalize URL helper
-  const normalizeUrl = (value) => {
-    if (!value) return '';
-    const absolute = typeof value === 'string' ? value : value.toString();
-    const pathOnly = absolute.replace(/^https?:\/\/[^/]+/i, '');
-    const withoutQueryOrHash = pathOnly.replace(/[?#].*$/, '');
-    return withoutQueryOrHash.replace(/\/$/, '');
-  };
-
-  // Check if path is active
-  const isPathActive = (path) => {
-    if (!path || path === '#') return false;
-    const normalizedUrl = normalizeUrl(url);
-    const normalizedPath = normalizeUrl(path);
-    if (normalizedUrl === normalizedPath) return true;
-    if (normalizedPath !== '/' && normalizedUrl.startsWith(normalizedPath)) return true;
-    return false;
-  };
-
-  // Check if route is active
+  // Check if current route matches using Ziggy
   const isRouteActive = (routeName, params = {}) => {
     try {
-      const routeUrl = route(routeName, params);
-      if (routeUrl === '#') return false;
-      return normalizeUrl(url) === normalizeUrl(routeUrl);
+      if (typeof window !== 'undefined' && window.route) {
+        return window.route().current(routeName, params);
+      }
+      return false;
     } catch (e) {
+      console.warn(`Route '${routeName}' error:`, e.message);
       return false;
     }
   };
 
-  // Job Seeker Menu Items (No role conditions)
+  // Job Seeker Menu Items with actual route names from your Laravel app
   const menuItems = [
     {
       name: 'Dashboard',
-      routeName: 'backend.dashboard',
+      routeName: 'backend.dashboard', // ✅ This exists in your routes
       icon: FiHome,
       description: 'Overview & stats',
     },
     {
       name: 'Browse Jobs',
-      routeName: 'public.jobs.index',
+      routeName: 'backend.public-jobs.index', // ✅ This exists - shows public jobs list
       icon: FiSearch,
       description: 'Find your next role',
     },
     {
       name: 'My Profile',
-      routeName: 'backend.applicant.profile.show',
+      routeName: 'backend.applicant.profile.show', // ✅ This exists
       icon: FiUser,
       description: 'View & edit profile',
+      routeParams: { id: user?.applicantProfile?.id || null }, // Will need user's profile ID
     },
     {
       name: 'My Applications',
-      routeName: 'backend.apply.index',
+      routeName: 'backend.apply.index', // ✅ This exists
       icon: FiFileText,
       description: 'Track applications',
     },
     {
       name: 'Notifications',
-      routeName: 'backend.notifications.index',
+      routeName: 'backend.notifications.index', // ✅ This exists
       icon: FiBell,
       badgeCount: notificationMeta.unread_count,
       description: 'Updates & alerts',
@@ -106,14 +91,19 @@ const JobSeekerLayout = ({ children }) => {
 
   // Render menu item
   const renderMenuItem = (item) => {
-    const isActive = item.routeName
-      ? isRouteActive(item.routeName, item.routeParams || {})
-      : isPathActive(item.href);
+    // Generate the route URL using Ziggy
+    const href = safeRoute(item.routeName, item.routeParams || {});
+    const isActive = isRouteActive(item.routeName, item.routeParams || {});
+
+    // Don't render if route doesn't exist or is invalid
+    if (href === '#') {
+      return null;
+    }
 
     return (
       <Link
         key={item.name}
-        href={item.routeName ? route(item.routeName, item.routeParams || {}) : item.href}
+        href={href}
         className={`
           flex items-center gap-3 px-4 py-2.5 text-sm rounded-lg transition-all duration-200 mb-1 relative group
           ${isActive
@@ -138,12 +128,12 @@ const JobSeekerLayout = ({ children }) => {
 
         {/* Active indicator */}
         {isActive && !isCollapsed && (
-          <span className="absolute left-0 w-1 h-8 bg-green-500 rounded-r-full"></span>
+          <span className="absolute left-0 w-1 h-8 bg-green-500 rounded-r-full" />
         )}
 
         {/* Collapsed active indicator */}
         {isActive && isCollapsed && (
-          <span className="absolute right-0 w-1.5 h-1.5 rounded-full bg-green-500"></span>
+          <span className="absolute right-0 w-1.5 h-1.5 rounded-full bg-green-500" />
         )}
       </Link>
     );
@@ -156,7 +146,7 @@ const JobSeekerLayout = ({ children }) => {
         {/* Logo Section */}
         <div className="p-4 border-b border-gray-200">
           <div className="flex items-center justify-between">
-            <Link href={route('home')} className="flex items-center gap-2 group">
+            <Link href={safeRoute('home') || '/'} className="flex items-center gap-2 group">
               <div className="w-8 h-8 bg-linear-to-br from-green-600 to-green-700 rounded-lg flex items-center justify-center shadow-md group-hover:shadow-lg transition-all duration-200">
                 <FiBriefcase className="w-5 h-5 text-white" />
               </div>
@@ -205,14 +195,14 @@ const JobSeekerLayout = ({ children }) => {
                   <p className="text-sm font-semibold text-gray-900 truncate">{userName}</p>
                   <p className="text-xs text-gray-500 truncate">{userEmail}</p>
                   <p className="text-xs text-gray-400 flex items-center gap-1 mt-0.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+                    <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
                     Job Seeker
                   </p>
                 </div>
               </div>
 
               <Link
-                href={route('logout')}
+                href={safeRoute('logout')}
                 method="post"
                 as="button"
                 className="w-full flex items-center gap-3 px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200 group"
@@ -233,7 +223,7 @@ const JobSeekerLayout = ({ children }) => {
                 </div>
               </div>
               <Link
-                href={route('logout')}
+                href={safeRoute('logout')}
                 method="post"
                 as="button"
                 className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200 group"

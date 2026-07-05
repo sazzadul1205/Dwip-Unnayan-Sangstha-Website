@@ -308,6 +308,32 @@ class CustomSectionDataTableSeeder extends Seeder
         'created_at' => '2024-01-01 00:00:00',
         'updated_at' => '2024-01-01 00:00:00',
       ],
+
+      // ============================================
+      // JOBS PAGE BANNER
+      // ============================================
+      [
+        'id' => 34,
+        'page_slug' => 'jobs',
+        'section_key' => 'banner',
+        'data' => '{"background":{"src":"/storage/Jobs/banner-default.jpg","alt":"Career Opportunities"},"overlay":{"darkOverlay":"bg-black/40 lg:bg-black/50","gradient":"bg-gradient-to-r from-black/85 via-black/10 to-transparent"},"content":{"title":{"text":"Join Our Team","className":"font-bold leading-tight"},"description":{"text":"Build a meaningful career while making a difference in coastal communities","className":"font-normal leading-tight"}}}',
+        'is_active' => 1,
+        'created_at' => '2024-01-01 00:00:00',
+        'updated_at' => '2024-01-01 00:00:00',
+      ],
+
+      // ============================================
+      // JOBS PAGE - JOB LISTINGS SECTION
+      // ============================================
+      [
+        'id' => 35,
+        'page_slug' => 'jobs',
+        'section_key' => 'jobs',
+        'data' => '{"section":{"title":"Current Openings","description":"Join us in our mission to create sustainable change in coastal communities. We are looking for passionate individuals who want to make a difference.","button":{"text":"View All Positions","link":"/jobs"}},"filters":{"categories":["All","Program Management","Finance & Accounting","Field Operations","Communications","Administration"],"locations":["All","Dhaka","Noakhali","Hatiya","Remote"]},"jobs":[]}',
+        'is_active' => 1,
+        'created_at' => '2024-01-01 00:00:00',
+        'updated_at' => '2024-01-01 00:00:00',
+      ],
     ];
 
     DB::table('custom_section_data')->insert($customSectionData);

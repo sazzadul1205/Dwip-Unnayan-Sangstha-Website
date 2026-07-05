@@ -1,3 +1,4 @@
+/* eslint-disable no-undef */
 // resources/js/Pages/Backend/Apply/Index.jsx
 
 // React
@@ -25,7 +26,6 @@ import {
   FaBuilding,
   FaDollarSign,
   FaFilePdf,
-  FaClock,
   FaCheck,
   FaHourglassHalf,
   FaUserCheck,
@@ -42,10 +42,9 @@ import {
 import Swal from 'sweetalert2';
 
 export default function ApplyIndex({ applications: initialApplications, stats: initialStats }) {
-  // 
   const { flash } = usePage().props;
 
-  // Use centralized auth hook
+  // Use centralized auth hook - MUST be called before any conditional returns
   const {
     user: currentUser,
     isAuthenticated,
@@ -53,11 +52,34 @@ export default function ApplyIndex({ applications: initialApplications, stats: i
     hasAnyPermission,
   } = useAuth();
 
-  // Check user role and permissions
+  // Check user role and permissions - computed values, not hooks
   const isJobSeeker = hasRole('job-seeker') || hasRole('job_seeker');
   const canViewAllApplications = hasAnyPermission(['applications.view', 'applications.manage']);
   const isAdmin = canViewAllApplications;
 
+  // ALL HOOKS MUST BE CALLED BEFORE ANY CONDITIONAL RETURNS
+  const [restoringId, setRestoringId] = useState(null);
+  const [showTrashed, setShowTrashed] = useState(false);
+  const [withdrawingId, setWithdrawingId] = useState(null);
+  const [recalculatingId, setRecalculatingId] = useState(null);
+  const [applications, setApplications] = useState(initialApplications);
+
+  // stats
+  const [stats, setStats] = useState(initialStats || {
+    total: 0, total_deleted: 0, pending: 0, shortlisted: 0, rejected: 0, hired: 0, average_ats_score: 0,
+  });
+
+  // Flash message effect - MUST be called before conditional returns
+  useEffect(() => {
+    if (flash?.success) {
+      Swal.fire({ icon: 'success', title: 'Success!', text: flash.success, timer: 2000, showConfirmButton: false });
+    }
+    if (flash?.error) {
+      Swal.fire({ icon: 'error', title: 'Error!', text: flash.error, confirmButtonColor: '#ef4444' });
+    }
+  }, [flash]);
+
+  // NOW we can do conditional returns after all hooks
   // If user is not authenticated, show access denied
   if (!isAuthenticated) {
     return (
@@ -108,19 +130,7 @@ export default function ApplyIndex({ applications: initialApplications, stats: i
     );
   }
 
-  // state
-  const [restoringId, setRestoringId] = useState(null);
-  const [showTrashed, setShowTrashed] = useState(false);
-  const [withdrawingId, setWithdrawingId] = useState(null);
-  const [recalculatingId, setRecalculatingId] = useState(null);
-  const [applications, setApplications] = useState(initialApplications);
-
-  // stats
-  const [stats, setStats] = useState(initialStats || {
-    total: 0, total_deleted: 0, pending: 0, shortlisted: 0, rejected: 0, hired: 0, average_ats_score: 0,
-  });
-
-  // pagination
+  // pagination - computed after conditional returns
   const applicationItems = applications?.data || [];
   const pagination = applications?.data ? {
     currentPage: applications.current_page,
@@ -149,7 +159,7 @@ export default function ApplyIndex({ applications: initialApplications, stats: i
   const handlePageChange = (page) => {
     if (page === pagination?.currentPage || page < 1 || page > pagination?.lastPage) return;
     router.get(route('backend.apply.index'), {
-      page: page,
+      page,
       show_trashed: showTrashed ? 'true' : 'false'
     }, {
       preserveState: true,
@@ -246,7 +256,6 @@ export default function ApplyIndex({ applications: initialApplications, stats: i
     });
   };
 
-
   // Handle recalculate
   const handleRecalculateAts = (id) => {
     Swal.fire({
@@ -330,7 +339,7 @@ export default function ApplyIndex({ applications: initialApplications, stats: i
   // Format salary
   const formatSalary = (salary) => {
     if (!salary) return null;
-    return new Intl.NumberFormat('en-US').format(salary) + ' BDT';
+    return `${new Intl.NumberFormat('en-US').format(salary)  } BDT`;
   };
 
   // Get stats cards
@@ -344,24 +353,14 @@ export default function ApplyIndex({ applications: initialApplications, stats: i
     { title: 'Avg. ATS', value: stats.average_ats_score ? `${Math.round(stats.average_ats_score)}%` : 'N/A', icon: <FaChartLine size={18} />, color: 'purple', key: 'ats' },
   ];
 
-  // Flash message
-  useEffect(() => {
-    if (flash?.success) {
-      Swal.fire({ icon: 'success', title: 'Success!', text: flash.success, timer: 2000, showConfirmButton: false });
-    }
-    if (flash?.error) {
-      Swal.fire({ icon: 'error', title: 'Error!', text: flash.error, confirmButtonColor: '#ef4444' });
-    }
-  }, [flash]);
-
-  // Pagination
+  // Pagination component (moved inside the main component but after hooks)
   const Pagination = () => {
     if (!pagination || pagination.lastPage <= 1) return null;
 
     const pages = [];
     const maxVisible = 5;
     let startPage = Math.max(1, pagination.currentPage - Math.floor(maxVisible / 2));
-    let endPage = Math.min(pagination.lastPage, startPage + maxVisible - 1);
+    const endPage = Math.min(pagination.lastPage, startPage + maxVisible - 1);
 
     if (endPage - startPage + 1 < maxVisible) {
       startPage = Math.max(1, endPage - maxVisible + 1);
@@ -464,7 +463,7 @@ export default function ApplyIndex({ applications: initialApplications, stats: i
               </button>
               {!showTrashed && (
                 <Link
-                  href={route('public.jobs.index')}
+                  href={route('backend.public-jobs.index')}
                   className="bg-linear-to-r from-blue-600 to-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:from-blue-700 hover:to-blue-800 transition-all shadow-sm text-sm font-medium"
                 >
                   <FaPlus size={12} />
@@ -523,7 +522,7 @@ export default function ApplyIndex({ applications: initialApplications, stats: i
                 </p>
                 {!showTrashed && (
                   <Link
-                    href={route('public.jobs.index')}
+                    href={route('backend.public-jobs.index')}
                     className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition mt-4"
                   >
                     <FaPlus size={12} /> Browse Jobs

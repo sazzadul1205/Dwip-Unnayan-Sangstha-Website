@@ -1,7 +1,8 @@
+/* eslint-disable no-undef */
 // resources/js/Pages/Public/JobListings/Index.jsx
 
 // React
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 
 // Inertia
 import { Head, router, usePage } from '@inertiajs/react';
@@ -11,7 +12,6 @@ import AuthenticatedLayout from '../../../layouts/AuthenticatedLayout';
 
 // Auth
 import { useAuth } from '../../../hooks/useAuth';
-import { Can } from '../../../components/Auth/Can';
 
 // Icons
 import {
@@ -56,13 +56,10 @@ export default function PublicJobListingsIndex({
     user: currentUser,
     isAuthenticated,
     hasRole,
-    hasAnyPermission,
   } = useAuth();
 
   // Check user roles/permissions
   const isEmployer = hasRole('employer') || hasRole('employer-admin');
-  const canPostJobs = hasAnyPermission(['jobs.create', 'jobs.manage']);
-  const isSuperAdmin = hasRole('super-admin');
 
   // States
   const [loading, setLoading] = useState(false);
@@ -84,6 +81,10 @@ export default function PublicJobListingsIndex({
     sort: initialFilters.sort || 'latest',
   });
 
+  // Refs to track if this is the initial render
+  const isInitialRender = useRef(true);
+  const isApplyingFilters = useRef(false);
+
   // Get job listings array from paginated response
   const jobListingItems = jobListings?.data || [];
 
@@ -97,33 +98,55 @@ export default function PublicJobListingsIndex({
     to: jobListings.to,
   };
 
-  // Apply filters
-  const applyFilters = () => {
+  // Apply filters - memoized with useCallback
+  const applyFilters = useCallback((filterParams = null) => {
+    // Prevent multiple simultaneous requests
+    if (isApplyingFilters.current) return;
+
+    const paramsToUse = filterParams || filters;
+
+    // If no filters and no search, we still want to show all jobs
+    // But we don't need to make a request if nothing changed
+
+    isApplyingFilters.current = true;
     setLoading(true);
-    router.get(route('public.jobs.index'), filters, {
+
+    router.get(route('backend.public.jobs.index'), paramsToUse, {
       preserveState: true,
       preserveScroll: true,
       replace: true,
       onSuccess: (page) => {
         setJobListings(page.props.jobListings);
         setLoading(false);
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+        isApplyingFilters.current = false;
+        if (!filterParams) {
+          // Only scroll on manual filter application
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
       },
       onError: () => {
         setLoading(false);
+        isApplyingFilters.current = false;
       },
     });
-  };
+  }, [filters]);
 
-  // Debounced search
+  // Debounced search - only runs when search changes
   useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      if (filters.search !== initialFilters.search) {
+    // Skip on initial render
+    if (isInitialRender.current) {
+      isInitialRender.current = false;
+      return;
+    }
+
+    // Only run if search changed
+    if (filters.search !== initialFilters.search) {
+      const timeoutId = setTimeout(() => {
         applyFilters();
-      }
-    }, 500);
-    return () => clearTimeout(timeoutId);
-  }, [filters.search]);
+      }, 500);
+      return () => clearTimeout(timeoutId);
+    }
+  }, [applyFilters, filters.search, initialFilters.search]); // Only depend on search, not applyFilters
 
   // Handle filter change
   const handleFilterChange = (key, value) => {
@@ -138,7 +161,7 @@ export default function PublicJobListingsIndex({
 
   // Reset all filters
   const resetFilters = () => {
-    setFilters({
+    const resetValues = {
       search: '',
       category: '',
       location: '',
@@ -147,14 +170,18 @@ export default function PublicJobListingsIndex({
       salary_min: '',
       salary_max: '',
       sort: 'latest',
-    });
+    };
+    setFilters(resetValues);
+    // Apply filters immediately
+    applyFilters(resetValues);
   };
 
   // Handle sort change
   const handleSortChange = (sortValue) => {
-    setFilters(prev => ({ ...prev, sort: sortValue }));
+    const updatedFilters = { ...filters, sort: sortValue };
+    setFilters(updatedFilters);
     setShowSortMenu(false);
-    applyFilters();
+    applyFilters(updatedFilters);
   };
 
   // Handle page change
@@ -163,7 +190,7 @@ export default function PublicJobListingsIndex({
     if (page < 1 || page > pagination?.lastPage) return;
 
     setLoading(true);
-    router.get(route('public.jobs.index'), { ...filters, page }, {
+    router.get(route('backend.public.jobs.index'), { ...filters, page }, {
       preserveState: true,
       preserveScroll: true,
       replace: true,
@@ -201,7 +228,7 @@ export default function PublicJobListingsIndex({
 
     try {
       const isSaved = savedJobs.includes(jobId);
-      const response = await router.post(route('public.jobs.save', jobId), {}, {
+      await router.post(route('public.jobs.save', jobId), {}, {
         preserveScroll: true,
         onSuccess: () => {
           if (isSaved) {
@@ -234,19 +261,20 @@ export default function PublicJobListingsIndex({
         onFinish: () => setSavingJobId(null),
       });
     } catch (error) {
+      console.error(error);
       setSavingJobId(null);
     }
   };
 
   // Share job
   const handleShareJob = (job) => {
-    const url = window.location.origin + route('public.jobs.show', job.slug);
+    const url = window.location.origin + route('backend.public.jobs.show', job.slug);
 
     if (navigator.share) {
       navigator.share({
         title: job.title,
         text: `Check out this job opportunity: ${job.title}`,
-        url: url,
+        url,
       }).catch(() => { });
     } else {
       navigator.clipboard.writeText(url);
@@ -268,7 +296,10 @@ export default function PublicJobListingsIndex({
 
   // Clear single filter
   const clearFilter = (key) => {
-    setFilters(prev => ({ ...prev, [key]: '' }));
+    const updatedFilters = { ...filters, [key]: '' };
+    setFilters(updatedFilters);
+    // Apply filters after clearing
+    applyFilters(updatedFilters);
   };
 
   // Format date
@@ -676,7 +707,7 @@ export default function PublicJobListingsIndex({
               {/* Loading State */}
               {loading && (
                 <div className="flex items-center justify-center py-12">
-                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600" />
                 </div>
               )}
 
@@ -718,7 +749,7 @@ export default function PublicJobListingsIndex({
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2 mb-2 flex-wrap">
                                 <h2 className="text-xl font-bold text-gray-900 hover:text-blue-600 transition">
-                                  <a href={route('public.jobs.show', job.slug)}>
+                                  <a href={route('backend.public.jobs.show', job.slug)}>
                                     {job.title}
                                   </a>
                                 </h2>
@@ -821,7 +852,7 @@ export default function PublicJobListingsIndex({
 
                                 {/* Apply Button */}
                                 <a
-                                  href={route('public.jobs.show', job.slug)}
+                                  href={route('backend.public.jobs.show', job.slug)}
                                   className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm font-medium"
                                 >
                                   View Details
@@ -861,7 +892,7 @@ export default function PublicJobListingsIndex({
                       const pages = [];
                       const maxVisible = 5;
                       let startPage = Math.max(1, pagination.currentPage - Math.floor(maxVisible / 2));
-                      let endPage = Math.min(pagination.lastPage, startPage + maxVisible - 1);
+                      const endPage = Math.min(pagination.lastPage, startPage + maxVisible - 1);
 
                       if (endPage - startPage + 1 < maxVisible) {
                         startPage = Math.max(1, endPage - maxVisible + 1);

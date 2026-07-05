@@ -90,9 +90,10 @@ Route::prefix('data')->group(function () {
 // ============================================
 // ADD JOB LISTING API ROUTES HERE
 // ============================================
-Route::prefix('api/jobs')->name('api.jobs.')->group(function () {
-    Route::get('/', [JobListingApiController::class, 'index'])->name('index');
-    Route::get('/{id}', [JobListingApiController::class, 'show'])->name('show');
+Route::prefix('api/jobs')->group(function () {
+    Route::get('/', [JobListingApiController::class, 'index']);
+    Route::get('/{identifier}', [JobListingApiController::class, 'show']);
+    Route::get('/{slug}/related', [JobListingApiController::class, 'related']);
 });
 
 /*
@@ -319,6 +320,12 @@ Route::middleware(['auth', 'verified', 'profile.complete'])->group(function () {
         | JOB LISTINGS MANAGEMENT
         |--------------------------------------------------------------------------
         */
+
+        // Public
+        Route::get('/jobs', [JobListingController::class, 'publicIndex'])->name('public.jobs.index');
+        Route::get('/jobs/{slug}', [JobListingController::class, 'publicShow'])->name('public.jobs.show');
+
+        // Listing
         Route::prefix('listing')->name('listing.')->group(function () {
             Route::patch('{jobListing}/toggle-active', [JobListingController::class, 'toggleActive'])->name('toggle-active');
             Route::patch('{jobListing}/restore', [JobListingController::class, 'restore'])->name('restore');
