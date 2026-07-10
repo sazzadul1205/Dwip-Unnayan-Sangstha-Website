@@ -27,7 +27,10 @@ import PublicationsSection from './PublicationsSection/PublicationsSection';
 import ImageGallerySection from './ImageGallerySection/ImageGallerySection';
 import VideoGallerySection from './VideoGallerySection/VideoGallerySection';
 
-// Component mapping - only new names
+// Import utilities
+import { normalizeData } from '../utils/sectionHelpers';
+
+// Component mapping
 const sectionComponents = {
   HomeBanner,
   PageBannerSection,
@@ -55,311 +58,273 @@ const sectionComponents = {
 };
 
 /**
- * Recursively extract the actual data from nested structures
- * Handles cases where data is nested multiple levels deep
- */
-const extractNestedData = (data, depth = 0, maxDepth = 10) => {
-  if (!data) return null;
-  if (depth > maxDepth) {
-    console.warn('extractNestedData: Max depth reached, returning data as-is');
-    return data;
-  }
-
-  // If the data has a 'data' property and it's an object, recursively extract it
-  if (data.data && typeof data.data === 'object') {
-    return extractNestedData(data.data, depth + 1, maxDepth);
-  }
-
-  // If the data has the expected structure (section, mission, impact, image)
-  if (data.section || data.mission || data.impact || data.image) {
-    return data;
-  }
-
-  // If data is an array
-  if (Array.isArray(data)) {
-    return data;
-  }
-
-  // Return the data as is
-  return data;
-};
-
-/**
  * Extract section data from different data structures
  */
 const extractSectionData = (section) => {
   if (!section) return null;
 
+  // Get custom props
+  const customProps = section.custom_props || {};
+
   // If section already has data directly
   if (section.data) {
     // For custom_section_data and shared_data, the actual data might be nested
     if (section.data_table === 'custom_section_data' || section.data_table === 'shared_data') {
-      const extractedData = extractNestedData(section.data);
+      const extractedData = normalizeData(section.data);
 
       // Special handling for AboutUs
       if (section.component === 'AboutUsSection') {
         if (extractedData && (extractedData.section || extractedData.mission || extractedData.impact || extractedData.image)) {
-          return extractedData;
+          return { data: extractedData, customProps };
         }
         if (extractedData && typeof extractedData === 'object' && !Array.isArray(extractedData)) {
           return {
-            section: {
-              title: extractedData.title || extractedData.section_title || 'About Us',
-              description: extractedData.description || extractedData.section_description || '',
-              button: {
-                text: extractedData.button_text || extractedData.cta_text || 'Learn More',
-                link: extractedData.button_link || extractedData.cta_link || '#'
+            data: {
+              section: {
+                title: extractedData.title || extractedData.section_title || 'About Us',
+                description: extractedData.description || extractedData.section_description || '',
+                button: {
+                  text: extractedData.button_text || extractedData.cta_text || 'Learn More',
+                  link: extractedData.button_link || extractedData.cta_link || '#'
+                }
+              },
+              mission: {
+                title: extractedData.mission_title || 'Our Mission',
+                items: extractedData.mission_items || extractedData.missions || []
+              },
+              impact: {
+                title: extractedData.impact_title || 'Our Impact',
+                stats: extractedData.impact_stats || extractedData.stats || []
+              },
+              image: {
+                src: extractedData.image || extractedData.image_url || '',
+                alt: extractedData.image_alt || 'About us image'
               }
             },
-            mission: {
-              title: extractedData.mission_title || 'Our Mission',
-              items: extractedData.mission_items || extractedData.missions || []
-            },
-            impact: {
-              title: extractedData.impact_title || 'Our Impact',
-              stats: extractedData.impact_stats || extractedData.stats || []
-            },
-            image: {
-              src: extractedData.image || extractedData.image_url || '',
-              alt: extractedData.image_alt || 'About us image'
-            }
+            customProps
           };
         }
-        return extractedData;
+        return { data: extractedData, customProps };
       }
 
       // Special handling for Stories
       if (section.component === 'StoriesSection') {
         if (extractedData && (extractedData.section || extractedData.stories)) {
-          return extractedData;
+          return { data: extractedData, customProps };
         }
         if (Array.isArray(extractedData)) {
           return {
-            section: {
-              title: 'Stories',
-              description: ''
+            data: {
+              section: {
+                title: 'Stories',
+                description: ''
+              },
+              stories: extractedData
             },
-            stories: extractedData
+            customProps
           };
         }
-        return extractedData;
+        return { data: extractedData, customProps };
       }
 
-      return extractedData;
+      return { data: extractedData, customProps };
     }
 
     // For about_content, return the data as is
     if (section.data_table === 'about_content') {
-      const extractedData = extractNestedData(section.data);
+      const extractedData = normalizeData(section.data);
       if (extractedData && (extractedData.section || extractedData.mission || extractedData.impact)) {
-        return extractedData;
+        return { data: extractedData, customProps };
       }
-      return section.data;
+      return { data: section.data, customProps };
     }
 
     // For blogs, programs, and stories data, the data is the array itself or has section + items
     if (section.data_table === 'blogs' || section.data_table === 'programs') {
-      return section.data;
+      return { data: section.data, customProps };
     }
 
     // For stories (without data_table), return the data as is
     if (section.component === 'StoriesSection') {
       if (section.data && (section.data.section || section.data.stories)) {
-        return section.data;
+        return { data: section.data, customProps };
       }
       if (Array.isArray(section.data)) {
         return {
-          section: {
-            title: 'Stories',
-            description: ''
+          data: {
+            section: {
+              title: 'Stories',
+              description: ''
+            },
+            stories: section.data
           },
-          stories: section.data
+          customProps
         };
       }
-      return section.data;
+      return { data: section.data, customProps };
     }
 
-    return section.data;
+    return { data: section.data, customProps };
   }
 
   // Check for old format - data might be in section.section_data
   if (section.section_data) {
-    return extractNestedData(section.section_data);
+    return { data: normalizeData(section.section_data), customProps };
   }
 
   // Check for custom section data
   if (section.custom_section_data) {
-    return extractNestedData(section.custom_section_data);
+    return { data: normalizeData(section.custom_section_data), customProps };
   }
 
   // Check for shared section data
   if (section.shared_section_data) {
-    return extractNestedData(section.shared_section_data);
+    return { data: normalizeData(section.shared_section_data), customProps };
   }
 
-  return null;
+  return { data: null, customProps };
 };
 
 /**
  * Build props for each component type
  */
 const buildComponentProps = (component, sectionData, section) => {
+  // Start with custom props
   const props = {
     ...(section.custom_props || {}),
   };
 
   const componentName = section.component;
+  const { data: extractedData, customProps } = sectionData;
 
+  // Spread custom props explicitly for components that need them
   switch (componentName) {
     case 'HomeBanner':
-      props.bannerData = sectionData;
+      props.bannerData = extractedData;
       break;
 
     case 'PageBannerSection':
-      props.bannerData = sectionData;
+      props.bannerData = extractedData;
       break;
 
     case 'PageTagBannerSection':
-      props.bannerData = sectionData;
-      if (section.custom_props?.tags) {
-        props.tags = section.custom_props.tags;
-      }
-      if (section.custom_props?.activeTag) {
-        props.activeTag = section.custom_props.activeTag;
-      }
-      if (section.custom_props?.tagTitle) {
-        props.tagTitle = section.custom_props.tagTitle;
-      }
+      props.bannerData = extractedData;
+      if (customProps.tags) props.tags = customProps.tags;
+      if (customProps.activeTag) props.activeTag = customProps.activeTag;
+      if (customProps.tagTitle) props.tagTitle = customProps.tagTitle;
       break;
 
     case 'AboutUsSection':
-      props.aboutUsData = sectionData;
+      props.aboutUsData = extractedData;
       break;
 
     case 'OurActionSection':
-      props.actionData = sectionData;
+      props.actionData = extractedData;
       break;
 
     case 'WhereWeWorkSection':
-      props.workData = sectionData;
+      props.workData = extractedData;
       break;
 
     case 'OurProgramsSection':
-      props.programsData = sectionData;
+      props.programsData = extractedData;
+      // Pass custom props
+      if (customProps.limit !== undefined) props.limit = customProps.limit;
+      if (customProps.showFeatured !== undefined) props.showFeatured = customProps.showFeatured;
+      if (customProps.showHeader !== undefined) props.showHeader = customProps.showHeader;
       break;
 
     case 'StoriesSection':
-      props.storiesData = sectionData;
+      props.storiesData = extractedData;
       break;
 
     case 'BlogSection':
-      if (Array.isArray(sectionData) && sectionData.length > 0) {
-        props.mainBlog = sectionData[0] || null;
-        props.blogPosts = sectionData.slice(1) || [];
+      if (Array.isArray(extractedData) && extractedData.length > 0) {
+        props.mainBlog = extractedData[0] || null;
+        props.blogPosts = extractedData.slice(1) || [];
       } else {
         props.mainBlog = null;
         props.blogPosts = [];
       }
-      if (section.custom_props?.sectionTitle) {
-        props.sectionTitle = section.custom_props.sectionTitle;
-      }
+      if (customProps.sectionTitle) props.sectionTitle = customProps.sectionTitle;
       break;
 
     case 'PublicationsSection':
-      if (Array.isArray(sectionData) && sectionData.length > 0) {
-        const featuredPub = sectionData.find(pub => pub.is_featured === true || pub.is_featured === 1);
+      if (Array.isArray(extractedData) && extractedData.length > 0) {
+        const featuredPub = extractedData.find(pub => pub.is_featured === true || pub.is_featured === 1);
         if (featuredPub) {
           props.mainPublication = featuredPub;
-          props.publicationItems = sectionData.filter(pub => pub.id !== featuredPub.id);
+          props.publicationItems = extractedData.filter(pub => pub.id !== featuredPub.id);
         } else {
-          props.mainPublication = sectionData[0] || null;
-          props.publicationItems = sectionData.slice(1) || [];
+          props.mainPublication = extractedData[0] || null;
+          props.publicationItems = extractedData.slice(1) || [];
         }
-      } else if (typeof sectionData === 'object' && sectionData !== null) {
-        if (sectionData.mainPublication) {
-          props.mainPublication = sectionData.mainPublication;
-        }
-        if (Array.isArray(sectionData.publicationItems)) {
-          props.publicationItems = sectionData.publicationItems;
-        } else if (Array.isArray(sectionData.items)) {
-          props.publicationItems = sectionData.items;
-        } else if (Array.isArray(sectionData.publications)) {
-          props.publicationItems = sectionData.publications;
+      } else if (typeof extractedData === 'object' && extractedData !== null) {
+        if (extractedData.mainPublication) props.mainPublication = extractedData.mainPublication;
+        if (Array.isArray(extractedData.publicationItems)) {
+          props.publicationItems = extractedData.publicationItems;
+        } else if (Array.isArray(extractedData.items)) {
+          props.publicationItems = extractedData.items;
+        } else if (Array.isArray(extractedData.publications)) {
+          props.publicationItems = extractedData.publications;
         }
       }
-      if (section.custom_props?.sectionTitle) {
-        props.sectionTitle = section.custom_props.sectionTitle;
-      }
+      if (customProps.sectionTitle) props.sectionTitle = customProps.sectionTitle;
       break;
 
     case 'ImageGallerySection':
-      props.galleryData = sectionData;
-      if (section.custom_props?.sectionTitle) {
-        props.sectionTitle = section.custom_props.sectionTitle;
-      }
-      if (section.custom_props?.imagesPerPage) {
-        props.imagesPerPage = section.custom_props.imagesPerPage;
-      }
-      if (section.custom_props?.imagesPerLoad) {
-        props.imagesPerLoad = section.custom_props.imagesPerLoad;
-      }
-      if (section.custom_props?.imageCountLabel) {
-        props.imageCountLabel = section.custom_props.imageCountLabel;
-      }
+      props.galleryData = extractedData;
+      if (customProps.sectionTitle) props.sectionTitle = customProps.sectionTitle;
+      if (customProps.imagesPerPage) props.imagesPerPage = customProps.imagesPerPage;
+      if (customProps.imagesPerLoad) props.imagesPerLoad = customProps.imagesPerLoad;
+      if (customProps.imageCountLabel) props.imageCountLabel = customProps.imageCountLabel;
       break;
 
     case 'VideoGallerySection':
-      props.videoData = sectionData;
-      if (section.custom_props?.sectionTitle) {
-        props.sectionTitle = section.custom_props.sectionTitle;
-      }
-      if (section.custom_props?.videosPerPage) {
-        props.videosPerPage = section.custom_props.videosPerPage;
-      }
-      if (section.custom_props?.videosPerLoad) {
-        props.videosPerLoad = section.custom_props.videosPerLoad;
-      }
-      if (section.custom_props?.videoCountLabel) {
-        props.videoCountLabel = section.custom_props.videoCountLabel;
-      }
+      props.videoData = extractedData;
+      if (customProps.sectionTitle) props.sectionTitle = customProps.sectionTitle;
+      if (customProps.videosPerPage) props.videosPerPage = customProps.videosPerPage;
+      if (customProps.videosPerLoad) props.videosPerLoad = customProps.videosPerLoad;
+      if (customProps.videoCountLabel) props.videoCountLabel = customProps.videoCountLabel;
       break;
 
     case 'JobsSection':
-      props.jobsData = sectionData;
+      props.data = extractedData;
+      // Pass custom props for JobsSection
+      if (customProps.limit !== undefined) props.limit = customProps.limit;
+      if (customProps.filterPlaceholder) props.filterPlaceholder = customProps.filterPlaceholder;
       break;
 
     case 'ProgramImpactSection':
-      props.impactData = sectionData;
+      props.impactData = extractedData;
       break;
 
     case 'UpcomingEventsSection':
-      props.eventsData = sectionData;
+      props.eventsData = extractedData;
       break;
 
     case 'FAQSection':
-      props.faqData = sectionData;
+      props.faqData = extractedData;
       break;
 
     case 'ContactOfficeSection':
-      props.offices = Array.isArray(sectionData) ? sectionData : [];
+      props.offices = Array.isArray(extractedData) ? extractedData : [];
       break;
 
     case 'AddressSection':
-      props.officesLocation = Array.isArray(sectionData) ? sectionData : [];
+      props.officesLocation = Array.isArray(extractedData) ? extractedData : [];
       break;
 
     case 'ContactReachSection':
-      // Handle both object and array data
-      if (Array.isArray(sectionData) && sectionData.length > 0) {
-        // If it's an array, use the first item
-        const firstItem = sectionData[0] || {};
+      if (Array.isArray(extractedData) && extractedData.length > 0) {
+        const firstItem = extractedData[0] || {};
         props.image = firstItem.image || '';
         props.title = firstItem.title || 'Reach out to us today!';
         props.buttonText = firstItem.buttonText || 'Submit Message';
-      } else if (typeof sectionData === 'object' && sectionData !== null) {
-        props.image = sectionData.image || '';
-        props.title = sectionData.title || 'Reach out to us today!';
-        props.buttonText = sectionData.buttonText || 'Submit Message';
+      } else if (typeof extractedData === 'object' && extractedData !== null) {
+        props.image = extractedData.image || '';
+        props.title = extractedData.title || 'Reach out to us today!';
+        props.buttonText = extractedData.buttonText || 'Submit Message';
       } else {
         props.image = '';
         props.title = 'Reach out to us today!';
@@ -368,26 +333,24 @@ const buildComponentProps = (component, sectionData, section) => {
       break;
 
     case 'FollowUSSection':
-      props.socialItems = Array.isArray(sectionData) ? sectionData : [];
-      if (section.custom_props?.title) {
-        props.title = section.custom_props.title;
-      }
+      props.socialItems = Array.isArray(extractedData) ? extractedData : [];
+      if (customProps.title) props.title = customProps.title;
       break;
 
     case 'LegalSection':
-      props.legalData = sectionData;
+      props.legalData = extractedData;
       break;
 
     case 'HeroFigureSection':
-      props.data = sectionData;
+      props.data = extractedData;
       break;
 
     case 'CardsSection':
-      props.cardsData = sectionData;
+      props.cardsData = extractedData;
       break;
 
     default:
-      props.data = sectionData;
+      props.data = extractedData;
       break;
   }
 

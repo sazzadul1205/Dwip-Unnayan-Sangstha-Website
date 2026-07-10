@@ -276,7 +276,7 @@ const TopBar = ({ topBarData, storageUrl }) => {
                   <img
                     src={getImageSrc(contactInfo.email.icon)}
                     alt={contactInfo.email.alt || 'Email'}
-                    className="w-[19.5px] h-3.75"
+                    className="w-4 h-4"
                   />
                 )}
                 <a
@@ -296,7 +296,7 @@ const TopBar = ({ topBarData, storageUrl }) => {
                   <img
                     src={getImageSrc(contactInfo.phone.icon)}
                     alt={contactInfo.phone.alt || 'Phone'}
-                    className="w-[19.5px] h-3.75"
+                    className="w-4 h-4"
                   />
                 )}
                 <a href={`tel:${contactInfo.phone.text.replace(/\s/g, '')}`} className='text-white text-[16px] font-normal hover:text-[#009BE2] transition-colors'>
@@ -313,7 +313,7 @@ const TopBar = ({ topBarData, storageUrl }) => {
                   <img
                     src={getImageSrc(contactInfo.hours.icon)}
                     alt={contactInfo.hours.alt || 'Hours'}
-                    className="w-[19.5px] h-3.75"
+                    className="w-4 h-4"
                   />
                 )}
                 <p className='text-white text-[16px] font-normal'>{contactInfo.hours.text}</p>

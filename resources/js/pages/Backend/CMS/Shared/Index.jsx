@@ -2,12 +2,12 @@
 // resources/js/pages/Backend/CMS/Shared/Index.jsx
 
 // React
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Head, router, usePage } from '@inertiajs/react';
 
 // Icons
 import { FaEdit } from 'react-icons/fa';
-import { FaSpinner, FaGlobe, FaChevronDown, FaChevronUp } from 'react-icons/fa6';
+import { FaSpinner, FaGlobe, FaChevronDown, FaChevronUp, FaExclamationTriangle } from 'react-icons/fa6';
 
 // SweetAlert
 import Swal from 'sweetalert2';
@@ -34,17 +34,24 @@ import EventsEditor from './Modals/EventsEditor';
 import StoriesEditor from './Modals/StoriesEditor';
 
 export default function SharedData({ sharedData }) {
-
-  // Props
+  // ============================================
+  // PROPS
+  // ============================================
   const { flash } = usePage().props;
 
-  // State
+  // ============================================
+  // STATE
+  // ============================================
   const [formData, setFormData] = useState({});
   const [loading, setLoading] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
   const [expandedSection, setExpandedSection] = useState(null);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
+  // ============================================
+  // CONFIG
+  // ============================================
   const typeConfig = {
     topbar: {
       label: 'Top Bar',
@@ -52,7 +59,8 @@ export default function SharedData({ sharedData }) {
       description: 'Contact info, language selector, social links',
       component: TopBar,
       editor: TopBarEditor,
-      preview: true
+      preview: true,
+      previewProps: (data) => ({ topBarData: data })
     },
     navbar: {
       label: 'Navigation Bar',
@@ -60,7 +68,8 @@ export default function SharedData({ sharedData }) {
       description: 'Logo, nav links, CTA button',
       component: Navbar,
       editor: NavbarEditor,
-      preview: true
+      preview: true,
+      previewProps: (data) => ({ navbarData: data, storageUrl: '/storage/' })
     },
     footer: {
       label: 'Footer',
@@ -68,7 +77,8 @@ export default function SharedData({ sharedData }) {
       description: 'Logo, links, social, newsletter, copyright',
       component: Footer,
       editor: FooterEditor,
-      preview: true
+      preview: true,
+      previewProps: (data) => ({ footerData: data, storageUrl: '/storage/' })
     },
     faq: {
       label: 'FAQ Section',
@@ -76,7 +86,8 @@ export default function SharedData({ sharedData }) {
       description: 'Frequently asked questions with answers',
       component: FAQSection,
       editor: FaqEditor,
-      preview: true
+      preview: true,
+      previewProps: (data) => ({ data })
     },
     'upcoming-events': {
       label: 'Upcoming Events',
@@ -84,7 +95,8 @@ export default function SharedData({ sharedData }) {
       description: 'Events listing with dates and descriptions',
       component: UpcomingEventsSection,
       editor: EventsEditor,
-      preview: true
+      preview: true,
+      previewProps: (data) => ({ data })
     },
     stories: {
       label: 'Stories Section',
@@ -92,25 +104,62 @@ export default function SharedData({ sharedData }) {
       description: 'Stories with images and descriptions',
       component: StoriesSection,
       editor: StoriesEditor,
-      preview: true
+      preview: true,
+      previewProps: (data) => ({ data })
     }
   };
 
+  // ============================================
+  // HANDLERS
+  // ============================================
   const toggleSection = (type) => {
     setExpandedSection(prev => prev === type ? null : type);
   };
 
   const openEdit = (item) => {
     setEditingItem(item);
-    setFormData(JSON.parse(JSON.stringify(item.data)));
+    setFormData(JSON.parse(JSON.stringify(item.data || {})));
     setIsUploading(false);
+    setHasUnsavedChanges(false);
   };
 
-  const closeEdit = () => {
-    setEditingItem(null);
-    setFormData({});
-    setIsUploading(false);
-  };
+  const closeEdit = useCallback(() => {
+    if (hasUnsavedChanges) {
+      Swal.fire({
+        title: 'Unsaved Changes',
+        text: 'You have unsaved changes. Are you sure you want to close?',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#ef4444',
+        cancelButtonColor: '#6b7280',
+        confirmButtonText: 'Yes, close without saving',
+        cancelButtonText: 'Keep editing',
+      }).then((result) => {
+        if (result.isConfirmed) {
+          setEditingItem(null);
+          setFormData({});
+          setIsUploading(false);
+          setHasUnsavedChanges(false);
+        }
+      });
+    } else {
+      setEditingItem(null);
+      setFormData({});
+      setIsUploading(false);
+      setHasUnsavedChanges(false);
+    }
+  }, [hasUnsavedChanges]);
+
+  // Close modal on ESC key
+  useEffect(() => {
+    const handleEsc = (e) => {
+      if (e.key === 'Escape' && editingItem) {
+        closeEdit();
+      }
+    };
+    window.addEventListener('keydown', handleEsc);
+    return () => window.removeEventListener('keydown', handleEsc);
+  }, [editingItem, closeEdit]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -134,14 +183,35 @@ export default function SharedData({ sharedData }) {
       preserveScroll: true,
       onSuccess: () => {
         setLoading(false);
+        setHasUnsavedChanges(false);
         closeEdit();
+
+        // Refresh the page data
+        Swal.fire({
+          icon: 'success',
+          title: 'Updated!',
+          text: 'Changes saved successfully.',
+          timer: 2000,
+          showConfirmButton: false,
+        });
       },
-      onError: () => setLoading(false),
+      onError: (errors) => {
+        setLoading(false);
+        Swal.fire({
+          icon: 'error',
+          title: 'Update Failed',
+          text: Object.values(errors).flat().join(' ') || 'Please check your input and try again.',
+          confirmButtonColor: '#3b82f6',
+        });
+      },
     });
   };
 
-  // Handle nested object updates
+  // ============================================
+  // FORM DATA UPDATE HELPERS
+  // ============================================
   const updateFormData = (path, value) => {
+    setHasUnsavedChanges(true);
     const keys = path.split('.');
     const newData = { ...formData };
     let current = newData;
@@ -154,8 +224,8 @@ export default function SharedData({ sharedData }) {
     setFormData(newData);
   };
 
-  // Handle array updates
   const addArrayItem = (path, template = {}) => {
+    setHasUnsavedChanges(true);
     const keys = path.split('.');
     const newData = { ...formData };
     let current = newData;
@@ -172,6 +242,7 @@ export default function SharedData({ sharedData }) {
   };
 
   const removeArrayItem = (path, index) => {
+    setHasUnsavedChanges(true);
     const keys = path.split('.');
     const newData = { ...formData };
     let current = newData;
@@ -188,15 +259,32 @@ export default function SharedData({ sharedData }) {
     setFormData(newData);
   };
 
+  // ============================================
+  // EFFECTS
+  // ============================================
   useEffect(() => {
     if (flash?.success) {
-      Swal.fire({ icon: 'success', title: 'Success', text: flash.success, timer: 2000, showConfirmButton: false });
+      Swal.fire({
+        icon: 'success',
+        title: 'Success',
+        text: flash.success,
+        timer: 3000,
+        showConfirmButton: false
+      });
     }
     if (flash?.error) {
-      Swal.fire({ icon: 'error', title: 'Error', text: flash.error });
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: flash.error,
+        confirmButtonColor: '#3b82f6',
+      });
     }
   }, [flash]);
 
+  // ============================================
+  // RENDER
+  // ============================================
   const EditorComponent = editingItem ? typeConfig[editingItem.type]?.editor : null;
   const isUpdateDisabled = loading || isUploading;
 
@@ -209,87 +297,138 @@ export default function SharedData({ sharedData }) {
         <div className="flex justify-between items-center mb-6">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Shared Data</h1>
-            <p className="text-sm text-gray-500">Manage shared content across the site (TopBar, Navbar, Footer, FAQ, Events, Stories)</p>
+            <p className="text-sm text-gray-500">
+              Manage shared content across the site (TopBar, Navbar, Footer, FAQ, Events, Stories)
+            </p>
+          </div>
+          <div className="text-xs text-gray-400">
+            {sharedData?.length || 0} items total
           </div>
         </div>
 
         {/* List of Shared Data Types */}
         <div className="space-y-4">
-          {sharedData.map((item) => {
-            const config = typeConfig[item.type];
-            if (!config) return null;
+          {sharedData?.length > 0 ? (
+            sharedData.map((item) => {
+              const config = typeConfig[item.type];
+              if (!config) return null;
 
-            const isExpanded = expandedSection === item.type;
+              const isExpanded = expandedSection === item.type;
+              const hasData = item.data && Object.keys(item.data).length > 0;
 
-            return (
-              <div key={item.id} className="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-200">
-                {/* Header */}
-                <div
-                  className="flex items-center justify-between p-4 cursor-pointer hover:bg-gray-50 transition"
-                  onClick={() => toggleSection(item.type)}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="text-blue-600 text-xl">{config.icon}</div>
-                    <div>
-                      <h3 className="font-semibold text-gray-900">{config.label}</h3>
-                      <p className="text-xs text-gray-500">{config.description}</p>
+              return (
+                <div key={item.id} className="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-200 transition-all">
+                  {/* Header */}
+                  <div
+                    className="flex items-center justify-between p-4 cursor-pointer hover:bg-gray-50 transition"
+                    onClick={() => toggleSection(item.type)}
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="text-blue-600 text-xl shrink-0">{config.icon}</div>
+                      <div className="min-w-0">
+                        <h3 className="font-semibold text-gray-900">{config.label}</h3>
+                        <p className="text-xs text-gray-500 truncate">{config.description}</p>
+                      </div>
                     </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span className={`px-2 py-1 rounded-full text-xs ${item.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
-                      {item.is_active ? 'Active' : 'Inactive'}
-                    </span>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        openEdit(item);
-                      }}
-                      className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition"
-                    >
-                      <FaEdit size={16} />
-                    </button>
-                    {isExpanded ? <FaChevronUp className="text-gray-400" /> : <FaChevronDown className="text-gray-400" />}
-                  </div>
-                </div>
-
-                {/* Preview Area */}
-                {isExpanded && (
-                  <div className="border-t border-gray-200 p-4 bg-gray-50 w-full">
-                    <div className="text-xs text-gray-400 mb-2">Preview:</div>
-                    <div className="bg-white rounded-lg shadow-sm overflow-hidden w-full">
-                      {config.component && config.preview && (
-                        <config.component
-                          {...(item.type === 'topbar' ? { topBarData: item.data } : {})}
-                          {...(item.type === 'navbar' ? { navbarData: item.data } : {})}
-                          {...(item.type === 'footer' ? { footerData: item.data } : {})}
-                          {...(item.type === 'faq' ? { data: item.data } : {})}
-                          {...(item.type === 'upcoming-events' ? { data: item.data } : {})}
-                          {...(item.type === 'stories' ? { data: item.data } : {})}
-                        />
+                    <div className="flex items-center gap-3 shrink-0">
+                      <span className={`px-2 py-1 rounded-full text-xs ${item.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'
+                        }`}>
+                        {item.is_active ? 'Active' : 'Inactive'}
+                      </span>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openEdit(item);
+                        }}
+                        className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition"
+                        title="Edit this item"
+                      >
+                        <FaEdit size={16} />
+                      </button>
+                      {isExpanded ? (
+                        <FaChevronUp className="text-gray-400" />
+                      ) : (
+                        <FaChevronDown className="text-gray-400" />
                       )}
                     </div>
                   </div>
-                )}
-              </div>
-            );
-          })}
+
+                  {/* Preview Area */}
+                  {isExpanded && (
+                    <div className="border-t border-gray-200 p-4 bg-gray-50 w-full">
+                      <div className="text-xs text-gray-400 mb-2 flex justify-between">
+                        <span>Preview:</span>
+                        {!hasData && (
+                          <span className="text-yellow-500 flex items-center gap-1">
+                            <FaExclamationTriangle size={12} />
+                            No data configured
+                          </span>
+                        )}
+                      </div>
+                      <div className="bg-white rounded-lg shadow-sm overflow-hidden w-full">
+                        {config.component && config.preview && hasData ? (
+                          <config.component
+                            {...config.previewProps(item.data)}
+                            key={item.id} // Force re-render on data change
+                          />
+                        ) : (
+                          <div className="p-8 text-center text-gray-400">
+                            <p className="text-sm">No preview available</p>
+                            <p className="text-xs mt-1">Click Edit to configure this section</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })
+          ) : (
+            <div className="text-center py-12 bg-white rounded-xl border border-gray-200">
+              <p className="text-gray-500">No shared data items found.</p>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* EDIT MODAL - Dynamic */}
+      {/* ============================================
+          EDIT MODAL - Dynamic
+          ============================================ */}
       {editingItem && EditorComponent && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+        <div
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) closeEdit();
+          }}
+        >
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-6xl max-h-[90vh] overflow-y-auto">
             {/* Modal Header */}
             <div className="flex justify-between items-center p-6 border-b border-gray-200 sticky top-0 bg-white z-10">
-              <h2 className="text-xl font-bold">
-                Edit {typeConfig[editingItem.type]?.label || editingItem.type}
-              </h2>
-              <button onClick={closeEdit} className="p-2 hover:bg-gray-100 rounded-lg transition">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
+              <div>
+                <h2 className="text-xl font-bold">
+                  Edit {typeConfig[editingItem.type]?.label || editingItem.type}
+                </h2>
+                <p className="text-xs text-gray-500 mt-1">
+                  {typeConfig[editingItem.type]?.description}
+                </p>
+              </div>
+              <div className="flex items-center gap-3">
+                {hasUnsavedChanges && (
+                  <span className="text-xs text-yellow-600 flex items-center gap-1">
+                    <span className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse" />
+                    Unsaved
+                  </span>
+                )}
+                <button
+                  onClick={closeEdit}
+                  className="p-2 hover:bg-gray-100 rounded-lg transition"
+                  aria-label="Close modal"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
             </div>
 
             {/* Form */}
@@ -304,7 +443,7 @@ export default function SharedData({ sharedData }) {
               />
 
               {/* Form Actions */}
-              <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 sticky bottom-0 bg-white">
+              <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 sticky bottom-0 bg-white py-4">
                 <button
                   type="button"
                   onClick={closeEdit}
@@ -316,11 +455,22 @@ export default function SharedData({ sharedData }) {
                 <button
                   type="submit"
                   disabled={isUpdateDisabled}
-                  className={`px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center gap-2 ${isUpdateDisabled ? 'opacity-50 cursor-not-allowed' : ''
+                  className={`px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center gap-2 ${isUpdateDisabled ? 'opacity-50 cursor-not-allowed' : ''
                     }`}
                 >
-                  {loading ? <FaSpinner className="animate-spin" size={16} /> : <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>}
-                  {isUploading ? 'Uploading...' : loading ? 'Updating...' : 'Update'}
+                  {loading ? (
+                    <>
+                      <FaSpinner className="animate-spin" size={16} />
+                      {isUploading ? 'Uploading...' : 'Saving...'}
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      {isUploading ? 'Uploading...' : 'Save Changes'}
+                    </>
+                  )}
                 </button>
               </div>
             </form>

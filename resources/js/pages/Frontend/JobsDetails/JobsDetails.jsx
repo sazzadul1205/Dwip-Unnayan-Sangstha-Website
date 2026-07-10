@@ -1,7 +1,7 @@
 // resources/js/Pages/Frontend/JobsDetails/JobsDetails.jsx
 
 // React
-import { Head } from '@inertiajs/react';
+import { Head, usePage } from '@inertiajs/react';
 import React, { useState, useEffect } from 'react';
 
 // Axios
@@ -362,8 +362,9 @@ const JobsDetails = ({
   pageData: pageDataProp,
   ...pageData
 }) => {
-
-  const slug = window.location.pathname.split('/').pop();
+  // Get slug from Inertia route parameters or from URL
+  const { page } = usePage();
+  const slug = page.props.pageSlug || window.location.pathname.split('/').pop();
 
   // State for job data
   const [jobData, setJobData] = useState(null);
@@ -398,7 +399,6 @@ const JobsDetails = ({
   // Use the data from the correct nesting
   const actualPageData = pageDataProp || pageData || {};
 
-
   // Get banner data from page data
   const bannerData = actualPageData.bannerData;
 
@@ -420,7 +420,6 @@ const JobsDetails = ({
         />
       );
     }
-    // console.log(jobData);
 
     if (component === 'JobContentSection') {
       return (

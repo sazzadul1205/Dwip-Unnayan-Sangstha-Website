@@ -170,6 +170,51 @@ const StoriesSection = ({
   }
 
   // ============================================
+  // HELPER: Determine gradient colors based on bgColor
+  // ============================================
+  const getGradientClass = (direction) => {
+    // Map common bg colors to their gradient equivalents
+    const gradientMap = {
+      'bg-[#F5F5F5]': {
+        left: 'from-[#F5F5F5]',
+        right: 'to-[#F5F5F5]'
+      },
+      'bg-white': {
+        left: 'from-white',
+        right: 'to-white'
+      },
+      'bg-gray-50': {
+        left: 'from-gray-50',
+        right: 'to-gray-50'
+      },
+      'bg-gray-100': {
+        left: 'from-gray-100',
+        right: 'to-gray-100'
+      }
+    };
+
+    // If we have a mapping, use it
+    if (gradientMap[bgColor]) {
+      return direction === 'left'
+        ? gradientMap[bgColor].left
+        : gradientMap[bgColor].right;
+    }
+
+    // Fallback: try to extract the color from bgColor
+    const colorMatch = bgColor.match(/bg-\[(#[0-9a-fA-F]+)\]/);
+    if (colorMatch) {
+      const color = colorMatch[1];
+      return direction === 'left' ? `from-[${color}]` : `to-[${color}]`;
+    }
+
+    // Default fallback
+    return direction === 'left' ? 'from-[#F5F5F5]' : 'to-[#F5F5F5]';
+  };
+
+  const leftGradientClass = getGradientClass('left');
+  const rightGradientClass = getGradientClass('right');
+
+  // ============================================
   // RENDER
   // ============================================
   return (
@@ -223,6 +268,7 @@ const StoriesSection = ({
                     src={story.image}
                     alt={story.title || "Story image"}
                     className='h-48 sm:h-56 md:h-72 lg:h-86.75 rounded-2xl mx-auto object-cover w-full'
+                    loading="lazy"
                   />
                 )}
 
@@ -267,8 +313,12 @@ const StoriesSection = ({
 
           {/* Scroll hint indicator - Only show if there are stories */}
           <div className="relative mt-5 pointer-events-none hidden md:block">
-            <div className={`absolute left-0 top-0 bottom-0 w-8 sm:w-10 lg:w-12 bg-linear-to-r from-${bgColor.replace('bg-', '')} to-transparent`} />
-            <div className={`absolute right-0 top-0 bottom-0 w-8 sm:w-10 lg:w-12 bg-linear-to-l from-${bgColor.replace('bg-', '')} to-transparent`} />
+            <div
+              className={`absolute left-0 top-0 bottom-0 w-8 sm:w-10 lg:w-12 bg-linear-to-r ${leftGradientClass} to-transparent`}
+            />
+            <div
+              className={`absolute right-0 top-0 bottom-0 w-8 sm:w-10 lg:w-12 bg-linear-to-l ${rightGradientClass} from-transparent`}
+            />
           </div>
         </>
       )}

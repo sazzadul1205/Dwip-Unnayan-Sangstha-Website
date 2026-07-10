@@ -1,24 +1,11 @@
 // js/Sections/OurProgramsSection/OurProgramsSection.jsx
 
 // React
-import React, { useRef, useEffect, useState } from "react";
+import React, { useRef, useEffect, useState, useMemo, useCallback } from "react";
 
 // Arrow Icon
 import ArrowIcon from "../../Shared/ArrowIcon";
-
-// Utility function to check if value exists
-const hasValue = (value) => {
-  if (value === undefined || value === null) return false;
-  if (typeof value === 'string') return value.trim().length > 0;
-  if (Array.isArray(value)) return value.length > 0;
-  if (typeof value === 'object') return Object.keys(value).length > 0;
-  return true;
-};
-
-// Generate placeholder image URL
-const getPlaceholderImage = (width = 800, height = 600, text = 'Program') => {
-  return `https://via.placeholder.com/${width}x${height}/009BE2/FFFFFF?text=${encodeURIComponent(text)}`;
-};
+import { hasValue, getPlaceholderImage, normalizeData, sanitizeHTML } from '../../utils/sectionHelpers';
 
 // ============================================
 // DEFAULT SECTION DATA
@@ -34,138 +21,91 @@ const DEFAULT_SECTION = {
 
 /**
  * OurProgramsSection Component
- * 
- * @param {Object} props
- * @param {Array|Object} props.data - Our Programs data from API (from DynamicSectionRenderer)
- * @param {Object} props.programsData - Our Programs data from API (direct prop)
- * @param {number} props.limit - Number of programs to display (optional)
- * @param {boolean} props.showFeatured - Only show featured programs (optional)
- * @param {boolean} props.showHeader - Show/hide the header section (optional, defaults to true)
- * @param {string} props.bgColor - Background color (optional)
- * @param {string} props.paddingY - Vertical padding classes
- * @param {string} props.paddingX - Horizontal padding classes
- * @param {string} props.sectionClassName - Additional CSS classes
- * 
- * @returns {JSX.Element} Rendered our programs section
  */
 const OurProgramsSection = ({
-  data,           // From DynamicSectionRenderer
-  programsData,   // Direct prop (legacy support)
-  limit,          // Custom prop: limit number of programs to show
-  showFeatured,   // Custom prop: only show featured programs
-  showHeader = true, // NEW: Show/hide header (defaults to true)
+  data,
+  programsData,
+  limit,
+  showFeatured,
+  showHeader = true,
   bgColor = 'bg-white',
   paddingY = 'py-12 sm:py-16 lg:py-20',
   paddingX = 'px-5 sm:px-10 md:px-20 lg:px-50',
   sectionClassName = '',
 }) => {
   // ============================================
-  // HOOKS - Must be called unconditionally at the top
+  // HOOKS - Must be called before any early returns
   // ============================================
   const [visibleCards, setVisibleCards] = useState([]);
   const [imageErrors, setImageErrors] = useState({});
   const cardsRef = useRef([]);
 
   // ============================================
-  // EFFECT: Handle card visibility - Must be before any conditional returns
+  // RESOLVE DATA WITH useMemo
   // ============================================
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          const cardId = parseInt(entry.target.getAttribute("data-id"));
+  const { programs, section } = useMemo(() => {
+    let resolvedData = data || programsData;
 
-          if (entry.isIntersecting) {
-            setVisibleCards((prev) => {
-              if (!prev.includes(cardId)) {
-                return [...prev, cardId];
-              }
-              return prev;
-            });
-          }
-        });
-      },
-      {
-        threshold: 0.25,
-      }
-    );
+    if (!hasValue(resolvedData)) {
+      return { programs: [], section: { ...DEFAULT_SECTION } };
+    }
 
-    cardsRef.current.forEach((card) => {
-      if (card) observer.observe(card);
-    });
+    resolvedData = normalizeData(resolvedData);
 
-    return () => observer.disconnect();
-  }, []); // Empty dependency array - runs once on mount
+    let programs = [];
+    let section = { ...DEFAULT_SECTION };
 
-  // ============================================
-  // RESOLVE DATA - After hooks
-  // ============================================
-  let resolvedData = data || programsData;
-
-  // ============================================
-  // EARLY RETURN - No data (after hooks)
-  // ============================================
-  if (!hasValue(resolvedData)) {
-    return null;
-  }
-
-  // ============================================
-  // NORMALIZE DATA STRUCTURE
-  // ============================================
-  if (resolvedData.data && typeof resolvedData.data === 'object') {
-    resolvedData = resolvedData.data;
-  }
-
-  // ============================================
-  // HANDLE DIFFERENT DATA STRUCTURES
-  // ============================================
-  let programs = [];
-  let section = {};
-
-  if (Array.isArray(resolvedData)) {
-    programs = resolvedData;
-    section = { ...DEFAULT_SECTION };
-  } else if (resolvedData.programs && Array.isArray(resolvedData.programs)) {
-    programs = resolvedData.programs;
-    section = { ...DEFAULT_SECTION, ...(resolvedData.section || {}) };
-  } else {
-    const arrayKeys = Object.keys(resolvedData).filter(key => Array.isArray(resolvedData[key]));
-    if (arrayKeys.length > 0) {
-      programs = resolvedData[arrayKeys[0]];
+    if (Array.isArray(resolvedData)) {
+      programs = resolvedData;
+    } else if (resolvedData.programs && Array.isArray(resolvedData.programs)) {
+      programs = resolvedData.programs;
       section = { ...DEFAULT_SECTION, ...(resolvedData.section || {}) };
     } else {
-      section = { ...DEFAULT_SECTION };
+      // Try to find any array property
+      const arrayKeys = Object.keys(resolvedData).filter(key => Array.isArray(resolvedData[key]));
+      if (arrayKeys.length > 0) {
+        programs = resolvedData[arrayKeys[0]];
+        section = { ...DEFAULT_SECTION, ...(resolvedData.section || {}) };
+      }
     }
-  }
+
+    return { programs, section };
+  }, [data, programsData]);
 
   // ============================================
-  // APPLY FILTERS (limit, showFeatured)
+  // APPLY FILTERS USING useMemo
   // ============================================
-  let filteredPrograms = [...programs];
+  const filteredPrograms = useMemo(() => {
+    let filtered = [...programs];
 
-  if (showFeatured === true || showFeatured === 'true') {
-    filteredPrograms = filteredPrograms.filter(program => program.is_featured === true || program.is_featured === 1);
-  }
+    if (showFeatured === true || showFeatured === 'true') {
+      filtered = filtered.filter(program =>
+        program.is_featured === true || program.is_featured === 1
+      );
+    }
 
-  if (limit && parseInt(limit) > 0) {
-    const limitNum = parseInt(limit);
-    filteredPrograms = filteredPrograms.slice(0, limitNum);
-  }
+    if (limit && parseInt(limit) > 0) {
+      const limitNum = parseInt(limit);
+      filtered = filtered.slice(0, limitNum);
+    }
+
+    return filtered;
+  }, [programs, showFeatured, limit]);
 
   // ============================================
   // FUNCTION: Strip HTML tags and get plain text
   // ============================================
-  const stripHtmlTags = (html) => {
+  const stripHtmlTags = useCallback((html) => {
     if (!html) return '';
     const temp = document.createElement('div');
     temp.innerHTML = html;
     return temp.textContent || temp.innerText || '';
-  };
+  }, []);
 
   // ============================================
   // FUNCTION: Truncate HTML content to ~9 lines
   // ============================================
-  const truncateHtml = (html, maxLines = 9) => {
+  const truncateHtml = useCallback((html, maxLines = 9) => {
     if (!html) return '';
 
     const plainText = stripHtmlTags(html);
@@ -181,16 +121,16 @@ const OurProgramsSection = ({
     truncatedText = `${truncatedText}...`;
 
     return `<p class="font-400 text-[16px] sm:text-[18px] lg:text-[20px] text-[#524B48] leading-relaxed">${truncatedText}</p>`;
-  };
+  }, [stripHtmlTags]);
 
   // ============================================
   // IMAGE HANDLING
   // ============================================
-  const handleImageError = (programId) => {
+  const handleImageError = useCallback((programId) => {
     setImageErrors(prev => ({ ...prev, [programId]: true }));
-  };
+  }, []);
 
-  const getImageSrc = (program) => {
+  const getImageSrc = useCallback((program) => {
     if (imageErrors[program.id]) {
       return getPlaceholderImage(800, 600, program.title || 'Program');
     }
@@ -198,18 +138,48 @@ const OurProgramsSection = ({
       return program.image;
     }
     return getPlaceholderImage(800, 600, program.title || 'Program');
-  };
+  }, [imageErrors]);
 
   // ============================================
-  // CHECK FOR CONTENT
+  // EFFECT: Handle card visibility
   // ============================================
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          const cardId = parseInt(entry.target.getAttribute("data-id"));
+          if (entry.isIntersecting) {
+            setVisibleCards((prev) => {
+              if (!prev.includes(cardId)) {
+                return [...prev, cardId];
+              }
+              return prev;
+            });
+          }
+        });
+      },
+      {
+        threshold: 0.25,
+      }
+    );
+
+    const currentCards = cardsRef.current;
+    currentCards.forEach((card) => {
+      if (card) observer.observe(card);
+    });
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [filteredPrograms]); // Re-run when filteredPrograms changes
+
+  // ============================================
+  // EARLY RETURN - No data
+  // ============================================
+  // Check after all hooks have been called
   const hasTitle = hasValue(section.title);
   const hasDescription = hasValue(section.description);
   const hasButton = hasValue(section.button?.text);
-
-  // Use showHeader prop to control header visibility
-  // If showHeader is explicitly set to false, hide it
-  // Otherwise, show it if there's content
   const shouldShowHeader = showHeader && (hasTitle || hasDescription || hasButton);
   const hasPrograms = hasValue(filteredPrograms);
 
@@ -225,7 +195,7 @@ const OurProgramsSection = ({
       id="our-programs"
       className={`${bgColor} ${paddingX} ${paddingY} ${sectionClassName}`}
     >
-      {/* Header - Controlled by showHeader prop */}
+      {/* Header */}
       {shouldShowHeader && (
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center pb-8 sm:pb-10 lg:pb-15 gap-5">
           {(hasTitle || hasDescription) && (
@@ -311,7 +281,7 @@ const OurProgramsSection = ({
                       {hasValue(descriptionHtml) && (
                         <div
                           className="bricolage-grotesque font-400 text-[16px] sm:text-[18px] lg:text-[20px] text-[#524B48] leading-relaxed line-clamp-9"
-                          dangerouslySetInnerHTML={{ __html: truncatedDescription }}
+                          dangerouslySetInnerHTML={{ __html: sanitizeHTML(truncatedDescription) }}
                         />
                       )}
                       {hasValue(program.link) && (

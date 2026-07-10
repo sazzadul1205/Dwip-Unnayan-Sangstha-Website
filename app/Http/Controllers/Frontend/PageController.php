@@ -4,6 +4,7 @@
 namespace App\Http\Controllers\Frontend;
 
 use App\Http\Controllers\Controller;
+use App\Models\JobListing;
 use App\Services\ContentService;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
@@ -146,8 +147,6 @@ class PageController extends Controller
     // Or use a prefix pattern:
     $this->clearFrontendCache();
   }
-
-    // ... rest of your existing methods (getPageBySlug, resolveConfigSlug, etc.)
 
   /**
    * Get page by slug from database
@@ -317,11 +316,24 @@ class PageController extends Controller
     // Jobs with caching
     if (!empty($needs['jobs'])) {
       $data['jobs'] = Cache::remember('frontend_jobs', $this->getCacheDuration(), function () {
-        return \App\Models\JobListing::active()
+        return JobListing::active()
           ->orderBy('views_count', 'desc')
           ->limit(5)
           ->get();
       });
+    }
+
+    // Job details (for detail pages)
+    if (!empty($needs['job_details']) && $detailSlug) {
+      $data['job_details'] = Cache::remember(
+        'frontend_job_detail_' . $detailSlug,
+        $this->getCacheDuration(),
+        function () use ($detailSlug) {
+          return JobListing::where('slug', $detailSlug)
+            ->with(['category', 'locations', 'employer'])
+            ->first();
+        }
+      );
     }
 
     // Publications with caching
@@ -390,7 +402,6 @@ class PageController extends Controller
    */
   private function buildPageData(Collection $sectionConfigs, array $fetchedData, string $pageSlug, ?string $detailSlug): array
   {
-    // ... (keep your existing buildPageData method)
     $pageData = [];
 
     foreach ($sectionConfigs as $config) {
@@ -427,6 +438,11 @@ class PageController extends Controller
         case 'jobs':
           if (isset($fetchedData['jobs'])) {
             $pageData[$dataKey] = $fetchedData['jobs'];
+          }
+          break;
+        case 'job_details':
+          if (isset($fetchedData['job_details'])) {
+            $pageData[$dataKey] = $fetchedData['job_details'];
           }
           break;
         case 'publications':
@@ -477,6 +493,12 @@ class PageController extends Controller
           break;
         case 'publications':
           $pageData['publicationData'] = $this->normalizePublicationDetail($detail);
+          break;
+        case 'jobs':
+          // If job_details was already set, use it; otherwise set from detail
+          if (!isset($pageData['jobData']) && !isset($pageData['job_details'])) {
+            $pageData['jobData'] = $this->normalizeJobDetail($detail);
+          }
           break;
         default:
           $pageData['detailData'] = $detail;
@@ -604,6 +626,46 @@ class PageController extends Controller
         'views' => $detail->views ?? 0,
         'isFeatured' => (bool) ($detail->is_featured ?? false),
         'isActive' => (bool) ($detail->is_active ?? false),
+      ];
+    }
+
+    return $detail;
+  }
+
+  /**
+   * Normalize job detail data to the shape expected by the frontend.
+   */
+  private function normalizeJobDetail(Model|array $detail): array
+  {
+    if ($detail instanceof Model) {
+      return [
+        'id' => $detail->id,
+        'slug' => $detail->slug,
+        'title' => $detail->title,
+        'description' => $detail->description,
+        'requirements' => $detail->requirements,
+        'responsibilities' => $detail->responsibilities,
+        'benefits' => $detail->benefits,
+        'skills' => $detail->skills,
+        'salary_range' => $detail->salary_range,
+        'job_type' => $detail->job_type,
+        'job_type_label' => $detail->job_type_label,
+        'experience_level' => $detail->experience_level,
+        'experience_level_label' => $detail->experience_level_label,
+        'application_deadline' => $detail->application_deadline,
+        'how_to_apply' => $detail->how_to_apply,
+        'apply_link' => $detail->apply_link,
+        'is_remote' => $detail->is_remote,
+        'education_requirement' => $detail->education_requirement,
+        'views_count' => $detail->views_count,
+        'is_active' => $detail->is_active,
+        'image' => $detail->image,
+        'employer' => $detail->employer?->name,
+        'category' => $detail->category?->name,
+        'locations' => $detail->locations?->map(function ($location) {
+          return ['name' => $location->name];
+        }) ?? [],
+        'isExpired' => $detail->isExpired ? $detail->isExpired() : false,
       ];
     }
 

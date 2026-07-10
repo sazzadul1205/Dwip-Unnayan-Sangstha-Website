@@ -6,67 +6,36 @@ import React, { useState } from 'react';
 // Arrow Icon
 import ArrowIcon from '../../Shared/ArrowIcon';
 
-// Utility function to check if value exists
-const hasValue = (value) => {
-  if (value === undefined || value === null) return false;
-  if (typeof value === 'string') return value.trim().length > 0;
-  if (Array.isArray(value)) return value.length > 0;
-  if (typeof value === 'object') return Object.keys(value).length > 0;
-  return true;
-};
-
-// Generate placeholder image URL
-const getPlaceholderImage = (width = 800, height = 600, text = 'About Us') => {
-  return `https://via.placeholder.com/${width}x${height}/009BE2/FFFFFF?text=${encodeURIComponent(text)}`;
-};
+// Shared utilities
+import { hasValue, getPlaceholderImage, normalizeData } from '../../utils/sectionHelpers';
 
 /**
  * AboutUsSection Component
- * 
- * @param {Object} props
- * @param {Object} props.data - About Us data from API (from DynamicSectionRenderer)
- * @param {Object} props.aboutUsData - About Us data from API (direct prop)
- * @param {string} props.bgColor - Background color (optional)
- * @param {string} props.paddingY - Vertical padding classes
- * @param {string} props.paddingX - Horizontal padding classes
- * @param {string} props.sectionClassName - Additional CSS classes
- * 
- * @returns {JSX.Element} Rendered about us section
  */
 const AboutUsSection = ({
-  data,           // From DynamicSectionRenderer
-  aboutUsData,    // Direct prop (legacy support)
+  data,
+  aboutUsData,
   bgColor = 'bg-white',
   paddingY = 'py-10 sm:py-15 md:py-25 lg:py-37.5',
   paddingX = 'px-5 sm:px-10 md:px-20 lg:px-50',
   sectionClassName = '',
 }) => {
   // ============================================
-  // HOOKS MUST BE CALLED AT THE TOP LEVEL
+  // HOOKS
   // ============================================
   const [imageError, setImageError] = useState(false);
 
   // ============================================
   // PROCESS DATA
   // ============================================
-  // Use data prop if available, fallback to aboutUsData
   let resolvedData = data || aboutUsData;
 
-  // ============================================
-  // EARLY RETURN - No data
-  // ============================================
   if (!hasValue(resolvedData)) {
     return null;
   }
 
-  // ============================================
-  // NORMALIZE DATA STRUCTURE
-  // ============================================
-  // Check if the data is wrapped in a 'data' property
-  // This happens when the API returns { id, page_slug, section_key, data: { ... } }
-  if (resolvedData.data && typeof resolvedData.data === 'object') {
-    resolvedData = resolvedData.data;
-  }
+  // Normalize data structure
+  resolvedData = normalizeData(resolvedData);
 
   // ============================================
   // SAFE DESTRUCTURING WITH DEFAULTS
@@ -97,18 +66,14 @@ const AboutUsSection = ({
   // ============================================
   // IMAGE HANDLING
   // ============================================
-  // Determine if we should use placeholder
   const usePlaceholder = !hasValue(image.src) || imageError;
 
-  // Get image source
   const imageSrc = usePlaceholder
     ? getPlaceholderImage(800, 600, section.title || 'About Us')
     : image.src;
 
-  // Get image alt text
   const imageAlt = image.alt || (section.title ? `${section.title} - About Us` : 'About us image');
 
-  // Handle image error
   const handleImageError = () => {
     setImageError(true);
   };
@@ -127,21 +92,18 @@ const AboutUsSection = ({
         {/* About Section */}
         {(hasValue(section.title) || hasValue(section.description) || hasValue(section.button?.text)) && (
           <div>
-            {/* About Title */}
             {hasValue(section.title) && (
               <h1 className='bricolage-grotesque font-800 text-[32px] sm:text-[36px] lg:text-[40px] text-black pb-4 lg:pb-6'>
                 {section.title}
               </h1>
             )}
 
-            {/* About Description */}
             {hasValue(section.description) && (
               <p className='bricolage-grotesque font-400 text-[16px] sm:text-[18px] lg:text-[20px] text-[#515151] leading-snug pb-6 lg:pb-7.5'>
                 {section.description}
               </p>
             )}
 
-            {/* About Button */}
             {hasValue(section.button?.text) && (
               <button
                 onClick={() => {
@@ -161,14 +123,12 @@ const AboutUsSection = ({
         {/* Mission Section */}
         {(hasValue(mission.title) || hasValue(mission.items)) && (
           <div>
-            {/* Mission Title */}
             {hasValue(mission.title) && (
               <h1 className='bricolage-grotesque font-600 text-[20px] sm:text-[22px] lg:text-[24px] text-[#080C14] pb-4 lg:pb-6'>
                 {mission.title}
               </h1>
             )}
 
-            {/* Mission Items Grid */}
             {hasValue(mission.items) && (
               <div className='grid grid-cols-1 sm:grid-cols-2 gap-3 lg:gap-2.5'>
                 {mission.items.map((item) => (
@@ -202,14 +162,12 @@ const AboutUsSection = ({
         {/* Impact Section */}
         {(hasValue(impact.title) || hasValue(impact.stats)) && (
           <div>
-            {/* Impact Title */}
             {hasValue(impact.title) && (
               <h1 className='bricolage-grotesque font-600 text-[20px] sm:text-[22px] lg:text-[24px] text-[#080C14] pb-4 lg:pb-6'>
                 {impact.title}
               </h1>
             )}
 
-            {/* Impact Stats Grid */}
             {hasValue(impact.stats) && (
               <div className='grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 lg:gap-5 rounded-md'>
                 {impact.stats.map((stat) => (

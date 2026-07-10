@@ -30,19 +30,25 @@
  *   OurProgramLinkIcon: string
  * }
  * 
- * RESPONSIVE BEHAVIOR:
- * - Desktop: Full layout with side-by-side columns
- * - Mobile: Accordion for Quick Links and Programs
- * 
  * ============================================
  */
 
 // React
 import { Link } from '@inertiajs/react';
-import React, { useState } from 'react';
+import React, { useState, useCallback, memo } from 'react';
 
 // Icons
-import { FaFacebook, FaInstagram, FaLinkedin, FaXTwitter } from 'react-icons/fa6';
+import {
+  FaFacebook,
+  FaInstagram,
+  FaLinkedin,
+  FaXTwitter,
+  FaYoutube,
+  FaTiktok,
+  FaPinterest,
+  FaWhatsapp,
+  FaTelegram
+} from 'react-icons/fa6';
 
 // ============================================
 // UTILITY: Check if value exists
@@ -56,14 +62,46 @@ const hasValue = (value) => {
 };
 
 // ============================================
-// ICON MAPPING
+// ICON MAPPING - Extended with common social icons
 // ============================================
-// Maps icon names from API to React components
 const iconMap = {
   FaFacebook,
   FaInstagram,
   FaLinkedin,
-  FaXTwitter
+  FaXTwitter,
+  FaYoutube,
+  FaTiktok,
+  FaPinterest,
+  FaWhatsapp,
+  FaTelegram,
+  // Aliases for common variations
+  facebook: FaFacebook,
+  instagram: FaInstagram,
+  linkedin: FaLinkedin,
+  twitter: FaXTwitter,
+  youtube: FaYoutube,
+  tiktok: FaTiktok,
+  pinterest: FaPinterest,
+  whatsapp: FaWhatsapp,
+  telegram: FaTelegram,
+};
+
+/**
+ * Helper: Get icon component by name
+ */
+const getIconComponent = (iconName) => {
+  if (!iconName) return null;
+  // Try direct match first, then case-insensitive match
+  if (iconMap[iconName]) return iconMap[iconName];
+
+  // Try case-insensitive match
+  const lowerName = iconName.toLowerCase();
+  for (const [key, value] of Object.entries(iconMap)) {
+    if (key.toLowerCase() === lowerName) {
+      return value;
+    }
+  }
+  return null;
 };
 
 /**
@@ -72,23 +110,149 @@ const iconMap = {
  * @param {Object} props
  * @param {Object} props.footerData - Footer configuration data
  * @param {string} props.storageUrl - Base URL for image storage
+ * @param {string} props.defaultLogo - Fallback logo URL
  * 
  * @returns {JSX.Element} Rendered footer
  */
-const Footer = ({ footerData, storageUrl = '' }) => {
+const Footer = ({ footerData, storageUrl = '', defaultLogo = '/images/default-logo.png' }) => {
   // ============================================
-  // STATE
+  // STATE - All hooks must be called unconditionally
   // ============================================
   const [email, setEmail] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitMessage, setSubmitMessage] = useState('');
+  const [submitMessageType, setSubmitMessageType] = useState(''); // 'success' | 'error'
+  const [logoError, setLogoError] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState({
     quickLinks: false,
     programs: false
   });
 
   // ============================================
-  // EARLY RETURN - No data
+  // HOOKS - All useCallback must be called before early return
+  // ============================================
+
+  /**
+   * Build image URL with storage path
+   */
+  const getImageSrc = useCallback((imagePath) => {
+    if (!imagePath) return null;
+    if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
+      return imagePath;
+    }
+    if (imagePath.startsWith('/storage/')) {
+      return imagePath;
+    }
+    if (imagePath.startsWith('/asset/')) {
+      return imagePath;
+    }
+    if (storageUrl) {
+      const cleanPath = imagePath.startsWith('/') ? imagePath.slice(1) : imagePath;
+      return `${storageUrl}${cleanPath}`;
+    }
+    return imagePath;
+  }, [storageUrl]);
+
+  /**
+   * Handle logo image error
+   */
+  const handleLogoError = useCallback(() => {
+    setLogoError(true);
+  }, []);
+
+  /**
+   * Toggle mobile accordion sections
+   */
+  const toggleMobileSection = useCallback((section) => {
+    setIsMobileMenuOpen(prev => ({
+      ...prev,
+      [section]: !prev[section]
+    }));
+  }, []);
+
+  /**
+   * Handle newsletter subscription
+   */
+  const handleSubscribe = useCallback(async (e) => {
+    e.preventDefault();
+
+    // Validate email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!email || !emailRegex.test(email)) {
+      setSubmitMessage('Please enter a valid email address');
+      setSubmitMessageType('error');
+      setTimeout(() => {
+        setSubmitMessage('');
+        setSubmitMessageType('');
+      }, 4000);
+      return;
+    }
+
+    setIsSubmitting(true);
+    setSubmitMessage('');
+    setSubmitMessageType('');
+
+    try {
+      // TODO: Replace with actual API endpoint
+      const response = await fetch('/api/newsletter/subscribe', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+        },
+        body: JSON.stringify({ email }),
+      });
+
+      if (response.ok) {
+        setSubmitMessage('Successfully subscribed to our newsletter! 🎉');
+        setSubmitMessageType('success');
+        setEmail('');
+      } else {
+        const data = await response.json().catch(() => ({}));
+        setSubmitMessage(data.message || 'Subscription failed. Please try again.');
+        setSubmitMessageType('error');
+      }
+    } catch (error) {
+      console.error('Newsletter subscription error:', error);
+      setSubmitMessage('Unable to subscribe at this time. Please try again later.');
+      setSubmitMessageType('error');
+    } finally {
+      setIsSubmitting(false);
+      setTimeout(() => {
+        setSubmitMessage('');
+        setSubmitMessageType('');
+      }, 5000);
+    }
+  }, [email]);
+
+  /**
+   * Render link with icon
+   */
+  const renderLinkWithIcon = useCallback((link, iconSrc, index) => {
+    const iconUrl = getImageSrc(iconSrc);
+    return (
+      <li key={index} className='flex items-center group'>
+        {hasValue(iconSrc) && iconUrl && (
+          <img
+            src={iconUrl}
+            alt=""
+            className='mr-3 w-2.5 h-auto opacity-70 group-hover:opacity-100 transition-opacity'
+            aria-hidden="true"
+            loading="lazy"
+          />
+        )}
+        <Link
+          href={link.url}
+          className="hover:text-[#009BE2] transition-colors cursor-pointer text-white font-400 text-[14px]"
+        >
+          {link.name}
+        </Link>
+      </li>
+    );
+  }, [getImageSrc]);
+
+  // ============================================
+  // EARLY RETURN - After all hooks
   // ============================================
   if (!hasValue(footerData)) return null;
 
@@ -131,68 +295,12 @@ const Footer = ({ footerData, storageUrl = '' }) => {
   }
 
   // ============================================
-  // HELPERS
+  // COMPUTED VALUES
   // ============================================
-
-  /**
-   * Build image URL with storage path
-   */
-  const getImageSrc = (imagePath) => {
-    if (!imagePath) return null;
-    if (imagePath.startsWith('http')) return imagePath;
-    if (storageUrl) return `${storageUrl}${imagePath.startsWith('/') ? '' : '/'}${imagePath}`;
-    return imagePath;
-  };
-
-  /**
-   * Split programs into two columns for desktop
-   */
+  const logoUrl = logoError ? defaultLogo : (getImageSrc(logo.src) || defaultLogo);
   const itemsPerColumn = hasPrograms ? Math.ceil(programs.length / 2) : 0;
   const firstProgramColumn = hasPrograms ? programs.slice(0, itemsPerColumn) : [];
   const secondProgramColumn = hasPrograms ? programs.slice(itemsPerColumn) : [];
-
-  /**
-   * Toggle mobile accordion sections
-   */
-  const toggleMobileSection = (section) => {
-    setIsMobileMenuOpen(prev => ({
-      ...prev,
-      [section]: !prev[section]
-    }));
-  };
-
-  /**
-   * Handle newsletter subscription
-   * Currently simulates API call with timeout
-   * TODO: Connect to actual newsletter API endpoint
-   */
-  const handleSubscribe = (e) => {
-    e.preventDefault();
-
-    // Validate email
-    if (!email || !email.includes('@')) {
-      setSubmitMessage('Please enter a valid email address');
-      setTimeout(() => setSubmitMessage(''), 3000);
-      return;
-    }
-
-    setIsSubmitting(true);
-
-    try {
-      // Simulate API call
-      setTimeout(() => {
-        setSubmitMessage('Successfully subscribed!');
-        setEmail('');
-        setIsSubmitting(false);
-        setTimeout(() => setSubmitMessage(''), 3000);
-      }, 1000);
-    } catch (error) {
-      console.error(error);
-      setSubmitMessage('Subscription failed. Please try again.');
-      setIsSubmitting(false);
-      setTimeout(() => setSubmitMessage(''), 3000);
-    }
-  };
 
   // ============================================
   // RENDER
@@ -211,10 +319,11 @@ const Footer = ({ footerData, storageUrl = '' }) => {
             {hasLogo && (
               <div className="flex justify-center lg:justify-start">
                 <img
-                  src={getImageSrc(logo.src)}
+                  src={logoUrl}
                   alt={logo.alt || 'Footer Logo'}
                   className={logo.className || 'h-auto w-auto'}
                   loading="lazy"
+                  onError={handleLogoError}
                 />
               </div>
             )}
@@ -228,10 +337,14 @@ const Footer = ({ footerData, storageUrl = '' }) => {
 
             {/* Social Links */}
             {hasSocialLinks && (
-              <div className='pt-5 flex justify-center lg:justify-start gap-3 lg:gap-5' aria-label="Social media links">
+              <div
+                className='pt-5 flex justify-center lg:justify-start gap-3 lg:gap-5 flex-wrap'
+                aria-label="Social media links"
+              >
                 {socialLinks.map((social, index) => {
-                  const IconComponent = iconMap[social.iconName];
+                  const IconComponent = getIconComponent(social.iconName);
                   if (!IconComponent) return null;
+
                   return (
                     <div
                       key={index}
@@ -239,8 +352,8 @@ const Footer = ({ footerData, storageUrl = '' }) => {
                     >
                       <a
                         href={social.url}
-                        className={`text-xl lg:text-2xl text-white ${social.hoverColor || ''} transition-colors duration-200`}
-                        aria-label={social.ariaLabel || social.iconName}
+                        className={`text-xl lg:text-2xl text-white ${social.hoverColor || ''} transition-colors duration-200 block`}
+                        aria-label={social.ariaLabel || `${social.iconName || 'Social'} link`}
                         target="_blank"
                         rel="noopener noreferrer"
                       >
@@ -259,7 +372,7 @@ const Footer = ({ footerData, storageUrl = '' }) => {
                 {hasAddress && (
                   <div>
                     <h2 className='text-gray-400 font-semibold mb-2 text-xs lg:text-sm uppercase tracking-wide'>
-                      {address.title}
+                      {address.title || 'Address'}
                     </h2>
                     <address className="not-italic text-gray-300 text-xs lg:text-sm leading-relaxed">
                       {address.details}
@@ -271,7 +384,7 @@ const Footer = ({ footerData, storageUrl = '' }) => {
                 {hasContact && hasValue(contact.numbers) && (
                   <div>
                     <h2 className='text-gray-400 font-semibold mb-2 text-xs lg:text-sm uppercase tracking-wide'>
-                      {contact.title}
+                      {contact.title || 'Contact'}
                     </h2>
                     {contact.numbers.map((number, index) => (
                       <a
@@ -289,7 +402,7 @@ const Footer = ({ footerData, storageUrl = '' }) => {
                 {hasEmailInfo && hasValue(emailInfo.addresses) && (
                   <div>
                     <h2 className='text-gray-400 font-semibold mb-2 text-xs lg:text-sm uppercase tracking-wide'>
-                      {emailInfo.title}
+                      {emailInfo.title || 'Email'}
                     </h2>
                     {emailInfo.addresses.map((emailAddr, index) => (
                       <a
@@ -321,24 +434,7 @@ const Footer = ({ footerData, storageUrl = '' }) => {
                     <div>
                       <h2 className='text-white text-xl lg:text-[22px] font-bold mb-5'>Quick Links</h2>
                       <ul className='space-y-3'>
-                        {quickLinks.map((link, index) => (
-                          <li key={index} className='flex items-center group'>
-                            {hasValue(quickLinkLinkIcon) && (
-                              <img
-                                src={getImageSrc(quickLinkLinkIcon)}
-                                alt=""
-                                className='mr-3 w-2.5 h-auto opacity-70 group-hover:opacity-100 transition-opacity'
-                                aria-hidden="true"
-                              />
-                            )}
-                            <Link
-                              href={link.url}
-                              className="hover:text-[#009BE2] transition-colors cursor-pointer text-white font-400 text-[14px]"
-                            >
-                              {link.name}
-                            </Link>
-                          </li>
-                        ))}
+                        {quickLinks.map((link, index) => renderLinkWithIcon(link, quickLinkLinkIcon, index))}
                       </ul>
                     </div>
                   )}
@@ -348,24 +444,7 @@ const Footer = ({ footerData, storageUrl = '' }) => {
                     <div>
                       <h2 className='text-white text-xl lg:text-[22px] font-bold mb-5'>Our Programs</h2>
                       <ul className='space-y-3'>
-                        {firstProgramColumn.map((program, index) => (
-                          <li key={index} className='flex items-center group'>
-                            {hasValue(OurProgramLinkIcon) && (
-                              <img
-                                src={getImageSrc(OurProgramLinkIcon)}
-                                alt=""
-                                className='mr-3 w-2.5 h-auto opacity-70 group-hover:opacity-100 transition-opacity'
-                                aria-hidden="true"
-                              />
-                            )}
-                            <Link
-                              href={program.url}
-                              className="hover:text-[#009BE2] transition-colors cursor-pointer text-white font-400 text-[14px]"
-                            >
-                              {program.name}
-                            </Link>
-                          </li>
-                        ))}
+                        {firstProgramColumn.map((program, index) => renderLinkWithIcon(program, OurProgramLinkIcon, index))}
                       </ul>
                     </div>
                   )}
@@ -377,24 +456,7 @@ const Footer = ({ footerData, storageUrl = '' }) => {
                         Our Programs
                       </h2>
                       <ul className='space-y-3'>
-                        {secondProgramColumn.map((program, index) => (
-                          <li key={index} className='flex items-center group'>
-                            {hasValue(OurProgramLinkIcon) && (
-                              <img
-                                src={getImageSrc(OurProgramLinkIcon)}
-                                alt=""
-                                className='mr-3 w-2.5 h-auto opacity-70 group-hover:opacity-100 transition-opacity'
-                                aria-hidden="true"
-                              />
-                            )}
-                            <Link
-                              href={program.url}
-                              className="hover:text-[#009BE2] transition-colors cursor-pointer text-white font-400 text-[14px]"
-                            >
-                              {program.name}
-                            </Link>
-                          </li>
-                        ))}
+                        {secondProgramColumn.map((program, index) => renderLinkWithIcon(program, OurProgramLinkIcon, index + firstProgramColumn.length))}
                       </ul>
                     </div>
                   )}
@@ -410,38 +472,28 @@ const Footer = ({ footerData, storageUrl = '' }) => {
                   <div className="border-b border-gray-700">
                     <button
                       onClick={() => toggleMobileSection('quickLinks')}
-                      className="flex justify-between items-center w-full py-4 text-white font-bold text-lg"
+                      className="flex justify-between items-center w-full py-4 text-white font-bold text-lg hover:text-[#009BE2] transition-colors"
+                      aria-expanded={isMobileMenuOpen.quickLinks}
+                      aria-controls="quick-links-mobile"
                     >
                       Quick Links
                       <svg
-                        className={`w-5 h-5 transition-transform duration-200 ${isMobileMenuOpen.quickLinks ? 'rotate-180' : ''}`}
+                        className={`w-5 h-5 transition-transform duration-300 ${isMobileMenuOpen.quickLinks ? 'rotate-180' : ''}`}
                         fill="none"
                         stroke="currentColor"
                         viewBox="0 0 24 24"
+                        aria-hidden="true"
                       >
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                       </svg>
                     </button>
-                    <div className={`overflow-hidden transition-all duration-300 ${isMobileMenuOpen.quickLinks ? 'max-h-96 mb-4' : 'max-h-0'}`}>
+                    <div
+                      id="quick-links-mobile"
+                      className={`overflow-hidden transition-all duration-300 ease-in-out ${isMobileMenuOpen.quickLinks ? 'max-h-96 mb-4' : 'max-h-0'}`}
+                      role="region"
+                    >
                       <ul className='space-y-3'>
-                        {quickLinks.map((link, index) => (
-                          <li key={index} className='flex items-center group'>
-                            {hasValue(quickLinkLinkIcon) && (
-                              <img
-                                src={getImageSrc(quickLinkLinkIcon)}
-                                alt=""
-                                className='mr-3 w-2.5 h-auto opacity-70 group-hover:opacity-100 transition-opacity'
-                                aria-hidden="true"
-                              />
-                            )}
-                            <Link
-                              href={link.url}
-                              className="hover:text-[#009BE2] transition-colors cursor-pointer text-white font-400 text-[14px]"
-                            >
-                              {link.name}
-                            </Link>
-                          </li>
-                        ))}
+                        {quickLinks.map((link, index) => renderLinkWithIcon(link, quickLinkLinkIcon, index))}
                       </ul>
                     </div>
                   </div>
@@ -452,38 +504,28 @@ const Footer = ({ footerData, storageUrl = '' }) => {
                   <div className="border-b border-gray-700">
                     <button
                       onClick={() => toggleMobileSection('programs')}
-                      className="flex justify-between items-center w-full py-4 text-white font-bold text-lg"
+                      className="flex justify-between items-center w-full py-4 text-white font-bold text-lg hover:text-[#009BE2] transition-colors"
+                      aria-expanded={isMobileMenuOpen.programs}
+                      aria-controls="programs-mobile"
                     >
                       Our Programs
                       <svg
-                        className={`w-5 h-5 transition-transform duration-200 ${isMobileMenuOpen.programs ? 'rotate-180' : ''}`}
+                        className={`w-5 h-5 transition-transform duration-300 ${isMobileMenuOpen.programs ? 'rotate-180' : ''}`}
                         fill="none"
                         stroke="currentColor"
                         viewBox="0 0 24 24"
+                        aria-hidden="true"
                       >
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                       </svg>
                     </button>
-                    <div className={`overflow-hidden transition-all duration-300 ${isMobileMenuOpen.programs ? 'max-h-96 mb-4' : 'max-h-0'}`}>
+                    <div
+                      id="programs-mobile"
+                      className={`overflow-hidden transition-all duration-300 ease-in-out ${isMobileMenuOpen.programs ? 'max-h-96 mb-4' : 'max-h-0'}`}
+                      role="region"
+                    >
                       <ul className='space-y-3'>
-                        {programs.map((program, index) => (
-                          <li key={index} className='flex items-center group'>
-                            {hasValue(OurProgramLinkIcon) && (
-                              <img
-                                src={getImageSrc(OurProgramLinkIcon)}
-                                alt=""
-                                className='mr-3 w-2.5 h-auto opacity-70 group-hover:opacity-100 transition-opacity'
-                                aria-hidden="true"
-                              />
-                            )}
-                            <Link
-                              href={program.url}
-                              className="hover:text-[#009BE2] transition-colors cursor-pointer text-white font-400 text-[14px]"
-                            >
-                              {program.name}
-                            </Link>
-                          </li>
-                        ))}
+                        {programs.map((program, index) => renderLinkWithIcon(program, OurProgramLinkIcon, index))}
                       </ul>
                     </div>
                   </div>
@@ -499,32 +541,46 @@ const Footer = ({ footerData, storageUrl = '' }) => {
                     {newsletter.title}
                   </h2>
 
-                  <form onSubmit={handleSubscribe} className='space-y-3 pt-5'>
-                    <label htmlFor="email" className="text-gray-300 text-sm block text-center lg:text-left">
-                      Email Address
+                  <form onSubmit={handleSubscribe} className='space-y-3 pt-5' noValidate>
+                    <label htmlFor="footer-email" className="text-gray-300 text-sm block text-center lg:text-left">
+                      Email Address <span className="text-red-400">*</span>
                     </label>
                     <div className='flex flex-col sm:flex-row items-stretch sm:items-center gap-3 mt-2'>
                       <input
                         type="email"
-                        id="email"
+                        id="footer-email"
                         name="email"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         placeholder={newsletter.placeholder || 'Enter your email address'}
                         className="flex-1 py-3 px-4 bg-[#080C14] border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-[#009BE2] focus:border-transparent transition-all text-white placeholder:text-gray-500 text-sm lg:text-base"
                         required
-                        aria-label="Email address for newsletter"
+                        aria-label="Email address for newsletter subscription"
+                        aria-describedby={submitMessage ? "newsletter-message" : undefined}
+                        disabled={isSubmitting}
                       />
                       <button
                         type="submit"
                         disabled={isSubmitting}
-                        className='bg-[#009BE2] hover:bg-[#009BE2]/80 disabled:bg-[#009BE2]/50 disabled:cursor-not-allowed px-6 py-3 rounded-md font-semibold text-white transition-all duration-200 text-sm lg:text-base'
+                        className="bg-[#009BE2] hover:bg-[#009BE2]/80 disabled:bg-[#009BE2]/50 disabled:cursor-not-allowed px-6 py-3 rounded-md font-semibold text-white transition-all duration-200 text-sm lg:text-base flex items-center justify-center gap-2 min-w-30"
                       >
-                        {isSubmitting ? 'Subscribing...' : (newsletter.buttonText || 'Subscribe')}
+                        {isSubmitting ? (
+                          <>
+                            <span className="inline-block w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                            Subscribing...
+                          </>
+                        ) : (
+                          newsletter.buttonText || 'Subscribe'
+                        )}
                       </button>
                     </div>
                     {submitMessage && (
-                      <p className={`text-sm mt-2 text-center lg:text-left ${submitMessage.includes('Successfully') ? 'text-green-400' : 'text-red-400'}`}>
+                      <p
+                        id="newsletter-message"
+                        className={`text-sm mt-2 text-center lg:text-left ${submitMessageType === 'success' ? 'text-green-400' : 'text-red-400'
+                          }`}
+                        role="status"
+                      >
                         {submitMessage}
                       </p>
                     )}
@@ -540,31 +596,36 @@ const Footer = ({ footerData, storageUrl = '' }) => {
           BOTTOM FOOTER - Copyright & Legal Links
           ============================================ */}
       {hasBottomFooter && (
-        <footer className='flex flex-col sm:flex-row justify-between items-center gap-4 bg-[#080C14] border-t border-[#090C40] px-5 lg:px-50 py-6'>
-          {/* Copyright */}
-          {hasValue(bottomFooter.copyright) && (
-            <p className='text-white text-[12px] lg:text-[14px] font-400 text-center sm:text-left'>
-              {bottomFooter.copyright}
-            </p>
-          )}
+        <div className='bg-[#080C14] border-t border-[#090C40] px-5 lg:px-50 py-6'>
+          <div className='flex flex-col sm:flex-row justify-between items-center gap-4'>
+            {/* Copyright */}
+            {hasValue(bottomFooter.copyright) && (
+              <p className='text-white text-[12px] lg:text-[14px] font-400 text-center sm:text-left'>
+                {bottomFooter.copyright}
+              </p>
+            )}
 
-          {/* Legal Links */}
-          {hasValue(bottomFooter.links) && (
-            <ul className='flex flex-wrap justify-center gap-4 lg:gap-8 text-white text-[12px] lg:text-[14px] font-400'>
-              {bottomFooter.links.map((link, index) => (
-                <li
-                  key={index}
-                  className='hover:text-[#009BE2] cursor-pointer transition-colors duration-200'
-                >
-                  <a href={link.url}>{link.text}</a>
-                </li>
-              ))}
-            </ul>
-          )}
-        </footer>
+            {/* Legal Links */}
+            {hasValue(bottomFooter.links) && (
+              <ul className='flex flex-wrap justify-center gap-4 lg:gap-8 text-white text-[12px] lg:text-[14px] font-400'>
+                {bottomFooter.links.map((link, index) => (
+                  <li key={index}>
+                    <a
+                      href={link.url}
+                      className='hover:text-[#009BE2] cursor-pointer transition-colors duration-200'
+                    >
+                      {link.text}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
       )}
     </div>
   );
 };
 
-export default Footer;
+// Memoize the component to prevent unnecessary re-renders
+export default memo(Footer);

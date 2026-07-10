@@ -12,26 +12,11 @@
  * - Active link highlighting based on current route
  * - Logo: 73×106px (width × height) - fixed, no floating
  * 
- * DATA STRUCTURE:
- * {
- *   logo: { src, alt, className, href, width, height },
- *   navLinks: [{ name, href, dropdown: [{ name, href }] }],
- *   button: { text, href, className },
- *   mobileMenu: { className },
- *   dropdowns: [[{ name, href }]] // Optional: dropdowns separate from navLinks
- * }
- * 
- * FEATURES:
- * - Active route detection with underline indicator
- * - Dropdown menus with chevron animation
- * - Mobile hamburger menu with slide animation
- * - Fixed logo dimensions: 73×106px
- * 
  * ============================================
  */
 
 // React
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, usePage } from '@inertiajs/react';
 
 // Icons
@@ -54,14 +39,16 @@ const hasValue = (value) => {
  * @param {Object} props
  * @param {Object} props.navbarData - Navigation configuration data
  * @param {string} props.storageUrl - Base URL for image storage
+ * @param {string} props.defaultLogo - Fallback logo URL
  * 
  * @returns {JSX.Element} Rendered navigation bar
  */
-const Navbar = ({ navbarData, storageUrl = '' }) => {
+const Navbar = ({ navbarData, storageUrl = '', defaultLogo = '/images/default-logo.png' }) => {
   // ============================================
   // STATE
   // ============================================
   const [isOpen, setIsOpen] = useState(false);
+  const [imageError, setImageError] = useState(false);
   const [openDropdowns, setOpenDropdowns] = useState({});
   const [mobileDropdownOpen, setMobileDropdownOpen] = useState({});
 
@@ -96,6 +83,11 @@ const Navbar = ({ navbarData, storageUrl = '' }) => {
     }));
   };
 
+  // Close mobile menu on route change
+  useEffect(() => {
+    setIsOpen(false);
+  }, [currentPath]);
+
   // ============================================
   // EARLY RETURN - No data
   // ============================================
@@ -125,11 +117,19 @@ const Navbar = ({ navbarData, storageUrl = '' }) => {
     if (!imagePath) return null;
     if (imagePath.startsWith('http')) return imagePath;
     if (imagePath.startsWith('/asset/')) return imagePath;
+    if (imagePath.startsWith('/storage/')) return imagePath;
     if (storageUrl) {
       const cleanPath = imagePath.startsWith('/') ? imagePath.slice(1) : imagePath;
       return `${storageUrl}${cleanPath}`;
     }
     return imagePath;
+  };
+
+  const logoUrl = imageError ? defaultLogo : (getImageSrc(logo.src) || defaultLogo);
+
+  // Handle image error - fallback to default
+  const handleImageError = () => {
+    setImageError(true);
   };
 
   // ============================================
@@ -147,11 +147,12 @@ const Navbar = ({ navbarData, storageUrl = '' }) => {
             {hasLogo && (
               <Link href={logo.href || '/'} className="block">
                 <img
-                  src={getImageSrc(logo.src)}
+                  src={logoUrl}
                   alt={logo.alt || 'Logo'}
                   className={logo.className || 'block'}
                   width={logo.width || 73}
                   height={logo.height || 106}
+                  onError={handleImageError}
                   style={{
                     width: '73px',
                     height: '106.63px',
@@ -183,6 +184,8 @@ const Navbar = ({ navbarData, storageUrl = '' }) => {
                           <button
                             onClick={() => toggleDropdown(index)}
                             className={`relative font-semibold transition-all duration-300 flex items-center gap-1 whitespace-nowrap ${active ? 'text-[#009BE2]' : 'text-black hover:text-[#009BE2]'}`}
+                            aria-expanded={openDropdowns[index]}
+                            aria-haspopup="true"
                           >
                             {link.name}
                             <ChevronDown className={`w-3 h-3 transition-transform duration-300 ${openDropdowns[index] ? 'rotate-180' : ''}`} />
@@ -222,7 +225,7 @@ const Navbar = ({ navbarData, storageUrl = '' }) => {
             {hasButton && (
               <Link
                 href={button.href}
-                className="uppercase text-white text-[18px] font-semibold bg-[#009BE2] hover:bg-[#009BE2]/80 px-6 py-4 rounded-xl"
+                className="uppercase text-white text-[18px] font-semibold bg-[#009BE2] hover:bg-[#009BE2]/80 px-6 py-4 rounded-xl transition-colors duration-200"
               >
                 {button.text}
               </Link>
@@ -233,6 +236,7 @@ const Navbar = ({ navbarData, storageUrl = '' }) => {
               onClick={() => setIsOpen(!isOpen)}
               className={mobileMenu.className || "lg:hidden text-gray-700 hover:text-blue-600 focus:outline-none p-2"}
               aria-label="Toggle menu"
+              aria-expanded={isOpen}
             >
               {isOpen ? <X size={24} /> : <Menu size={24} />}
             </button>
@@ -245,6 +249,7 @@ const Navbar = ({ navbarData, storageUrl = '' }) => {
         <div
           className={`lg:hidden transition-all duration-300 ease-in-out overflow-hidden
             ${isOpen ? 'max-h-screen opacity-100 mt-4' : 'max-h-0 opacity-0'}`}
+          role="menu"
         >
           <ul className="flex flex-col space-y-3 pb-4">
             {hasNavLinks && navLinks.map((link, index) => {
@@ -259,6 +264,7 @@ const Navbar = ({ navbarData, storageUrl = '' }) => {
                         onClick={() => toggleMobileDropdown(index)}
                         className={`flex items-center justify-between w-full font-medium transition-colors duration-200 py-2 ${active ? 'text-[#009BE2]' : 'text-black hover:text-[#009BE2]'
                           }`}
+                        aria-expanded={mobileDropdownOpen[index]}
                       >
                         <span>{link.name}</span>
                         <ChevronDown className={`w-4 h-4 transition-transform duration-300 ${mobileDropdownOpen[index] ? 'rotate-180' : ''

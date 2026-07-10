@@ -6,76 +6,41 @@ import React, { useState } from 'react';
 // Components
 import ArrowIcon from '../../Shared/ArrowIcon';
 
-// Utility function to check if value exists (SAME as other sections)
-const hasValue = (value) => {
-  if (value === undefined || value === null) return false;
-  if (typeof value === 'string') return value.trim().length > 0;
-  if (Array.isArray(value)) return value.length > 0;
-  if (typeof value === 'object') return Object.keys(value).length > 0;
-  return true;
-};
-
-// Generate placeholder image URL
-const getPlaceholderImage = (width = 800, height = 600, text = 'Hero Image') => {
-  return `https://via.placeholder.com/${width}x${height}/009BE2/FFFFFF?text=${encodeURIComponent(text)}`;
-};
+// Utils
+import { hasValue, getPlaceholderImage, normalizeData, sanitizeHTML } from '../../utils/sectionHelpers';
 
 /**
  * HeroFigureSection Component
- * 
- * @param {Object} props
- * @param {Object} props.data - Hero Figure data from API (from DynamicSectionRenderer)
- * @param {Object} props.heroData - Hero Figure data from API (direct prop - legacy)
- * @param {string} props.sectionId - Section ID (default: 'hero-figure')
- * @param {string} props.layout - Layout direction ('text-left' or 'text-right')
- * @param {string} props.bgColor - Customizable background color
- * @param {string} props.bgImage - Customizable background image
- * @param {string} props.bgOverlay - Customizable overlay for background image
- * @param {string} props.paddingY - Vertical padding classes
- * @param {string} props.paddingX - Horizontal padding classes
- * @param {string} props.sectionClassName - Additional CSS classes
- * 
- * @returns {JSX.Element} Rendered hero figure section
  */
 const HeroFigureSection = ({
-  data,           // From DynamicSectionRenderer
-  heroData,       // Direct prop (legacy support)
+  data,
+  heroData,
   sectionId = 'hero-figure',
-  layout = 'text-left',   // 'text-left' or 'text-right'
-  bgColor = 'bg-white',   // Customizable background color
-  bgImage = null,         // Customizable background image
-  bgOverlay = null,       // Customizable overlay for background image
+  layout = 'text-left',
+  bgColor = 'bg-white',
+  bgImage = null,
+  bgOverlay = null,
   paddingY = 'py-10 sm:py-15 md:py-25 lg:py-37.5',
   paddingX = 'px-5 sm:px-10 md:px-20 lg:px-50',
   sectionClassName = '',
 }) => {
   // ============================================
-  // HOOKS - Must be called at the top level
+  // HOOKS
   // ============================================
   const [imageError, setImageError] = useState(false);
 
   // ============================================
   // RESOLVE DATA
   // ============================================
-  // Use data prop if available, fallback to heroData
   let resolvedData = data || heroData;
 
-  // ============================================
-  // EARLY RETURN - No data
-  // ============================================
   if (!hasValue(resolvedData)) {
     console.warn('HeroFigureSection: No data provided');
     return null;
   }
 
-  // ============================================
-  // NORMALIZE DATA STRUCTURE
-  // ============================================
-  // Check if the data is wrapped in a 'data' property
-  // This happens when the API returns { id, page_slug, section_key, data: { ... } }
-  if (resolvedData.data && typeof resolvedData.data === 'object') {
-    resolvedData = resolvedData.data;
-  }
+  // Normalize data structure
+  resolvedData = normalizeData(resolvedData);
 
   // ============================================
   // SAFE DESTRUCTURING WITH DEFAULTS
@@ -121,7 +86,9 @@ const HeroFigureSection = ({
   // ============================================
   // Function to render HTML content safely
   const renderHTML = (htmlString) => {
-    return { __html: htmlString };
+    // Sanitize HTML content
+    const sanitized = sanitizeHTML(htmlString);
+    return { __html: sanitized };
   };
 
   // Determine image position based on layout
@@ -146,14 +113,12 @@ const HeroFigureSection = ({
   // Text content component
   const TextContent = () => (
     <div className='w-full lg:w-1/2 flex flex-col justify-between relative z-10'>
-      {/* Only render section title if it exists */}
       {hasTitle && (
         <h1 className='bricolage-grotesque font-700 text-[32px] sm:text-[36px] lg:text-[40px] text-black pb-2'>
           {section.title}
         </h1>
       )}
 
-      {/* Render HTML content with 730px max height and ellipsis */}
       {hasContent && (
         <div className="relative">
           <div
@@ -167,12 +132,10 @@ const HeroFigureSection = ({
             }}
             dangerouslySetInnerHTML={renderHTML(content.html)}
           />
-          {/* Ellipsis indicator - Only show if content overflows */}
           <div className="absolute bottom-0 left-0 right-0 h-8 bg-linear-to-t from-white to-transparent pointer-events-none" />
         </div>
       )}
 
-      {/* Render button if btn exists */}
       {hasButton && (
         <div className='pt-8'>
           <button
@@ -208,7 +171,6 @@ const HeroFigureSection = ({
       className={`relative ${bgColor} ${paddingY} ${paddingX} ${sectionClassName}`}
       style={getBackgroundStyle()}
     >
-      {/* Background overlay if bgImage is provided */}
       {hasValue(bgImage) && hasValue(bgOverlay) && (
         <div className={`absolute inset-0 ${bgOverlay}`} />
       )}

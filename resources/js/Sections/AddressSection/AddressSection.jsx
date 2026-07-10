@@ -1,24 +1,13 @@
 // js/Sections/AddressSection/AddressSection.jsx
 
-"use client";
+// React
+import React, { useState, useEffect, useMemo } from "react";
 
-import React, { useState } from "react";
+// React Icons
 import { FaArrowRight } from "react-icons/fa6";
 
-// Utility function to check if value exists (SAME as other sections)
-const hasValue = (value) => {
-  if (value === undefined || value === null) return false;
-  if (typeof value === 'string') return value.trim().length > 0;
-  if (Array.isArray(value)) return value.length > 0;
-  if (typeof value === 'object') return Object.keys(value).length > 0;
-  return true;
-};
-
-// Generate placeholder map URL
-const getPlaceholderMapUrl = (address = 'Location') => {
-  const encodedAddress = encodeURIComponent(address);
-  return `https://maps.google.com/maps?q=${encodedAddress}&t=&z=13&ie=UTF8&iwloc=&output=embed`;
-};
+// Utils
+import { hasValue, normalizeData, extractArray } from '../../utils/sectionHelpers';
 
 const OfficeStar = ({ active }) => (
   <svg
@@ -59,22 +48,10 @@ const BuildingIcon = ({ className = "", ...props }) => (
 
 /**
  * AddressSection Component
- * 
- * @param {Object} props
- * @param {Object} props.data - Address data from API (from DynamicSectionRenderer)
- * @param {Object} props.addressData - Address data from API (direct prop - legacy)
- * @param {Array} props.officesLocation - Offices location array (direct prop - legacy)
- * @param {string} props.bgColor - Background color (optional)
- * @param {string} props.paddingY - Vertical padding classes
- * @param {string} props.paddingX - Horizontal padding classes
- * @param {string} props.sectionClassName - Additional CSS classes
- * @param {string} props.sectionId - Section ID (default: 'address-section')
- * 
- * @returns {JSX.Element} Rendered address section
  */
 const AddressSection = ({
-  data,           // From DynamicSectionRenderer
-  addressData,    // Direct prop (legacy support)
+  data,
+  addressData,
   officesLocation,
   bgColor = 'bg-[#F5F5F5]',
   paddingY = 'py-10 sm:py-14 lg:py-37.5',
@@ -83,75 +60,39 @@ const AddressSection = ({
   sectionId = 'address-section',
 }) => {
   // ============================================
-  // HOOKS - Must be called before any conditional returns
+  // HOOKS
   // ============================================
-  // Initialize with empty array, will be updated after data resolution
   const [activeOffice, setActiveOffice] = useState(null);
 
   // ============================================
-  // RESOLVE DATA
+  // RESOLVE DATA WITH useMemo
   // ============================================
-  // Use data prop if available, fallback to addressData or officesLocation
-  let resolvedData = data || addressData;
+  const officesArray = useMemo(() => {
+    const resolvedData = data || addressData;
+    let offices = officesLocation || [];
 
-  // ============================================
-  // NORMALIZE DATA STRUCTURE
-  // ============================================
-  let officesArray = officesLocation || [];
+    if (hasValue(resolvedData)) {
+      const normalized = normalizeData(resolvedData);
 
-  if (hasValue(resolvedData)) {
-    // Check if the data is wrapped in a 'data' property
-    if (resolvedData.data && typeof resolvedData.data === 'object') {
-      // If data.data is an array, use it directly
-      if (Array.isArray(resolvedData.data)) {
-        officesArray = resolvedData.data;
-      } else {
-        // If data.data is an object, use the data property
-        resolvedData = resolvedData.data;
+      // Try to extract offices from various sources
+      if (Array.isArray(normalized)) {
+        offices = normalized;
+      } else if (normalized && typeof normalized === 'object') {
+        offices = extractArray(normalized, ['officesLocation', 'offices', 'locations', 'items', 'data']);
       }
     }
 
-    // If we haven't found offices yet, try other properties
-    if (officesArray.length === 0) {
-      // If resolvedData is an array, use it as offices
-      if (Array.isArray(resolvedData)) {
-        officesArray = resolvedData;
-      } else if (typeof resolvedData === 'object') {
-        // Check for various property names that might contain offices
-        if (Array.isArray(resolvedData.officesLocation)) {
-          officesArray = resolvedData.officesLocation;
-        } else if (Array.isArray(resolvedData.offices)) {
-          officesArray = resolvedData.offices;
-        } else if (Array.isArray(resolvedData.locations)) {
-          officesArray = resolvedData.locations;
-        } else {
-          // Try to find any array property that might be offices
-          let foundOffices = false;
-          for (const key in resolvedData) {
-            if (Array.isArray(resolvedData[key]) && resolvedData[key].length > 0) {
-              const firstItem = resolvedData[key][0];
-              if (firstItem && (firstItem.label || firstItem.address || firstItem.mapUrl)) {
-                officesArray = resolvedData[key];
-                foundOffices = true;
-                break;
-              }
-            }
-          }
-          if (!foundOffices) {
-            console.warn('AddressSection - No offices array found in data');
-          }
-        }
-      }
-    }
-  }
+    return offices;
+  }, [data, addressData, officesLocation]);
 
   // ============================================
-  // UPDATE ACTIVE OFFICE
+  // EFFECT: Set active office when data loads
   // ============================================
-  // Set active office to first item if not already set
-  if (hasValue(officesArray) && officesArray.length > 0 && activeOffice === null) {
-    setActiveOffice(officesArray[0]);
-  }
+  useEffect(() => {
+    if (hasValue(officesArray) && officesArray.length > 0 && !activeOffice) {
+      setActiveOffice(officesArray[0]);
+    }
+  }, [officesArray, activeOffice]);
 
   // ============================================
   // EARLY RETURN - No data
@@ -167,12 +108,10 @@ const AddressSection = ({
     if (hasValue(office?.mapUrl)) {
       return office.mapUrl;
     }
-    // Fallback to Google Maps embed with address
     if (hasValue(office?.address)) {
-      return getPlaceholderMapUrl(office.address);
+      return `https://maps.google.com/maps?q=${encodeURIComponent(office.address)}&t=&z=13&ie=UTF8&iwloc=&output=embed`;
     }
-    // Default fallback
-    return getPlaceholderMapUrl(office?.label || 'Location');
+    return `https://maps.google.com/maps?q=${encodeURIComponent(office?.label || 'Location')}&t=&z=13&ie=UTF8&iwloc=&output=embed`;
   };
 
   // ============================================
@@ -188,7 +127,7 @@ const AddressSection = ({
         <div className="flex flex-wrap justify-between gap-3">
           {officesArray.map((office) => (
             <button
-              key={office.id}
+              key={office.id || office.label}
               onClick={() => setActiveOffice(office)}
               className={`flex items-center justify-center gap-2 sm:gap-3 rounded-2xl px-4 sm:px-5 py-3 sm:py-5 text-[16px] sm:text-[18px] md:text-[24px] font-semibold transition-all shrink-0 cursor-pointer ${activeOffice?.id === office.id
                 ? 'bg-[#FAFAFA] text-[#1396E8]'
