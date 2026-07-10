@@ -241,9 +241,13 @@ class SharedDataController extends Controller
       $imageContent = $this->decodeBase64Image($base64String);
       $extension = $this->getImageExtension($base64String) ?: 'png';
 
-      $filename = $type === 'navbar' ? 'icon' : 'Icon-bottom';
-      $filename = $filename . '.' . $extension;
-      $path = 'images/' . $filename;
+      // Simplified filename: YYYYMMDD_UUID.extension
+      $datePrefix = date('Ymd');
+      $uuid = Str::uuid();
+      $filename = $datePrefix . '_' . $uuid . '.' . $extension;
+
+      // Single directory structure: images/logos/filename
+      $path = 'images/logos/' . $filename;
 
       Storage::disk('public')->put($path, $imageContent);
 
@@ -263,7 +267,12 @@ class SharedDataController extends Controller
       $imageContent = $this->decodeBase64Image($base64String);
       $extension = $this->getImageExtension($base64String) ?: 'jpg';
 
-      $filename = $prefix . '_' . time() . '_' . Str::random(8) . '.' . $extension;
+      // Simplified filename: YYYYMMDD_UUID.extension
+      $datePrefix = date('Ymd');
+      $uuid = Str::uuid();
+      $filename = $datePrefix . '_' . $uuid . '.' . $extension;
+
+      // Single directory structure: UpcomingEvent/filename
       $path = 'UpcomingEvent/' . $filename;
 
       Storage::disk('public')->put($path, $imageContent);
@@ -305,8 +314,13 @@ class SharedDataController extends Controller
       $imageContent = $this->decodeBase64Image($base64String);
       $extension = $this->getImageExtension($base64String) ?: 'png';
 
-      $filename = Str::uuid() . '.' . $extension;
-      $path = 'uploads/shared/' . date('Y/m/d') . '/' . $filename;
+      // Simplified filename: YYYYMMDD_UUID.extension
+      $datePrefix = date('Ymd');
+      $uuid = Str::uuid();
+      $filename = $datePrefix . '_' . $uuid . '.' . $extension;
+
+      // Single directory structure: uploads/shared/filename
+      $path = 'uploads/shared/' . $filename;
 
       Storage::disk('public')->put($path, $imageContent);
 

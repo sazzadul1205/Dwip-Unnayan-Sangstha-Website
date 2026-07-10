@@ -303,8 +303,15 @@ class ProfileCompletionController extends Controller
      */
     private function handlePhotoUpload(UploadedFile $photo, int $userId): string
     {
-        $fileName = 'profile_' . $userId . '_' . time() . '.' . $photo->getClientOriginalExtension();
-        $path = $photo->storeAs('profile_photos', $fileName, 'public');
+        // Simplified filename: YYYYMMDD_UUID.extension
+        $datePrefix = date('Ymd');
+        $uuid = Str::uuid();
+        $extension = $photo->getClientOriginalExtension();
+        $filename = $datePrefix . '_' . $uuid . '.' . $extension;
+
+        $path = 'profile_photos/' . $filename;
+        Storage::disk('public')->put($path, file_get_contents($photo));
+
         return $path;
     }
 
@@ -337,8 +344,14 @@ class ProfileCompletionController extends Controller
             Storage::disk('public')->delete($profile->photo_path);
         }
 
-        $fileName = 'profile_' . $user->id . '_' . time() . '.' . $request->file('photo')->getClientOriginalExtension();
-        $path = $request->file('photo')->storeAs('profile_photos', $fileName, 'public');
+        // Simplified filename: YYYYMMDD_UUID.extension
+        $datePrefix = date('Ymd');
+        $uuid = Str::uuid();
+        $extension = $request->file('photo')->getClientOriginalExtension();
+        $filename = $datePrefix . '_' . $uuid . '.' . $extension;
+
+        $path = 'profile_photos/' . $filename;
+        Storage::disk('public')->put($path, file_get_contents($request->file('photo')));
 
         $profile->photo_path = $path;
         $profile->save();
@@ -441,7 +454,15 @@ class ProfileCompletionController extends Controller
                     ]);
                 }
 
-                $path = $cvData['file']->store("cvs/{$profileId}", 'public');
+                // Simplified filename: YYYYMMDD_UUID.extension
+                $datePrefix = date('Ymd');
+                $uuid = Str::uuid();
+                $extension = $cvData['file']->getClientOriginalExtension();
+                $filename = $datePrefix . '_' . $uuid . '.' . $extension;
+
+                $path = 'cvs/' . $profileId . '/' . $filename;
+                Storage::disk('public')->put($path, file_get_contents($cvData['file']));
+
                 $isPrimary = !empty($cvData['is_primary']);
 
                 $cv = ApplicantCv::create([
@@ -495,7 +516,14 @@ class ProfileCompletionController extends Controller
             ], 422);
         }
 
-        $path = $validated['cv']->store("cvs/{$profile->id}", 'public');
+        // Simplified filename: YYYYMMDD_UUID.extension
+        $datePrefix = date('Ymd');
+        $uuid = Str::uuid();
+        $extension = $validated['cv']->getClientOriginalExtension();
+        $filename = $datePrefix . '_' . $uuid . '.' . $extension;
+
+        $path = 'cvs/' . $profile->id . '/' . $filename;
+        Storage::disk('public')->put($path, file_get_contents($validated['cv']));
 
         $maxPosition = ApplicantCv::where('applicant_profile_id', $profile->id)
             ->max('order_position');

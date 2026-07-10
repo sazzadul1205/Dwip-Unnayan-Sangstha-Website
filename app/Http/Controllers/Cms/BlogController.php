@@ -271,9 +271,9 @@ class BlogController extends Controller
 
       $extension = $this->getImageExtension($base64String);
 
-      // Generate a unique filename
-      $filename = Str::uuid() . '.' . $extension;
-      $path = 'Blogs/' . date('Y/m/d') . '/' . $filename;
+      // Simple timestamp-based filename
+      $filename = date('Ymd_His') . '_' . uniqid() . '.' . $extension;
+      $path = 'Blogs/' . $filename;
 
       // Store the image
       $stored = Storage::disk('public')->put($path, $imageContent);
@@ -284,7 +284,6 @@ class BlogController extends Controller
 
       return '/storage/' . $path;
     } catch (\Exception $e) {
-      // Log the error but don't expose to user
       Log::error('Image upload failed: ' . $e->getMessage());
       return null;
     }

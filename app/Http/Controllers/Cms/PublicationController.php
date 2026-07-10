@@ -277,6 +277,9 @@ class PublicationController extends Controller
   /**
    * Upload image and return the path
    */
+  /**
+   * Upload image and return the path
+   */
   protected function uploadImage(string $base64String): string
   {
     try {
@@ -287,8 +290,13 @@ class PublicationController extends Controller
       $imageContent = base64_decode($imageData[1]);
       $extension = $this->getImageExtension($base64String);
 
-      $filename = Str::uuid() . '.' . $extension;
-      $path = 'Publications/' . date('Y/m/d') . '/' . $filename;
+      // Simplified filename: YYYYMMDD_UUID.extension
+      $datePrefix = date('Ymd');
+      $uuid = Str::uuid();
+      $filename = $datePrefix . '_' . $uuid . '.' . $extension;
+
+      // Single directory structure: Publications/filename
+      $path = 'Publications/' . $filename;
 
       Storage::disk('public')->put($path, $imageContent);
 

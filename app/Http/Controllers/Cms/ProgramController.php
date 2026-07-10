@@ -252,8 +252,13 @@ class ProgramController extends Controller
       $imageContent = base64_decode($imageData);
       $extension = $this->getImageExtension($base64String);
 
-      $filename = Str::uuid() . '.' . $extension;
-      $path = 'Programs/' . date('Y/m/d') . '/' . $filename;
+      // Simplified filename: YYYYMMDD_UUID.extension
+      $datePrefix = date('Ymd');
+      $uuid = Str::uuid();
+      $filename = $datePrefix . '_' . $uuid . '.' . $extension;
+
+      // Single directory structure: Programs/filename
+      $path = 'Programs/' . $filename;
 
       Storage::disk('public')->put($path, $imageContent);
 
@@ -310,4 +315,3 @@ class ProgramController extends Controller
     }
   }
 }
-  

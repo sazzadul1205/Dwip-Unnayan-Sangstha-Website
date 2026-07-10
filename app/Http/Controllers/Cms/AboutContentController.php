@@ -267,6 +267,9 @@ class AboutContentController extends Controller
   /**
    * Upload image and return the path
    */
+  /**
+   * Upload image and return the path
+   */
   protected function uploadImage(string $base64String, string $subPath = 'About'): string
   {
     try {
@@ -275,8 +278,13 @@ class AboutContentController extends Controller
       $imageContent = base64_decode($imageData);
       $extension = $this->getImageExtension($base64String);
 
-      $filename = Str::uuid() . '.' . $extension;
-      $path = $subPath . '/' . date('Y/m/d') . '/' . $filename;
+      // Generate filename with date prefix: YYYYMMDD_UUID.extension
+      $datePrefix = date('Ymd');
+      $uuid = Str::uuid();
+      $filename = $datePrefix . '_' . $uuid . '.' . $extension;
+
+      // Single directory structure: About/filename
+      $path = $subPath . '/' . $filename;
 
       Storage::disk('public')->put($path, $imageContent);
 

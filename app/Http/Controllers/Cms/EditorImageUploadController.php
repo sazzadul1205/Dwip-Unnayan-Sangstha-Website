@@ -9,6 +9,8 @@ use Illuminate\Support\Str;
 
 class EditorImageUploadController extends Controller
 {
+
+  // Upload image
   public function upload(Request $request)
   {
     $request->validate([
@@ -35,9 +37,13 @@ class EditorImageUploadController extends Controller
       return response()->json(['error' => 'Unsupported image type'], 422);
     }
 
-    // Generate filename and path
-    $filename = Str::uuid() . '.' . $extension;
-    $path = 'editor-images/' . date('Y/m/d') . '/' . $filename;
+    // Simplified filename: YYYYMMDD_UUID.extension
+    $datePrefix = date('Ymd');
+    $uuid = Str::uuid();
+    $filename = $datePrefix . '_' . $uuid . '.' . $extension;
+
+    // Single directory structure: editor-images/filename
+    $path = 'editor-images/' . $filename;
 
     // Store
     Storage::disk('public')->put($path, $imageContent);

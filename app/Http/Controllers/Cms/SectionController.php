@@ -1291,9 +1291,13 @@ class SectionController extends Controller
       $imageContent = base64_decode($imageData[1]);
       $extension = $this->getImageExtension($base64String);
 
-      // Generate filename
-      $filename = Str::uuid() . '.' . $extension;
-      $path = $subPath . '/' . date('Y/m/d') . '/' . $filename;
+      // Simplified filename: YYYYMMDD_UUID.extension
+      $datePrefix = date('Ymd');
+      $uuid = Str::uuid();
+      $filename = $datePrefix . '_' . $uuid . '.' . $extension;
+
+      // Single directory structure: sections/filename
+      $path = $subPath . '/' . $filename;
 
       // Store the image
       Storage::disk('public')->put($path, $imageContent);

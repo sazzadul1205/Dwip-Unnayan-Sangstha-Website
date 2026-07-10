@@ -1346,8 +1346,16 @@ class ApplicantProfileController extends Controller
      */
     private function handlePhotoUpload(UploadedFile $photo, int $userId): string
     {
-        $fileName = 'profile_' . $userId . '_' . time() . '.' . $photo->getClientOriginalExtension();
-        return $photo->storeAs('profile_photos', $fileName, 'public');
+        // Simplified filename: YYYYMMDD_UUID.extension
+        $datePrefix = date('Ymd');
+        $uuid = Str::uuid();
+        $extension = $photo->getClientOriginalExtension();
+        $filename = $datePrefix . '_' . $uuid . '.' . $extension;
+
+        $path = 'profile_photos/' . $filename;
+        Storage::disk('public')->put($path, file_get_contents($photo));
+
+        return $path;
     }
 
     /**
@@ -1599,7 +1607,14 @@ class ApplicantProfileController extends Controller
             ], 422);
         }
 
-        $path = $validated['cv']->store("cvs/{$profile->id}", 'public');
+        // Simplified filename: YYYYMMDD_UUID.extension
+        $datePrefix = date('Ymd');
+        $uuid = Str::uuid();
+        $extension = $validated['cv']->getClientOriginalExtension();
+        $filename = $datePrefix . '_' . $uuid . '.' . $extension;
+
+        $path = 'cvs/' . $profile->id . '/' . $filename;
+        Storage::disk('public')->put($path, file_get_contents($validated['cv']));
 
         $maxPosition = ApplicantCv::where('applicant_profile_id', $profile->id)
             ->max('order_position');
