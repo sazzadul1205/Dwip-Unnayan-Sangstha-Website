@@ -20,11 +20,19 @@ class PublicationController extends Controller
    */
   public function index(): Response
   {
-    $items = Publication::withTrashed()->orderBy('created_at', 'desc')->get();
+    try {
+      $items = Publication::withTrashed()->orderBy('created_at', 'desc')->get();
 
-    return Inertia::render('Backend/CMS/Publications/Index', [
-      'items' => $items,
-    ]);
+      return Inertia::render('Backend/CMS/Publications/Index', [
+        'items' => $items,
+      ]);
+    } catch (\Exception $e) {
+      Log::error('Failed to fetch publications: ' . $e->getMessage());
+      return Inertia::render('Backend/CMS/Publications/Index', [
+        'items' => [],
+        'flash' => ['error' => 'Failed to load publications. Please try again.']
+      ]);
+    }
   }
 
   /**
@@ -32,67 +40,91 @@ class PublicationController extends Controller
    */
   public function store(Request $request)
   {
-    $validator = Validator::make($request->all(), [
-      'title' => 'required|string|max:255',
-      'slug' => 'nullable|string|unique:publications,slug',
-      'excerpt' => 'nullable|string',
-      'full_content' => 'nullable|string',
-      'image' => 'nullable|string',
-      'pdf_url' => 'nullable|string', // No max:255 constraint
-      'date' => 'nullable|string|max:255',
-      'author' => 'nullable|string|max:255',
-      'read_time' => 'nullable|string|max:255',
-      'tags' => 'nullable|array',
-      'category' => 'nullable|string|max:255',
-      'views' => 'nullable|integer|min:0',
-      'is_featured' => 'boolean',
-      'is_active' => 'boolean',
-    ]);
+    try {
+      $validator = Validator::make($request->all(), [
+        'title' => 'required|string|max:255',
+        'slug' => 'nullable|string|unique:publications,slug',
+        'excerpt' => 'nullable|string',
+        'full_content' => 'nullable|string',
+        'image' => 'nullable|string',
+        'pdf_url' => 'nullable|string',
+        'date' => 'nullable|string|max:255',
+        'author' => 'nullable|string|max:255',
+        'read_time' => 'nullable|string|max:255',
+        'tags' => 'nullable|array',
+        'category' => 'nullable|string|max:255',
+        'views' => 'nullable|integer|min:0',
+        'is_featured' => 'boolean',
+        'is_active' => 'boolean',
+      ]);
 
-    if ($validator->fails()) {
-      return back()->withErrors($validator)->withInput();
+      if ($validator->fails()) {
+        return back()->withErrors($validator)->withInput();
+      }
+
+      $data = $request->all();
+
+      // Process image if it's a base64 string
+      if (!empty($data['image']) && $this->isBase64Image($data['image'])) {
+        $uploadedPath = $this->uploadImage($data['image']);
+        if ($uploadedPath) {
+          $data['image'] = $uploadedPath;
+        } else {
+          unset($data['image']);
+          Log::warning('Image upload failed for publication: ' . ($data['title'] ?? 'unknown'));
+        }
+      }
+
+      // Process PDF if it's a base64 string
+      if (!empty($data['pdf_url']) && $this->isBase64Pdf($data['pdf_url'])) {
+        $uploadedPath = $this->uploadPdf($data['pdf_url']);
+        if ($uploadedPath) {
+          $data['pdf_url'] = $uploadedPath;
+        } else {
+          unset($data['pdf_url']);
+          Log::warning('PDF upload failed for publication: ' . ($data['title'] ?? 'unknown'));
+        }
+      }
+
+      // Clear any session flash data that might contain large image/PDF data
+      $this->cleanSessionOldInput();
+
+      // Auto-generate slug from title if not provided
+      if (empty($data['slug'])) {
+        $data['slug'] = $this->generateUniqueSlug($data['title']);
+      }
+
+      // Ensure boolean values are cast correctly
+      $data['is_featured'] = filter_var($data['is_featured'] ?? false, FILTER_VALIDATE_BOOLEAN);
+      $data['is_active'] = filter_var($data['is_active'] ?? true, FILTER_VALIDATE_BOOLEAN);
+
+      // Set default values if not provided
+      $data['date'] = $data['date'] ?? now()->format('Y-m-d');
+      $data['author'] = $data['author'] ?? 'Admin';
+      $data['read_time'] = $data['read_time'] ?? '3 minutes';
+      $data['views'] = (int)($data['views'] ?? 0);
+
+      // Ensure tags are stored as JSON
+      if (isset($data['tags']) && is_array($data['tags'])) {
+        $data['tags'] = array_values(array_unique(array_filter($data['tags'])));
+      }
+
+      Publication::create($data);
+
+      // Clear any large data from session before redirect
+      session()->forget('_old_input');
+
+      return redirect()->back()->with('success', '✅ Publication created successfully.');
+    } catch (\Exception $e) {
+      Log::error('Publication creation failed: ' . $e->getMessage(), [
+        'trace' => $e->getTraceAsString(),
+        'input' => $request->except(['image', 'pdf_url', 'full_content'])
+      ]);
+
+      return back()
+        ->withErrors(['error' => 'Failed to create publication: ' . $e->getMessage()])
+        ->withInput();
     }
-
-    $data = $request->all();
-
-    // Process image if it's a base64 string
-    if (!empty($data['image']) && $this->isBase64Image($data['image'])) {
-      $data['image'] = $this->uploadImage($data['image']);
-    }
-
-    // Process PDF if it's a base64 string
-    if (!empty($data['pdf_url']) && $this->isBase64Pdf($data['pdf_url'])) {
-      $data['pdf_url'] = $this->uploadPdf($data['pdf_url']);
-    }
-
-    // Auto-generate slug from title if not provided
-    if (empty($data['slug'])) {
-      $data['slug'] = $this->generateSlug($data['title']);
-    }
-
-    // Set default date if not provided
-    if (empty($data['date'])) {
-      $data['date'] = now()->format('Y-m-d');
-    }
-
-    // Set default author if not provided
-    if (empty($data['author'])) {
-      $data['author'] = 'Admin';
-    }
-
-    // Set default read time if not provided
-    if (empty($data['read_time'])) {
-      $data['read_time'] = '3 minutes';
-    }
-
-    // Set default views if not provided
-    if (!isset($data['views'])) {
-      $data['views'] = 0;
-    }
-
-    Publication::create($data);
-
-    return redirect()->back()->with('success', 'Publication created successfully.');
   }
 
   /**
@@ -100,68 +132,101 @@ class PublicationController extends Controller
    */
   public function update(Request $request, int $id)
   {
-    $publication = Publication::withTrashed()->findOrFail($id);
+    try {
+      $publication = Publication::withTrashed()->findOrFail($id);
 
-    $validator = Validator::make($request->all(), [
-      'title' => 'required|string|max:255',
-      'slug' => 'nullable|string|unique:publications,slug,' . $id,
-      'excerpt' => 'nullable|string',
-      'full_content' => 'nullable|string',
-      'image' => 'nullable|string',
-      'pdf_url' => 'nullable|string', // No max:255 constraint
-      'date' => 'nullable|string|max:255',
-      'author' => 'nullable|string|max:255',
-      'read_time' => 'nullable|string|max:255',
-      'tags' => 'nullable|array',
-      'category' => 'nullable|string|max:255',
-      'views' => 'nullable|integer|min:0',
-      'is_featured' => 'boolean',
-      'is_active' => 'boolean',
-    ]);
+      $validator = Validator::make($request->all(), [
+        'title' => 'required|string|max:255',
+        'slug' => 'nullable|string|unique:publications,slug,' . $id,
+        'excerpt' => 'nullable|string',
+        'full_content' => 'nullable|string',
+        'image' => 'nullable|string',
+        'pdf_url' => 'nullable|string',
+        'date' => 'nullable|string|max:255',
+        'author' => 'nullable|string|max:255',
+        'read_time' => 'nullable|string|max:255',
+        'tags' => 'nullable|array',
+        'category' => 'nullable|string|max:255',
+        'views' => 'nullable|integer|min:0',
+        'is_featured' => 'boolean',
+        'is_active' => 'boolean',
+      ]);
 
-    if ($validator->fails()) {
-      return back()->withErrors($validator)->withInput();
-    }
+      if ($validator->fails()) {
+        return back()->withErrors($validator)->withInput();
+      }
 
-    $data = $request->all();
+      $data = $request->all();
 
-    // Process image if it's a base64 string
-    if (!empty($data['image']) && $this->isBase64Image($data['image'])) {
-      // Delete old image if exists
-      if ($publication->image && !filter_var($publication->image, FILTER_VALIDATE_URL)) {
-        $oldPath = str_replace('/storage/', '', $publication->image);
-        if (Storage::disk('public')->exists($oldPath)) {
-          Storage::disk('public')->delete($oldPath);
+      // Process image if it's a base64 string
+      if (!empty($data['image']) && $this->isBase64Image($data['image'])) {
+        // Delete old image if exists
+        if ($publication->image && !filter_var($publication->image, FILTER_VALIDATE_URL)) {
+          $this->deleteImageFile($publication->image);
+        }
+
+        $uploadedPath = $this->uploadImage($data['image']);
+        if ($uploadedPath) {
+          $data['image'] = $uploadedPath;
+        } else {
+          unset($data['image']);
+          Log::warning('Image upload failed for publication update: ' . ($data['title'] ?? 'unknown'));
         }
       }
-      $data['image'] = $this->uploadImage($data['image']);
-    }
 
-    // Process PDF if it's a base64 string
-    if (!empty($data['pdf_url']) && $this->isBase64Pdf($data['pdf_url'])) {
-      // Delete old PDF if exists
-      if ($publication->pdf_url && !filter_var($publication->pdf_url, FILTER_VALIDATE_URL)) {
-        $oldPdfPath = str_replace('/storage/', '', $publication->pdf_url);
-        if (Storage::disk('public')->exists($oldPdfPath)) {
-          Storage::disk('public')->delete($oldPdfPath);
+      // Process PDF if it's a base64 string
+      if (!empty($data['pdf_url']) && $this->isBase64Pdf($data['pdf_url'])) {
+        // Delete old PDF if exists
+        if ($publication->pdf_url && !filter_var($publication->pdf_url, FILTER_VALIDATE_URL)) {
+          $this->deletePdfFile($publication->pdf_url);
+        }
+
+        $uploadedPath = $this->uploadPdf($data['pdf_url']);
+        if ($uploadedPath) {
+          $data['pdf_url'] = $uploadedPath;
+        } else {
+          unset($data['pdf_url']);
+          Log::warning('PDF upload failed for publication update: ' . ($data['title'] ?? 'unknown'));
         }
       }
-      $data['pdf_url'] = $this->uploadPdf($data['pdf_url']);
+
+      // Clear any session flash data that might contain large image/PDF data
+      $this->cleanSessionOldInput();
+
+      // Auto-generate slug from title if needed
+      if (empty($data['slug']) || ($data['title'] !== $publication->title && $data['slug'] === $publication->slug)) {
+        $data['slug'] = $this->generateUniqueSlug($data['title'], $id);
+      }
+
+      // Ensure boolean values are cast correctly
+      $data['is_featured'] = filter_var($data['is_featured'] ?? false, FILTER_VALIDATE_BOOLEAN);
+      $data['is_active'] = filter_var($data['is_active'] ?? true, FILTER_VALIDATE_BOOLEAN);
+
+      // Ensure views is set
+      $data['views'] = (int)($data['views'] ?? $publication->views ?? 0);
+
+      // Ensure tags are stored as JSON
+      if (isset($data['tags']) && is_array($data['tags'])) {
+        $data['tags'] = array_values(array_unique(array_filter($data['tags'])));
+      }
+
+      $publication->update($data);
+
+      // Clear any large data from session before redirect
+      session()->forget('_old_input');
+
+      return redirect()->back()->with('success', '✅ Publication updated successfully.');
+    } catch (\Exception $e) {
+      Log::error('Publication update failed: ' . $e->getMessage(), [
+        'trace' => $e->getTraceAsString(),
+        'publication_id' => $id,
+        'input' => $request->except(['image', 'pdf_url', 'full_content'])
+      ]);
+
+      return back()
+        ->withErrors(['error' => 'Failed to update publication: ' . $e->getMessage()])
+        ->withInput();
     }
-
-    // Auto-generate slug from title if slug is empty or if title changed and slug matches old title
-    if (empty($data['slug']) || ($data['title'] !== $publication->title && $data['slug'] === $publication->slug)) {
-      $data['slug'] = $this->generateSlug($data['title']);
-    }
-
-    // Ensure views is set
-    if (!isset($data['views'])) {
-      $data['views'] = $publication->views ?? 0;
-    }
-
-    $publication->update($data);
-
-    return redirect()->back()->with('success', 'Publication updated successfully.');
   }
 
   /**
@@ -169,11 +234,17 @@ class PublicationController extends Controller
    */
   public function toggleStatus(int $id)
   {
-    $publication = Publication::findOrFail($id);
-    $publication->is_active = !$publication->is_active;
-    $publication->save();
+    try {
+      $publication = Publication::findOrFail($id);
+      $publication->is_active = !$publication->is_active;
+      $publication->save();
 
-    return redirect()->back()->with('success', 'Publication status updated successfully.');
+      $status = $publication->is_active ? 'activated' : 'deactivated';
+      return redirect()->back()->with('success', "✅ Publication {$status} successfully.");
+    } catch (\Exception $e) {
+      Log::error('Publication status toggle failed: ' . $e->getMessage(), ['publication_id' => $id]);
+      return redirect()->back()->with('error', 'Failed to toggle publication status.');
+    }
   }
 
   /**
@@ -181,11 +252,23 @@ class PublicationController extends Controller
    */
   public function toggleFeatured(int $id)
   {
-    $publication = Publication::findOrFail($id);
-    $publication->is_featured = !$publication->is_featured;
-    $publication->save();
+    try {
+      $publication = Publication::findOrFail($id);
 
-    return redirect()->back()->with('success', 'Publication featured status updated successfully.');
+      // If making this publication featured, remove featured status from others
+      if (!$publication->is_featured) {
+        Publication::where('is_featured', true)->where('id', '!=', $id)->update(['is_featured' => false]);
+      }
+
+      $publication->is_featured = !$publication->is_featured;
+      $publication->save();
+
+      $status = $publication->is_featured ? 'featured' : 'unfeatured';
+      return redirect()->back()->with('success', "✅ Publication {$status} successfully.");
+    } catch (\Exception $e) {
+      Log::error('Publication featured toggle failed: ' . $e->getMessage(), ['publication_id' => $id]);
+      return redirect()->back()->with('error', 'Failed to toggle featured status.');
+    }
   }
 
   /**
@@ -193,10 +276,15 @@ class PublicationController extends Controller
    */
   public function destroy(int $id)
   {
-    $publication = Publication::findOrFail($id);
-    $publication->delete();
+    try {
+      $publication = Publication::findOrFail($id);
+      $publication->delete();
 
-    return redirect()->back()->with('success', 'Publication deleted successfully.');
+      return redirect()->back()->with('success', '🗑️ Publication moved to trash successfully.');
+    } catch (\Exception $e) {
+      Log::error('Publication deletion failed: ' . $e->getMessage(), ['publication_id' => $id]);
+      return redirect()->back()->with('error', 'Failed to delete publication.');
+    }
   }
 
   /**
@@ -204,10 +292,15 @@ class PublicationController extends Controller
    */
   public function restore(int $id)
   {
-    $publication = Publication::withTrashed()->findOrFail($id);
-    $publication->restore();
+    try {
+      $publication = Publication::withTrashed()->findOrFail($id);
+      $publication->restore();
 
-    return redirect()->back()->with('success', 'Publication restored successfully.');
+      return redirect()->back()->with('success', '🔄 Publication restored successfully.');
+    } catch (\Exception $e) {
+      Log::error('Publication restoration failed: ' . $e->getMessage(), ['publication_id' => $id]);
+      return redirect()->back()->with('error', 'Failed to restore publication.');
+    }
   }
 
   /**
@@ -215,42 +308,63 @@ class PublicationController extends Controller
    */
   public function forceDelete(int $id)
   {
-    $publication = Publication::withTrashed()->findOrFail($id);
+    try {
+      $publication = Publication::withTrashed()->findOrFail($id);
 
-    // Delete associated image
-    if ($publication->image && !filter_var($publication->image, FILTER_VALIDATE_URL)) {
-      $oldPath = str_replace('/storage/', '', $publication->image);
-      if (Storage::disk('public')->exists($oldPath)) {
-        Storage::disk('public')->delete($oldPath);
+      // Delete associated image
+      if ($publication->image && !filter_var($publication->image, FILTER_VALIDATE_URL)) {
+        $this->deleteImageFile($publication->image);
       }
-    }
 
-    // Delete PDF file if exists
-    if ($publication->pdf_url && !filter_var($publication->pdf_url, FILTER_VALIDATE_URL)) {
-      $pdfPath = str_replace('/storage/', '', $publication->pdf_url);
-      if (Storage::disk('public')->exists($pdfPath)) {
-        Storage::disk('public')->delete($pdfPath);
+      // Delete PDF file if exists
+      if ($publication->pdf_url && !filter_var($publication->pdf_url, FILTER_VALIDATE_URL)) {
+        $this->deletePdfFile($publication->pdf_url);
       }
+
+      // Delete images embedded in the content
+      $this->deleteImagesFromContent($publication->full_content);
+
+      $publication->forceDelete();
+
+      return redirect()->back()->with('success', '🗑️ Publication permanently deleted.');
+    } catch (\Exception $e) {
+      Log::error('Publication force deletion failed: ' . $e->getMessage(), ['publication_id' => $id]);
+      return redirect()->back()->with('error', 'Failed to permanently delete publication.');
     }
-
-    // Delete images embedded in the content
-    $this->deleteImagesFromContent($publication->full_content);
-
-    $publication->forceDelete();
-
-    return redirect()->back()->with('success', 'Publication permanently deleted.');
   }
 
   /**
-   * Generate a unique slug from title
+   * Clean session old input to prevent max_allowed_packet errors
    */
-  protected function generateSlug(string $title): string
+  protected function cleanSessionOldInput(): void
+  {
+    if (session()->has('_old_input')) {
+      $oldInput = session()->get('_old_input');
+      if (isset($oldInput['image']) && $this->isBase64Image($oldInput['image'])) {
+        unset($oldInput['image']);
+        session()->put('_old_input', $oldInput);
+      }
+      if (isset($oldInput['pdf_url']) && $this->isBase64Pdf($oldInput['pdf_url'])) {
+        unset($oldInput['pdf_url']);
+        session()->put('_old_input', $oldInput);
+      }
+    }
+  }
+
+  /**
+   * Generate a unique slug
+   */
+  protected function generateUniqueSlug(string $title, ?int $excludeId = null): string
   {
     $slug = Str::slug($title);
     $originalSlug = $slug;
     $counter = 1;
 
-    while (Publication::withTrashed()->where('slug', $slug)->exists()) {
+    while (Publication::withTrashed()
+      ->where('slug', $slug)
+      ->when($excludeId, fn($q) => $q->where('id', '!=', $excludeId))
+      ->exists()
+    ) {
       $slug = $originalSlug . '-' . $counter;
       $counter++;
     }
@@ -277,60 +391,108 @@ class PublicationController extends Controller
   /**
    * Upload image and return the path
    */
-  /**
-   * Upload image and return the path
-   */
-  protected function uploadImage(string $base64String): string
+  protected function uploadImage(string $base64String): ?string
   {
     try {
+      // Validate base64 format
+      if (!preg_match('/^data:image\/(\w+);base64,/', $base64String, $matches)) {
+        Log::warning('Invalid base64 image format');
+        return null;
+      }
+
       $imageData = explode(',', $base64String);
       if (count($imageData) < 2) {
-        return '';
+        Log::warning('Invalid base64 image data');
+        return null;
       }
+
       $imageContent = base64_decode($imageData[1]);
+      if ($imageContent === false) {
+        Log::warning('Failed to decode base64 image');
+        return null;
+      }
+
+      // Check file size (max 5MB)
+      if (strlen($imageContent) > 5 * 1024 * 1024) {
+        Log::warning('Image too large: ' . strlen($imageContent) . ' bytes');
+        return null;
+      }
+
       $extension = $this->getImageExtension($base64String);
 
-      // Simplified filename: YYYYMMDD_UUID.extension
+      // Generate filename with date prefix
       $datePrefix = date('Ymd');
       $uuid = Str::uuid();
       $filename = $datePrefix . '_' . $uuid . '.' . $extension;
-
-      // Single directory structure: Publications/filename
       $path = 'Publications/' . $filename;
 
-      Storage::disk('public')->put($path, $imageContent);
+      // Store the image
+      $stored = Storage::disk('public')->put($path, $imageContent);
+
+      if (!$stored) {
+        Log::error('Failed to store image: ' . $path);
+        return null;
+      }
 
       return '/storage/' . $path;
     } catch (\Exception $e) {
       Log::error('Image upload failed: ' . $e->getMessage());
-      return '';
+      return null;
     }
   }
 
   /**
    * Upload PDF and return the path
    */
-  protected function uploadPdf(string $base64String): string
+  protected function uploadPdf(string $base64String): ?string
   {
     try {
-      // Extract PDF data
+      // Validate base64 PDF format
+      if (!str_starts_with($base64String, 'data:application/pdf;base64,')) {
+        Log::warning('Invalid base64 PDF format');
+        return null;
+      }
+
       $pdfData = explode(',', $base64String);
       if (count($pdfData) < 2) {
-        return '';
+        Log::warning('Invalid base64 PDF data');
+        return null;
       }
+
       $pdfContent = base64_decode($pdfData[1]);
+      if ($pdfContent === false) {
+        Log::warning('Failed to decode base64 PDF');
+        return null;
+      }
+
+      // Check file size (max 20MB)
+      if (strlen($pdfContent) > 20 * 1024 * 1024) {
+        Log::warning('PDF too large: ' . strlen($pdfContent) . ' bytes');
+        return null;
+      }
 
       // Generate filename
       $filename = Str::uuid() . '.pdf';
       $path = 'Publications/pdfs/' . date('Y/m/d') . '/' . $filename;
 
+      // Create directory if it doesn't exist
+      $directory = dirname($path);
+      if (!Storage::disk('public')->exists($directory)) {
+        Storage::disk('public')->makeDirectory($directory);
+      }
+
       // Store the PDF
-      Storage::disk('public')->put($path, $pdfContent);
+      $stored = Storage::disk('public')->put($path, $pdfContent);
+
+      if (!$stored) {
+        Log::error('Failed to store PDF: ' . $path);
+        return null;
+      }
 
       return '/storage/' . $path;
     } catch (\Exception $e) {
       Log::error('PDF upload failed: ' . $e->getMessage());
-      return '';
+      return null;
     }
   }
 
@@ -362,6 +524,38 @@ class PublicationController extends Controller
   }
 
   /**
+   * Delete image file from storage
+   */
+  protected function deleteImageFile(string $imagePath): void
+  {
+    try {
+      $relativePath = str_replace('/storage/', '', $imagePath);
+      if (Storage::disk('public')->exists($relativePath)) {
+        Storage::disk('public')->delete($relativePath);
+        Log::info('Image deleted: ' . $relativePath);
+      }
+    } catch (\Exception $e) {
+      Log::warning('Failed to delete image: ' . $e->getMessage());
+    }
+  }
+
+  /**
+   * Delete PDF file from storage
+   */
+  protected function deletePdfFile(string $pdfPath): void
+  {
+    try {
+      $relativePath = str_replace('/storage/', '', $pdfPath);
+      if (Storage::disk('public')->exists($relativePath)) {
+        Storage::disk('public')->delete($relativePath);
+        Log::info('PDF deleted: ' . $relativePath);
+      }
+    } catch (\Exception $e) {
+      Log::warning('Failed to delete PDF: ' . $e->getMessage());
+    }
+  }
+
+  /**
    * Delete images embedded in HTML content (only from editor-images folder)
    */
   protected function deleteImagesFromContent(?string $content): void
@@ -374,8 +568,13 @@ class PublicationController extends Controller
     foreach ($matches[1] as $src) {
       if (str_starts_with($src, '/storage/editor-images/')) {
         $relativePath = str_replace('/storage/', '', $src);
-        if (Storage::disk('public')->exists($relativePath)) {
-          Storage::disk('public')->delete($relativePath);
+        try {
+          if (Storage::disk('public')->exists($relativePath)) {
+            Storage::disk('public')->delete($relativePath);
+            Log::info('Embedded image deleted: ' . $relativePath);
+          }
+        } catch (\Exception $e) {
+          Log::warning('Failed to delete embedded image: ' . $e->getMessage());
         }
       }
     }

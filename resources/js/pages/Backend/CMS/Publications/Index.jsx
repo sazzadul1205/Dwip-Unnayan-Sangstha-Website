@@ -1,3 +1,4 @@
+/* eslint-disable no-undef */
 // resources/js/pages/Backend/CMS/Publications/Index.jsx
 
 // React
@@ -9,7 +10,8 @@ import axios from 'axios';
 import {
   FaPlus, FaEdit, FaTrash, FaUndo, FaSpinner,
   FaToggleOn, FaToggleOff, FaStar, FaRegStar, FaSave, FaMagic, FaFileAlt,
-  FaUpload, FaTimes, FaTag, FaEye, FaFilePdf
+  FaUpload, FaTimes, FaTag, FaEye, FaFilePdf, FaExclamationTriangle,
+  FaInfoCircle
 } from 'react-icons/fa';
 import { ImCross } from "react-icons/im";
 
@@ -56,6 +58,9 @@ export default function Index({ items }) {
   // Track editor images uploaded
   const [uploadedEditorImages, setUploadedEditorImages] = useState([]);
 
+  // Validation errors
+  const [validationErrors, setValidationErrors] = useState({});
+
   // ============================================================
   // HELPER FUNCTIONS
   // ============================================================
@@ -101,6 +106,7 @@ export default function Index({ items }) {
   // ============================================================
 
   const openModal = (item = null) => {
+    setValidationErrors({});
     setEditingItem(item);
     if (item) {
       setFormData({
@@ -126,6 +132,7 @@ export default function Index({ items }) {
     setPdfDragActive(false);
     setUploading(false);
     setUploadingPdf(false);
+    setValidationErrors({});
 
     if (!isSubmitSuccess && uploadedEditorImages.length > 0) {
       deleteEditorImages(uploadedEditorImages);
@@ -137,7 +144,6 @@ export default function Index({ items }) {
 
   const deleteEditorImages = async (urls) => {
     try {
-      // eslint-disable-next-line no-undef
       await axios.delete(route('admin.editor-image.delete'), {
         data: { urls },
         headers: { 'Content-Type': 'application/json' },
@@ -165,6 +171,8 @@ export default function Index({ items }) {
         text: `"${trimmedTag}" is already added.`,
         timer: 1500,
         showConfirmButton: false,
+        toast: true,
+        position: 'top-end'
       });
       return;
     }
@@ -243,10 +251,11 @@ export default function Index({ items }) {
   };
 
   const processImageFile = (file) => {
-    if (!file.type.startsWith('image/')) {
+    const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'];
+    if (!validTypes.includes(file.type)) {
       Swal.fire({
         icon: 'error',
-        title: 'Invalid File',
+        title: 'Invalid File Type',
         text: 'Please select an image file (JPEG, PNG, GIF, WebP, SVG)',
         confirmButtonColor: '#3b82f6',
       });
@@ -269,13 +278,23 @@ export default function Index({ items }) {
       const imageUrl = event.target.result;
       setFormData(prev => ({ ...prev, image: imageUrl }));
       setUploading(false);
+
+      Swal.fire({
+        icon: 'success',
+        title: 'Image Uploaded',
+        text: 'Image has been added successfully.',
+        timer: 1500,
+        showConfirmButton: false,
+        toast: true,
+        position: 'top-end'
+      });
     };
     reader.onerror = () => {
       setUploading(false);
       Swal.fire({
         icon: 'error',
-        title: 'Error',
-        text: 'Failed to read the image file',
+        title: 'Upload Failed',
+        text: 'Failed to read the image file. Please try again.',
         confirmButtonColor: '#3b82f6',
       });
     };
@@ -284,6 +303,15 @@ export default function Index({ items }) {
 
   const removeImage = () => {
     setFormData(prev => ({ ...prev, image: '' }));
+    Swal.fire({
+      icon: 'info',
+      title: 'Image Removed',
+      text: 'Image has been removed.',
+      timer: 1500,
+      showConfirmButton: false,
+      toast: true,
+      position: 'top-end'
+    });
   };
 
   // ============================================================
@@ -321,18 +349,16 @@ export default function Index({ items }) {
   };
 
   const processPdfFile = (file) => {
-    // Check if it's a PDF
     if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
       Swal.fire({
         icon: 'error',
-        title: 'Invalid File',
+        title: 'Invalid File Type',
         text: 'Please select a PDF file.',
         confirmButtonColor: '#3b82f6',
       });
       return;
     }
 
-    // Check file size (max 20MB for PDF)
     if (file.size > 20 * 1024 * 1024) {
       Swal.fire({
         icon: 'error',
@@ -349,13 +375,23 @@ export default function Index({ items }) {
       const pdfData = event.target.result;
       setFormData(prev => ({ ...prev, pdf_url: pdfData }));
       setUploadingPdf(false);
+
+      Swal.fire({
+        icon: 'success',
+        title: 'PDF Uploaded',
+        text: 'PDF file has been added successfully.',
+        timer: 1500,
+        showConfirmButton: false,
+        toast: true,
+        position: 'top-end'
+      });
     };
     reader.onerror = () => {
       setUploadingPdf(false);
       Swal.fire({
         icon: 'error',
-        title: 'Error',
-        text: 'Failed to read the PDF file',
+        title: 'Upload Failed',
+        text: 'Failed to read the PDF file. Please try again.',
         confirmButtonColor: '#3b82f6',
       });
     };
@@ -364,6 +400,54 @@ export default function Index({ items }) {
 
   const removePdf = () => {
     setFormData(prev => ({ ...prev, pdf_url: '' }));
+    Swal.fire({
+      icon: 'info',
+      title: 'PDF Removed',
+      text: 'PDF file has been removed.',
+      timer: 1500,
+      showConfirmButton: false,
+      toast: true,
+      position: 'top-end'
+    });
+  };
+
+  // ============================================================
+  // FORM VALIDATION
+  // ============================================================
+
+  const validateForm = () => {
+    const errors = {};
+
+    if (!formData.title || formData.title.trim().length < 3) {
+      errors.title = 'Title must be at least 3 characters long.';
+    }
+
+    if (formData.title && formData.title.length > 255) {
+      errors.title = 'Title cannot exceed 255 characters.';
+    }
+
+    if (formData.slug && formData.slug.length > 255) {
+      errors.slug = 'Slug cannot exceed 255 characters.';
+    }
+
+    if (formData.category && formData.category.length > 255) {
+      errors.category = 'Category cannot exceed 255 characters.';
+    }
+
+    if (formData.author && formData.author.length > 255) {
+      errors.author = 'Author cannot exceed 255 characters.';
+    }
+
+    if (formData.read_time && formData.read_time.length > 255) {
+      errors.read_time = 'Read time cannot exceed 255 characters.';
+    }
+
+    if (formData.views && (formData.views < 0)) {
+      errors.views = 'Views must be a positive number.';
+    }
+
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
   };
 
   // ============================================================
@@ -372,6 +456,17 @@ export default function Index({ items }) {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+
+    if (!validateForm()) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Validation Error',
+        text: 'Please fix the highlighted fields before submitting.',
+        confirmButtonColor: '#3b82f6',
+      });
+      return;
+    }
+
     setLoading(true);
 
     const data = { ...formData };
@@ -400,18 +495,35 @@ export default function Index({ items }) {
         closeModal(true);
         setLoading(false);
         router.reload({ preserveScroll: true });
+
+        Swal.fire({
+          icon: 'success',
+          title: editingItem ? 'Publication Updated!' : 'Publication Created!',
+          text: editingItem ? 'Your publication has been updated successfully.' : 'Your publication has been created successfully.',
+          timer: 2000,
+          showConfirmButton: false,
+          toast: true,
+          position: 'top-end'
+        });
       },
       onError: (errors) => {
         console.error('Errors:', errors);
         setLoading(false);
+
         if (errors) {
-          const errorMessages = Object.values(errors).flat().join('\n');
+          const errorMessages = Object.entries(errors).map(([field, messages]) => {
+            const msgs = Array.isArray(messages) ? messages : [messages];
+            return `${field}: ${msgs.join(', ')}`;
+          }).join('\n');
+
           Swal.fire({
             icon: 'error',
-            title: 'Validation Error',
+            title: 'Submission Error',
             text: errorMessages || 'Please check your input and try again.',
             confirmButtonColor: '#3b82f6',
           });
+
+          setValidationErrors(errors);
         }
       },
     });
@@ -426,38 +538,20 @@ export default function Index({ items }) {
         setToggling(null);
         router.reload({ preserveScroll: true });
       },
-      onError: () => setToggling(null),
+      onError: (errors) => {
+        setToggling(null);
+        console.error('Toggle status error:', errors);
+        Swal.fire({
+          icon: 'error',
+          title: 'Error',
+          text: 'Failed to toggle status. Please try again.',
+          confirmButtonColor: '#3b82f6',
+        });
+      },
     });
   };
 
   const toggleFeatured = (item) => {
-    if (!item.is_featured) {
-      setFeatureToggling(item.id);
-
-      const otherFeatured = items.filter(b => b.is_featured && b.id !== item.id && !b.deleted_at);
-
-      if (otherFeatured.length > 0) {
-        const currentFeatured = otherFeatured[0];
-        const url = window.route('backend.cms.publications.toggle-featured', { id: currentFeatured.id });
-        router.post(url, {}, {
-          preserveScroll: true,
-          onSuccess: () => {
-            const featureUrl = window.route('backend.cms.publications.toggle-featured', { id: item.id });
-            router.post(featureUrl, {}, {
-              preserveScroll: true,
-              onSuccess: () => {
-                setFeatureToggling(null);
-                router.reload({ preserveScroll: true });
-              },
-              onError: () => setFeatureToggling(null),
-            });
-          },
-          onError: () => setFeatureToggling(null),
-        });
-        return;
-      }
-    }
-
     setFeatureToggling(item.id);
     const url = window.route('backend.cms.publications.toggle-featured', { id: item.id });
     router.post(url, {}, {
@@ -466,18 +560,27 @@ export default function Index({ items }) {
         setFeatureToggling(null);
         router.reload({ preserveScroll: true });
       },
-      onError: () => setFeatureToggling(null),
+      onError: (errors) => {
+        setFeatureToggling(null);
+        console.error('Toggle featured error:', errors);
+        Swal.fire({
+          icon: 'error',
+          title: 'Error',
+          text: 'Failed to toggle featured status. Please try again.',
+          confirmButtonColor: '#3b82f6',
+        });
+      },
     });
   };
 
   const confirmDelete = (item) => {
     Swal.fire({
       title: 'Delete Publication',
-      text: `Are you sure you want to delete "${item.title}"?`,
+      html: `Are you sure you want to delete <strong>"${item.title}"</strong>?<br><br><span style="color: #6b7280; font-size: 0.9rem;">This will move it to trash. You can restore it later.</span>`,
       icon: 'warning',
       showCancelButton: true,
       confirmButtonColor: '#d33',
-      cancelButtonColor: '#3085d6',
+      cancelButtonColor: '#6b7280',
       confirmButtonText: 'Yes, delete it!',
       cancelButtonText: 'Cancel'
     }).then((result) => {
@@ -485,6 +588,15 @@ export default function Index({ items }) {
         const url = window.route('backend.cms.publications.destroy', { id: item.id });
         router.delete(url, {}, {
           preserveScroll: true,
+          onError: (errors) => {
+            console.error('Delete error:', errors);
+            Swal.fire({
+              icon: 'error',
+              title: 'Error',
+              text: 'Failed to delete publication. Please try again.',
+              confirmButtonColor: '#3b82f6',
+            });
+          },
         });
       }
     });
@@ -492,12 +604,12 @@ export default function Index({ items }) {
 
   const confirmForceDelete = (item) => {
     Swal.fire({
-      title: 'Permanently Delete',
-      text: `Are you sure you want to permanently delete "${item.title}"? This cannot be undone.`,
+      title: '⚠️ Permanently Delete?',
+      html: `Are you sure you want to permanently delete <strong>"${item.title}"</strong>?<br><br><span style="color: #d33; font-weight: bold;">This action cannot be undone!</span><br><span style="color: #6b7280; font-size: 0.9rem;">All associated content, images, and PDF files will be removed.</span>`,
       icon: 'error',
       showCancelButton: true,
       confirmButtonColor: '#d33',
-      cancelButtonColor: '#3085d6',
+      cancelButtonColor: '#6b7280',
       confirmButtonText: 'Yes, permanently delete!',
       cancelButtonText: 'Cancel'
     }).then((result) => {
@@ -505,6 +617,15 @@ export default function Index({ items }) {
         const url = window.route('backend.cms.publications.force-delete', { id: item.id });
         router.delete(url, {}, {
           preserveScroll: true,
+          onError: (errors) => {
+            console.error('Force delete error:', errors);
+            Swal.fire({
+              icon: 'error',
+              title: 'Error',
+              text: 'Failed to permanently delete publication. Please try again.',
+              confirmButtonColor: '#3b82f6',
+            });
+          },
         });
       }
     });
@@ -513,11 +634,11 @@ export default function Index({ items }) {
   const confirmRestore = (item) => {
     Swal.fire({
       title: 'Restore Publication',
-      text: `Are you sure you want to restore "${item.title}"?`,
+      html: `Are you sure you want to restore <strong>"${item.title}"</strong> from trash?`,
       icon: 'question',
       showCancelButton: true,
       confirmButtonColor: '#10b981',
-      cancelButtonColor: '#3085d6',
+      cancelButtonColor: '#6b7280',
       confirmButtonText: 'Yes, restore it!',
       cancelButtonText: 'Cancel'
     }).then((result) => {
@@ -526,8 +647,20 @@ export default function Index({ items }) {
         const url = window.route('backend.cms.publications.restore', { id: item.id });
         router.post(url, {}, {
           preserveScroll: true,
-          onSuccess: () => setIsRestoring(false),
-          onError: () => setIsRestoring(false),
+          onSuccess: () => {
+            setIsRestoring(false);
+            router.reload({ preserveScroll: true });
+          },
+          onError: (errors) => {
+            setIsRestoring(false);
+            console.error('Restore error:', errors);
+            Swal.fire({
+              icon: 'error',
+              title: 'Error',
+              text: 'Failed to restore publication. Please try again.',
+              confirmButtonColor: '#3b82f6',
+            });
+          },
         });
       }
     });
@@ -539,10 +672,23 @@ export default function Index({ items }) {
 
   useEffect(() => {
     if (flash?.success) {
-      Swal.fire({ icon: 'success', title: 'Success', text: flash.success, timer: 2000, showConfirmButton: false });
+      Swal.fire({
+        icon: 'success',
+        title: 'Success',
+        text: flash.success,
+        timer: 3000,
+        showConfirmButton: false,
+        toast: true,
+        position: 'top-end'
+      });
     }
     if (flash?.error) {
-      Swal.fire({ icon: 'error', title: 'Error', text: flash.error });
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: flash.error,
+        confirmButtonColor: '#3b82f6',
+      });
     }
   }, [flash]);
 
@@ -571,36 +717,43 @@ export default function Index({ items }) {
 
       <div className="p-6">
         {/* Header */}
-        <div className="flex justify-between items-center mb-6">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Publications</h1>
+            <h1 className="text-2xl font-bold text-gray-900">📄 Publications</h1>
             <p className="text-sm text-gray-500">Manage publications and research papers</p>
             <div className="flex gap-3 mt-2 flex-wrap">
-              <span className="inline-flex items-center gap-1 text-xs">
-                <span className="w-2 h-2 rounded-full bg-green-500" />
+              <span className="inline-flex items-center gap-1 text-xs bg-green-50 px-2 py-1 rounded-full">
+                <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
                 Active: {items.filter(b => b.is_active && !b.deleted_at).length}
               </span>
-              <span className="inline-flex items-center gap-1 text-xs">
-                <span className="w-2 h-2 rounded-full bg-yellow-500" />
+              <span className="inline-flex items-center gap-1 text-xs bg-yellow-50 px-2 py-1 rounded-full">
+                <span className="w-1.5 h-1.5 rounded-full bg-yellow-500" />
                 Featured: {featuredCount} (max 1)
               </span>
-              <span className="inline-flex items-center gap-1 text-xs text-gray-500">
-                <span className="w-2 h-2 rounded-full bg-gray-400" />
+              <span className="inline-flex items-center gap-1 text-xs bg-gray-50 px-2 py-1 rounded-full">
+                <span className="w-1.5 h-1.5 rounded-full bg-gray-400" />
                 Total: {items.length}
+              </span>
+              <span className="inline-flex items-center gap-1 text-xs bg-red-50 px-2 py-1 rounded-full">
+                <span className="w-1.5 h-1.5 rounded-full bg-red-400" />
+                Trash: {items.filter(b => b.deleted_at !== null).length}
               </span>
             </div>
           </div>
-          <div className="flex gap-3">
+          <div className="flex flex-wrap gap-3">
             <button
               onClick={() => setShowDeleted(!showDeleted)}
-              className={`px-4 py-2 rounded-lg transition flex items-center gap-2 ${showDeleted
+              className={`px-4 py-2 rounded-lg transition flex items-center gap-2 cursor-pointer ${showDeleted
                 ? 'bg-red-600 text-white hover:bg-red-700'
                 : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                 }`}
             >
-              {showDeleted ? '📋 Show Active' : '🗑️ Show Deleted'}
+              {showDeleted ? '📋 Show Active' : '🗑️ Trash'}
             </button>
-            <button onClick={() => openModal()} className="px-4 py-2 bg-blue-600 text-white rounded-lg flex items-center gap-2 hover:bg-blue-700 transition">
+            <button
+              onClick={() => openModal()}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg flex items-center gap-2 hover:bg-blue-700 transition shadow-md hover:shadow-lg cursor-pointer"
+            >
               <FaPlus size={14} /> Add New
             </button>
           </div>
@@ -625,7 +778,7 @@ export default function Index({ items }) {
                 {filteredItems.length === 0 ? (
                   <tr>
                     <td colSpan="7" className="px-6 py-12 text-center text-gray-500">
-                      {showDeleted ? 'No deleted publications found' : 'No publications found'}
+                      {showDeleted ? '🗑️ No deleted publications found' : '📄 No publications found'}
                     </td>
                   </tr>
                 ) : (
@@ -634,7 +787,7 @@ export default function Index({ items }) {
                     const isFeatured = item.is_featured;
 
                     return (
-                      <tr key={item.id} className={`hover:bg-gray-50 ${isDeleted ? 'bg-red-50' : ''}`}>
+                      <tr key={item.id} className={`hover:bg-gray-50 ${isDeleted ? 'bg-red-50/50' : ''}`}>
                         <td className="px-6 py-4 text-sm text-gray-500">{idx + 1}</td>
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-3">
@@ -643,6 +796,10 @@ export default function Index({ items }) {
                                 src={item.image}
                                 alt={item.title}
                                 className="w-10 h-10 object-cover rounded-lg"
+                                onError={(e) => {
+                                  e.target.onerror = null;
+                                  e.target.style.display = 'none';
+                                }}
                               />
                             ) : item.pdf_url ? (
                               <FaFilePdf className="text-red-500" size={20} />
@@ -656,6 +813,18 @@ export default function Index({ items }) {
                               <div className="text-xs text-gray-500 truncate max-w-xs">
                                 {item.author ? `By ${item.author}` : 'No author'} • {item.date || 'No date'}
                               </div>
+                              {item.tags && item.tags.length > 0 && (
+                                <div className="flex flex-wrap gap-1 mt-1">
+                                  {item.tags.slice(0, 2).map(tag => (
+                                    <span key={tag} className="text-xs bg-gray-100 px-1.5 py-0.5 rounded">
+                                      #{tag}
+                                    </span>
+                                  ))}
+                                  {item.tags.length > 2 && (
+                                    <span className="text-xs text-gray-400">+{item.tags.length - 2}</span>
+                                  )}
+                                </div>
+                              )}
                             </div>
                           </div>
                         </td>
@@ -672,7 +841,7 @@ export default function Index({ items }) {
                               className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition ${item.is_active
                                 ? 'bg-green-100 text-green-700 hover:bg-green-200'
                                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                                }`}
+                                } ${toggling === item.id ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                             >
                               {toggling === item.id ? (
                                 <FaSpinner className="animate-spin" size={14} />
@@ -684,7 +853,9 @@ export default function Index({ items }) {
                               {item.is_active ? 'Active' : 'Inactive'}
                             </button>
                           ) : (
-                            <span className="text-xs text-red-500 font-medium">Deleted</span>
+                            <span className="text-xs text-red-500 font-medium">
+                              <span className="inline-block mr-1">🗑️</span> Deleted
+                            </span>
                           )}
                         </td>
                         <td className="px-6 py-4">
@@ -692,7 +863,8 @@ export default function Index({ items }) {
                             <button
                               onClick={() => toggleFeatured(item)}
                               disabled={featureToggling === item.id}
-                              className={`p-1.5 rounded-lg transition hover:bg-yellow-50 ${isFeatured ? 'text-yellow-500' : 'text-gray-300'}`}
+                              className={`p-1.5 rounded-lg transition hover:bg-yellow-50 cursor-pointer ${isFeatured ? 'text-yellow-500' : 'text-gray-300 hover:text-yellow-400'
+                                } ${featureToggling === item.id ? 'opacity-50 cursor-not-allowed' : ''}`}
                               title={isFeatured ? 'Remove featured' : 'Make featured'}
                             >
                               {featureToggling === item.id ? (
@@ -717,15 +889,15 @@ export default function Index({ items }) {
                               <button
                                 onClick={() => confirmRestore(item)}
                                 disabled={isRestoring}
-                                className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition"
+                                className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition cursor-pointer disabled:opacity-50"
                                 title="Restore"
                               >
                                 <FaUndo size={16} />
                               </button>
                               <button
                                 onClick={() => confirmForceDelete(item)}
-                                className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition"
-                                title="Force Delete"
+                                className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition cursor-pointer"
+                                title="Permanently Delete"
                               >
                                 <FaTrash size={16} />
                               </button>
@@ -734,15 +906,15 @@ export default function Index({ items }) {
                             <>
                               <button
                                 onClick={() => openModal(item)}
-                                className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition"
+                                className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition cursor-pointer"
                                 title="Edit"
                               >
                                 <FaEdit size={16} />
                               </button>
                               <button
                                 onClick={() => confirmDelete(item)}
-                                className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition"
-                                title="Delete"
+                                className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition cursor-pointer"
+                                title="Move to Trash"
                               >
                                 <FaTrash size={16} />
                               </button>
@@ -760,58 +932,99 @@ export default function Index({ items }) {
       </div>
 
       {/* ============================================================
-          CREATE/EDIT MODAL
+          CREATE/EDIT MODAL WITH ERROR HANDLING
           ============================================================ */}
       {showModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center p-6 border-b border-gray-200 sticky top-0 bg-white z-10">
-              <h2 className="text-xl font-bold">{editingItem ? 'Edit' : 'Create'} Publication</h2>
-              <button onClick={() => closeModal(false)} className="p-2 hover:bg-gray-100 rounded-lg transition">
-                <ImCross size={20} />
+              <div>
+                <h2 className="text-xl font-bold">
+                  {editingItem ? '✏️ Edit Publication' : '📄 Create New Publication'}
+                </h2>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  {editingItem ? 'Update your publication details' : 'Fill in the details to create a new publication'}
+                </p>
+              </div>
+              <button
+                onClick={() => closeModal(false)}
+                className="p-2 hover:bg-gray-100 rounded-lg transition cursor-pointer"
+              >
+                <ImCross size={20} className="text-gray-500" />
               </button>
             </div>
 
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
               {/* Title */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">TITLE</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  TITLE <span className="text-red-500">*</span>
+                </label>
                 <input
                   type="text"
                   value={formData.title || ''}
-                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                  onChange={(e) => {
+                    setFormData({ ...formData, title: e.target.value });
+                    if (validationErrors.title) {
+                      setValidationErrors({ ...validationErrors, title: null });
+                    }
+                  }}
                   placeholder="Enter publication title"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 transition ${validationErrors.title ? 'border-red-500' : 'border-gray-300'
+                    }`}
                   required
                 />
+                {validationErrors.title && (
+                  <p className="text-red-500 text-xs mt-1 flex items-center gap-1">
+                    <FaExclamationTriangle size={12} /> {validationErrors.title}
+                  </p>
+                )}
               </div>
 
               {/* Slug */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">SLUG</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  SLUG <span className="text-gray-400 text-xs">(optional - auto-generated)</span>
+                </label>
                 <div className="flex gap-2">
                   <input
                     type="text"
                     value={formData.slug || ''}
-                    onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
+                    onChange={(e) => {
+                      setFormData({ ...formData, slug: e.target.value });
+                      if (validationErrors.slug) {
+                        setValidationErrors({ ...validationErrors, slug: null });
+                      }
+                    }}
                     placeholder="Auto-generated from title"
-                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className={`flex-1 px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 transition ${validationErrors.slug ? 'border-red-500' : 'border-gray-300'
+                      }`}
                   />
                   <button
                     type="button"
                     onClick={() => setFormData({ ...formData, slug: generateSlug(formData.title || '') })}
-                    className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition flex items-center gap-2"
-                    title="Regenerate slug from title"
+                    className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition flex items-center gap-2 shrink-0 cursor-pointer"
+                    title="Generate slug from title"
                   >
-                    <FaMagic size={14} /> Regenerate
+                    <FaMagic size={14} /> Generate
                   </button>
                 </div>
-                <p className="text-xs text-gray-400 mt-1">Auto-generated from title. You can manually edit it.</p>
+                <div className="flex items-center gap-2 mt-1">
+                  <FaInfoCircle className="text-gray-400" size={12} />
+                  <p className="text-xs text-gray-400">Auto-generated from title. You can manually edit it.</p>
+                </div>
+                {validationErrors.slug && (
+                  <p className="text-red-500 text-xs mt-1 flex items-center gap-1">
+                    <FaExclamationTriangle size={12} /> {validationErrors.slug}
+                  </p>
+                )}
               </div>
 
               {/* Excerpt */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">EXCERPT</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  EXCERPT <span className="text-gray-400 text-xs">(optional)</span>
+                </label>
                 <textarea
                   value={formData.excerpt || ''}
                   onChange={(e) => setFormData({ ...formData, excerpt: e.target.value })}
@@ -823,7 +1036,9 @@ export default function Index({ items }) {
 
               {/* Full Content */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">FULL CONTENT</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  FULL CONTENT <span className="text-gray-400 text-xs">(Rich text editor)</span>
+                </label>
                 <RichTextEditor
                   value={formData.full_content || ''}
                   onChange={(html) => setFormData({ ...formData, full_content: html })}
@@ -831,11 +1046,16 @@ export default function Index({ items }) {
                   height="400px"
                   onImageUploaded={addUploadedImage}
                 />
+                <p className="text-xs text-gray-400 mt-1 flex items-center gap-1">
+                  <FaInfoCircle size={12} /> Upload images directly into the editor. They will be stored in the editor-images folder.
+                </p>
               </div>
 
               {/* Image */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">IMAGE</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  IMAGE <span className="text-gray-400 text-xs">(optional - max 5MB)</span>
+                </label>
                 <div
                   className={`relative border-2 border-dashed rounded-lg p-4 transition-all ${dragActive ? 'border-blue-500 bg-blue-50' : 'border-gray-300 hover:border-gray-400'
                     } ${uploading ? 'opacity-50' : ''}`}
@@ -852,15 +1072,18 @@ export default function Index({ items }) {
                         className="w-20 h-20 object-cover rounded-lg"
                       />
                       <div className="flex-1">
-                        <p className="text-sm text-gray-600">Image uploaded</p>
+                        <p className="text-sm text-gray-600 font-medium">Image uploaded</p>
                         <p className="text-xs text-gray-400 truncate">
                           {formData.image.substring(0, 60)}...
+                        </p>
+                        <p className="text-xs text-green-600 flex items-center gap-1 mt-0.5">
+                          <span className="inline-block w-1.5 h-1.5 rounded-full bg-green-500" /> Ready to upload
                         </p>
                       </div>
                       <button
                         type="button"
                         onClick={removeImage}
-                        className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition"
+                        className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition cursor-pointer"
                       >
                         <FaTimes size={16} />
                       </button>
@@ -868,8 +1091,11 @@ export default function Index({ items }) {
                   ) : (
                     <div className="flex flex-col items-center justify-center py-6 text-gray-400">
                       <FaUpload size={32} className="mb-2" />
-                      <p className="text-sm">Drag & drop an image here, or click to browse</p>
-                      <p className="text-xs mt-1">Supports JPEG, PNG, GIF, WebP, SVG (max 5MB)</p>
+                      <p className="text-sm font-medium text-gray-600">Drag & drop an image here</p>
+                      <p className="text-xs mt-1">or click to browse</p>
+                      <p className="text-xs mt-2 text-gray-400">
+                        Supports JPEG, PNG, GIF, WebP, SVG (max 5MB)
+                      </p>
                     </div>
                   )}
                   <input
@@ -882,7 +1108,10 @@ export default function Index({ items }) {
                   />
                   {uploading && (
                     <div className="absolute inset-0 flex items-center justify-center bg-white/80 rounded-lg">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
+                      <div className="flex items-center gap-3">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
+                        <span className="text-sm text-gray-600">Uploading image...</span>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -890,7 +1119,9 @@ export default function Index({ items }) {
 
               {/* PDF Upload with Drag & Drop */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">PDF FILE</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  PDF FILE <span className="text-gray-400 text-xs">(optional - max 20MB)</span>
+                </label>
                 <div
                   className={`relative border-2 border-dashed rounded-lg p-4 transition-all ${pdfDragActive ? 'border-red-500 bg-red-50' : 'border-gray-300 hover:border-gray-400'
                     } ${uploadingPdf ? 'opacity-50' : ''}`}
@@ -909,11 +1140,14 @@ export default function Index({ items }) {
                             ? `PDF file (${Math.round(formData.pdf_url.length / 1024)} KB)`
                             : formData.pdf_url}
                         </p>
+                        <p className="text-xs text-green-600 flex items-center gap-1 mt-0.5">
+                          <span className="inline-block w-1.5 h-1.5 rounded-full bg-green-500" /> Ready to upload
+                        </p>
                       </div>
                       <button
                         type="button"
                         onClick={removePdf}
-                        className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition"
+                        className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition cursor-pointer"
                       >
                         <FaTimes size={16} />
                       </button>
@@ -921,8 +1155,11 @@ export default function Index({ items }) {
                   ) : (
                     <div className="flex flex-col items-center justify-center py-6 text-gray-400">
                       <FaFilePdf size={40} className="mb-2 text-red-400" />
-                      <p className="text-sm">Drag & drop a PDF here, or click to browse</p>
-                      <p className="text-xs mt-1">Supports PDF files (max 20MB)</p>
+                      <p className="text-sm font-medium text-gray-600">Drag & drop a PDF here</p>
+                      <p className="text-xs mt-1">or click to browse</p>
+                      <p className="text-xs mt-2 text-gray-400">
+                        Supports PDF files (max 20MB)
+                      </p>
                     </div>
                   )}
                   <input
@@ -935,36 +1172,65 @@ export default function Index({ items }) {
                   />
                   {uploadingPdf && (
                     <div className="absolute inset-0 flex items-center justify-center bg-white/80 rounded-lg">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
+                      <div className="flex items-center gap-3">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
+                        <span className="text-sm text-gray-600">Uploading PDF...</span>
+                      </div>
                     </div>
                   )}
                 </div>
-                <p className="text-xs text-gray-400 mt-1">
-                  Upload a PDF file. It will be available for download on the frontend.
+                <p className="text-xs text-gray-400 mt-1 flex items-center gap-1">
+                  <FaInfoCircle size={12} /> Upload a PDF file. It will be available for download on the frontend.
                 </p>
               </div>
 
               {/* Author, Date, Read Time & Category */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">AUTHOR</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    AUTHOR <span className="text-gray-400 text-xs">(optional)</span>
+                  </label>
                   <input
                     type="text"
                     value={formData.author || ''}
-                    onChange={(e) => setFormData({ ...formData, author: e.target.value })}
+                    onChange={(e) => {
+                      setFormData({ ...formData, author: e.target.value });
+                      if (validationErrors.author) {
+                        setValidationErrors({ ...validationErrors, author: null });
+                      }
+                    }}
                     placeholder="Author name"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 transition ${validationErrors.author ? 'border-red-500' : 'border-gray-300'
+                      }`}
                   />
+                  {validationErrors.author && (
+                    <p className="text-red-500 text-xs mt-1 flex items-center gap-1">
+                      <FaExclamationTriangle size={12} /> {validationErrors.author}
+                    </p>
+                  )}
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">CATEGORY</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    CATEGORY <span className="text-gray-400 text-xs">(optional)</span>
+                  </label>
                   <input
                     type="text"
                     value={formData.category || ''}
-                    onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                    onChange={(e) => {
+                      setFormData({ ...formData, category: e.target.value });
+                      if (validationErrors.category) {
+                        setValidationErrors({ ...validationErrors, category: null });
+                      }
+                    }}
                     placeholder="Climate Change, Agriculture, etc."
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 transition ${validationErrors.category ? 'border-red-500' : 'border-gray-300'
+                      }`}
                   />
+                  {validationErrors.category && (
+                    <p className="text-red-500 text-xs mt-1 flex items-center gap-1">
+                      <FaExclamationTriangle size={12} /> {validationErrors.category}
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -979,28 +1245,55 @@ export default function Index({ items }) {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">READ TIME</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    READ TIME <span className="text-gray-400 text-xs">(optional)</span>
+                  </label>
                   <input
                     type="text"
                     value={formData.read_time || ''}
-                    onChange={(e) => setFormData({ ...formData, read_time: e.target.value })}
+                    onChange={(e) => {
+                      setFormData({ ...formData, read_time: e.target.value });
+                      if (validationErrors.read_time) {
+                        setValidationErrors({ ...validationErrors, read_time: null });
+                      }
+                    }}
                     placeholder="3 minutes"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 transition ${validationErrors.read_time ? 'border-red-500' : 'border-gray-300'
+                      }`}
                   />
+                  {validationErrors.read_time && (
+                    <p className="text-red-500 text-xs mt-1 flex items-center gap-1">
+                      <FaExclamationTriangle size={12} /> {validationErrors.read_time}
+                    </p>
+                  )}
                 </div>
               </div>
 
               {/* Views */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">VIEWS</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  VIEWS <span className="text-gray-400 text-xs">(initial view count)</span>
+                </label>
                 <input
                   type="number"
                   value={formData.views || 0}
-                  onChange={(e) => setFormData({ ...formData, views: parseInt(e.target.value) || 0 })}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setFormData({ ...formData, views: value === '' ? 0 : parseInt(value, 10) || 0 });
+                    if (validationErrors.views) {
+                      setValidationErrors({ ...validationErrors, views: null });
+                    }
+                  }}
                   placeholder="0"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 transition ${validationErrors.views ? 'border-red-500' : 'border-gray-300'
+                    }`}
                   min="0"
                 />
+                {validationErrors.views && (
+                  <p className="text-red-500 text-xs mt-1 flex items-center gap-1">
+                    <FaExclamationTriangle size={12} /> {validationErrors.views}
+                  </p>
+                )}
               </div>
 
               {/* Status Toggles */}
@@ -1010,12 +1303,12 @@ export default function Index({ items }) {
                   <button
                     type="button"
                     onClick={() => setFormData({ ...formData, is_active: !formData.is_active })}
-                    className={`px-4 py-2 rounded-lg text-sm font-medium transition ${formData.is_active
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition cursor-pointer ${formData.is_active
                       ? 'bg-green-100 text-green-700 hover:bg-green-200'
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                       }`}
                   >
-                    {formData.is_active ? 'Active' : 'Inactive'}
+                    {formData.is_active ? '✅ Active' : '⛔ Inactive'}
                   </button>
                 </div>
                 <div className="flex items-center gap-3">
@@ -1023,21 +1316,23 @@ export default function Index({ items }) {
                   <button
                     type="button"
                     onClick={() => setFormData({ ...formData, is_featured: !formData.is_featured })}
-                    className={`px-4 py-2 rounded-lg text-sm font-medium transition ${formData.is_featured
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition cursor-pointer ${formData.is_featured
                       ? 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200'
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                       }`}
                   >
-                    {formData.is_featured ? '⭐ Featured' : 'Not Featured'}
+                    {formData.is_featured ? '⭐ Featured' : '☆ Not Featured'}
                   </button>
                 </div>
               </div>
 
               {/* Tags */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">TAGS</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  TAGS <span className="text-gray-400 text-xs">(press Enter to add)</span>
+                </label>
                 <div className="relative">
-                  <div className="flex flex-wrap gap-2 p-2 border border-gray-300 rounded-lg focus-within:ring-2 focus-within:ring-blue-500 min-h-10.5">
+                  <div className="flex flex-wrap gap-2 p-2 border border-gray-300 rounded-lg focus-within:ring-2 focus-within:ring-blue-500 min-h-10.5 transition">
                     {formData.tags && formData.tags.map((tag) => (
                       <span
                         key={tag}
@@ -1048,7 +1343,7 @@ export default function Index({ items }) {
                         <button
                           type="button"
                           onClick={() => removeTag(tag)}
-                          className="hover:text-red-600 transition"
+                          className="hover:text-red-600 transition ml-0.5"
                         >
                           <FaTimes size={10} />
                         </button>
@@ -1059,7 +1354,7 @@ export default function Index({ items }) {
                       value={tagInput}
                       onChange={handleTagInputChange}
                       onKeyDown={handleTagKeyDown}
-                      placeholder={formData.tags.length === 0 ? "Type tag and press Enter..." : ""}
+                      placeholder={formData.tags.length === 0 ? "Type a tag and press Enter..." : ""}
                       className="flex-1 min-w-30 border-0 outline-none text-sm bg-transparent"
                     />
                   </div>
@@ -1086,12 +1381,30 @@ export default function Index({ items }) {
 
               {/* Form Actions */}
               <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
-                <button type="button" onClick={() => closeModal(false)} className="px-4 py-2 text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition">
+                <button
+                  type="button"
+                  onClick={() => closeModal(false)}
+                  className="px-4 py-2 text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition cursor-pointer"
+                  disabled={loading}
+                >
                   Cancel
                 </button>
-                <button type="submit" disabled={loading} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center gap-2">
-                  {loading ? <FaSpinner className="animate-spin" size={16} /> : <FaSave size={16} />}
-                  {editingItem ? 'Update' : 'Create'}
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center gap-2 shadow-md hover:shadow-lg disabled:opacity-50 cursor-pointer"
+                >
+                  {loading ? (
+                    <>
+                      <FaSpinner className="animate-spin" size={16} />
+                      {editingItem ? 'Updating...' : 'Creating...'}
+                    </>
+                  ) : (
+                    <>
+                      <FaSave size={16} />
+                      {editingItem ? 'Update Publication' : 'Create Publication'}
+                    </>
+                  )}
                 </button>
               </div>
             </form>

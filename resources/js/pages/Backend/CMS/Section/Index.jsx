@@ -1,27 +1,15 @@
 /* eslint-disable no-undef */
 // resources/js/pages/Backend/CMS/Section/Index.jsx
 
-/**
- * Index - Main Section Management Page
- * Features:
- * - Authenticated layout wrapper
- * - Section header with stats
- * - Section table with all sections
- * - Footer with summary
- * - Edit modal for section editing
- * - Add new section modal
- * - Trash button with count badge
- */
-
 import React, { useState, useEffect, useCallback } from 'react';
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, usePage } from '@inertiajs/react';
 import AuthenticatedLayout from '../../../../layouts/AuthenticatedLayout';
 
 // Hooks
 import { useSectionHelpers } from './hooks/useSectionHelpers';
 
 // Icons
-import { FaPlus, FaTrash } from 'react-icons/fa';
+import { FaPlus, FaTrash, FaExclamationTriangle } from 'react-icons/fa';
 
 // Components
 import SectionTable from './components/SectionTable';
@@ -32,8 +20,13 @@ import SectionEditModal from './components/SectionEditModal';
 
 // Utils
 import { getSectionStats } from './utils/sectionHelpers';
+import { showErrorToast } from './utils/toastHelper';
 
 const Index = ({ page, sections: initialSections }) => {
+  // Get flash messages from Inertia
+  const { flash } = usePage().props;
+
+  // ALL HOOKS CALLED AT TOP LEVEL IN SAME ORDER
   // Use custom hook for section management
   const {
     sections,
@@ -42,6 +35,7 @@ const Index = ({ page, sections: initialSections }) => {
     isReordering,
     dragError,
     isSaving,
+    error: hookError,
     toggleExpand,
     togglePreview,
     hasData,
@@ -58,49 +52,93 @@ const Index = ({ page, sections: initialSections }) => {
     handleEditClick,
     handleEditClose,
     handleEditSuccess,
-  } = useSectionHelpers(initialSections, page.id);
+  } = useSectionHelpers(initialSections, page?.id);
+
+  // State hooks - all called at top level
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [trashedCount, setTrashedCount] = useState(0);
+  const [fetchError, setFetchError] = useState(null);
 
   // Calculate statistics for header
   const stats = getSectionStats(sections);
 
-  // State for Add Modal
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-
-  // State for trashed count
-  const [trashedCount, setTrashedCount] = useState(0);
-
-  // Fetch trashed count function - defined before useEffect
+  // Fetch trashed count function - use useCallback
   const fetchTrashedCount = useCallback(async () => {
+    if (!page?.id) return;
+
     try {
       const response = await fetch(route('backend.cms.sections.trashed-count', { pageId: page.id }));
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
       const data = await response.json();
       setTrashedCount(data.count || 0);
+      setFetchError(null);
     } catch (error) {
       console.error('Error fetching trashed count:', error);
+      setFetchError('Failed to load trash count');
+      setTrashedCount(0);
     }
-  }, [page.id]);
+  }, [page?.id]);
 
-  // Fetch trashed count on mount
+  // Effect hooks - all called at top level
   useEffect(() => {
     fetchTrashedCount();
   }, [fetchTrashedCount]);
 
-  // Handle section deleted/restored - refresh count
+  // Handle flash messages from server
+  useEffect(() => {
+    if (flash?.success) {
+      // Toast will be shown by the component
+    }
+    if (flash?.error) {
+      showErrorToast('Error', flash.error);
+    }
+  }, [flash]);
+
+  // Handle section deleted/restored
   const handleSectionDeleted = useCallback(() => {
     fetchTrashedCount();
-    // Reload the page to reflect changes
     window.location.reload();
   }, [fetchTrashedCount]);
 
+  // Check if page exists - this is a conditional render, not a hook
+  if (!page) {
+    return (
+      <AuthenticatedLayout>
+        <Head title="Sections" />
+        <div className="p-6">
+          <div className="bg-red-50 border border-red-200 rounded-xl p-8 text-center">
+            <FaExclamationTriangle className="text-red-500 text-4xl mx-auto mb-4" />
+            <h2 className="text-xl font-bold text-red-700">Page Not Found</h2>
+            <p className="text-red-600 mt-2">The requested page could not be found.</p>
+            <Link
+              href={route('backend.cms.pages')}
+              className="mt-4 inline-block px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
+            >
+              Back to Pages
+            </Link>
+          </div>
+        </div>
+      </AuthenticatedLayout>
+    );
+  }
+
   return (
     <AuthenticatedLayout>
-      {/* Page Title */}
       <Head title={`Sections - ${page.name}`} />
 
       <div className="p-6">
+        {/* Error Display */}
+        {(hookError || fetchError) && (
+          <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm flex items-center gap-2">
+            <FaExclamationTriangle className="text-red-500" />
+            {hookError || fetchError}
+          </div>
+        )}
+
         <div className="flex justify-between items-center mb-6">
           <div>
-            {/* Header with Stats */}
             <SectionHeader
               page={page}
               sections={sections}
@@ -110,7 +148,6 @@ const Index = ({ page, sections: initialSections }) => {
             />
           </div>
           <div className="flex items-center gap-2">
-            {/* Trash Button */}
             <Link
               href={route('backend.cms.sections.trashed', { pageId: page.id })}
               className="inline-flex items-center gap-2 px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition border border-red-200"
@@ -124,7 +161,6 @@ const Index = ({ page, sections: initialSections }) => {
               )}
             </Link>
 
-            {/* Add New Section Button */}
             <button
               onClick={() => setIsAddModalOpen(true)}
               className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
@@ -135,7 +171,6 @@ const Index = ({ page, sections: initialSections }) => {
           </div>
         </div>
 
-        {/* Main Table */}
         <div className="bg-white rounded-xl shadow-lg overflow-hidden">
           <SectionTable
             sections={sections}
@@ -160,10 +195,8 @@ const Index = ({ page, sections: initialSections }) => {
           />
         </div>
 
-        {/* Footer with Summary */}
         <SectionFooter sections={sections} hasData={hasData} />
 
-        {/* Edit Modal */}
         <SectionEditModal
           isOpen={isEditModalOpen}
           onClose={handleEditClose}
@@ -172,7 +205,6 @@ const Index = ({ page, sections: initialSections }) => {
           onSuccess={handleEditSuccess}
         />
 
-        {/* Create Modal */}
         <AddSectionModal
           isOpen={isAddModalOpen}
           onClose={() => setIsAddModalOpen(false)}

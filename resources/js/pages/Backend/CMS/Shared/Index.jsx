@@ -1,6 +1,6 @@
-/* eslint-disable no-undef */
 // resources/js/pages/Backend/CMS/Shared/Index.jsx
 
+/* eslint-disable no-undef */
 // React
 import { useState, useEffect, useCallback } from 'react';
 import { Head, router, usePage } from '@inertiajs/react';
@@ -54,6 +54,30 @@ export default function SharedData({ sharedData }) {
   const [isUploading, setIsUploading] = useState(false);
   const [expandedSection, setExpandedSection] = useState(null);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+
+  // ============================================
+  // HELPER: Parse data consistently
+  // ============================================
+  const parseItemData = (item) => {
+    if (!item) return null;
+
+    // If data is already an object, return it
+    if (item.data && typeof item.data === 'object' && !Array.isArray(item.data)) {
+      return item.data;
+    }
+
+    // If data is a JSON string, parse it
+    if (item.data && typeof item.data === 'string') {
+      try {
+        return JSON.parse(item.data);
+      } catch (e) {
+        console.error('Failed to parse data for item:', item.id, e);
+        return {};
+      }
+    }
+
+    return {};
+  };
 
   // ============================================
   // CONFIG
@@ -123,8 +147,12 @@ export default function SharedData({ sharedData }) {
   };
 
   const openEdit = (item) => {
-    setEditingItem(item);
-    setFormData(JSON.parse(JSON.stringify(item.data || {})));
+    const parsedData = parseItemData(item);
+    setEditingItem({
+      ...item,
+      parsedData
+    });
+    setFormData(JSON.parse(JSON.stringify(parsedData || {})));
     setIsUploading(false);
     setHasUnsavedChanges(false);
   };
@@ -294,6 +322,12 @@ export default function SharedData({ sharedData }) {
   const EditorComponent = editingItem ? typeConfig[editingItem.type]?.editor : null;
   const isUpdateDisabled = loading || isUploading;
 
+  // Process sharedData to ensure data is parsed
+  const processedSharedData = sharedData?.map(item => ({
+    ...item,
+    parsedData: parseItemData(item)
+  })) || [];
+
   return (
     <AuthenticatedLayout>
       <Head title="CMS - Shared Data" />
@@ -308,19 +342,19 @@ export default function SharedData({ sharedData }) {
             </p>
           </div>
           <div className="text-xs text-gray-400">
-            {sharedData?.length || 0} items total
+            {processedSharedData?.length || 0} items total
           </div>
         </div>
 
         {/* List of Shared Data Types */}
         <div className="space-y-4">
-          {sharedData?.length > 0 ? (
-            sharedData.map((item) => {
+          {processedSharedData?.length > 0 ? (
+            processedSharedData.map((item) => {
               const config = typeConfig[item.type];
               if (!config) return null;
 
               const isExpanded = expandedSection === item.type;
-              const hasData = item.data && Object.keys(item.data).length > 0;
+              const hasData = item.parsedData && Object.keys(item.parsedData).length > 0;
 
               return (
                 <div key={item.id} className="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-200 transition-all">
@@ -374,7 +408,7 @@ export default function SharedData({ sharedData }) {
                       <div className="bg-white rounded-lg shadow-sm overflow-hidden w-full">
                         {config.component && config.preview && hasData ? (
                           <config.component
-                            {...config.previewProps(item.data)}
+                            {...config.previewProps(item.parsedData)}
                             key={item.id} // Force re-render on data change
                           />
                         ) : (

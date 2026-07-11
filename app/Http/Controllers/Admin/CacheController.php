@@ -20,31 +20,32 @@ class CacheController extends Controller
     // Optional: Add authorization check here
     // $this->authorize('manage-cache');
 
-    $this->clearFrontendCache();
+    // COMMENTED OUT FOR DEVELOPMENT
+    // $this->clearFrontendCache();
 
-    // Clear page-specific caches
-    $pages = ['home', 'about', 'contact', 'blog', 'blogs', 'projects-programs', 'publications', 'jobs'];
-    foreach ($pages as $page) {
-      Cache::forget('frontend_page_' . $page);
-    }
+    // // Clear page-specific caches
+    // $pages = ['home', 'about', 'contact', 'blog', 'blogs', 'projects-programs', 'publications', 'jobs'];
+    // foreach ($pages as $page) {
+    //   Cache::forget('frontend_page_' . $page);
+    // }
 
-    // Clear detail page caches
-    $keys = Cache::get('frontend_cache_keys', []);
-    foreach ($keys as $key) {
-      if (
-        str_starts_with($key, 'frontend_page_') ||
-        str_starts_with($key, 'frontend_detail_') ||
-        str_starts_with($key, 'frontend_custom_')
-      ) {
-        Cache::forget($key);
-      }
-    }
+    // // Clear detail page caches
+    // $keys = Cache::get('frontend_cache_keys', []);
+    // foreach ($keys as $key) {
+    //   if (
+    //     str_starts_with($key, 'frontend_page_') ||
+    //     str_starts_with($key, 'frontend_detail_') ||
+    //     str_starts_with($key, 'frontend_custom_')
+    //   ) {
+    //     Cache::forget($key);
+    //   }
+    // }
 
-    Cache::forget('frontend_cache_keys');
+    // Cache::forget('frontend_cache_keys');
 
     return response()->json([
       'success' => true,
-      'message' => 'All frontend cache has been cleared.',
+      'message' => 'Cache clearing is temporarily disabled during development.',
       'timestamp' => now()->toDateTimeString()
     ]);
   }
@@ -57,12 +58,13 @@ class CacheController extends Controller
     // Optional: Add authorization check here
     // $this->authorize('manage-cache');
 
-    Cache::forget('frontend_page_' . $pageSlug);
-    Cache::forget('frontend_custom_' . $pageSlug);
+    // COMMENTED OUT FOR DEVELOPMENT
+    // Cache::forget('frontend_page_' . $pageSlug);
+    // Cache::forget('frontend_custom_' . $pageSlug);
 
     return response()->json([
       'success' => true,
-      'message' => "Cache for page '{$pageSlug}' has been cleared.",
+      'message' => "Page cache clearing is temporarily disabled during development.",
       'timestamp' => now()->toDateTimeString()
     ]);
   }
@@ -72,30 +74,42 @@ class CacheController extends Controller
    */
   public function status(Request $request)
   {
-    $cacheStatus = [];
+    // COMMENTED OUT FOR DEVELOPMENT - Return mock data
+    // $cacheStatus = [];
 
-    // Check key caches
-    $keys = [
-      'frontend_shared_data' => 'Shared Data',
-      'frontend_programs' => 'Programs',
-      'frontend_blogs' => 'Blogs',
-      'frontend_publications' => 'Publications',
-      'frontend_jobs' => 'Jobs',
-      'frontend_about_details' => 'About Details',
+    // // Check key caches
+    // $keys = [
+    //   'frontend_shared_data' => 'Shared Data',
+    //   'frontend_programs' => 'Programs',
+    //   'frontend_blogs' => 'Blogs',
+    //   'frontend_publications' => 'Publications',
+    //   'frontend_jobs' => 'Jobs',
+    //   'frontend_about_details' => 'About Details',
+    // ];
+
+    // foreach ($keys as $key => $label) {
+    //   $cacheStatus[] = [
+    //     'key' => $key,
+    //     'label' => $label,
+    //     'exists' => Cache::has($key),
+    //   ];
+    // }
+
+    // Return mock status indicating cache is disabled during development
+    $cacheStatus = [
+      [
+        'key' => 'status',
+        'label' => 'Cache Status',
+        'exists' => false,
+        'message' => 'Cache is currently disabled during development'
+      ]
     ];
-
-    foreach ($keys as $key => $label) {
-      $cacheStatus[] = [
-        'key' => $key,
-        'label' => $label,
-        'exists' => Cache::has($key),
-      ];
-    }
 
     return response()->json([
       'success' => true,
       'cache_status' => $cacheStatus,
-      'timestamp' => now()->toDateTimeString()
+      'timestamp' => now()->toDateTimeString(),
+      'development_mode' => true
     ]);
   }
 }

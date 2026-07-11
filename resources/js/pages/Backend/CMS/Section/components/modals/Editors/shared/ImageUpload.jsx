@@ -1,6 +1,6 @@
 // resources/js/pages/Backend/CMS/Section/components/modals/Editors/shared/ImageUpload.jsx
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import { FaUpload, FaTimes, FaSpinner } from 'react-icons/fa';
 import Swal from 'sweetalert2';
 
@@ -20,35 +20,9 @@ const ImageUpload = ({
 }) => {
   const [dragActive, setDragActive] = useState(false);
   const [previewError, setPreviewError] = useState(false);
+  const fileInputRef = useRef(null);
 
-  const handleDrag = useCallback((e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (e.type === "dragenter" || e.type === "dragover") {
-      setDragActive(true);
-    } else if (e.type === "dragleave") {
-      setDragActive(false);
-    }
-  }, []);
-
-  const handleDrop = useCallback((e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDragActive(false);
-    const files = e.dataTransfer.files;
-    if (files && files[0]) {
-      processFile(files[0]);
-    }
-  }, [processFile]);
-
-  const handleFileSelect = useCallback((e) => {
-    const file = e.target.files[0];
-    if (file) {
-      processFile(file);
-    }
-    e.target.value = '';
-  }, [processFile]);
-
+  // Define processFile BEFORE it's used in callbacks
   const processFile = useCallback((file) => {
     // Check file type
     if (!file.type.startsWith('image/')) {
@@ -88,13 +62,41 @@ const ImageUpload = ({
     reader.readAsDataURL(file);
   }, [maxSize, onImageChange]);
 
+  const handleDrag = useCallback((e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setDragActive(true);
+    } else if (e.type === "dragleave") {
+      setDragActive(false);
+    }
+  }, []);
+
+  const handleDrop = useCallback((e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+    const files = e.dataTransfer.files;
+    if (files && files[0]) {
+      processFile(files[0]);
+    }
+  }, [processFile]);
+
+  const handleFileSelect = useCallback((e) => {
+    const file = e.target.files[0];
+    if (file) {
+      processFile(file);
+    }
+    e.target.value = '';
+  }, [processFile]);
+
   const getDisplayPath = useCallback((src) => {
     if (!src) return '';
     if (src.startsWith('data:image')) {
       return '📤 New image (will be uploaded)';
     }
     if (src.length > 50) {
-      return `${src.substring(0, 50)  }...`;
+      return `${src.substring(0, 50)}...`;
     }
     return src;
   }, []);
@@ -108,8 +110,8 @@ const ImageUpload = ({
       <label className="block text-xs text-gray-500 mb-1">{label}</label>
       <div
         className={`relative border-2 border-dashed rounded-lg p-4 transition-all ${dragActive ? 'border-blue-500 bg-blue-50' :
-            uploadError ? 'border-red-500 bg-red-50' :
-              'border-gray-300 hover:border-gray-400'
+          uploadError ? 'border-red-500 bg-red-50' :
+            'border-gray-300 hover:border-gray-400'
           } ${isUploading ? 'opacity-50' : ''}`}
         onDragEnter={handleDrag}
         onDragLeave={handleDrag}
@@ -169,6 +171,7 @@ const ImageUpload = ({
         {/* Hidden file input */}
         <input
           type="file"
+          ref={fileInputRef}
           accept={acceptTypes}
           onChange={handleFileSelect}
           className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"

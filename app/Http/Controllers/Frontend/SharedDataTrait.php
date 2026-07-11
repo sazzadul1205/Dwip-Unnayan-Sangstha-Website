@@ -4,35 +4,20 @@
 namespace App\Http\Controllers\Frontend;
 
 use App\Models\pages\SharedData;
-use Illuminate\Support\Facades\Cache;
 
 trait SharedDataTrait
 {
   /**
-   * Cache duration in seconds (24 hours)
-   */
-  protected function getCacheDuration(): int
-  {
-    return 86400; // 24 hours
-  }
-
-  /**
-   * Get shared data for all frontend pages (TopBar, Navbar, Footer, Stories)
-   * with caching
+   * Get shared data for all frontend pages
+   * (TopBar, Navbar, Footer, Stories)
    */
   public function getSharedData(): array
   {
-    $cacheKey = 'frontend_shared_data';
     $asset = function ($path) {
       return route('asset', ['path' => ltrim($path, '/')]);
     };
 
-    // Try to get from cache
-    $sharedData = Cache::remember($cacheKey, $this->getCacheDuration(), function () use ($asset) {
-      return $this->fetchSharedData($asset);
-    });
-
-    return $sharedData;
+    return $this->fetchSharedData($asset);
   }
 
   /**
@@ -41,9 +26,9 @@ trait SharedDataTrait
   private function fetchSharedData(callable $asset): array
   {
     $sharedTypes = [
-      'topbar' => 'topbarData',
-      'navbar' => 'navbarData',
-      'footer' => 'footerData',
+      'topbar'  => 'topbarData',
+      'navbar'  => 'navbarData',
+      'footer'  => 'footerData',
       'stories' => 'storiesData',
     ];
 
@@ -54,32 +39,35 @@ trait SharedDataTrait
         ->where('is_active', true)
         ->first();
 
-      $sharedData[$key] = $record ? $this->transformAssetUrls($record->data ?? [], $asset) : [];
+      $sharedData[$key] = $record && !empty($record->data)
+        ? $this->transformAssetUrls($record->data, $asset)
+        : [];
     }
 
     return $sharedData;
   }
 
   /**
-   * Clear all frontend cache
-   */
-  public function clearFrontendCache(): void
-  {
-    Cache::forget('frontend_shared_data');
-    Cache::forget('frontend_page_data');
-    Cache::forget('frontend_section_data');
-    Cache::forget('frontend_programs');
-    Cache::forget('frontend_blogs');
-    Cache::forget('frontend_publications');
-    Cache::forget('frontend_jobs');
-    Cache::forget('frontend_about_details');
-  }
-
-  /**
    * Transform asset placeholders in data
    */
-  private function transformAssetUrls(array $data, callable $asset): array
+  private function transformAssetUrls($data, callable $asset): array
   {
+    // If data is not an array, try to decode it from JSON
+    if (is_string($data)) {
+      $decoded = json_decode($data, true);
+      if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+        $data = $decoded;
+      } else {
+        // If it's a string that's not JSON, return it as a string in an array
+        return $this->transformStringValue($data, $asset);
+      }
+    }
+
+    // If data is null or not an array, return empty array
+    if (!is_array($data)) {
+      return [];
+    }
+
     $transformed = [];
 
     foreach ($data as $key => $value) {
@@ -97,23 +85,17 @@ trait SharedDataTrait
   }
 
   /**
-   * Check if cache is valid or needs refresh
+   * Transform a string value that might contain asset placeholders
    */
-  public function isCacheValid(string $key): bool
+  private function transformStringValue(string $value, callable $asset): array
   {
-    return Cache::has($key);
-  }
-
-  /**
-   * Get cache timestamp for a specific key
-   */
-  public function getCacheTimestamp(string $key): ?int
-  {
-    if (Cache::has($key)) {
-      // Laravel doesn't provide direct timestamp retrieval, but we can track it
-      $timestampKey = $key . '_timestamp';
-      return Cache::get($timestampKey);
+    // If the string contains asset: prefix, transform it
+    if (str_starts_with($value, 'asset:')) {
+      $path = substr($value, 6);
+      return [$asset($path)];
     }
-    return null;
+
+    // Otherwise return the string as is in an array
+    return [$value];
   }
 }

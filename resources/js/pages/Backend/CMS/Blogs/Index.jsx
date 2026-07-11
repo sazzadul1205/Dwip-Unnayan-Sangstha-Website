@@ -1006,25 +1006,30 @@ export default function Index({ items }) {
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
+                {/* Read Time - Fixed */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     READ TIME <span className="text-gray-400 text-xs">(minutes)</span>
                   </label>
-                  <input
-                    type="number"
-                    value={formData.read_time || ''}
-                    onChange={(e) => {
-                      setFormData({ ...formData, read_time: e.target.value });
-                      if (validationErrors.read_time) {
-                        setValidationErrors({ ...validationErrors, read_time: null });
-                      }
-                    }}
-                    placeholder="5"
-                    min="1"
-                    max="60"
-                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 transition ${validationErrors.read_time ? 'border-red-500' : 'border-gray-300'
-                      }`}
-                  />
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      value={formData.read_time || ''}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        setFormData({ ...formData, read_time: value === '' ? '' : parseInt(value, 10) });
+                        if (validationErrors.read_time) {
+                          setValidationErrors({ ...validationErrors, read_time: null });
+                        }
+                      }}
+                      placeholder="Enter minutes (e.g., 5)"
+                      min="1"
+                      max="60"
+                      className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 transition ${validationErrors.read_time ? 'border-red-500' : 'border-gray-300'
+                        }`}
+                    />
+                    <span className="text-sm text-gray-500 whitespace-nowrap">minutes</span>
+                  </div>
                   {validationErrors.read_time && (
                     <p className="text-red-500 text-xs mt-1 flex items-center gap-1">
                       <FaExclamationTriangle size={12} /> {validationErrors.read_time}

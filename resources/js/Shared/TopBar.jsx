@@ -359,7 +359,7 @@ const TopBar = ({ topBarData, storageUrl }) => {
                   <button
                     key={lang.code}
                     onClick={() => handleLanguageSelect(lang)}
-                    className={`flex items-center gap-2 px-4 py-2 hover:bg-gray-100 w-full text-left transition-colors duration-150 ${selectedLanguage.code === lang.code ? 'bg-blue-50' : ''
+                    className={`flex items-center gap-2 px-4 py-2 hover:bg-gray-100 w-full text-left transition-colors duration-150 cursor-pointer ${selectedLanguage.code === lang.code ? 'bg-blue-50' : ''
                       }`}
                   >
                     <img
@@ -401,7 +401,7 @@ const TopBar = ({ topBarData, storageUrl }) => {
                     />
                     <button
                       type="submit"
-                      className="bg-[#009BE2] px-3 py-1 rounded-r-md hover:bg-[#009BE2]/80 transition-colors duration-200"
+                      className="bg-[#009BE2] px-3 py-1 rounded-r-md hover:bg-[#009BE2]/80 transition-colors duration-200 cursor-pointer"
                     >
                       <FiSearch className="text-white text-sm" />
                     </button>
@@ -409,7 +409,7 @@ const TopBar = ({ topBarData, storageUrl }) => {
                 ) : (
                   <button
                     onClick={() => setIsSearchExpanded(true)}
-                    className="flex items-center hover:opacity-80 transition-opacity duration-200"
+                    className="flex items-center hover:opacity-80 transition-opacity duration-200 cursor-pointer"
                     aria-label="Search"
                   >
                     <FiSearch className="text-xl text-white" />
@@ -429,7 +429,7 @@ const TopBar = ({ topBarData, storageUrl }) => {
                 setIsUserDropdownOpen(!isUserDropdownOpen);
                 setIsLangDropdownOpen(false);
               }}
-              className="flex items-center hover:opacity-80 transition-opacity duration-200"
+              className="flex items-center hover:opacity-80 transition-opacity duration-200 cursor-pointer"
               aria-label="User menu"
             >
               <FaUser className="text-xl text-white" />

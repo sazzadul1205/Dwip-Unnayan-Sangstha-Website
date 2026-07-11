@@ -1,24 +1,13 @@
 /* eslint-disable no-undef */
 // resources/js/pages/Backend/CMS/Section/hooks/useSectionHelpers.js
 
-/**
- * useSectionHelpers - Custom hook for section management
- * Features:
- * - Section state management
- * - Expand/collapse functionality
- * - Preview toggle
- * - Drag & drop reordering
- * - Move up/down functionality
- * - Edit modal state management
- */
-
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { router } from '@inertiajs/react';
 import { showToast } from '../utils/toastHelper';
 
 export const useSectionHelpers = (initialSections, pageId) => {
-  // State
-  const [sections, setSections] = useState(initialSections);
+  // ALL HOOKS MUST BE CALLED AT THE TOP LEVEL, IN THE SAME ORDER EVERY TIME
+  const [sections, setSections] = useState(initialSections || []);
   const [expandedSections, setExpandedSections] = useState({});
   const [previewSections, setPreviewSections] = useState({});
   const [isReordering, setIsReordering] = useState(false);
@@ -26,250 +15,235 @@ export const useSectionHelpers = (initialSections, pageId) => {
   const [isSaving, setIsSaving] = useState(false);
   const [editingSection, setEditingSection] = useState(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [error, setError] = useState(null);
 
-  // Update sections when prop changes
+  // Effect hook - always called in the same order
   useEffect(() => {
-    setSections(initialSections);
+    if (initialSections && Array.isArray(initialSections)) {
+      setSections(initialSections);
+    }
   }, [initialSections]);
 
-  /**
-   * Toggle section expansion (data view)
-   */
-  const toggleExpand = (sectionId) => {
+  // All functions defined after hooks
+  const toggleExpand = useCallback((sectionId) => {
     setExpandedSections((prev) => ({
       ...prev,
       [sectionId]: !prev[sectionId],
     }));
-  };
+  }, []);
 
-  /**
-   * Toggle section preview (visual preview)
-   */
-  const togglePreview = (sectionId) => {
+  const togglePreview = useCallback((sectionId) => {
     setPreviewSections((prev) => ({
       ...prev,
       [sectionId]: !prev[sectionId],
     }));
-  };
+  }, []);
 
-  /**
-   * Check if section can be moved (not fixed)
-   */
-  const canMove = (section) => {
-    return !section.is_fixed_section;
-  };
+  const canMove = useCallback((section) => {
+    return !section?.is_fixed_section;
+  }, []);
 
-  /**
-   * Check if section has data
-   */
-  const hasData = (section) => {
-    return section.data !== null && section.data !== undefined;
-  };
+  const hasData = useCallback((section) => {
+    return section?.data !== null && section?.data !== undefined;
+  }, []);
 
-  /**
-   * Get data summary for display
-   */
-  const getDataSummary = (section) => {
-    // Special handling for shared_data
-    if (section.data_table === 'shared_data') {
-      return 'Shared Data';
-    }
-
-    // Special handling for content sections
-    if (section.section_key === 'content' || section.component === 'ContentSection') {
-      return 'Content Section';
-    }
-
-    if (!section.data) return 'No data';
-    if (Array.isArray(section.data)) {
-      return `${section.data.length} items`;
-    }
-    if (typeof section.data === 'object') {
-      const keys = Object.keys(section.data);
-      if (keys.includes('data') && section.data.data) {
-        if (Array.isArray(section.data.data)) {
-          return `${section.data.data.length} items`;
-        }
-        return 'Has data';
+  const getDataSummary = useCallback((section) => {
+    try {
+      if (!section) return 'No data';
+      if (section.data_table === 'shared_data') {
+        return 'Shared Data';
       }
-      return `${keys.length} fields`;
+      if (section.section_key === 'content' || section.component === 'ContentSection') {
+        return 'Content Section';
+      }
+      if (!section.data) return 'No data';
+      if (Array.isArray(section.data)) {
+        return `${section.data.length} items`;
+      }
+      if (typeof section.data === 'object') {
+        const keys = Object.keys(section.data);
+        if (keys.includes('data') && section.data.data) {
+          if (Array.isArray(section.data.data)) {
+            return `${section.data.data.length} items`;
+          }
+          return 'Has data';
+        }
+        return `${keys.length} fields`;
+      }
+      return 'Has data';
+    } catch (err) {
+      console.error('Error getting data summary:', err);
+      return 'Error loading data';
     }
-    return 'Has data';
-  };
+  }, []);
 
-  // ============================================================
-  // EDIT MODAL HANDLERS
-  // ============================================================
-
-  /**
-   * Open edit modal for a section
-   */
-  const handleEditClick = (section) => {
+  const handleEditClick = useCallback((section) => {
     setEditingSection(section);
     setIsEditModalOpen(true);
-  };
+  }, []);
 
-  /**
-   * Close edit modal
-   */
-  const handleEditClose = () => {
+  const handleEditClose = useCallback(() => {
     setIsEditModalOpen(false);
     setEditingSection(null);
-  };
+  }, []);
 
-  /**
-   * Handle successful edit - refresh data
-   */
-  const handleEditSuccess = () => {
+  const handleEditSuccess = useCallback(() => {
     router.reload({ only: ['sections'] });
-  };
+  }, []);
 
-  // ============================================================
-  // DRAG & DROP REORDERING
-  // ============================================================
-
-  /**
-   * Handle drag start - store dragged index
-   */
-  const handleDragStart = (e, index) => {
-    const section = sections[index];
-    if (!canMove(section)) {
-      e.preventDefault();
-      showToast('warning', 'Cannot Move Section', 'This section is fixed and cannot be moved.', 2500);
-      return;
-    }
-    e.dataTransfer.effectAllowed = 'move';
-    e.dataTransfer.setData('text/plain', index.toString());
-    e.currentTarget.style.opacity = '0.5';
-  };
-
-  /**
-   * Handle drag end - reset visual state
-   */
-  const handleDragEnd = (e) => {
-    e.currentTarget.style.opacity = '1';
-  };
-
-  /**
-   * Handle drag over - allow drop
-   */
-  const handleDragOver = (e) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-  };
-
-  /**
-   * Handle drop - reorder sections
-   */
-  const handleDrop = (e, dropIndex) => {
-    e.preventDefault();
-
-    const dragData = e.dataTransfer.getData('text/plain');
-    if (!dragData) return;
-
-    const dragIndex = parseInt(dragData, 10);
-    if (isNaN(dragIndex) || dragIndex === dropIndex) return;
-
-    const draggedSection = sections[dragIndex];
-    const dropSection = sections[dropIndex];
-
-    // Check if either section is fixed
-    if (!canMove(draggedSection) || !canMove(dropSection)) {
-      setDragError('Fixed sections cannot be reordered.');
-      showToast('warning', 'Cannot Reorder', 'Fixed sections are locked and cannot be moved.', 2500);
-      return;
-    }
-
-    setDragError(null);
-
-    // Create new order
-    const newSections = [...sections];
-    const [removed] = newSections.splice(dragIndex, 1);
-    newSections.splice(dropIndex, 0, removed);
-
-    // Update display_order for all sections
-    const updatedSections = newSections.map((section, idx) => ({
-      ...section,
-      display_order: idx,
-    }));
-
-    // Update local state immediately for visual feedback
-    setSections(updatedSections);
-    setIsReordering(true);
-    setIsSaving(true);
-
-    // Prepare batch update data
-    const orders = updatedSections.map((section) => ({
-      id: section.id,
-      display_order: section.display_order,
-    }));
-
-    // Send to server
-    router.post(
-      route('backend.cms.sections.update-order', pageId),
-      { orders },
-      {
-        preserveScroll: true,
-        preserveState: true,
-        onSuccess: () => {
-          setIsReordering(false);
-          setIsSaving(false);
-          showToast('success', '✅ Reordered!', 'Section order updated successfully.', 2000);
-        },
-        onError: (errors) => {
-          setIsReordering(false);
-          setIsSaving(false);
-          // Revert to original order on error
-          setSections(initialSections);
-          setDragError('Failed to update order. Changes reverted.');
-          const errorMessage = errors?.message || 'Failed to update section order. Changes have been reverted.';
-          showToast('error', '❌ Reorder Failed', errorMessage, 4000);
-        },
+  const handleDragStart = useCallback((e, index) => {
+    try {
+      const section = sections[index];
+      if (!canMove(section)) {
+        e.preventDefault();
+        showToast('warning', 'Cannot Move Section', 'This section is fixed and cannot be moved.', 2500);
+        return;
       }
-    );
-  };
-
-  // ============================================================
-  // MOVE UP/DOWN HANDLERS (Alternative to drag & drop)
-  // ============================================================
-
-  /**
-   * Move section up (simulates drop)
-   */
-  const handleMoveUp = (index) => {
-    if (index === 0) return;
-    const section = sections[index];
-    if (!canMove(section)) {
-      showToast('warning', 'Cannot Move', 'This section is fixed and cannot be moved.', 2500);
-      return;
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', index.toString());
+      e.currentTarget.style.opacity = '0.5';
+    } catch (err) {
+      console.error('Drag start error:', err);
+      setError('Failed to start drag operation');
     }
-    const fakeEvent = {
-      preventDefault: () => {},
-      dataTransfer: {
-        getData: () => index.toString(),
-      },
-    };
-    handleDrop(fakeEvent, index - 1);
-  };
+  }, [sections, canMove]);
 
-  /**
-   * Move section down (simulates drop)
-   */
-  const handleMoveDown = (index) => {
-    if (index === sections.length - 1) return;
-    const section = sections[index];
-    if (!canMove(section)) {
-      showToast('warning', 'Cannot Move', 'This section is fixed and cannot be moved.', 2500);
-      return;
+  const handleDragEnd = useCallback((e) => {
+    try {
+      e.currentTarget.style.opacity = '1';
+    } catch (err) {
+      console.error('Drag end error:', err);
     }
-    const fakeEvent = {
-      preventDefault: () => {},
-      dataTransfer: {
-        getData: () => index.toString(),
-      },
-    };
-    handleDrop(fakeEvent, index + 1);
-  };
+  }, []);
+
+  const handleDragOver = useCallback((e) => {
+    try {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+    } catch (err) {
+      console.error('Drag over error:', err);
+    }
+  }, []);
+
+  const handleDrop = useCallback((e, dropIndex) => {
+    try {
+      e.preventDefault();
+
+      const dragData = e.dataTransfer.getData('text/plain');
+      if (!dragData) return;
+
+      const dragIndex = parseInt(dragData, 10);
+      if (isNaN(dragIndex) || dragIndex === dropIndex) return;
+
+      const draggedSection = sections[dragIndex];
+      const dropSection = sections[dropIndex];
+
+      if (!canMove(draggedSection) || !canMove(dropSection)) {
+        setDragError('Fixed sections cannot be reordered.');
+        showToast('warning', 'Cannot Reorder', 'Fixed sections are locked and cannot be moved.', 2500);
+        return;
+      }
+
+      setDragError(null);
+
+      const newSections = [...sections];
+      const [removed] = newSections.splice(dragIndex, 1);
+      newSections.splice(dropIndex, 0, removed);
+
+      const updatedSections = newSections.map((section, idx) => ({
+        ...section,
+        display_order: idx,
+      }));
+
+      setSections(updatedSections);
+      setIsReordering(true);
+      setIsSaving(true);
+
+      const orders = updatedSections.map((section) => ({
+        id: section.id,
+        display_order: section.display_order,
+      }));
+
+      router.post(
+        route('backend.cms.sections.update-order', pageId),
+        { orders },
+        {
+          preserveScroll: true,
+          preserveState: true,
+          onSuccess: () => {
+            setIsReordering(false);
+            setIsSaving(false);
+            showToast('success', '✅ Reordered!', 'Section order updated successfully.', 2000);
+          },
+          onError: (errors) => {
+            setIsReordering(false);
+            setIsSaving(false);
+            setSections(initialSections || []);
+            setDragError('Failed to update order. Changes reverted.');
+            
+            let errorMessage = 'Failed to update section order. Changes have been reverted.';
+            if (errors?.message) {
+              errorMessage = errors.message;
+            } else if (typeof errors === 'string') {
+              errorMessage = errors;
+            }
+            
+            showToast('error', '❌ Reorder Failed', errorMessage, 4000);
+            console.error('Reorder error:', errors);
+          },
+        }
+      );
+    } catch (err) {
+      console.error('Drop error:', err);
+      setIsReordering(false);
+      setIsSaving(false);
+      setSections(initialSections || []);
+      setDragError('An unexpected error occurred during reorder.');
+      showToast('error', '❌ Reorder Failed', 'An unexpected error occurred. Changes have been reverted.', 4000);
+    }
+  }, [sections, canMove, initialSections, pageId]);
+
+  const handleMoveUp = useCallback((index) => {
+    try {
+      if (index === 0) return;
+      const section = sections[index];
+      if (!canMove(section)) {
+        showToast('warning', 'Cannot Move', 'This section is fixed and cannot be moved.', 2500);
+        return;
+      }
+      const fakeEvent = {
+        preventDefault: () => {},
+        dataTransfer: {
+          getData: () => index.toString(),
+        },
+      };
+      handleDrop(fakeEvent, index - 1);
+    } catch (err) {
+      console.error('Move up error:', err);
+      showToast('error', 'Move Failed', 'Failed to move section up.', 3000);
+    }
+  }, [sections, canMove, handleDrop]);
+
+  const handleMoveDown = useCallback((index) => {
+    try {
+      if (index === sections.length - 1) return;
+      const section = sections[index];
+      if (!canMove(section)) {
+        showToast('warning', 'Cannot Move', 'This section is fixed and cannot be moved.', 2500);
+        return;
+      }
+      const fakeEvent = {
+        preventDefault: () => {},
+        dataTransfer: {
+          getData: () => index.toString(),
+        },
+      };
+      handleDrop(fakeEvent, index + 1);
+    } catch (err) {
+      console.error('Move down error:', err);
+      showToast('error', 'Move Failed', 'Failed to move section down.', 3000);
+    }
+  }, [sections, canMove, handleDrop]);
 
   // Return all hooks
   return {
@@ -281,6 +255,7 @@ export const useSectionHelpers = (initialSections, pageId) => {
     isSaving,
     editingSection,
     isEditModalOpen,
+    error,
     toggleExpand,
     togglePreview,
     hasData,

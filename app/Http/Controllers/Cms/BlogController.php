@@ -20,11 +20,19 @@ class BlogController extends Controller
    */
   public function index(): Response
   {
-    $items = Blog::withTrashed()->orderBy('created_at', 'desc')->get();
+    try {
+      $items = Blog::withTrashed()->orderBy('created_at', 'desc')->get();
 
-    return Inertia::render('Backend/CMS/Blogs/Index', [
-      'items' => $items,
-    ]);
+      return Inertia::render('Backend/CMS/Blogs/Index', [
+        'items' => $items,
+      ]);
+    } catch (\Exception $e) {
+      Log::error('Failed to fetch blogs: ' . $e->getMessage());
+      return Inertia::render('Backend/CMS/Blogs/Index', [
+        'items' => [],
+        'flash' => ['error' => 'Failed to load blogs. Please try again.']
+      ]);
+    }
   }
 
   /**
@@ -32,58 +40,78 @@ class BlogController extends Controller
    */
   public function store(Request $request)
   {
-    $validator = Validator::make($request->all(), [
-      'title' => 'required|string|max:255',
-      'slug' => 'nullable|string|unique:blogs,slug',
-      'excerpt' => 'nullable|string|max:500',
-      'full_content' => 'nullable|string',
-      'image' => 'nullable|string',
-      'date' => 'nullable|string|max:255',
-      'author' => 'nullable|string|max:255',
-      'read_time' => 'nullable|integer|min:1|max:60',
-      'tags' => 'nullable|array',
-      'tags.*' => 'string|max:50',
-      'is_featured' => 'boolean',
-      'is_active' => 'boolean',
-    ]);
+    try {
+      $validator = Validator::make($request->all(), [
+        'title' => 'required|string|max:255',
+        'slug' => 'nullable|string|unique:blogs,slug',
+        'excerpt' => 'nullable|string|max:500',
+        'full_content' => 'nullable|string',
+        'image' => 'nullable|string',
+        'date' => 'nullable|string|max:255',
+        'author' => 'nullable|string|max:255',
+        'read_time' => 'nullable|integer|min:1|max:60',
+        'tags' => 'nullable|array',
+        'tags.*' => 'string|max:50',
+        'is_featured' => 'boolean',
+        'is_active' => 'boolean',
+      ]);
 
-    if ($validator->fails()) {
-      return back()->withErrors($validator)->withInput();
-    }
-
-    $data = $request->all();
-
-    // Process image if it's a base64 string
-    if (!empty($data['image']) && $this->isBase64Image($data['image'])) {
-      $uploadedPath = $this->uploadImage($data['image']);
-      if ($uploadedPath) {
-        $data['image'] = $uploadedPath;
-      } else {
-        // If upload fails, remove the image data
-        unset($data['image']);
+      if ($validator->fails()) {
+        return back()->withErrors($validator)->withInput();
       }
+
+      $data = $request->all();
+
+      // Process image if it's a base64 string
+      if (!empty($data['image']) && $this->isBase64Image($data['image'])) {
+        $uploadedPath = $this->uploadImage($data['image']);
+        if ($uploadedPath) {
+          $data['image'] = $uploadedPath;
+        } else {
+          // If upload fails, remove the image data
+          unset($data['image']);
+          Log::warning('Image upload failed for blog: ' . ($data['title'] ?? 'unknown'));
+        }
+      }
+
+      // Clear any session flash data that might contain large image data
+      $this->cleanSessionOldInput();
+
+      // Auto-generate slug from title if not provided
+      if (empty($data['slug'])) {
+        $data['slug'] = $this->generateUniqueSlug($data['title']);
+      }
+
+      // Ensure boolean values are cast correctly
+      $data['is_featured'] = filter_var($data['is_featured'] ?? false, FILTER_VALIDATE_BOOLEAN);
+      $data['is_active'] = filter_var($data['is_active'] ?? true, FILTER_VALIDATE_BOOLEAN);
+
+      // Set default values if not provided
+      $data['date'] = $data['date'] ?? now()->format('F j, Y');
+      $data['author'] = $data['author'] ?? 'Admin';
+      $data['read_time'] = (int)($data['read_time'] ?? 5);
+
+      // Ensure tags are stored as JSON
+      if (isset($data['tags']) && is_array($data['tags'])) {
+        $data['tags'] = array_values(array_unique(array_filter($data['tags'])));
+      }
+
+      Blog::create($data);
+
+      // Clear any large data from session before redirect
+      session()->forget('_old_input');
+
+      return redirect()->back()->with('success', '✅ Blog created successfully!');
+    } catch (\Exception $e) {
+      Log::error('Blog creation failed: ' . $e->getMessage(), [
+        'trace' => $e->getTraceAsString(),
+        'input' => $request->except(['image', 'full_content'])
+      ]);
+
+      return back()
+        ->withErrors(['error' => 'Failed to create blog: ' . $e->getMessage()])
+        ->withInput();
     }
-
-    // Auto-generate slug from title if not provided
-    if (empty($data['slug'])) {
-      $data['slug'] = $this->generateUniqueSlug($data['title']);
-    }
-
-    // Set default values if not provided
-    $data['date'] = $data['date'] ?? now()->format('F j, Y');
-    $data['author'] = $data['author'] ?? 'Admin';
-    $data['read_time'] = $data['read_time'] ?? 5;
-    $data['is_active'] = $data['is_active'] ?? true;
-    $data['is_featured'] = $data['is_featured'] ?? false;
-
-    // Ensure tags are stored as JSON
-    if (isset($data['tags']) && is_array($data['tags'])) {
-      $data['tags'] = array_values(array_unique(array_filter($data['tags'])));
-    }
-
-    Blog::create($data);
-
-    return redirect()->back()->with('success', '✅ Blog created successfully!');
   }
 
   /**
@@ -91,58 +119,82 @@ class BlogController extends Controller
    */
   public function update(Request $request, int $id)
   {
-    $blog = Blog::withTrashed()->findOrFail($id);
+    try {
+      $blog = Blog::withTrashed()->findOrFail($id);
 
-    $validator = Validator::make($request->all(), [
-      'title' => 'required|string|max:255',
-      'slug' => 'nullable|string|unique:blogs,slug,' . $id,
-      'excerpt' => 'nullable|string|max:500',
-      'full_content' => 'nullable|string',
-      'image' => 'nullable|string',
-      'date' => 'nullable|string|max:255',
-      'author' => 'nullable|string|max:255',
-      'read_time' => 'nullable|integer|min:1|max:60',
-      'tags' => 'nullable|array',
-      'tags.*' => 'string|max:50',
-      'is_featured' => 'boolean',
-      'is_active' => 'boolean',
-    ]);
+      $validator = Validator::make($request->all(), [
+        'title' => 'required|string|max:255',
+        'slug' => 'nullable|string|unique:blogs,slug,' . $id,
+        'excerpt' => 'nullable|string|max:500',
+        'full_content' => 'nullable|string',
+        'image' => 'nullable|string',
+        'date' => 'nullable|string|max:255',
+        'author' => 'nullable|string|max:255',
+        'read_time' => 'nullable|integer|min:1|max:60',
+        'tags' => 'nullable|array',
+        'tags.*' => 'string|max:50',
+        'is_featured' => 'boolean',
+        'is_active' => 'boolean',
+      ]);
 
-    if ($validator->fails()) {
-      return back()->withErrors($validator)->withInput();
-    }
-
-    $data = $request->all();
-
-    // Process image if it's a base64 string
-    if (!empty($data['image']) && $this->isBase64Image($data['image'])) {
-      // Delete old image if exists and is not a URL
-      if ($blog->image && !filter_var($blog->image, FILTER_VALIDATE_URL)) {
-        $this->deleteImageFile($blog->image);
+      if ($validator->fails()) {
+        return back()->withErrors($validator)->withInput();
       }
 
-      $uploadedPath = $this->uploadImage($data['image']);
-      if ($uploadedPath) {
-        $data['image'] = $uploadedPath;
-      } else {
-        // If upload fails, keep the old image
-        unset($data['image']);
+      $data = $request->all();
+
+      // Process image if it's a base64 string
+      if (!empty($data['image']) && $this->isBase64Image($data['image'])) {
+        // Delete old image if exists and is not a URL
+        if ($blog->image && !filter_var($blog->image, FILTER_VALIDATE_URL)) {
+          $this->deleteImageFile($blog->image);
+        }
+
+        $uploadedPath = $this->uploadImage($data['image']);
+        if ($uploadedPath) {
+          $data['image'] = $uploadedPath;
+        } else {
+          // If upload fails, keep the old image
+          unset($data['image']);
+          Log::warning('Image upload failed for blog update: ' . ($data['title'] ?? 'unknown'));
+        }
       }
+
+      // Clear any session flash data that might contain large image data
+      $this->cleanSessionOldInput();
+
+      // Auto-generate slug from title if needed
+      if (empty($data['slug']) || ($data['title'] !== $blog->title && $data['slug'] === $blog->slug)) {
+        $data['slug'] = $this->generateUniqueSlug($data['title'], $id);
+      }
+
+      // Ensure boolean values are cast correctly
+      $data['is_featured'] = filter_var($data['is_featured'] ?? false, FILTER_VALIDATE_BOOLEAN);
+      $data['is_active'] = filter_var($data['is_active'] ?? true, FILTER_VALIDATE_BOOLEAN);
+      $data['read_time'] = (int)($data['read_time'] ?? 5);
+
+      // Ensure tags are stored as JSON
+      if (isset($data['tags']) && is_array($data['tags'])) {
+        $data['tags'] = array_values(array_unique(array_filter($data['tags'])));
+      }
+
+      $blog->update($data);
+
+      // Clear any large data from session before redirect
+      session()->forget('_old_input');
+
+      return redirect()->back()->with('success', '✅ Blog updated successfully!');
+    } catch (\Exception $e) {
+      Log::error('Blog update failed: ' . $e->getMessage(), [
+        'trace' => $e->getTraceAsString(),
+        'blog_id' => $id,
+        'input' => $request->except(['image', 'full_content'])
+      ]);
+
+      return back()
+        ->withErrors(['error' => 'Failed to update blog: ' . $e->getMessage()])
+        ->withInput();
     }
-
-    // Auto-generate slug from title if needed
-    if (empty($data['slug']) || ($data['title'] !== $blog->title && $data['slug'] === $blog->slug)) {
-      $data['slug'] = $this->generateUniqueSlug($data['title'], $id);
-    }
-
-    // Ensure tags are stored as JSON
-    if (isset($data['tags']) && is_array($data['tags'])) {
-      $data['tags'] = array_values(array_unique(array_filter($data['tags'])));
-    }
-
-    $blog->update($data);
-
-    return redirect()->back()->with('success', '✅ Blog updated successfully!');
   }
 
   /**
@@ -150,12 +202,17 @@ class BlogController extends Controller
    */
   public function toggleStatus(int $id)
   {
-    $blog = Blog::findOrFail($id);
-    $blog->is_active = !$blog->is_active;
-    $blog->save();
+    try {
+      $blog = Blog::findOrFail($id);
+      $blog->is_active = !$blog->is_active;
+      $blog->save();
 
-    $status = $blog->is_active ? 'activated' : 'deactivated';
-    return redirect()->back()->with('success', "✅ Blog {$status} successfully.");
+      $status = $blog->is_active ? 'activated' : 'deactivated';
+      return redirect()->back()->with('success', "✅ Blog {$status} successfully.");
+    } catch (\Exception $e) {
+      Log::error('Blog status toggle failed: ' . $e->getMessage(), ['blog_id' => $id]);
+      return redirect()->back()->with('error', 'Failed to toggle blog status.');
+    }
   }
 
   /**
@@ -163,18 +220,23 @@ class BlogController extends Controller
    */
   public function toggleFeatured(int $id)
   {
-    $blog = Blog::findOrFail($id);
+    try {
+      $blog = Blog::findOrFail($id);
 
-    // If making this blog featured, remove featured status from others
-    if (!$blog->is_featured) {
-      Blog::where('is_featured', true)->update(['is_featured' => false]);
+      // If making this blog featured, remove featured status from others
+      if (!$blog->is_featured) {
+        Blog::where('is_featured', true)->where('id', '!=', $id)->update(['is_featured' => false]);
+      }
+
+      $blog->is_featured = !$blog->is_featured;
+      $blog->save();
+
+      $status = $blog->is_featured ? 'featured' : 'unfeatured';
+      return redirect()->back()->with('success', "✅ Blog {$status} successfully.");
+    } catch (\Exception $e) {
+      Log::error('Blog featured toggle failed: ' . $e->getMessage(), ['blog_id' => $id]);
+      return redirect()->back()->with('error', 'Failed to toggle featured status.');
     }
-
-    $blog->is_featured = !$blog->is_featured;
-    $blog->save();
-
-    $status = $blog->is_featured ? 'featured' : 'unfeatured';
-    return redirect()->back()->with('success', "✅ Blog {$status} successfully.");
   }
 
   /**
@@ -182,10 +244,15 @@ class BlogController extends Controller
    */
   public function destroy(int $id)
   {
-    $blog = Blog::findOrFail($id);
-    $blog->delete();
+    try {
+      $blog = Blog::findOrFail($id);
+      $blog->delete();
 
-    return redirect()->back()->with('success', '🗑️ Blog moved to trash successfully.');
+      return redirect()->back()->with('success', '🗑️ Blog moved to trash successfully.');
+    } catch (\Exception $e) {
+      Log::error('Blog deletion failed: ' . $e->getMessage(), ['blog_id' => $id]);
+      return redirect()->back()->with('error', 'Failed to delete blog.');
+    }
   }
 
   /**
@@ -193,10 +260,15 @@ class BlogController extends Controller
    */
   public function restore(int $id)
   {
-    $blog = Blog::withTrashed()->findOrFail($id);
-    $blog->restore();
+    try {
+      $blog = Blog::withTrashed()->findOrFail($id);
+      $blog->restore();
 
-    return redirect()->back()->with('success', '🔄 Blog restored successfully.');
+      return redirect()->back()->with('success', '🔄 Blog restored successfully.');
+    } catch (\Exception $e) {
+      Log::error('Blog restoration failed: ' . $e->getMessage(), ['blog_id' => $id]);
+      return redirect()->back()->with('error', 'Failed to restore blog.');
+    }
   }
 
   /**
@@ -204,19 +276,38 @@ class BlogController extends Controller
    */
   public function forceDelete(int $id)
   {
-    $blog = Blog::withTrashed()->findOrFail($id);
+    try {
+      $blog = Blog::withTrashed()->findOrFail($id);
 
-    // Delete main image
-    if ($blog->image && !filter_var($blog->image, FILTER_VALIDATE_URL)) {
-      $this->deleteImageFile($blog->image);
+      // Delete main image
+      if ($blog->image && !filter_var($blog->image, FILTER_VALIDATE_URL)) {
+        $this->deleteImageFile($blog->image);
+      }
+
+      // Delete images embedded in the content
+      $this->deleteImagesFromContent($blog->full_content);
+
+      $blog->forceDelete();
+
+      return redirect()->back()->with('success', '🗑️ Blog permanently deleted.');
+    } catch (\Exception $e) {
+      Log::error('Blog force deletion failed: ' . $e->getMessage(), ['blog_id' => $id]);
+      return redirect()->back()->with('error', 'Failed to permanently delete blog.');
     }
+  }
 
-    // Delete images embedded in the content
-    $this->deleteImagesFromContent($blog->full_content);
-
-    $blog->forceDelete();
-
-    return redirect()->back()->with('success', '🗑️ Blog permanently deleted.');
+  /**
+   * Clean session old input to prevent max_allowed_packet errors
+   */
+  protected function cleanSessionOldInput(): void
+  {
+    if (session()->has('_old_input')) {
+      $oldInput = session()->get('_old_input');
+      if (isset($oldInput['image']) && $this->isBase64Image($oldInput['image'])) {
+        unset($oldInput['image']);
+        session()->put('_old_input', $oldInput);
+      }
+    }
   }
 
   /**
@@ -256,16 +347,25 @@ class BlogController extends Controller
     try {
       // Validate base64 format
       if (!preg_match('/^data:image\/(\w+);base64,/', $base64String, $matches)) {
+        Log::warning('Invalid base64 image format');
         return null;
       }
 
       $imageData = explode(',', $base64String);
       if (count($imageData) < 2) {
+        Log::warning('Invalid base64 image data');
         return null;
       }
 
       $imageContent = base64_decode($imageData[1]);
       if ($imageContent === false) {
+        Log::warning('Failed to decode base64 image');
+        return null;
+      }
+
+      // Check file size (max 5MB)
+      if (strlen($imageContent) > 5 * 1024 * 1024) {
+        Log::warning('Image too large: ' . strlen($imageContent) . ' bytes');
         return null;
       }
 
@@ -279,6 +379,7 @@ class BlogController extends Controller
       $stored = Storage::disk('public')->put($path, $imageContent);
 
       if (!$stored) {
+        Log::error('Failed to store image: ' . $path);
         return null;
       }
 
@@ -325,6 +426,7 @@ class BlogController extends Controller
       $relativePath = str_replace('/storage/', '', $imagePath);
       if (Storage::disk('public')->exists($relativePath)) {
         Storage::disk('public')->delete($relativePath);
+        Log::info('Image deleted: ' . $relativePath);
       }
     } catch (\Exception $e) {
       Log::warning('Failed to delete image: ' . $e->getMessage());
@@ -348,6 +450,7 @@ class BlogController extends Controller
         try {
           if (Storage::disk('public')->exists($relativePath)) {
             Storage::disk('public')->delete($relativePath);
+            Log::info('Embedded image deleted: ' . $relativePath);
           }
         } catch (\Exception $e) {
           Log::warning('Failed to delete embedded image: ' . $e->getMessage());

@@ -79,6 +79,7 @@ use App\Http\Controllers\Cms\EditorImageUploadController;
 // Models
 use App\Models\pages\Page;
 use App\Models\pages\Program;
+use Illuminate\Support\Facades\Log;
 
 // ============================================
 // API ROUTES (Data endpoints for the frontend)
@@ -271,7 +272,7 @@ Route::get('/_warmup', function () {
 
         $executionTime = round(microtime(true) - $startTime, 2);
 
-        \Illuminate\Support\Facades\Log::info('Cache warmup completed', [
+        Log::info('Cache warmup completed', [
             'pages' => count($pages),
             'execution_time' => $executionTime . 's',
             'results' => $results
@@ -286,7 +287,7 @@ Route::get('/_warmup', function () {
             'timestamp' => now()->toDateTimeString()
         ]);
     } catch (\Exception $e) {
-        \Illuminate\Support\Facades\Log::error('Cache warmup failed', [
+        Log::error('Cache warmup failed', [
             'error' => $e->getMessage()
         ]);
 

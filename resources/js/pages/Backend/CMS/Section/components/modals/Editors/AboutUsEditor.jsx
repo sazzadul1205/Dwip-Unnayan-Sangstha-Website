@@ -1,6 +1,6 @@
 // resources/js/pages/Backend/CMS/Section/components/modals/Editors/AboutUsEditor.jsx
 
-import React from 'react';
+import React, { useCallback } from 'react';
 import { FaPlus } from 'react-icons/fa';
 import ImageUpload from './shared/ImageUpload';
 import ArrayManager from './shared/ArrayManager';
@@ -8,8 +8,113 @@ import { useImageUpload } from './shared/useImageUpload';
 import { useSectionEditor } from './shared/useSectionEditor';
 import { TextField, TextAreaField } from './shared/Fields';
 
+// Move MissionItemRenderer outside the component as a separate component
+const MissionItemRenderer = ({ item, index, onUpdateItem }) => {
+  // Each mission item has its own image upload state
+  const iconUpload = useImageUpload(item.icon || '');
+
+  const handleIconChange = useCallback((src) => {
+    iconUpload.handleImageChange(src);
+    onUpdateItem(index, 'icon', src);
+  }, [iconUpload, onUpdateItem, index]);
+
+  const handleIconRemove = useCallback(() => {
+    iconUpload.handleImageRemove();
+    onUpdateItem(index, 'icon', '');
+  }, [iconUpload, onUpdateItem, index]);
+
+  const handleFieldChange = useCallback((field, value) => {
+    onUpdateItem(index, field, value);
+  }, [onUpdateItem, index]);
+
+  return (
+    <div className="space-y-3 p-3 bg-gray-50 rounded-lg border border-gray-100">
+      {/* Icon Upload with Drag & Drop */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Icon Image
+        </label>
+        <ImageUpload
+          imageSrc={iconUpload.imageSrc}
+          onImageChange={handleIconChange}
+          onImageRemove={handleIconRemove}
+          oldImagePath={iconUpload.oldImagePath}
+          imageChanged={iconUpload.imageChanged}
+          uploadPath="/storage/AboutUs/mission-icons/"
+          isUploading={iconUpload.isUploading}
+          uploadError={iconUpload.uploadError}
+          dropzoneText="Drop mission icon here or click to upload"
+          acceptedFileTypes="image/png,image/jpeg,image/svg+xml,image/webp,image/gif"
+          maxFileSize={2}
+          previewClassName="w-16 h-16 object-contain rounded-lg"
+        />
+        <p className="text-xs text-gray-400 mt-1">Recommended: SVG or PNG, max 2MB</p>
+      </div>
+
+      <TextField
+        label="Icon URL (or use upload above)"
+        value={item.icon || ''}
+        onChange={(e) => handleFieldChange('icon', e.target.value)}
+        placeholder="https://example.com/icon.svg"
+      />
+
+      <TextField
+        label="Title"
+        value={item.title || ''}
+        onChange={(e) => handleFieldChange('title', e.target.value)}
+        placeholder="Mission title"
+      />
+
+      <TextAreaField
+        label="Description"
+        value={item.description || ''}
+        onChange={(e) => handleFieldChange('description', e.target.value)}
+        placeholder="Mission description"
+        rows={2}
+      />
+
+      <TextField
+        label="Alt Text"
+        value={item.alt || ''}
+        onChange={(e) => handleFieldChange('alt', e.target.value)}
+        placeholder="Icon alt text"
+      />
+    </div>
+  );
+};
+
+// Separate component for Stats renderer
+const StatRenderer = ({ stat, index, onUpdateItem }) => {
+  const handleFieldChange = useCallback((field, value) => {
+    onUpdateItem(index, field, value);
+  }, [onUpdateItem, index]);
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-2 p-3 bg-gray-50 rounded-lg border border-gray-100">
+      <TextField
+        label="Value"
+        value={stat.value || ''}
+        onChange={(e) => handleFieldChange('value', e.target.value)}
+        placeholder="20"
+      />
+      <TextField
+        label="Suffix"
+        value={stat.suffix || ''}
+        onChange={(e) => handleFieldChange('suffix', e.target.value)}
+        placeholder="+"
+      />
+      <TextField
+        label="Label"
+        value={stat.label || ''}
+        onChange={(e) => handleFieldChange('label', e.target.value)}
+        placeholder="Years of Service"
+      />
+    </div>
+  );
+};
+
 const AboutUsEditor = ({ section, hasData, onDataChange }) => {
-  // Use the base editor hook
+  // Use the base editor hook - MUST be called before any conditional returns
   const {
     formData,
     updateField,
@@ -19,21 +124,30 @@ const AboutUsEditor = ({ section, hasData, onDataChange }) => {
     isDirty
   } = useSectionEditor(section, {}, onDataChange);
 
-  // Custom hook to handle image upload
+  // Custom hook to handle main image upload - MUST be called before any conditional returns
   const image = useImageUpload(formData?.image?.src || '');
 
-  // Handle image changes
-  const handleImageChange = (src) => {
+  // Handle main image changes with useCallback to prevent re-renders
+  const handleImageChange = useCallback((src) => {
     image.handleImageChange(src);
     updateField('image.src', src);
-  };
+  }, [image, updateField]);
 
-  const handleImageRemove = () => {
+  const handleImageRemove = useCallback(() => {
     image.handleImageRemove();
     updateField('image.src', '');
-  };
+  }, [image, updateField]);
 
-  // Empty state
+  // Wrapper functions for array item updates
+  const handleMissionItemUpdate = useCallback((index, field, value) => {
+    updateArrayItem('mission.items', index, field, value);
+  }, [updateArrayItem]);
+
+  const handleStatUpdate = useCallback((index, field, value) => {
+    updateArrayItem('impact.stats', index, field, value);
+  }, [updateArrayItem]);
+
+  // Empty state - Now safe to have conditional return after all hooks
   if (!hasData || !formData || Object.keys(formData).length === 0) {
     return (
       <div className="bg-white rounded-lg border border-gray-200 p-4 text-center py-8 text-gray-400">
@@ -90,7 +204,7 @@ const AboutUsEditor = ({ section, hasData, onDataChange }) => {
         </div>
       </div>
 
-      {/* Mission Items */}
+      {/* Mission Items with Icon Upload */}
       <div className="mb-4">
         <div className="flex items-center justify-between mb-2">
           <h4 className="text-sm font-medium text-gray-600">Mission Items ({missionItems.length})</h4>
@@ -104,7 +218,7 @@ const AboutUsEditor = ({ section, hasData, onDataChange }) => {
         </div>
 
         <TextField
-          label="Mission Title"
+          label="Mission Section Title"
           value={formData.mission?.title || ''}
           onChange={(e) => updateField('mission.title', e.target.value)}
           placeholder="The mission of our organization"
@@ -114,35 +228,16 @@ const AboutUsEditor = ({ section, hasData, onDataChange }) => {
           items={missionItems}
           onAdd={() => addArrayItem('mission.items', { icon: '', title: '', description: '', alt: '' })}
           onRemove={(index) => removeArrayItem('mission.items', index)}
-          itemLabel="Item"
+          itemLabel="Mission Item"
           addLabel="Add Mission Item"
           renderItem={(item, index) => (
-            <div className="space-y-2">
-              <TextField
-                label="Icon URL"
-                value={item.icon || ''}
-                onChange={(e) => updateArrayItem('mission.items', index, 'icon', e.target.value)}
-                placeholder="Icon URL"
-              />
-              <TextField
-                label="Title"
-                value={item.title || ''}
-                onChange={(e) => updateArrayItem('mission.items', index, 'title', e.target.value)}
-                placeholder="Title"
-              />
-              <TextField
-                label="Description"
-                value={item.description || ''}
-                onChange={(e) => updateArrayItem('mission.items', index, 'description', e.target.value)}
-                placeholder="Description"
-              />
-              <TextField
-                label="Alt Text"
-                value={item.alt || ''}
-                onChange={(e) => updateArrayItem('mission.items', index, 'alt', e.target.value)}
-                placeholder="Alt Text"
-              />
-            </div>
+            <MissionItemRenderer
+              key={index}
+              item={item}
+              index={index}
+              onUpdateItem={handleMissionItemUpdate}
+              onRemoveItem={(idx) => removeArrayItem('mission.items', idx)}
+            />
           )}
         />
       </div>
@@ -161,7 +256,7 @@ const AboutUsEditor = ({ section, hasData, onDataChange }) => {
         </div>
 
         <TextField
-          label="Impact Title"
+          label="Impact Section Title"
           value={formData.impact?.title || ''}
           onChange={(e) => updateField('impact.title', e.target.value)}
           placeholder="Impact In Numbers"
@@ -174,33 +269,19 @@ const AboutUsEditor = ({ section, hasData, onDataChange }) => {
           itemLabel="Stat"
           addLabel="Add Stat"
           renderItem={(stat, index) => (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-              <TextField
-                label="Value"
-                value={stat.value || ''}
-                onChange={(e) => updateArrayItem('impact.stats', index, 'value', e.target.value)}
-                placeholder="20"
-              />
-              <TextField
-                label="Suffix"
-                value={stat.suffix || ''}
-                onChange={(e) => updateArrayItem('impact.stats', index, 'suffix', e.target.value)}
-                placeholder="+"
-              />
-              <TextField
-                label="Label"
-                value={stat.label || ''}
-                onChange={(e) => updateArrayItem('impact.stats', index, 'label', e.target.value)}
-                placeholder="Years of Service"
-              />
-            </div>
+            <StatRenderer
+              key={index}
+              stat={stat}
+              index={index}
+              onUpdateItem={handleStatUpdate}
+            />
           )}
         />
       </div>
 
-      {/* Image */}
+      {/* Main Image */}
       <div className="mb-4">
-        <h4 className="text-sm font-medium text-gray-600 mb-2">Image</h4>
+        <h4 className="text-sm font-medium text-gray-600 mb-2">Main Image</h4>
         <ImageUpload
           imageSrc={image.imageSrc}
           onImageChange={handleImageChange}

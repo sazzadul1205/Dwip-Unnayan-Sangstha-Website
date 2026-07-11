@@ -11,7 +11,6 @@ use Illuminate\Support\Collection;
 use Inertia\Inertia;
 use Inertia\Response;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Cache;
 
 class PageController extends Controller
 {
@@ -25,32 +24,10 @@ class PageController extends Controller
   }
 
   /**
-   * Cache duration in seconds (24 hours)
-   */
-  protected function getCacheDuration(): int
-  {
-    return 86400; // 24 hours
-  }
-
-  /**
-   * Handle all public pages dynamically with caching.
+   * Handle all public pages dynamically.
    */
   public function show(string $pageSlug = 'home', ?string $detailSlug = null): Response
   {
-    // Generate a unique cache key for this page
-    $cacheKey = $this->generateCacheKey($pageSlug, $detailSlug);
-
-    // Try to get cached page data
-    $cachedData = Cache::get($cacheKey);
-
-    if ($cachedData) {
-      return Inertia::render(
-        $cachedData['component'],
-        $cachedData['props']
-      );
-    }
-
-    // If not cached, fetch fresh data
     $page = $this->getPageBySlug($pageSlug);
 
     if (!$page) {
@@ -107,45 +84,7 @@ class PageController extends Controller
       ]
     );
 
-    // Store in cache
-    $cachedData = [
-      'component' => $component,
-      'props' => $props,
-    ];
-    Cache::put($cacheKey, $cachedData, $this->getCacheDuration());
-
     return Inertia::render($component, $props);
-  }
-
-  /**
-   * Generate a unique cache key for a page
-   */
-  private function generateCacheKey(string $pageSlug, ?string $detailSlug): string
-  {
-    $key = 'frontend_page_' . $pageSlug;
-    if ($detailSlug) {
-      $key .= '_' . $detailSlug;
-    }
-    return $key;
-  }
-
-  /**
-   * Clear cache for a specific page
-   */
-  public function clearPageCache(string $pageSlug, ?string $detailSlug = null): void
-  {
-    $cacheKey = $this->generateCacheKey($pageSlug, $detailSlug);
-    Cache::forget($cacheKey);
-  }
-
-  /**
-   * Clear all frontend cache
-   */
-  public function clearAllCache(): void
-  {
-    Cache::tags(['frontend'])->flush();
-    // Or use a prefix pattern:
-    $this->clearFrontendCache();
   }
 
   /**
@@ -279,86 +218,62 @@ class PageController extends Controller
   {
     $data = [];
 
-    // Shared data with caching
+    // Shared data
     if (!empty($needs['shared_data'])) {
       foreach ($needs['shared_data'] as $type) {
-        $cacheKey = 'frontend_shared_' . $type;
-        $sharedItem = Cache::remember($cacheKey, $this->getCacheDuration(), function () use ($type) {
-          return $this->contentService->getSharedData($type);
-        });
+        $sharedItem = $this->contentService->getSharedData($type);
         if ($sharedItem) {
           $data['shared'][$type] = $sharedItem->data;
         }
       }
     }
 
-    // Programs with caching
+    // Programs
     if (!empty($needs['programs'])) {
-      $data['programs'] = Cache::remember('frontend_programs', $this->getCacheDuration(), function () {
-        return $this->contentService->getPrograms();
-      });
+      $data['programs'] = $this->contentService->getPrograms();
     }
 
-    // Blogs with caching
+    // Blogs
     if (!empty($needs['blogs'])) {
-      $data['blogs'] = Cache::remember('frontend_blogs', $this->getCacheDuration(), function () {
-        return $this->contentService->getBlogs();
-      });
+      $data['blogs'] = $this->contentService->getBlogs();
     }
 
-    // About content with caching
+    // About content
     if (!empty($needs['about_content'])) {
-      $data['about_content'] = Cache::remember('frontend_about_details', $this->getCacheDuration(), function () {
-        return $this->contentService->getAboutDetails();
-      });
+      $data['about_content'] = $this->contentService->getAboutDetails();
     }
 
-    // Jobs with caching
+    // Jobs
     if (!empty($needs['jobs'])) {
-      $data['jobs'] = Cache::remember('frontend_jobs', $this->getCacheDuration(), function () {
-        return JobListing::active()
-          ->orderBy('views_count', 'desc')
-          ->limit(5)
-          ->get();
-      });
+      $data['jobs'] = JobListing::active()
+        ->orderBy('views_count', 'desc')
+        ->limit(5)
+        ->get();
     }
 
     // Job details (for detail pages)
     if (!empty($needs['job_details']) && $detailSlug) {
-      $data['job_details'] = Cache::remember(
-        'frontend_job_detail_' . $detailSlug,
-        $this->getCacheDuration(),
-        function () use ($detailSlug) {
-          return JobListing::where('slug', $detailSlug)
-            ->with(['category', 'locations', 'employer'])
-            ->first();
-        }
-      );
+      $data['job_details'] = JobListing::where('slug', $detailSlug)
+        ->with(['category', 'locations', 'employer'])
+        ->first();
     }
 
-    // Publications with caching
+    // Publications
     if (!empty($needs['publications'])) {
-      $data['publications'] = Cache::remember('frontend_publications', $this->getCacheDuration(), function () {
-        return $this->contentService->getPublications();
-      });
+      $data['publications'] = $this->contentService->getPublications();
     }
 
-    // Pages with caching
+    // Pages
     if (!empty($needs['pages'])) {
-      $data['pages'] = Cache::remember('frontend_pages', $this->getCacheDuration(), function () {
-        return \App\Models\pages\Page::where('is_active', true)
-          ->orderBy('name')
-          ->get();
-      });
+      $data['pages'] = \App\Models\pages\Page::where('is_active', true)
+        ->orderBy('name')
+        ->get();
     }
 
-    // Custom section data with caching
+    // Custom section data
     if (!empty($needs['custom'])) {
       foreach ($needs['custom'] as $sectionKey) {
-        $cacheKey = 'frontend_custom_' . $pageSlug . '_' . $sectionKey;
-        $customData = Cache::remember($cacheKey, $this->getCacheDuration(), function () use ($pageSlug, $sectionKey) {
-          return $this->contentService->getSectionData($pageSlug, $sectionKey);
-        });
+        $customData = $this->contentService->getSectionData($pageSlug, $sectionKey);
         if ($customData) {
           if (method_exists($customData, 'getDataAttribute')) {
             $data['custom'][$sectionKey] = $customData->data;
@@ -369,28 +284,30 @@ class PageController extends Controller
       }
     }
 
-    // Detail item with caching
+    // Detail item
     if ($detailSlug) {
-      $detailCacheKey = 'frontend_detail_' . $pageSlug . '_' . $detailSlug;
-      $detail = Cache::remember($detailCacheKey, $this->getCacheDuration(), function () use ($pageSlug, $detailSlug) {
-        $baseSlug = $pageSlug;
-        if ($pageSlug === 'blogs') {
-          $baseSlug = 'blog';
-        }
+      $baseSlug = $pageSlug;
+      if ($pageSlug === 'blogs') {
+        $baseSlug = 'blog';
+      }
 
-        switch ($baseSlug) {
-          case 'about':
-            return $this->contentService->getAboutContent($detailSlug);
-          case 'blog':
-            return $this->contentService->getBlog($detailSlug);
-          case 'projects-programs':
-            return $this->contentService->getProgram($detailSlug);
-          case 'publications':
-            return $this->contentService->getPublication($detailSlug);
-          default:
-            return $this->contentService->getSectionData($pageSlug, $detailSlug);
-        }
-      });
+      switch ($baseSlug) {
+        case 'about':
+          $detail = $this->contentService->getAboutContent($detailSlug);
+          break;
+        case 'blog':
+          $detail = $this->contentService->getBlog($detailSlug);
+          break;
+        case 'projects-programs':
+          $detail = $this->contentService->getProgram($detailSlug);
+          break;
+        case 'publications':
+          $detail = $this->contentService->getPublication($detailSlug);
+          break;
+        default:
+          $detail = $this->contentService->getSectionData($pageSlug, $detailSlug);
+          break;
+      }
       $data['detail'] = $detail;
     }
 

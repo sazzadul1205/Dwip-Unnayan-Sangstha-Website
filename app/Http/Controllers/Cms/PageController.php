@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Models\pages\Page;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -45,12 +46,21 @@ class PageController extends Controller
    */
   public function index(): Response
   {
-    $items = Page::withTrashed()->get();
+    try {
+      $items = Page::withTrashed()->get();
 
-    return Inertia::render('Backend/CMS/Index', [
-      'items' => $items,
-      'protectedPages' => $this->getProtectedPages(),
-    ]);
+      return Inertia::render('Backend/CMS/Index', [
+        'items' => $items,
+        'protectedPages' => $this->getProtectedPages(),
+      ]);
+    } catch (\Exception $e) {
+      Log::error('Failed to fetch pages: ' . $e->getMessage());
+      return Inertia::render('Backend/CMS/Index', [
+        'items' => [],
+        'protectedPages' => $this->getProtectedPages(),
+        'flash' => ['error' => 'Failed to load pages. Please try again.']
+      ]);
+    }
   }
 
   /**
@@ -58,21 +68,37 @@ class PageController extends Controller
    */
   public function store(Request $request)
   {
-    $validator = Validator::make($request->all(), [
-      'slug' => 'required|string|unique:pages,slug',
-      'name' => 'required|string|max:255',
-      'title' => 'nullable|string|max:255',
-      'description' => 'nullable|string',
-      'is_active' => 'boolean',
-    ]);
+    try {
+      $validator = Validator::make($request->all(), [
+        'slug' => 'required|string|unique:pages,slug',
+        'name' => 'required|string|max:255',
+        'title' => 'nullable|string|max:255',
+        'description' => 'nullable|string',
+        'is_active' => 'boolean',
+      ]);
 
-    if ($validator->fails()) {
-      return back()->withErrors($validator)->withInput();
+      if ($validator->fails()) {
+        return back()->withErrors($validator)->withInput();
+      }
+
+      $data = $request->all();
+
+      // Ensure boolean values are cast correctly
+      $data['is_active'] = filter_var($data['is_active'] ?? true, FILTER_VALIDATE_BOOLEAN);
+
+      Page::create($data);
+
+      return redirect()->back()->with('success', '✅ Page created successfully.');
+    } catch (\Exception $e) {
+      Log::error('Page creation failed: ' . $e->getMessage(), [
+        'trace' => $e->getTraceAsString(),
+        'input' => $request->all()
+      ]);
+
+      return back()
+        ->withErrors(['error' => 'Failed to create page: ' . $e->getMessage()])
+        ->withInput();
     }
-
-    Page::create($request->all());
-
-    return redirect()->back()->with('success', 'Page created successfully.');
   }
 
   /**
@@ -80,31 +106,48 @@ class PageController extends Controller
    */
   public function update(Request $request, int $id)
   {
-    $page = Page::withTrashed()->findOrFail($id);
+    try {
+      $page = Page::withTrashed()->findOrFail($id);
 
-    // Check if page is protected
-    if ($this->isProtected($page)) {
-      // Prevent deactivating protected pages
-      if (isset($request->is_active) && !$request->is_active) {
-        return back()->with('error', 'Cannot deactivate a protected page.');
+      // Check if page is protected
+      if ($this->isProtected($page)) {
+        // Prevent deactivating protected pages
+        if (isset($request->is_active) && !$request->is_active) {
+          return back()->with('error', 'Cannot deactivate a protected page.');
+        }
       }
+
+      $validator = Validator::make($request->all(), [
+        'slug' => 'required|string|unique:pages,slug,' . $id,
+        'name' => 'required|string|max:255',
+        'title' => 'nullable|string|max:255',
+        'description' => 'nullable|string',
+        'is_active' => 'boolean',
+      ]);
+
+      if ($validator->fails()) {
+        return back()->withErrors($validator)->withInput();
+      }
+
+      $data = $request->all();
+
+      // Ensure boolean values are cast correctly
+      $data['is_active'] = filter_var($data['is_active'] ?? true, FILTER_VALIDATE_BOOLEAN);
+
+      $page->update($data);
+
+      return redirect()->back()->with('success', '✅ Page updated successfully.');
+    } catch (\Exception $e) {
+      Log::error('Page update failed: ' . $e->getMessage(), [
+        'trace' => $e->getTraceAsString(),
+        'page_id' => $id,
+        'input' => $request->all()
+      ]);
+
+      return back()
+        ->withErrors(['error' => 'Failed to update page: ' . $e->getMessage()])
+        ->withInput();
     }
-
-    $validator = Validator::make($request->all(), [
-      'slug' => 'required|string|unique:pages,slug,' . $id,
-      'name' => 'required|string|max:255',
-      'title' => 'nullable|string|max:255',
-      'description' => 'nullable|string',
-      'is_active' => 'boolean',
-    ]);
-
-    if ($validator->fails()) {
-      return back()->withErrors($validator)->withInput();
-    }
-
-    $page->update($request->all());
-
-    return redirect()->back()->with('success', 'Page updated successfully.');
   }
 
   /**
@@ -112,16 +155,22 @@ class PageController extends Controller
    */
   public function toggleStatus(int $id)
   {
-    $page = Page::findOrFail($id);
+    try {
+      $page = Page::findOrFail($id);
 
-    if ($this->isProtected($page)) {
-      return back()->with('error', 'Cannot deactivate a protected page.');
+      if ($this->isProtected($page)) {
+        return back()->with('error', 'Cannot deactivate a protected page.');
+      }
+
+      $page->is_active = !$page->is_active;
+      $page->save();
+
+      $status = $page->is_active ? 'activated' : 'deactivated';
+      return redirect()->back()->with('success', "✅ Page {$status} successfully.");
+    } catch (\Exception $e) {
+      Log::error('Page status toggle failed: ' . $e->getMessage(), ['page_id' => $id]);
+      return redirect()->back()->with('error', 'Failed to toggle page status.');
     }
-
-    $page->is_active = !$page->is_active;
-    $page->save();
-
-    return redirect()->back()->with('success', 'Page status updated successfully.');
   }
 
   /**
@@ -129,15 +178,20 @@ class PageController extends Controller
    */
   public function destroy(int $id)
   {
-    $page = Page::findOrFail($id);
+    try {
+      $page = Page::findOrFail($id);
 
-    if ($this->isProtected($page)) {
-      return back()->with('error', 'Cannot delete a protected page.');
+      if ($this->isProtected($page)) {
+        return back()->with('error', 'Cannot delete a protected page.');
+      }
+
+      $page->delete();
+
+      return redirect()->back()->with('success', '🗑️ Page moved to trash successfully.');
+    } catch (\Exception $e) {
+      Log::error('Page deletion failed: ' . $e->getMessage(), ['page_id' => $id]);
+      return redirect()->back()->with('error', 'Failed to delete page.');
     }
-
-    $page->delete();
-
-    return redirect()->back()->with('success', 'Page deleted successfully.');
   }
 
   /**
@@ -145,10 +199,15 @@ class PageController extends Controller
    */
   public function restore(int $id)
   {
-    $page = Page::withTrashed()->findOrFail($id);
-    $page->restore();
+    try {
+      $page = Page::withTrashed()->findOrFail($id);
+      $page->restore();
 
-    return redirect()->back()->with('success', 'Page restored successfully.');
+      return redirect()->back()->with('success', '🔄 Page restored successfully.');
+    } catch (\Exception $e) {
+      Log::error('Page restoration failed: ' . $e->getMessage(), ['page_id' => $id]);
+      return redirect()->back()->with('error', 'Failed to restore page.');
+    }
   }
 
   /**
@@ -156,14 +215,19 @@ class PageController extends Controller
    */
   public function forceDelete(int $id)
   {
-    $page = Page::withTrashed()->findOrFail($id);
+    try {
+      $page = Page::withTrashed()->findOrFail($id);
 
-    if ($this->isProtected($page)) {
-      return back()->with('error', 'Cannot delete a protected page.');
+      if ($this->isProtected($page)) {
+        return back()->with('error', 'Cannot delete a protected page.');
+      }
+
+      $page->forceDelete();
+
+      return redirect()->back()->with('success', '🗑️ Page permanently deleted.');
+    } catch (\Exception $e) {
+      Log::error('Page force deletion failed: ' . $e->getMessage(), ['page_id' => $id]);
+      return redirect()->back()->with('error', 'Failed to permanently delete page.');
     }
-
-    $page->forceDelete();
-
-    return redirect()->back()->with('success', 'Page permanently deleted.');
   }
 }

@@ -64,7 +64,7 @@
     <link rel="apple-touch-icon" href="{{ asset('storage/images/icon.png') }}">
 
     <!-- ✅ Added: Web app manifest for PWA support -->
-    <link rel="manifest" href="{{ asset('manifest.json') }}" crossorigin="use-credentials">
+    {{-- <link rel="manifest" href="{{ asset('manifest.json') }}" crossorigin="use-credentials"> --}}
 
     <!-- ✅ Improved: Font loading with preload for performance -->
     <link rel="preconnect" href="https://fonts.bunny.net" crossorigin>
