@@ -176,7 +176,7 @@ const AdminLayout = ({ children }) => {
       adminJobs: url.includes('/backend/listing') || url.includes('/backend/locations') || url.includes('/backend/categories') || url.includes('/backend/statistics'),
       adminApps: url.includes('/backend/applications') || url.includes('/backend/apply'),
       adminRoles: url.includes('/backend/roles'),
-      cms: isCmsPage || isSectionPage,  // ← FIX: Keep CMS open for sections pages
+      cms: isCmsPage || isSectionPage,
     };
 
     setOpenMenus(prev => ({
@@ -349,7 +349,6 @@ const AdminLayout = ({ children }) => {
           name: 'Pages',
           routeName: 'backend.cms.pages.index',
           icon: FiFileText,
-          // ← FIX: Add active aliases for section pages
           activeAliases: [
             '/backend/cms/sections',      // Any sections page
             '/backend/cms/sections/page', // Sections for a specific page
