@@ -1,5 +1,7 @@
 // js/utils/sectionHelpers.js
 
+import DOMPurify from 'dompurify';
+
 /**
  * Utility function to check if value exists
  */
@@ -87,8 +89,5 @@ export const createImageErrorHandler = (setErrors, id) => {
  */
 export const sanitizeHTML = (html) => {
   if (!html) return '';
-  // Basic sanitization - in production, use a library like DOMPurify
-  // For now, we'll just return the HTML with a warning
-  console.warn('Consider using DOMPurify for sanitization');
-  return html;
+  return DOMPurify.sanitize(html);
 };

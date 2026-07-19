@@ -1,7 +1,7 @@
 // resources/js/pages/Backend/JobListings/Create.jsx
 
 // React
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 
 // Inertia
 import { Head, router } from '@inertiajs/react';
@@ -11,7 +11,6 @@ import AuthenticatedLayout from '../../../layouts/AuthenticatedLayout';
 
 // Auth
 import { useAuth } from '../../../hooks/useAuth';
-import { Can } from '../../../components/Auth/Can';
 
 // Icons
 import { FaArrowLeft, FaBriefcase, FaShieldAlt } from 'react-icons/fa';
@@ -35,14 +34,11 @@ export default function Create({ categories, locations }) {
     user: currentUser,
     hasAnyPermission,
     hasRole,
-    isAuthenticated,
   } = useAuth();
 
   // Check permissions for job creation
-  const isSuperAdmin = hasRole('super-admin');
   const canViewJobs = hasAnyPermission(['jobs.view', 'jobs.manage']);
   const isEmployer = hasRole('employer') || hasRole('employer-admin');
-  const isHRManager = hasRole('hr-manager');
   const canCreateJobs = hasAnyPermission(['jobs.create', 'jobs.manage']);
 
   // Check if user has an employer profile (for employers)
@@ -422,8 +418,24 @@ export default function Create({ categories, locations }) {
 
       <div className="min-h-screen bg-linear-to-br from-blue-50 via-white to-purple-50 py-8 px-4 sm:px-6 lg:px-8">
         <div className=" mx-auto">
-          {/* Back Button */}
-          <div className="mb-4">
+          {/* Header with Back Button */}
+          <div className="flex items-center justify-between mb-6">
+            {/* Header */}
+            <div className="flex justify-center items-center gap-5 mb-6">
+              <div className="inline-flex items-center justify-center w-16 h-16 bg-linear-to-br from-blue-500 to-blue-600 rounded-2xl shadow-lg">
+                <FaBriefcase className="w-8 h-8 text-white" />
+              </div>
+              <div className="text-left">
+                <h1 className="text-3xl font-bold bg-linear-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
+                  Create Job Listing
+                </h1>
+                <p className="text-sm text-gray-500 max-w-md">
+                  Fill in the details below to post a new job opportunity and find the perfect candidate
+                </p>
+              </div>
+            </div>
+
+            {/* Back Button */}
             <button
               onClick={handleBackToListings}
               className="group flex items-center gap-2 text-gray-500 hover:text-gray-700 transition-all duration-200"
@@ -432,36 +444,6 @@ export default function Create({ categories, locations }) {
               <span className="text-sm">Back to Job Listings</span>
             </button>
           </div>
-
-          {/* Header */}
-          <div className="flex justify-center items-center gap-5 mb-6">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-linear-to-br from-blue-500 to-blue-600 rounded-2xl shadow-lg">
-              <FaBriefcase className="w-8 h-8 text-white" />
-            </div>
-            <div className="text-center">
-              <h1 className="text-3xl font-bold bg-linear-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
-                Create Job Listing
-              </h1>
-              <p className="text-sm text-gray-500 max-w-md">
-                Fill in the details below to post a new job opportunity and find the perfect candidate
-              </p>
-            </div>
-          </div>
-
-          {/* Employer Info Banner */}
-          {isEmployer && (
-            <div className="mb-4 p-3 bg-blue-50 rounded-lg flex items-center justify-between flex-wrap gap-2">
-              <div className="flex items-center gap-2">
-                <FaBriefcase className="text-blue-600" size={16} />
-                <span className="text-sm text-blue-800">
-                  Posting as: <strong>{currentUser?.employer?.company_name || 'Your Company'}</strong>
-                </span>
-              </div>
-              <span className="text-xs text-blue-600">
-                Jobs will appear under your company profile
-              </span>
-            </div>
-          )}
 
           {/* Main Card */}
           <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100">

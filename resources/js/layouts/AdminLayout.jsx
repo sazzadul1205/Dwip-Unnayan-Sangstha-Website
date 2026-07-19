@@ -1,15 +1,13 @@
 // resources/js/layouts/AdminLayout.jsx
 
-// ============================================================
 // IMPORTS
-// ============================================================
 
 // React
 import { Link, usePage } from '@inertiajs/react';
 import { useState, useEffect, useMemo, useCallback } from 'react';
 
 // Icons
-import { FaSearchLocation, FaLayerGroup, FaImage } from "react-icons/fa";
+import { FaSearchLocation, FaLayerGroup } from "react-icons/fa";
 import {
   FiHome, FiBell, FiBriefcase, FiFileText, FiSettings, FiLogOut,
   FiChevronDown, FiChevronRight, FiPlusCircle, FiUsers, FiBarChart2,
@@ -17,17 +15,13 @@ import {
 } from 'react-icons/fi';
 import { MdCategory } from "react-icons/md";
 
-// ============================================================
 // MAIN COMPONENT
-// ============================================================
 const AdminLayout = ({ children }) => {
   const { url, props } = usePage();
   const { auth } = props;
   const user = auth?.user;
 
-  // ============================================================
   // STATE
-  // ============================================================
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [openMenus, setOpenMenus] = useState({
     adminJobs: false,
@@ -37,18 +31,14 @@ const AdminLayout = ({ children }) => {
     cms: false,
   });
 
-  // ============================================================
   // USER DATA
-  // ============================================================
   const userName = user?.name || 'User';
   const userEmail = user?.email || '';
   const notificationMeta = props.notifications || { unread_count: 0, recent: [] };
   const userRoles = useMemo(() => user?.roles || [], [user]);
   const userPermissions = useMemo(() => user?.permissions || [], [user]);
 
-  // ============================================================
   // PERMISSION HELPERS
-  // ============================================================
   const hasRole = useMemo(() => (roleSlug) => userRoles.some(r => r.slug === roleSlug), [userRoles]);
   const hasPermission = useMemo(() => (permSlug) => {
     if (hasRole('super-admin') || hasRole('admin')) return true;
@@ -60,9 +50,7 @@ const AdminLayout = ({ children }) => {
     return permSlugs?.some(slug => hasPermission(slug)) || false;
   }, [hasRole, hasPermission]);
 
-  // ============================================================
   // ROLE HELPERS
-  // ============================================================
   const primaryRole = useMemo(() => {
     if (hasRole('super-admin') || hasRole('admin')) return 'admin';
     if (hasRole('employer-admin') || hasRole('hr-manager') || hasRole('recruiter')) return 'employer';
@@ -78,18 +66,14 @@ const AdminLayout = ({ children }) => {
     return 'Staff';
   }, [hasRole]);
 
-  // ============================================================
   // ROLE COLORS
-  // ============================================================
   const roleColors = {
     admin: { light: 'from-red-600 to-red-700', bg: 'bg-red-500', text: 'text-red-600', border: 'border-red-500', hover: 'hover:bg-red-50', active: 'bg-red-100 text-red-700' },
     employer: { light: 'from-blue-600 to-blue-700', bg: 'bg-blue-500', text: 'text-blue-600', border: 'border-blue-500', hover: 'hover:bg-blue-50', active: 'bg-blue-100 text-blue-700' },
   };
   const colors = roleColors[primaryRole] || roleColors.admin;
 
-  // ============================================================
   // ROUTE HELPERS
-  // ============================================================
   const route = (name, params = {}) => {
     if (typeof window !== 'undefined' && window.route) {
       try { return window.route(name, params); } catch (e) { console.error(e); return '#'; }
@@ -153,9 +137,7 @@ const AdminLayout = ({ children }) => {
     });
   }, [isPathActive, isPathActiveWithQuery, isRouteActive]);
 
-  // ============================================================
   // MENU TOGGLES & AUTO-EXPAND
-  // ============================================================
   const toggleMenu = (menu) => setOpenMenus(prev => ({ ...prev, [menu]: !prev[menu] }));
 
   // Enhanced auto-expand with better CMS detection
@@ -188,9 +170,7 @@ const AdminLayout = ({ children }) => {
     }));
   }, [url]);
 
-  // ============================================================
   // MENU ITEMS
-  // ============================================================
   const menuItems = useMemo(() => {
     const items = [];
 
@@ -412,20 +392,11 @@ const AdminLayout = ({ children }) => {
       }
     }
 
-    // Site Icon - URL: /backend/icon
-    if (hasPermission('icon.manage')) {
-      items.push({
-        name: 'Site Icon',
-        routeName: 'backend.icon.index',
-        icon: FaImage
-      });
-    }
-
     // Admin Settings - URL: /backend/admin-profile
     if (hasPermission('admin_profile.edit') || hasPermission('admin_profile.update')) {
       items.push({
         name: 'Admin Settings',
-        routeName: 'backend.admin-profile.edit',
+        routeName: 'admin-profile.edit', 
         icon: FiSettings
       });
     }
@@ -453,9 +424,7 @@ const AdminLayout = ({ children }) => {
     }));
   }, [url, menuItems, isDropdownActive]);
 
-  // ============================================================
   // RENDER HELPERS
-  // ============================================================
   const renderSubMenuItem = useCallback((sub) => {
     const active = sub.routeName
       ? isRouteActive(sub.routeName, sub.routeParams || {}, sub.activeAliases || [], { exact: sub.exact, excludePaths: sub.activeExclude })
@@ -521,9 +490,7 @@ const AdminLayout = ({ children }) => {
     );
   }, [openMenus, isCollapsed, colors, isDropdownActive, renderSubMenuItem, isRouteActive, isPathActive]);
 
-  // ============================================================
   // RENDER
-  // ============================================================
   if (menuItems.length === 0) {
     return <div className="min-h-screen bg-gray-50"><main className="p-6">{children}</main></div>;
   }

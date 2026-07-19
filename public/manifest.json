@@ -1,0 +1,16 @@
+{
+  "name": "DUS Backend Admin",
+  "short_name": "DUS Admin",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff",
+  "icons": [
+    {
+      "src": "/images/icon.png",
+      "sizes": "73x107",
+      "type": "image/png"
+    }
+  ]
+}

@@ -15,6 +15,7 @@ import {
   FaEyeSlash,
   FaEraser,
 } from 'react-icons/fa';
+import DOMPurify from 'dompurify';
 
 export default function CustomEditor({
   value,
@@ -267,7 +268,10 @@ export default function CustomEditor({
 
       {/* Editor */}
       {isPreview ? (
-        <div className="p-4 min-h-52 prose max-w-none overflow-auto" dangerouslySetInnerHTML={{ __html: value }} />
+        <div
+          className="p-4 min-h-52 prose max-w-none overflow-auto"
+          dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(value || '') }}
+        />
       ) : (
         <div
           ref={editorRef}

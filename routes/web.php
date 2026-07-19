@@ -47,12 +47,7 @@ use App\Http\Controllers\Backend\NotificationController;
 // Controllers - Profile (Admin/Employer)
 use App\Http\Controllers\Profile\AdminProfileController;
 
-// Controllers - Settings
-use App\Http\Controllers\Settings\ProfileController;
-use App\Http\Controllers\Settings\PasswordController;
-
 // Controllers - Auth
-use App\Http\Controllers\ImageManagerController;
 use App\Http\Controllers\Auth\Shared\GoogleAuthController;
 use App\Http\Controllers\Auth\Shared\NewPasswordController;
 use App\Http\Controllers\Auth\Shared\VerifyEmailController;
@@ -448,13 +443,6 @@ Route::middleware(['auth', 'verified', 'profile.complete'])->group(function () {
             Route::put('/profile/password', [EmployerProfileController::class, 'updatePassword'])->name('profile.password.update'); // URL: /backend/employer/profile/password (PUT)
         });
 
-        // Admin Profile - URL: /backend/admin-profile/*
-        Route::prefix('admin-profile')->name('admin-profile.')->group(function () {
-            Route::get('/edit', [AdminProfileController::class, 'edit'])->name('edit');                       // URL: /backend/admin-profile/edit
-            Route::patch('/', [AdminProfileController::class, 'update'])->name('update');                     // URL: /backend/admin-profile (PATCH)
-            Route::put('/password', [AdminProfileController::class, 'updatePassword'])->name('password.update'); // URL: /backend/admin-profile/password (PUT)
-        });
-
         // Applications Management - URL: /backend/applications/*
         Route::prefix('applications')->name('applications.')->group(function () {
             Route::get('/', [ApplicationsController::class, 'index'])->name('index');                         // URL: /backend/applications
@@ -583,15 +571,17 @@ Route::middleware(['auth', 'verified', 'profile.complete'])->group(function () {
     });
 
     // ============================================
-    // SUBSECTION 6.3: SETTINGS ROUTES
-    // URL: /settings/*
+    // SUBSECTION 6.3: ADMIN PROFILE ROUTES
+    // URL: /backend/admin-profile/*
     // ============================================
-    Route::prefix('settings')->name('settings.')->group(function () {
-        Route::get('/profile', [ProfileController::class, 'edit'])->name('profile');                        // URL: /settings/profile
-        Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');             // URL: /settings/profile (PATCH)
-        Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');          // URL: /settings/profile (DELETE)
-        Route::get('/password', [PasswordController::class, 'edit'])->name('password');                     // URL: /settings/password
-        Route::put('/password', [PasswordController::class, 'update'])->name('password.update');            // URL: /settings/password (PUT)
+    Route::prefix('admin-profile')->name('admin-profile.')->group(function () {
+        Route::get('/edit', [AdminProfileController::class, 'edit'])->name('edit');                           // URL: /backend/admin-profile/edit
+        Route::patch('/', [AdminProfileController::class, 'update'])->name('update');                         // URL: /backend/admin-profile (PATCH)
+        Route::put('/password', [AdminProfileController::class, 'updatePassword'])->name('password.update'); // URL: /backend/admin-profile/password (PUT)
+
+        // Icon management routes - ADD THESE
+        Route::post('/icon/update', [AdminProfileController::class, 'updateIcon'])->name('icon.update');     // URL: /backend/admin-profile/icon/update
+        Route::delete('/icon/reset', [AdminProfileController::class, 'resetIcon'])->name('icon.reset');      // URL: /backend/admin-profile/icon/reset
     });
 });
 
@@ -609,13 +599,6 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->group(function () {
     Route::post('/cache/clear', [CacheController::class, 'clearAll'])->name('admin.cache.clear');           // URL: /admin/cache/clear
     Route::post('/cache/clear/{pageSlug}', [CacheController::class, 'clearPage'])->name('admin.cache.clear-page'); // URL: /admin/cache/clear/{pageSlug}
     Route::get('/cache/status', [CacheController::class, 'status'])->name('admin.cache.status');            // URL: /admin/cache/status
-});
-
-// Icon manager
-Route::middleware(['auth'])->prefix('backend/icon')->name('backend.icon.')->group(function () {
-    Route::get('/', [ImageManagerController::class, 'index'])->name('index');                              // URL: /backend/icon
-    Route::post('/update', [ImageManagerController::class, 'updateIcon'])->name('update');                 // URL: /backend/icon/update
-    Route::delete('/reset', [ImageManagerController::class, 'resetIcon'])->name('reset');                  // URL: /backend/icon/reset
 });
 
 // ============================================

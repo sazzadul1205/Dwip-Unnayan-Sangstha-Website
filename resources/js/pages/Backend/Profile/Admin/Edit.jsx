@@ -1,13 +1,13 @@
 // resources/js/Pages/Backend/Profile/Admin/Edit.jsx
 
 // React
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 
 // Inertia
 import { Head, useForm, router } from '@inertiajs/react';
 
 // Layout
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import AuthenticatedLayout from '../../../../layouts/AuthenticatedLayout';
 
 // Sweetalert
 import Swal from 'sweetalert2';
@@ -31,15 +31,42 @@ import {
   FaKey,
   FaTrash,
   FaShieldAlt,
+  FaUpload,
+  FaImage,
+  FaUndo,
+  FaInfoCircle,
 } from 'react-icons/fa';
 
-export default function Edit({ user: adminUser }) {
+export default function Edit({ user: adminUser, currentIcon, availableIcons }) {
+  // show Password form
+  const [showPassword, setShowPassword] = useState(false);
+  const [activeTab, setActiveTab] = useState('profile');
+
+  // Profile form
+  const { data: profileData, setData: setProfileData, patch, processing: profileProcessing, errors: profileErrors } = useForm({
+    name: adminUser?.name || '',
+    email: adminUser?.email || '',
+  });
+
+  // Password form
+  const {
+    data: passwordData,
+    setData: setPasswordData,
+    put,
+    processing: passwordProcessing,
+    errors: passwordErrors,
+    reset: resetPassword
+  } = useForm({
+    current_password: '',
+    password: '',
+    password_confirmation: '',
+  });
+
   // Use centralized auth hook
   const {
     user: currentUser,
     hasAnyPermission,
     hasRole,
-    isAuthenticated,
   } = useAuth();
 
   // Check permissions for admin management - FIXED to match backend
@@ -73,6 +100,13 @@ export default function Edit({ user: adminUser }) {
     isSuperAdmin ||
     (!isTargetSuperAdmin && !isEditingSelf)
   );
+
+  // Icon management state
+  const [uploading, setUploading] = useState(false);
+  const [preview, setPreview] = useState(currentIcon?.url || null);
+
+  // File input
+  const fileInputRef = useRef(null);
 
   // If user doesn't have permission to edit admins, show access denied
   if (!canEditAdmins) {
@@ -128,25 +162,6 @@ export default function Edit({ user: adminUser }) {
     );
   }
 
-  // Profile form
-  const { data: profileData, setData: setProfileData, patch, processing: profileProcessing, errors: profileErrors } = useForm({
-    name: adminUser?.name || '',
-    email: adminUser?.email || '',
-  });
-
-  // Password form
-  const { data: passwordData, setData: setPasswordData, put, processing: passwordProcessing, errors: passwordErrors, reset: resetPassword } = useForm({
-    current_password: '',
-    password: '',
-    password_confirmation: '',
-  });
-
-  // show Password form
-  const [showPassword, setShowPassword] = useState(false);
-
-  // Active tab
-  const [activeTab, setActiveTab] = useState('profile');
-
   // Handle form submission
   const handleProfileSubmit = (e) => {
     e.preventDefault();
@@ -162,7 +177,7 @@ export default function Edit({ user: adminUser }) {
       return;
     }
 
-    patch(route('backend.admin-profile.update', adminUser.id), {
+    patch(route('admin-profile.update', adminUser.id), {
       onSuccess: () => {
         Swal.fire({
           icon: 'success',
@@ -197,7 +212,7 @@ export default function Edit({ user: adminUser }) {
       return;
     }
 
-    put(route('backend.admin-profile.password.update', adminUser.id), {
+    put(route('admin-profile.password.update', adminUser.id), {
       onSuccess: () => {
         resetPassword();
         Swal.fire({
@@ -220,7 +235,7 @@ export default function Edit({ user: adminUser }) {
 
   // Handle cancel
   const handleCancel = () => {
-    router.visit(route('backend.admin-profile.show', adminUser.id));
+    router.visit(route('admin-profile.show', adminUser.id));
   };
 
   // Handle delete
@@ -266,7 +281,7 @@ export default function Edit({ user: adminUser }) {
       cancelButtonText: 'Cancel',
     }).then((result) => {
       if (result.isConfirmed) {
-        router.delete(route('backend.admin-profile.destroy', adminUser.id), {
+        router.delete(route('admin-profile.destroy', adminUser.id), {
           onSuccess: () => {
             Swal.fire({
               icon: 'success',
@@ -306,22 +321,146 @@ export default function Edit({ user: adminUser }) {
   const strengthLabels = ['Very Weak', 'Weak', 'Fair', 'Good', 'Strong'];
   const strengthColors = ['bg-red-500', 'bg-orange-500', 'bg-yellow-500', 'bg-blue-500', 'bg-green-500'];
 
+  // Handle icon upload - UPDATED ROUTE
+  const handleIconUpload = async (file) => {
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Invalid File',
+        text: 'Please select an image file.',
+      });
+      return;
+    }
+
+    // Validate file size (2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      Swal.fire({
+        icon: 'error',
+        title: 'File Too Large',
+        text: 'File size must be less than 2MB.',
+      });
+      return;
+    }
+
+    setUploading(true);
+
+    const formData = new FormData();
+    formData.append('icon', file);
+
+    try {
+      // UPDATED: Using the correct route for admin profile icon update
+      const response = await fetch(route('admin-profile.icon.update'), {
+        method: 'POST',
+        body: formData,
+        headers: {
+          'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+        },
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setPreview(data.data.icon);
+        Swal.fire({
+          icon: 'success',
+          title: 'Icon Updated!',
+          text: 'Site icon has been updated successfully.',
+          timer: 1500,
+          showConfirmButton: false,
+        });
+        // Reload the page to see changes in the browser tab
+        setTimeout(() => window.location.reload(), 1500);
+      } else {
+        Swal.fire({
+          icon: 'error',
+          title: 'Upload Failed',
+          text: data.message || 'Failed to update icon.',
+        });
+      }
+    } catch (error) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Upload Failed',
+        text: error.message || 'An error occurred during upload.',
+      });
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  // Handle reset icon - UPDATED ROUTE
+  const handleResetIcon = async () => {
+    const result = await Swal.fire({
+      title: 'Reset Icon?',
+      text: 'This will remove the custom icon and revert to default.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#3085d6',
+      confirmButtonText: 'Yes, reset',
+    });
+
+    if (result.isConfirmed) {
+      try {
+        // UPDATED: Using the correct route for admin profile icon reset
+        const response = await fetch(route('admin-profile.icon.reset'), {
+          method: 'DELETE',
+          headers: {
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+            'Content-Type': 'application/json',
+          },
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          setPreview(null);
+          Swal.fire({
+            icon: 'success',
+            title: 'Icon Reset!',
+            text: 'Icon has been reset to default.',
+            timer: 1500,
+            showConfirmButton: false,
+          });
+          setTimeout(() => window.location.reload(), 1500);
+        } else {
+          Swal.fire({
+            icon: 'error',
+            title: 'Reset Failed',
+            text: data.message || 'Failed to reset icon.',
+          });
+        }
+      } catch (error) {
+        Swal.fire({
+          icon: 'error',
+          title: 'Reset Failed',
+          text: error.message || 'An error occurred during reset.',
+        });
+      }
+    }
+  };
+
+  // Handle file input change
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      handleIconUpload(file);
+    }
+  };
+
   return (
     <AuthenticatedLayout>
       <Head title={`Edit Admin: ${adminUser?.name}`} />
 
       <div className="min-h-screen bg-linear-to-br from-gray-50 to-gray-100 py-8">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className=" mx-auto px-4 sm:px-6 lg:px-8">
           {/* Header with Back Button */}
-          <div className="mb-6">
-            <button
-              onClick={handleCancel}
-              className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-3 transition-colors group"
-            >
-              <FaArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-              <span className="text-sm">Back to Profile</span>
-            </button>
+          <div className="flex items-center justify-between mb-6">
 
+            {/* Header */}
             <div>
               <h1 className="text-3xl font-bold bg-linear-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
                 Edit Admin Profile
@@ -330,6 +469,15 @@ export default function Edit({ user: adminUser }) {
                 Update account information for {adminUser?.name}
               </p>
             </div>
+
+            {/* Back Button */}
+            <button
+              onClick={handleCancel}
+              className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-3 transition-colors group"
+            >
+              <FaArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
+              <span className="text-sm">Back to Profile</span>
+            </button>
           </div>
 
           {/* Warning for editing other admin */}
@@ -349,11 +497,11 @@ export default function Edit({ user: adminUser }) {
 
           {/* Tabs */}
           <div className="bg-white rounded-xl shadow-lg mb-6">
-            <div className="border-b border-gray-200">
-              <nav className="flex gap-1 px-4">
+            <div className="border-b border-gray-200 overflow-x-auto">
+              <nav className="flex gap-1 px-4 min-w-max">
                 <button
                   onClick={() => setActiveTab('profile')}
-                  className={`inline-flex items-center gap-2 px-6 py-4 text-sm font-medium border-b-2 transition-all duration-200 ${activeTab === 'profile'
+                  className={`inline-flex items-center gap-2 px-6 py-4 text-sm font-medium border-b-2 transition-all duration-200 whitespace-nowrap ${activeTab === 'profile'
                     ? 'border-blue-500 text-blue-600'
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                     }`}
@@ -363,13 +511,23 @@ export default function Edit({ user: adminUser }) {
                 </button>
                 <button
                   onClick={() => setActiveTab('password')}
-                  className={`inline-flex items-center gap-2 px-6 py-4 text-sm font-medium border-b-2 transition-all duration-200 ${activeTab === 'password'
+                  className={`inline-flex items-center gap-2 px-6 py-4 text-sm font-medium border-b-2 transition-all duration-200 whitespace-nowrap ${activeTab === 'password'
                     ? 'border-blue-500 text-blue-600'
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                     }`}
                 >
                   <FaLock size={16} />
                   Change Password
+                </button>
+                <button
+                  onClick={() => setActiveTab('icon')}
+                  className={`inline-flex items-center gap-2 px-6 py-4 text-sm font-medium border-b-2 transition-all duration-200 whitespace-nowrap ${activeTab === 'icon'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    }`}
+                >
+                  <FaImage size={16} />
+                  Site Icon
                 </button>
               </nav>
             </div>
@@ -711,6 +869,174 @@ export default function Edit({ user: adminUser }) {
                 >
                   Go to Profile Information
                 </button>
+              </div>
+            )}
+
+            {/* Site Icon Tab */}
+            {activeTab === 'icon' && (
+              <div className="p-6 md:p-8">
+                <div className="space-y-6">
+                  <div>
+                    <h2 className="text-xl font-bold text-gray-900 mb-2">Site Icon Manager</h2>
+                    <p className="text-sm text-gray-500">
+                      Change the icon that appears in browser tabs, bookmarks, and PWA
+                    </p>
+                  </div>
+
+                  {/* Current Icon Preview */}
+                  <div className="bg-gray-50 rounded-xl p-6 border border-gray-200">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Current Icon</h3>
+
+                    <div className="flex items-center gap-6">
+                      <div className="relative">
+                        {preview ? (
+                          <div className="w-24 h-24 rounded-xl border-2 border-gray-200 overflow-hidden bg-white">
+                            <img
+                              src={preview}
+                              alt="Current icon"
+                              className="w-full h-full object-contain"
+                            />
+                          </div>
+                        ) : (
+                          <div className="w-24 h-24 rounded-xl border-2 border-dashed border-gray-300 flex items-center justify-center bg-gray-50">
+                            <FaImage className="text-gray-400" size={32} />
+                          </div>
+                        )}
+
+                        {preview && (
+                          <span className="absolute -top-2 -right-2 bg-green-500 text-white rounded-full p-1">
+                            <FaCheckCircle size={12} />
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="flex-1">
+                        {currentIcon ? (
+                          <div>
+                            <p className="text-sm text-gray-600">
+                              <span className="font-medium">File:</span> {currentIcon.name}
+                            </p>
+                            <p className="text-sm text-gray-600">
+                              <span className="font-medium">Size:</span> {currentIcon.size}
+                            </p>
+                            <p className="text-sm text-gray-600">
+                              <span className="font-medium">Last Modified:</span> {currentIcon.last_modified}
+                            </p>
+                          </div>
+                        ) : (
+                          <div>
+                            <p className="text-sm text-gray-500">No custom icon set</p>
+                            <p className="text-xs text-gray-400 mt-1">
+                              Using default icon from your application
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Upload Section */}
+                  <div className="bg-gray-50 rounded-xl p-6 border border-gray-200">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Upload New Icon</h3>
+
+                    <div
+                      className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-blue-500 transition-colors duration-200 cursor-pointer"
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      <FaUpload className="text-gray-400 mx-auto mb-3" size={32} />
+                      <p className="text-gray-600">Click to select an icon file</p>
+                      <p className="text-xs text-gray-400 mt-2">
+                        Supported formats: PNG, JPG, JPEG, SVG, WebP, ICO
+                      </p>
+                      <p className="text-xs text-gray-400">
+                        Recommended size: 512x512px or 256x256px
+                      </p>
+                      <p className="text-xs text-gray-400">
+                        Max file size: 2MB
+                      </p>
+                    </div>
+
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleFileChange}
+                      className="hidden"
+                    />
+
+                    {uploading && (
+                      <div className="flex items-center justify-center gap-3 mt-4">
+                        <FaSpinner className="animate-spin text-blue-600" size={24} />
+                        <span className="text-gray-600">Uploading icon...</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Actions */}
+                  <div className="bg-gray-50 rounded-xl p-6 border border-gray-200">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Actions</h3>
+
+                    <div className="flex gap-4 flex-wrap">
+                      <button
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={uploading}
+                        className="px-6 py-2.5 bg-linear-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all duration-200 flex items-center gap-2 font-medium shadow-md disabled:opacity-50"
+                      >
+                        <FaUpload size={16} />
+                        Upload New Icon
+                      </button>
+
+                      {currentIcon && (
+                        <button
+                          onClick={handleResetIcon}
+                          disabled={uploading}
+                          className="px-6 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-all duration-200 flex items-center gap-2 font-medium"
+                        >
+                          <FaUndo size={16} />
+                          Reset to Default
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg flex items-start gap-3">
+                      <FaInfoCircle className="text-yellow-600 mt-0.5" size={16} />
+                      <div>
+                        <p className="text-sm text-yellow-800">
+                          <span className="font-medium">Note:</span> After uploading a new icon,
+                          you may need to clear your browser cache or restart your browser to see the changes.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Available Icons (History) */}
+                  {availableIcons && availableIcons.length > 0 && (
+                    <div className="bg-gray-50 rounded-xl p-6 border border-gray-200">
+                      <h3 className="text-lg font-semibold text-gray-900 mb-4">Available Icons</h3>
+
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                        {availableIcons.map((icon) => (
+                          <div
+                            key={icon.name}
+                            className={`p-3 border rounded-lg text-center ${currentIcon?.name === icon.name
+                              ? 'border-blue-500 bg-blue-50'
+                              : 'border-gray-200 hover:border-gray-300'
+                              }`}
+                          >
+                            <div className="w-12 h-12 mx-auto mb-2 border rounded-lg overflow-hidden bg-white">
+                              <img src={icon.url} alt={icon.name} className="w-full h-full object-contain" />
+                            </div>
+                            <p className="text-xs text-gray-600 truncate">{icon.name}</p>
+                            <p className="text-xs text-gray-400">{icon.size}</p>
+                            {currentIcon?.name === icon.name && (
+                              <span className="text-xs text-blue-600 font-medium">Current</span>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
           </div>

@@ -1,7 +1,7 @@
 // resources/js/pages/Backend/Roles/Create.jsx
 
 // React
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState } from 'react';
 
 // Inertia
 import { Head, router } from '@inertiajs/react';
@@ -12,26 +12,8 @@ import AuthenticatedLayout from '../../../layouts/AuthenticatedLayout';
 // Icons
 import {
   FaArrowLeft,
-  FaSave,
   FaShieldAlt,
-  FaKey,
-  FaUsers,
-  FaCheckCircle,
-  FaTimesCircle,
-  FaChevronDown,
-  FaChevronUp,
-  FaPlus,
-  FaTrash,
-  FaEye,
-  FaEdit,
-  FaLock,
-  FaDatabase,
-  FaInfoCircle,
   FaExclamationTriangle,
-  FaUserTag,
-  FaLayerGroup,
-  FaMagic,
-  FaSearch,
 } from 'react-icons/fa';
 
 // Step Components
@@ -44,7 +26,6 @@ import { ModuleAccessStep } from '../../../components/RoleSteps/ModuleAccessStep
 
 // Auth
 import { useAuth } from '../../../hooks/useAuth';
-import { Can } from '../../../components/Auth/Can';
 
 // SweetAlert
 import Swal from 'sweetalert2';
@@ -55,7 +36,6 @@ export default function Create({ permissions, existingLevels, accessLevels }) {
     user: currentUser,
     hasAnyPermission,
     hasRole,
-    isAuthenticated
   } = useAuth();
 
   // Check permissions for role management
@@ -168,42 +148,44 @@ export default function Create({ permissions, existingLevels, accessLevels }) {
 
     switch (currentStep) {
       case 1: // Basic Info
-        if (!formData.name || formData.name.trim().length < 2) {
-          newErrors.name = 'Role name must be at least 2 characters';
-        }
-        if (!formData.slug || formData.slug.trim().length < 2) {
-          newErrors.slug = 'Slug must be at least 2 characters';
-        } else if (!/^[a-z0-9-]+$/.test(formData.slug)) {
-          newErrors.slug = 'Slug can only contain lowercase letters, numbers, and hyphens';
-        }
-        if (!formData.level) {
-          newErrors.level = 'Please select a level';
-        } else if (formData.level < 1 || formData.level > 100) {
-          newErrors.level = 'Level must be between 1 and 100';
+        {
+          if (!formData.name || formData.name.trim().length < 2) {
+            newErrors.name = 'Role name must be at least 2 characters';
+          }
+          if (!formData.slug || formData.slug.trim().length < 2) {
+            newErrors.slug = 'Slug must be at least 2 characters';
+          } else if (!/^[a-z0-9-]+$/.test(formData.slug)) {
+            newErrors.slug = 'Slug can only contain lowercase letters, numbers, and hyphens';
+          }
+          if (!formData.level) {
+            newErrors.level = 'Please select a level';
+          } else if (formData.level < 1 || formData.level > 100) {
+            newErrors.level = 'Level must be between 1 and 100';
+          }
+
+          // Check if slug is unique (client-side check)
+          if (existingLevels && existingLevels.some(role => role.slug === formData.slug)) {
+            newErrors.slug = 'This slug is already in use. Please choose another.';
+          }
+
+          // FIXED: Get user's highest level properly
+          const userHighestLevel = getUserHighestLevel();
+
+          // Super admin (level 100) can create roles with level 1-99
+          if (userHighestLevel === 100 && formData.level >= 100) {
+            newErrors.level = `You cannot create a role with level ${formData.level}. Maximum role level is 99 for super admins.`;
+          }
+
+          // For non-super-admins, they cannot create roles with level >= their own
+          if (userHighestLevel < 100 && formData.level >= userHighestLevel) {
+            newErrors.level = `You cannot create a role with level ${formData.level} when your level is ${userHighestLevel}. This would allow privilege escalation.`;
+          }
+          break;
         }
 
-        // Check if slug is unique (client-side check)
-        if (existingLevels && existingLevels.some(role => role.slug === formData.slug)) {
-          newErrors.slug = 'This slug is already in use. Please choose another.';
-        }
-
-        // FIXED: Get user's highest level properly
-        const userHighestLevel = getUserHighestLevel();
-
-        // Super admin (level 100) can create roles with level 1-99
-        if (userHighestLevel === 100 && formData.level >= 100) {
-          newErrors.level = `You cannot create a role with level ${formData.level}. Maximum role level is 99 for super admins.`;
-        }
-
-        // For non-super-admins, they cannot create roles with level >= their own
-        if (userHighestLevel < 100 && formData.level >= userHighestLevel) {
-          newErrors.level = `You cannot create a role with level ${formData.level} when your level is ${userHighestLevel}. This would allow privilege escalation.`;
-        }
-        break;
-
-      case 2: // Permissions - Optional, no validation needed
-      case 3: // Module Access - Optional, no validation needed
-      case 4: // Review - Always valid if we got here
+      case 2:
+      case 3:
+      case 4:
         break;
     }
 
@@ -356,30 +338,32 @@ export default function Create({ permissions, existingLevels, accessLevels }) {
 
       <div className="min-h-screen bg-linear-to-br from-gray-50 via-white to-gray-100 py-8 px-4 sm:px-6 lg:px-8">
         <div className="mx-auto">
-          {/* Header */}
-          <div className="flex justify-center items-center gap-5 mb-6">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-linear-to-br from-purple-500 to-purple-600 rounded-2xl shadow-lg">
-              <FaShieldAlt className="w-8 h-8 text-white" />
-            </div>
-            <div className="text-center">
-              <h1 className="text-3xl font-bold bg-linear-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
-                Create New Role
-              </h1>
-              <p className="text-sm text-gray-500 max-w-md">
-                Define role details, configure permissions, and set access levels
-              </p>
-            </div>
-          </div>
 
-          {/* Back Button */}
-          <div className="mb-4">
+          <div className='flex items-center justify-between' >
+            {/* Header */}
+            <div className="flex justify-center items-center gap-5 mb-6">
+              <div className="inline-flex items-center justify-center w-16 h-16 bg-linear-to-br from-purple-500 to-purple-600 rounded-2xl shadow-lg">
+                <FaShieldAlt className="w-8 h-8 text-white" />
+              </div>
+              <div className="text-left">
+                <h1 className="text-3xl font-bold bg-linear-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
+                  Create New Role
+                </h1>
+                <p className="text-sm text-gray-500 max-w-md">
+                  Define role details, configure permissions, and set access levels
+                </p>
+              </div>
+            </div>
+
+            {/* Back Button */}
             <button
               onClick={handleBackToListings}
-              className="group flex items-center gap-2 text-gray-500 hover:text-gray-700 transition-all duration-200"
+              className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-3 transition-colors group"
             >
-              <FaArrowLeft className="group-hover:-translate-x-1 transition-transform duration-200" size={14} />
+              <FaArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
               <span className="text-sm">Back to Roles</span>
             </button>
+
           </div>
 
           {/* Warning for limited permission users */}
