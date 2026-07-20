@@ -9,6 +9,7 @@
 use Illuminate\Support\Facades\Route;
 
 // Controllers
+use App\Http\Controllers\Backend\DashboardController;
 use App\Http\Controllers\Admin\CacheController;
 
 // Inertia
@@ -16,16 +17,14 @@ use Inertia\Inertia;
 
 Route::middleware(['auth', 'verified', 'profile.complete'])->group(function () {
   // Dashboard
-  Route::get('/dashboard', function () {
-    return Inertia::render('dashboard');
-  })->name('backend.dashboard');
+  Route::get('/dashboard', [DashboardController::class, 'index'])->name('backend.dashboard');
 
   // ============================================
   // BACKEND ROUTES
   // URL: /backend/*
   // ============================================
   Route::prefix('backend')->name('backend.')->group(function () {
-    // CMS Routes
+    // CMS Routes – now in the same directory
     require __DIR__ . '/cms.php';
 
     // Job Listing Management
@@ -45,6 +44,13 @@ Route::middleware(['auth', 'verified', 'profile.complete'])->group(function () {
 
     // Backup Routes
     require __DIR__ . '/backup.php';
+
+    // ===== NEW ROUTES (in parent directory) =====
+    require __DIR__ . '/../locations.php';
+    require __DIR__ . '/../categories.php';
+    require __DIR__ . '/../notifications.php';
+    require __DIR__ . '/../applicant-profiles.php';
+    require __DIR__ . '/../apply.php';
 
     // Cache Management (Admin only)
     Route::prefix('cache')->name('cache.')->group(function () {

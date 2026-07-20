@@ -415,7 +415,7 @@ const AdminLayout = ({ children }) => {
     if (hasPermission('backup.manage')) {
       items.push({
         name: 'Backup',
-        routeName: 'backend.backup.index', 
+        routeName: 'backend.backup.index',
         icon: FaFileArchive
       });
     }
