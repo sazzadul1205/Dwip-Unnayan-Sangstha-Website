@@ -60,7 +60,7 @@ use App\Http\Controllers\Auth\Shared\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\Shared\ConfirmablePasswordController;
 use App\Http\Controllers\Auth\Shared\EmailVerificationPromptController;
 use App\Http\Controllers\Auth\Shared\EmailVerificationNotificationController;
-
+use App\Http\Controllers\Backup\BackupController;
 // Controllers - CMS
 use App\Http\Controllers\Cms\SharedDataController;
 use App\Http\Controllers\Cms\EditorImageUploadController;
@@ -79,7 +79,7 @@ use App\Models\pages\Program;
 // EXCLUDED PATHS FOR DYNAMIC ROUTES
 // ============================================
 // Define paths that should NOT be handled by the dynamic page controller
-$excludedPaths = ['admin', 'backend', 'login', 'register', 'dashboard', 'api', 'storage', 'playground', '_warmup', 'auth', 'complete-profile'];
+$excludedPaths = ['admin', 'backend', 'login', 'register', 'dashboard', 'api', 'storage', 'playground', '_warmup', 'auth', 'complete-profile', 'test-write'];
 $exclusionPattern = '^(?!' . implode('|', $excludedPaths) . ').*$';
 
 // ============================================
@@ -96,6 +96,17 @@ Route::prefix('data')->group(function () {
     Route::get('about_content.json', [ContentApiController::class, 'aboutContent']);            // URL: /data/about_content.json
     Route::get('section_configs.json', [ContentApiController::class, 'sectionConfigs']);        // URL: /data/section_configs.json
     Route::get('custom_section_data.json', [ContentApiController::class, 'customSectionData']); // URL: /data/custom_section_data.json
+});
+
+Route::get('/test-write', function () {
+    $testFile = storage_path('app/backups/test.txt');
+    try {
+        file_put_contents($testFile, 'Test write');
+        unlink($testFile);
+        return '✅ Directory is writable!';
+    } catch (\Exception $e) {
+        return '❌ Cannot write: ' . $e->getMessage();
+    }
 });
 
 // Navigation endpoints
@@ -218,9 +229,11 @@ Route::get('/{pageSlug}/{detailSlug}', [PageController::class, 'show'])
     ->where('pageSlug', $exclusionPattern)
     ->where('detailSlug', '.*'); // URL: /{pageSlug}/{detailSlug}
 
+
 // Dynamic listing pages (catch-all)
 Route::get('/{pageSlug}', [PageController::class, 'show'])
     ->where('pageSlug', $exclusionPattern); // URL: /{pageSlug}
+
 
 // ============================================
 // SECTION 4: AUTHENTICATION ROUTES
@@ -480,6 +493,20 @@ Route::middleware(['auth', 'verified', 'profile.complete'])->group(function () {
             Route::post('/read-all', [NotificationController::class, 'markAllAsRead'])->name('read-all');     // URL: /backend/notifications/read-all
             Route::post('/{id}/read', [NotificationController::class, 'markAsRead'])->name('read');           // URL: /backend/notifications/{id}/read
         });
+
+        // ============================================
+        // BACKUP ROUTES - ADD THIS INSIDE THE BACKEND PREFIX GROUP
+        // URL: /backend/backup/*
+        // ============================================
+        Route::prefix('backup')->name('backup.')->group(function () {
+            Route::get('/', [BackupController::class, 'index'])->name('index');
+            Route::post('/create-manual', [BackupController::class, 'createManual'])->name('create-manual');
+            Route::post('/create-auto', [BackupController::class, 'createAuto'])->name('create-auto');
+            Route::post('/restore', [BackupController::class, 'restore'])->name('restore');
+            Route::delete('/delete', [BackupController::class, 'delete'])->name('delete');
+            Route::get('/download', [BackupController::class, 'download'])->name('download');
+            Route::get('/status', [BackupController::class, 'status'])->name('status');
+        });
     });
 
     // ============================================
@@ -605,6 +632,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->group(function () {
 // SECTION 8: FALLBACK ROUTE
 // URL: /* (catch-all for any unmatched routes)
 // ============================================
+
 
 // Fallback route for unmatched URLs - MUST BE AT THE VERY END
 Route::fallback(function () {

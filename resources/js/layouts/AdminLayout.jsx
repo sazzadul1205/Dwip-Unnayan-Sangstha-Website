@@ -7,7 +7,7 @@ import { Link, usePage } from '@inertiajs/react';
 import { useState, useEffect, useMemo, useCallback } from 'react';
 
 // Icons
-import { FaSearchLocation, FaLayerGroup } from "react-icons/fa";
+import { FaSearchLocation, FaLayerGroup, FaFileArchive } from "react-icons/fa";
 import {
   FiHome, FiBell, FiBriefcase, FiFileText, FiSettings, FiLogOut,
   FiChevronDown, FiChevronRight, FiPlusCircle, FiUsers, FiBarChart2,
@@ -396,7 +396,7 @@ const AdminLayout = ({ children }) => {
     if (hasPermission('admin_profile.edit') || hasPermission('admin_profile.update')) {
       items.push({
         name: 'Admin Settings',
-        routeName: 'admin-profile.edit', 
+        routeName: 'admin-profile.edit',
         icon: FiSettings
       });
     }
@@ -411,6 +411,14 @@ const AdminLayout = ({ children }) => {
       });
     }
 
+    // Backup Management - URL: /backend/backup
+    if (hasPermission('backup.manage')) {
+      items.push({
+        name: 'Backup',
+        routeName: 'backend.backup.index', 
+        icon: FaFileArchive
+      });
+    }
     return items;
   }, [hasAnyPermission, hasPermission, notificationMeta.unread_count]);
 
