@@ -1,4 +1,3 @@
- 
 // resources/js/components/TopBar.jsx
 
 /**
@@ -263,32 +262,34 @@ const TopBar = ({ topBarData, storageUrl }) => {
   return (
     <>
       {/* ============================================
-          DESKTOP TOP BAR
+          DESKTOP TOP BAR - FIXED FOR LAPTOP
           ============================================ */}
-      <div className='hidden lg:flex justify-between items-center px-50 py-4.75 bg-[#080C14] relative z-50'>
+      <div className='hidden lg:flex justify-between items-center px-8 xl:px-16 2xl:px-24 py-3 bg-[#080C14] relative z-50 border-b border-white/5'>
 
         {/* Left Side - Contact Info */}
         {hasContactInfo && (
-          <div className='flex items-center space-x-6'>
+          <div className='flex items-center space-x-4 xl:space-x-6'>
             {hasValue(contactInfo.email?.text) && (
               <div className='flex items-center space-x-2'>
                 {hasValue(contactInfo.email?.icon) && (
                   <img
                     src={getImageSrc(contactInfo.email.icon)}
                     alt={contactInfo.email.alt || 'Email'}
-                    className="w-4 h-4"
+                    className="w-4 h-4 opacity-80"
                   />
                 )}
                 <a
                   href={`mailto:${contactInfo.email.text}`}
-                  className='text-white text-[16px] font-normal hover:text-[#009BE2] transition-colors'
+                  className='text-white/90 text-[14px] xl:text-[15px] font-normal hover:text-[#009BE2] transition-colors duration-200'
                 >
                   {contactInfo.email.text}
                 </a>
               </div>
             )}
 
-            <div className="bg-white/20 h-3.75 p-[0.5px]" />
+            {hasValue(contactInfo.email?.text) && hasValue(contactInfo.phone?.text) && (
+              <div className="bg-white/10 h-5 w-px hidden sm:block" />
+            )}
 
             {hasValue(contactInfo.phone?.text) && (
               <div className='flex items-center space-x-2'>
@@ -296,16 +297,19 @@ const TopBar = ({ topBarData, storageUrl }) => {
                   <img
                     src={getImageSrc(contactInfo.phone.icon)}
                     alt={contactInfo.phone.alt || 'Phone'}
-                    className="w-4 h-4"
+                    className="w-4 h-4 opacity-80"
                   />
                 )}
-                <a href={`tel:${contactInfo.phone.text.replace(/\s/g, '')}`} className='text-white text-[16px] font-normal hover:text-[#009BE2] transition-colors'>
+                <a href={`tel:${contactInfo.phone.text.replace(/\s/g, '')}`}
+                  className='text-white/90 text-[14px] xl:text-[15px] font-normal hover:text-[#009BE2] transition-colors duration-200'>
                   {contactInfo.phone.text}
                 </a>
               </div>
             )}
 
-            <div className="bg-white/20 h-3.75 p-[0.5px]" />
+            {(hasValue(contactInfo.phone?.text) || hasValue(contactInfo.email?.text)) && hasValue(contactInfo.hours?.text) && (
+              <div className="bg-white/10 h-5 w-px hidden sm:block" />
+            )}
 
             {hasValue(contactInfo.hours?.text) && (
               <div className='flex items-center space-x-2'>
@@ -313,17 +317,17 @@ const TopBar = ({ topBarData, storageUrl }) => {
                   <img
                     src={getImageSrc(contactInfo.hours.icon)}
                     alt={contactInfo.hours.alt || 'Hours'}
-                    className="w-4 h-4"
+                    className="w-4 h-4 opacity-80"
                   />
                 )}
-                <p className='text-white text-[16px] font-normal'>{contactInfo.hours.text}</p>
+                <p className='text-white/80 text-[14px] xl:text-[15px] font-normal'>{contactInfo.hours.text}</p>
               </div>
             )}
           </div>
         )}
 
         {/* Right Side - Language, Search, User, Social */}
-        <div className="flex items-center gap-3 space-x-4">
+        <div className="flex items-center gap-2 xl:gap-4">
 
           {/* LANGUAGE SELECTOR */}
           {hasLanguages && (
@@ -333,45 +337,47 @@ const TopBar = ({ topBarData, storageUrl }) => {
                   setIsLangDropdownOpen(!isLangDropdownOpen);
                   setIsUserDropdownOpen(false);
                 }}
-                className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+                className="flex items-center gap-2 hover:opacity-80 transition-opacity duration-200"
                 aria-label="Select language"
               >
                 {hasValue(selectedLanguage?.flag) && (
                   <img
                     src={getImageSrc(selectedLanguage.flag)}
                     alt={selectedLanguage.name}
-                    className="w-5 h-5"
+                    className="w-5 h-5 rounded-sm"
                   />
                 )}
-                <span className="text-white text-sm hidden md:inline">{selectedLanguage.name}</span>
+                <span className="text-white/90 text-sm font-medium hidden md:inline">
+                  {selectedLanguage.name}
+                </span>
                 {isLangDropdownOpen ?
-                  <FaAngleUp className="text-white transition-transform duration-200" /> :
-                  <FaAngleDown className="text-white transition-transform duration-200" />
+                  <FaAngleUp className="text-white/70 text-xs transition-transform duration-200" /> :
+                  <FaAngleDown className="text-white/70 text-xs transition-transform duration-200" />
                 }
               </button>
 
               {/* Language Dropdown */}
               <div
-                className={`absolute top-full mt-2 right-0 bg-white rounded-md shadow-lg py-2 w-40 z-50 transition-all duration-300 origin-top-right
+                className={`absolute top-full mt-2 right-0 bg-white rounded-lg shadow-xl py-2 w-40 z-50 transition-all duration-200 origin-top-right
                   ${isLangDropdownOpen ? 'opacity-100 scale-100 visible' : 'opacity-0 scale-95 invisible'}`}
               >
                 {languagesToShow.map((lang) => (
                   <button
                     key={lang.code}
                     onClick={() => handleLanguageSelect(lang)}
-                    className={`flex items-center gap-2 px-4 py-2 hover:bg-gray-100 w-full text-left transition-colors duration-150 cursor-pointer ${selectedLanguage.code === lang.code ? 'bg-blue-50' : ''
+                    className={`flex items-center gap-2 px-4 py-2 hover:bg-gray-50 w-full text-left transition-colors duration-150 cursor-pointer ${selectedLanguage.code === lang.code ? 'bg-blue-50' : ''
                       }`}
                   >
                     <img
                       src={getImageSrc(lang.flag)}
                       alt={lang.name}
-                      className="w-5 h-5"
+                      className="w-5 h-5 rounded-sm"
                     />
-                    <span className={`text-sm ${selectedLanguage.code === lang.code ? 'text-blue-600 font-medium' : 'text-gray-700'}`}>
+                    <span className={`text-sm ${selectedLanguage.code === lang.code ? 'text-[#009BE2] font-medium' : 'text-gray-700'}`}>
                       {lang.name}
                     </span>
                     {selectedLanguage.code === lang.code && (
-                      <span className="ml-auto text-blue-600">✓</span>
+                      <span className="ml-auto text-[#009BE2]">✓</span>
                     )}
                   </button>
                 ))}
@@ -381,13 +387,13 @@ const TopBar = ({ topBarData, storageUrl }) => {
 
           {/* Divider */}
           {hasLanguages && (hasSocialLinks || hasContactInfo) && (
-            <div className="w-px h-5 bg-gray-600" />
+            <div className="w-px h-5 bg-white/10 hidden sm:block" />
           )}
 
           {/* SEARCH */}
           <div className="relative" ref={searchRef}>
             <div className="overflow-hidden">
-              <div className={`transition-all duration-300 ease-in-out ${isSearchExpanded ? 'w-64 opacity-100' : 'w-6 opacity-100'
+              <div className={`transition-all duration-300 ease-in-out ${isSearchExpanded ? 'w-48 xl:w-64 opacity-100' : 'w-8 opacity-100'
                 }`}>
                 {isSearchExpanded ? (
                   <form onSubmit={handleSearchSubmit} className="flex items-center animate-slideIn">
@@ -395,13 +401,13 @@ const TopBar = ({ topBarData, storageUrl }) => {
                       type="text"
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      placeholder="Search ..."
-                      className="px-3 py-1 rounded-l-md text-sm focus:outline-none text-white focus:ring-1 focus:ring-[#009BE2] w-full bg-gray-700"
+                      placeholder="Search..."
+                      className="px-3 py-1.5 rounded-l-md text-sm focus:outline-none focus:ring-1 focus:ring-[#009BE2] w-full bg-white/10 text-white placeholder-white/50"
                       autoFocus
                     />
                     <button
                       type="submit"
-                      className="bg-[#009BE2] px-3 py-1 rounded-r-md hover:bg-[#009BE2]/80 transition-colors duration-200 cursor-pointer"
+                      className="bg-[#009BE2] px-3 py-1.5 rounded-r-md hover:bg-[#009BE2]/80 transition-colors duration-200 cursor-pointer"
                     >
                       <FiSearch className="text-white text-sm" />
                     </button>
@@ -409,10 +415,10 @@ const TopBar = ({ topBarData, storageUrl }) => {
                 ) : (
                   <button
                     onClick={() => setIsSearchExpanded(true)}
-                    className="flex items-center hover:opacity-80 transition-opacity duration-200 cursor-pointer"
+                    className="flex items-center justify-center hover:opacity-80 transition-opacity duration-200 cursor-pointer w-8 h-8 rounded-full hover:bg-white/5"
                     aria-label="Search"
                   >
-                    <FiSearch className="text-xl text-white" />
+                    <FiSearch className="text-xl text-white/90" />
                   </button>
                 )}
               </div>
@@ -420,7 +426,7 @@ const TopBar = ({ topBarData, storageUrl }) => {
           </div>
 
           {/* Divider */}
-          <div className="w-px h-5 bg-gray-600" />
+          <div className="w-px h-5 bg-white/10 hidden sm:block" />
 
           {/* USER MENU */}
           <div className="relative" ref={userRef}>
@@ -429,32 +435,32 @@ const TopBar = ({ topBarData, storageUrl }) => {
                 setIsUserDropdownOpen(!isUserDropdownOpen);
                 setIsLangDropdownOpen(false);
               }}
-              className="flex items-center hover:opacity-80 transition-opacity duration-200 cursor-pointer"
+              className="flex items-center justify-center w-8 h-8 rounded-full hover:bg-white/5 transition-colors duration-200 cursor-pointer"
               aria-label="User menu"
             >
-              <FaUser className="text-xl text-white" />
+              <FaUser className="text-lg text-white/90" />
             </button>
 
             {/* User Dropdown */}
             <div
-              className={`absolute top-full mt-2 right-0 bg-white rounded-md shadow-lg py-2 w-48 z-50 transition-all duration-300 origin-top-right
+              className={`absolute top-full mt-2 right-0 bg-white rounded-lg shadow-xl py-2 w-48 z-50 transition-all duration-200 origin-top-right
                 ${isUserDropdownOpen ? 'opacity-100 scale-100 visible' : 'opacity-0 scale-95 invisible'}`}
             >
               {user ? (
                 // Authenticated User
                 <>
-                  <div className="px-4 py-2 border-b border-gray-200">
+                  <div className="px-4 py-2 border-b border-gray-100">
                     <p className="text-sm font-medium text-gray-900">{user.name}</p>
                     <p className="text-xs text-gray-500 truncate">{user.email}</p>
                   </div>
                   {finalUserMenu.authenticated?.map((item, index) => (
                     item.divider ? (
-                      <div key={index} className="border-t border-gray-200 my-1" />
+                      <div key={index} className="border-t border-gray-100 my-1" />
                     ) : item.type === 'link' ? (
                       <Link
                         key={index}
                         href={route(item.route)}
-                        className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors duration-150"
+                        className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors duration-150"
                         onClick={() => setIsUserDropdownOpen(false)}
                       >
                         {item.label}
@@ -466,7 +472,7 @@ const TopBar = ({ topBarData, storageUrl }) => {
                           handleLogout();
                           setIsUserDropdownOpen(false);
                         }}
-                        className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100 transition-colors duration-150"
+                        className="block w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-gray-50 transition-colors duration-150"
                       >
                         {item.label}
                       </button>
@@ -479,7 +485,7 @@ const TopBar = ({ topBarData, storageUrl }) => {
                   <Link
                     key={item.label}
                     href={route(item.route)}
-                    className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors duration-150"
+                    className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors duration-150"
                     onClick={() => setIsUserDropdownOpen(false)}
                   >
                     {item.label}
@@ -490,36 +496,40 @@ const TopBar = ({ topBarData, storageUrl }) => {
           </div>
 
           {/* Divider before social links */}
-          {hasSocialLinks && <div className="w-px h-5 bg-gray-600" />}
+          {hasSocialLinks && <div className="w-px h-5 bg-white/10 hidden sm:block" />}
 
           {/* SOCIAL LINKS */}
-          {hasSocialLinks && socialLinks.map((social) => {
-            const IconComponent = iconMap[social.iconName];
-            if (!IconComponent) return null;
-            return (
-              <a
-                key={social.id}
-                href={social.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={`text-xl text-white ${social.hoverColor || ''} transition-all duration-200 hover:scale-110`}
-                aria-label={social.name}
-              >
-                <IconComponent />
-              </a>
-            );
-          })}
+          {hasSocialLinks && (
+            <div className="flex items-center gap-2 xl:gap-3">
+              {socialLinks.map((social) => {
+                const IconComponent = iconMap[social.iconName];
+                if (!IconComponent) return null;
+                return (
+                  <a
+                    key={social.id}
+                    href={social.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={`text-white/80 text-lg xl:text-xl ${social.hoverColor || ''} transition-all duration-200 hover:scale-110 hover:text-white`}
+                    aria-label={social.name}
+                  >
+                    <IconComponent />
+                  </a>
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
 
       {/* ============================================
           MOBILE TOP BAR
           ============================================ */}
-      <div className='lg:hidden bg-[#080C14] px-4 py-2 relative z-50'>
+      <div className='lg:hidden bg-[#080C14] px-4 py-2 relative z-50 border-b border-white/5'>
         <div className='flex justify-between items-center'>
           <button
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="text-white focus:outline-none"
+            className="text-white/90 focus:outline-none p-2 rounded-lg hover:bg-white/5 transition-colors duration-200"
             aria-label="Toggle mobile menu"
           >
             {isMobileMenuOpen ? (
@@ -532,7 +542,42 @@ const TopBar = ({ topBarData, storageUrl }) => {
               </svg>
             )}
           </button>
+
+          <div className="flex items-center gap-3">
+            {/* Mobile Search Icon */}
+            <button
+              onClick={() => setIsSearchExpanded(!isSearchExpanded)}
+              className="text-white/90 p-2 rounded-lg hover:bg-white/5 transition-colors duration-200"
+            >
+              <FiSearch className="text-xl" />
+            </button>
+
+            {/* Mobile User Icon */}
+            <Link href={user ? route('backend.dashboard') : route('login')} className="text-white/90 p-2 rounded-lg hover:bg-white/5 transition-colors duration-200">
+              <FaUser className="text-lg" />
+            </Link>
+          </div>
         </div>
+
+        {/* Mobile Search Bar (expanded) */}
+        {isSearchExpanded && (
+          <form onSubmit={handleSearchSubmit} className="flex items-center mt-3 animate-slideIn">
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search..."
+              className="flex-1 px-3 py-2 rounded-l-md text-sm focus:outline-none focus:ring-1 focus:ring-[#009BE2] bg-white/10 text-white placeholder-white/50"
+              autoFocus
+            />
+            <button
+              type="submit"
+              className="bg-[#009BE2] px-3 py-2 rounded-r-md hover:bg-[#009BE2]/80 transition-colors duration-200"
+            >
+              <FiSearch className="text-white text-sm" />
+            </button>
+          </form>
+        )}
 
         {/* Mobile Menu Content - Slide Down */}
         <div
@@ -542,14 +587,15 @@ const TopBar = ({ topBarData, storageUrl }) => {
           <div className="space-y-4 pb-4">
             {/* Contact Info */}
             {hasContactInfo && (
-              <div className="space-y-3">
+              <div className="space-y-3 p-2">
                 {hasValue(contactInfo.email?.text) && (
-                  <a href={`mailto:${contactInfo.email.text}`} className="flex items-center gap-2 text-white text-sm hover:text-[#009BE2] transition-colors">
+                  <a href={`mailto:${contactInfo.email.text}`}
+                    className="flex items-center gap-2 text-white/90 text-sm hover:text-[#009BE2] transition-colors duration-200">
                     {hasValue(contactInfo.email?.icon) && (
                       <img
                         src={getImageSrc(contactInfo.email.icon)}
                         alt={contactInfo.email.alt || 'Email'}
-                        className="w-4 h-4"
+                        className="w-4 h-4 opacity-80"
                       />
                     )}
                     <span>{contactInfo.email.text}</span>
@@ -557,12 +603,13 @@ const TopBar = ({ topBarData, storageUrl }) => {
                 )}
 
                 {hasValue(contactInfo.phone?.text) && (
-                  <a href={`tel:${contactInfo.phone.text.replace(/\s/g, '')}`} className="flex items-center gap-2 text-white text-sm hover:text-[#009BE2] transition-colors">
+                  <a href={`tel:${contactInfo.phone.text.replace(/\s/g, '')}`}
+                    className="flex items-center gap-2 text-white/90 text-sm hover:text-[#009BE2] transition-colors duration-200">
                     {hasValue(contactInfo.phone?.icon) && (
                       <img
                         src={getImageSrc(contactInfo.phone.icon)}
                         alt={contactInfo.phone.alt || 'Phone'}
-                        className="w-4 h-4"
+                        className="w-4 h-4 opacity-80"
                       />
                     )}
                     <span>{contactInfo.phone.text}</span>
@@ -570,12 +617,12 @@ const TopBar = ({ topBarData, storageUrl }) => {
                 )}
 
                 {hasValue(contactInfo.hours?.text) && (
-                  <div className="flex items-center gap-2 text-white text-sm">
+                  <div className="flex items-center gap-2 text-white/80 text-sm">
                     {hasValue(contactInfo.hours?.icon) && (
                       <img
                         src={getImageSrc(contactInfo.hours.icon)}
                         alt={contactInfo.hours.alt || 'Hours'}
-                        className="w-4 h-4"
+                        className="w-4 h-4 opacity-80"
                       />
                     )}
                     <span>{contactInfo.hours.text}</span>
@@ -584,66 +631,50 @@ const TopBar = ({ topBarData, storageUrl }) => {
               </div>
             )}
 
-            {hasContactInfo && <div className="border-t border-gray-700" />}
-
-            {/* Search */}
-            <form onSubmit={handleSearchSubmit} className="flex items-center">
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search..."
-                className="flex-1 px-3 py-2 rounded-l-md text-sm focus:outline-none focus:ring-1 focus:ring-[#009BE2] bg-white"
-              />
-              <button
-                type="submit"
-                className="bg-[#009BE2] px-3 py-2 rounded-r-md hover:bg-[#009BE2]/80 transition-colors duration-200"
-              >
-                <FiSearch className="text-white text-sm" />
-              </button>
-            </form>
-
-            <div className="border-t border-gray-700" />
+            {hasContactInfo && <div className="border-t border-white/10" />}
 
             {/* Language Selector */}
             {hasLanguages && (
               <>
-                <div>
+                <div className="p-2">
                   <div className="flex items-center justify-between">
-                    <span className="text-white text-sm">Language</span>
+                    <span className="text-white/90 text-sm font-medium">Language</span>
                     <button
                       onClick={() => setIsLangDropdownOpen(!isLangDropdownOpen)}
-                      className="flex items-center gap-2"
+                      className="flex items-center gap-2 hover:opacity-80 transition-opacity duration-200"
                     >
                       <img
                         src={getImageSrc(selectedLanguage.flag)}
                         alt={selectedLanguage.name}
-                        className="w-5 h-5"
+                        className="w-5 h-5 rounded-sm"
                       />
-                      <span className="text-white text-sm">{selectedLanguage.name}</span>
-                      {isLangDropdownOpen ? <FaAngleUp className="text-white" /> : <FaAngleDown className="text-white" />}
+                      <span className="text-white/90 text-sm">{selectedLanguage.name}</span>
+                      {isLangDropdownOpen ?
+                        <FaAngleUp className="text-white/70 text-xs" /> :
+                        <FaAngleDown className="text-white/70 text-xs" />
+                      }
                     </button>
                   </div>
 
                   {isLangDropdownOpen && (
-                    <div className="mt-2 bg-white rounded-md shadow-lg py-2">
+                    <div className="mt-2 bg-white rounded-lg shadow-xl py-2">
                       {languagesToShow.map((lang) => (
                         <button
                           key={lang.code}
                           onClick={() => handleLanguageSelect(lang)}
-                          className={`flex items-center gap-2 px-4 py-2 hover:bg-gray-100 w-full text-left transition-colors duration-150 ${selectedLanguage.code === lang.code ? 'bg-blue-50' : ''
+                          className={`flex items-center gap-2 px-4 py-2 hover:bg-gray-50 w-full text-left transition-colors duration-150 ${selectedLanguage.code === lang.code ? 'bg-blue-50' : ''
                             }`}
                         >
                           <img
                             src={getImageSrc(lang.flag)}
                             alt={lang.name}
-                            className="w-5 h-5"
+                            className="w-5 h-5 rounded-sm"
                           />
-                          <span className={`text-sm ${selectedLanguage.code === lang.code ? 'text-blue-600 font-medium' : 'text-gray-700'}`}>
+                          <span className={`text-sm ${selectedLanguage.code === lang.code ? 'text-[#009BE2] font-medium' : 'text-gray-700'}`}>
                             {lang.name}
                           </span>
                           {selectedLanguage.code === lang.code && (
-                            <span className="ml-auto text-blue-600">✓</span>
+                            <span className="ml-auto text-[#009BE2]">✓</span>
                           )}
                         </button>
                       ))}
@@ -651,104 +682,31 @@ const TopBar = ({ topBarData, storageUrl }) => {
                   )}
                 </div>
 
-                <div className="border-t border-gray-700" />
+                <div className="border-t border-white/10" />
               </>
             )}
 
-            {/* User Menu */}
-            <div>
-              <button
-                onClick={() => setIsUserDropdownOpen(!isUserDropdownOpen)}
-                className="flex items-center gap-2 text-white text-sm w-full"
-              >
-                <FaUser className="text-white" />
-                <span>Account</span>
-                {isUserDropdownOpen ?
-                  <FaAngleUp className="text-white ml-auto" /> :
-                  <FaAngleDown className="text-white ml-auto" />
-                }
-              </button>
-
-              {isUserDropdownOpen && (
-                <div className="mt-2 bg-white rounded-md shadow-lg py-2">
-                  {user ? (
-                    // Authenticated User
-                    <>
-                      <div className="px-4 py-2 border-b border-gray-200">
-                        <p className="text-sm font-medium text-gray-900">{user.name}</p>
-                        <p className="text-xs text-gray-500 truncate">{user.email}</p>
-                      </div>
-                      {finalUserMenu.authenticated?.map((item, index) => (
-                        item.divider ? (
-                          <div key={index} className="border-t border-gray-200 my-1" />
-                        ) : item.type === 'link' ? (
-                          <Link
-                            key={index}
-                            href={route(item.route)}
-                            className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                            onClick={() => {
-                              setIsUserDropdownOpen(false);
-                              setIsMobileMenuOpen(false);
-                            }}
-                          >
-                            {item.label}
-                          </Link>
-                        ) : item.type === 'button' && item.action === 'logout' ? (
-                          <button
-                            key={index}
-                            onClick={() => {
-                              handleLogout();
-                              setIsUserDropdownOpen(false);
-                              setIsMobileMenuOpen(false);
-                            }}
-                            className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100"
-                          >
-                            {item.label}
-                          </button>
-                        ) : null
-                      ))}
-                    </>
-                  ) : (
-                    // Guest User
-                    finalUserMenu.guest?.map((item) => (
-                      <Link
-                        key={item.label}
-                        href={route(item.route)}
-                        className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                        onClick={() => {
-                          setIsUserDropdownOpen(false);
-                          setIsMobileMenuOpen(false);
-                        }}
-                      >
-                        {item.label}
-                      </Link>
-                    ))
-                  )}
-                </div>
-              )}
-            </div>
-
             {/* Social Links */}
-            {hasSocialLinks && <div className="border-t border-gray-700" />}
-
             {hasSocialLinks && (
-              <div className="flex justify-center gap-4">
-                {socialLinks.map((social) => {
-                  const IconComponent = iconMap[social.iconName];
-                  if (!IconComponent) return null;
-                  return (
-                    <a
-                      key={social.id}
-                      href={social.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className={`text-white text-xl ${social.hoverColor || ''} transition-all duration-200`}
-                      aria-label={social.name}
-                    >
-                      <IconComponent />
-                    </a>
-                  );
-                })}
+              <div className="p-2">
+                <div className="flex justify-center gap-4">
+                  {socialLinks.map((social) => {
+                    const IconComponent = iconMap[social.iconName];
+                    if (!IconComponent) return null;
+                    return (
+                      <a
+                        key={social.id}
+                        href={social.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={`text-white/80 text-xl ${social.hoverColor || ''} transition-all duration-200 hover:text-white hover:scale-110`}
+                        aria-label={social.name}
+                      >
+                        <IconComponent />
+                      </a>
+                    );
+                  })}
+                </div>
               </div>
             )}
           </div>
