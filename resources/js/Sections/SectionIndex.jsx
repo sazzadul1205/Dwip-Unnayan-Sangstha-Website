@@ -26,6 +26,7 @@ import LegalSection from './LegalSection/LegalSection';
 import PublicationsSection from './PublicationsSection/PublicationsSection';
 import ImageGallerySection from './ImageGallerySection/ImageGallerySection';
 import VideoGallerySection from './VideoGallerySection/VideoGallerySection';
+import TextContentSection from './TextContentSection/TextContentSection';
 
 // Import utilities
 import { normalizeData } from '../utils/sectionHelpers';
@@ -55,6 +56,7 @@ const sectionComponents = {
   PublicationsSection,
   ImageGallerySection,
   VideoGallerySection,
+  TextContentSection,
 };
 
 /**

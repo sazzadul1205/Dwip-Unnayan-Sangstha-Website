@@ -28,6 +28,7 @@ const UpcomingEventsEditor = lazy(() => import('./Editors/UpcomingEventsEditor')
 const PublicationsEditor = lazy(() => import('./Editors/PublicationsEditor'));
 const ImageGalleryEditor = lazy(() => import('./Editors/ImageGalleryEditor'));
 const VideoGalleryEditor = lazy(() => import('./Editors/VideoGalleryEditor'));
+const TextContentEditor = lazy(() => import('./Editors/TextContentEditor'));
 
 // ===== LOADING COMPONENT =====
 const EditorLoader = () => (
@@ -66,6 +67,7 @@ const EDITOR_COMPONENTS = {
   'PublicationsSection': PublicationsEditor,
   'ImageGallerySection': ImageGalleryEditor,
   'VideoGallerySection': VideoGalleryEditor,
+  'TextContentSection': TextContentEditor,
 };
 
 // ===== COMPONENT =====

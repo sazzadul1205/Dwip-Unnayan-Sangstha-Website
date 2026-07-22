@@ -441,6 +441,35 @@ export const SECTION_CONFIGS = {
     ]
   },
 
+  'TextContentSection': {
+    fields: [
+      { key: 'bgColor', label: 'Background Color', type: 'color', default: 'bg-white' },
+      {
+        key: 'paddingY', label: 'Vertical Padding', type: 'select', default: 'py-10 sm:py-15 md:py-25 lg:py-37.5', options: [
+          { value: 'py-5 sm:py-10 md:py-15 lg:py-20', label: 'Small' },
+          { value: 'py-10 sm:py-15 md:py-25 lg:py-37.5', label: 'Medium' },
+          { value: 'py-15 sm:py-20 md:py-35 lg:py-50', label: 'Large' },
+        ]
+      },
+      {
+        key: 'paddingX', label: 'Horizontal Padding', type: 'select', default: 'px-5 sm:px-10 md:px-20 lg:px-50', options: [
+          { value: 'px-4 sm:px-8 md:px-16 lg:px-30', label: 'Small' },
+          { value: 'px-5 sm:px-10 md:px-20 lg:px-50', label: 'Medium' },
+          { value: 'px-8 sm:px-16 md:px-30 lg:px-60', label: 'Large' },
+        ]
+      },
+      {
+        key: 'maxWidth', label: 'Max Width', type: 'select', default: 'max-w-4xl lg:max-w-6xl', options: [
+          { value: 'max-w-3xl', label: 'Narrow' },
+          { value: 'max-w-4xl lg:max-w-6xl', label: 'Default' },
+          { value: 'max-w-5xl lg:max-w-7xl', label: 'Wide' },
+        ]
+      },
+      { key: 'sectionId', label: 'Section ID', type: 'text', default: 'text-content' },
+      { key: 'sectionClassName', label: 'Additional CSS Classes', type: 'text', default: '' },
+    ]
+  },
+
   'PublicationsSection': {
   fields: [
     { key: 'bgColor', label: 'Background Color', type: 'color', default: 'bg-white' },

@@ -32,7 +32,7 @@ import {
   FaGavel,
   FaChartBar,
   FaStar,
-  FaThLarge
+  FaThLarge,
 } from 'react-icons/fa';
 import { showToast } from '../utils/toastHelper';
 
@@ -62,6 +62,7 @@ const SECTION_ICONS = {
   'ProgramImpactSection': FaChartBar,
   'ImageGallerySection': FaImages,
   'VideoGallerySection': FaVideo,
+  'TextContentSection': FaFileAlt,
 };
 
 const SECTION_OPTIONS = {
@@ -112,6 +113,15 @@ const SECTION_OPTIONS = {
     category: 'content',
     badge: 'Dynamic',
     badgeColor: 'purple'
+  },
+  'TextContentSection': {
+    label: 'Text Content Section',
+    data_table: 'custom_section_data',
+    description: 'Display rich text or HTML content from a custom section',
+    isSpecial: false,
+    category: 'content',
+    badge: 'Custom',
+    badgeColor: 'blue'
   },
   'PublicationsSection': {
     label: 'Publications Section',

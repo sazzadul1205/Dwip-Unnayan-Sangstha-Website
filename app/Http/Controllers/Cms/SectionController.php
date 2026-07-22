@@ -208,9 +208,9 @@ class SectionController extends Controller
 
       DB::commit();
 
+      // Silent success - no message needed since the user sees the visual change
       return response()->json([
-        'success' => true,
-        'message' => 'Section order updated successfully.'
+        'success' => true
       ]);
     } catch (\Exception $e) {
       DB::rollBack();
@@ -242,7 +242,7 @@ class SectionController extends Controller
           'string',
           'max:255',
           Rule::unique('section_configs', 'section_key')
-            ->where(fn ($query) => $query->where('page_slug', $page->slug)),
+            ->where(fn($query) => $query->where('page_slug', $page->slug)),
         ],
         'data_table' => 'required|string|max:255',
         'is_enabled' => 'boolean',
@@ -305,7 +305,7 @@ class SectionController extends Controller
           'string',
           'max:255',
           Rule::unique('section_configs', 'section_key')
-            ->where(fn ($query) => $query->where('page_slug', $sectionConfig->page_slug))
+            ->where(fn($query) => $query->where('page_slug', $sectionConfig->page_slug))
             ->ignore($sectionConfig->id),
         ],
         'component' => 'sometimes|string|max:255',
@@ -860,7 +860,7 @@ class SectionController extends Controller
       return;
     }
 
-    $template = $this->getSectionDataTemplate($sectionConfig->section_key);
+    $template = $this->getDefaultDataForComponent($sectionConfig->component);
     if ($template === null) {
       return;
     }
@@ -889,6 +889,355 @@ class SectionController extends Controller
       'topbar' => ['links' => []],
       'navbar' => ['links' => []],
       'footer' => ['links' => []],
+      default => null,
+    };
+  }
+
+
+  /**
+   * Get default data template for a section component.
+   */
+  /**
+   * Get default data template for a section component.
+   */
+  protected function getDefaultDataForComponent(string $component): ?array
+  {
+    return match ($component) {
+      // ============================================
+      // BANNER SECTIONS
+      // ============================================
+      'HomeBanner' => [
+        'background' => ['src' => '', 'alt' => ''],
+        'overlay' => ['darkOverlay' => '', 'gradient' => ''],
+        'content' => [
+          'tagline' => ['text' => '', 'className' => 'uppercase tracking-[4px] font-semibold'],
+          'title' => ['text' => '', 'className' => 'font-bold leading-tight'],
+          'description' => ['text' => '', 'className' => 'font-normal leading-tight'],
+        ],
+        'buttons' => [],
+      ],
+      'PageBannerSection' => [
+        'background' => ['src' => '', 'alt' => ''],
+        'overlay' => ['darkOverlay' => '', 'gradient' => ''],
+        'content' => [
+          'title' => ['text' => '', 'className' => 'font-bold leading-tight'],
+          'description' => ['text' => '', 'className' => 'font-normal leading-tight'],
+        ],
+      ],
+      'PageTagBannerSection' => [
+        'background' => ['src' => '', 'alt' => ''],
+        'overlay' => ['darkOverlay' => '', 'gradient' => ''],
+        'tagTitle' => 'Photo Gallery',
+        'activeTag' => '',
+        'tags' => [],
+      ],
+
+      // ============================================
+      // CONTENT SECTIONS
+      // ============================================
+      'AboutUsSection' => [
+        'section' => [
+          'title' => 'About Us',
+          'description' => 'We are dedicated to making a positive impact in our communities through sustainable development and social welfare programs.',
+          'button' => ['text' => 'Learn More About Us', 'link' => '/about'],
+        ],
+        'mission' => [
+          'title' => 'Our Mission',
+          'items' => [
+            [
+              'id' => 1,
+              'icon' => '',
+              'title' => 'Empower Communities',
+              'description' => 'Strengthening communities through education, healthcare, and sustainable development initiatives.',
+              'alt' => 'Empower Communities Icon',
+            ],
+            [
+              'id' => 2,
+              'icon' => '',
+              'title' => 'Promote Equality',
+              'description' => 'Advocating for social justice, gender equality, and inclusive development for all.',
+              'alt' => 'Promote Equality Icon',
+            ],
+            [
+              'id' => 3,
+              'icon' => '',
+              'title' => 'Sustainable Growth',
+              'description' => 'Creating lasting change through environmentally conscious and sustainable practices.',
+              'alt' => 'Sustainable Growth Icon',
+            ],
+          ],
+        ],
+        'impact' => [
+          'title' => 'Our Impact in Numbers',
+          'stats' => [
+            ['id' => 1, 'value' => '10+', 'suffix' => '', 'label' => 'Years of Service'],
+            ['id' => 2, 'value' => '50K', 'suffix' => '+', 'label' => 'Lives Impacted'],
+            ['id' => 3, 'value' => '100', 'suffix' => '+', 'label' => 'Projects Completed'],
+          ],
+        ],
+        'image' => ['src' => '', 'alt' => 'About Us Image', 'className' => ''],
+      ],
+
+      'OurActionSection' => [
+        'section' => [
+          'title' => 'Our Actions for Social Change',
+          'description' => 'We work tirelessly to create positive change through various programs and initiatives that address critical social issues.',
+        ],
+        'actions' => [
+          [
+            'id' => 1,
+            'icon' => '',
+            'title' => 'Education for All',
+            'description' => 'Providing access to quality education for underprivileged children and youth in rural communities.',
+            'alt' => 'Education Icon',
+          ],
+          [
+            'id' => 2,
+            'icon' => '',
+            'title' => 'Healthcare Access',
+            'description' => 'Ensuring healthcare access for marginalized communities through mobile clinics and health awareness programs.',
+            'alt' => 'Healthcare Icon',
+          ],
+          [
+            'id' => 3,
+            'icon' => '',
+            'title' => 'Women Empowerment',
+            'description' => 'Empowering women through skill development, entrepreneurship training, and leadership programs.',
+            'alt' => 'Women Empowerment Icon',
+          ],
+        ],
+      ],
+
+      'WhereWeWorkSection' => [
+        'section' => ['title' => 'Where We Work'],
+        'stats' => [
+          ['id' => 1, 'icon' => '', 'value' => '450K', 'label' => 'Total Member Reach', 'alt' => 'Member Reach Icon'],
+          ['id' => 2, 'icon' => '', 'value' => '50K', 'label' => 'Total Beneficiaries', 'alt' => 'Beneficiaries Icon'],
+          ['id' => 3, 'icon' => '', 'value' => '200+', 'label' => 'Villages Covered', 'alt' => 'Villages Icon'],
+          ['id' => 4, 'icon' => '', 'value' => '50+', 'label' => 'Total Partners', 'alt' => 'Partners Icon'],
+        ],
+        'image' => ['src' => '', 'alt' => 'Map Placeholder Text', 'className' => ''],
+      ],
+
+      'HeroFigureSection' => [
+        'section' => ['title' => 'Background, Roles and Functions'],
+        'content' => ['html' => '<p>We are committed to serving our communities with dedication and integrity. Our work spans across multiple sectors including education, healthcare, and sustainable development.</p><p>Through our programs, we aim to create lasting positive change in the lives of those we serve.</p>'],
+        'btn' => ['text' => 'Learn More About Functions', 'link' => '/about/functions'],
+        'image' => [
+          'src' => '',
+          'alt' => 'Background Image',
+          'className' => 'w-full h-auto lg:h-full object-cover rounded-2xl sm:rounded-3xl lg:rounded-4xl',
+        ],
+      ],
+
+      'CardsSection' => [
+        'section' => ['title' => 'Our Key Initiatives'],
+        'cards' => [
+          [
+            'id' => 1,
+            'title' => 'Operational Areas',
+            'buttonText' => 'Explore Our Areas of Operation',
+            'buttonLink' => '/about/operational-areas',
+            'image' => ['src' => '', 'alt' => 'Operational Areas', 'className' => 'mx-auto object-contain'],
+            'bgColor' => 'bg-[#F5F5F5]',
+            'cardBgColor' => 'bg-white',
+          ],
+          [
+            'id' => 2,
+            'title' => 'Core Programs',
+            'buttonText' => 'Discover Our Core Programs',
+            'buttonLink' => '/programs',
+            'image' => ['src' => '', 'alt' => 'Core Programs', 'className' => 'mx-auto object-contain'],
+            'bgColor' => 'bg-[#F5F5F5]',
+            'cardBgColor' => 'bg-white',
+          ],
+        ],
+      ],
+
+      'ContactOfficeSection' => [
+        'offices' => [
+          [
+            'title' => 'Head Office',
+            'address' => '24/5 Mollika, Prominent Housing, 3 Pisciculture Road, Mohammadpur, Dhaka -1207.',
+            'phones' => ['+880 1761-493412'],
+            'emails' => ['dusdhaka@gmail.com'],
+            'map_url' => 'https://www.google.com/maps?q=23.7570,90.3620&output=embed',
+            'coordinates' => ['lat' => 23.757, 'lng' => 90.362],
+            'is_active' => true,
+          ],
+          [
+            'title' => 'Project Office',
+            'address' => 'Project Area, Coastal Region, Bangladesh.',
+            'phones' => ['+880 1761-493412'],
+            'emails' => ['dusdhaka@gmail.com'],
+            'map_url' => 'https://www.google.com/maps?q=23.7570,90.3620&output=embed',
+            'coordinates' => ['lat' => 23.757, 'lng' => 90.362],
+            'is_active' => true,
+          ],
+          [
+            'title' => 'Field Office',
+            'address' => 'Field Location, Rural Area, Bangladesh.',
+            'phones' => ['+880 1761-493412'],
+            'emails' => ['dusdhaka@gmail.com'],
+            'map_url' => 'https://www.google.com/maps?q=23.7570,90.3620&output=embed',
+            'coordinates' => ['lat' => 23.757, 'lng' => 90.362],
+            'is_active' => true,
+          ],
+        ],
+      ],
+
+      'AddressSection' => [
+        'addresses' => [
+          [
+            'id' => 1,
+            'label' => 'Head Office',
+            'address' => '24/5 Mollika, Prominent Housing, 3 Pisciculture Road, Mohammadpur, Dhaka -1207.',
+            'mapUrl' => 'https://www.google.com/maps?q=23.7570,90.3620&output=embed',
+            'coordinates' => ['lat' => 23.757, 'lng' => 90.362],
+            'phones' => ['+880 1761-493412'],
+            'emails' => ['dusdhaka@gmail.com'],
+          ],
+          [
+            'id' => 2,
+            'label' => 'Project Office',
+            'address' => 'Project Area, Coastal Region, Bangladesh.',
+            'mapUrl' => 'https://www.google.com/maps?q=23.7570,90.3620&output=embed',
+            'coordinates' => ['lat' => 23.757, 'lng' => 90.362],
+            'phones' => ['+880 1761-493412'],
+            'emails' => ['dusdhaka@gmail.com'],
+          ],
+        ],
+      ],
+
+      'ContactReachSection' => [
+        'title' => 'Reach out to us today!',
+        'buttonText' => 'Submit Message',
+        'image' => '',
+      ],
+
+      'FollowUSSection' => [
+        'links' => [
+          ['icon' => 'facebook', 'label' => 'Facebook', 'url' => 'https://facebook.com/your-page'],
+          ['icon' => 'instagram', 'label' => 'Instagram', 'url' => 'https://instagram.com/your-page'],
+          ['icon' => 'linkedin', 'label' => 'LinkedIn', 'url' => 'https://linkedin.com/company/your-page'],
+          ['icon' => 'youtube', 'label' => 'YouTube', 'url' => 'https://youtube.com/your-channel'],
+          ['icon' => 'twitter', 'label' => 'Twitter', 'url' => 'https://twitter.com/your-page'],
+        ],
+      ],
+
+      'LegalSection' => [
+        'background' => ['src' => '', 'alt' => 'Legal Background'],
+        'overlay' => ['darkOverlay' => 'bg-black/50'],
+        'textBox' => [
+          'title' => 'Legal Status and Org.',
+          'titleLine2' => 'Affiliations',
+          'buttonText' => 'Learn More Affiliations',
+          'buttonLink' => '/about/legal-affiliations',
+        ],
+      ],
+
+      'ProgramImpactSection' => [
+        'section' => ['title' => 'Program Impact and SDGs'],
+        'mainImage' => ['images' => []],
+        'sdgImages' => [],
+      ],
+
+      'ImageGallerySection' => [
+        'sectionTitle' => 'DUS in action',
+        'imageCountLabel' => 'Image Count',
+        'images' => [],
+      ],
+
+      'VideoGallerySection' => [
+        'sectionTitle' => 'Video Gallery',
+        'videoCountLabel' => 'Video Count',
+        'videos' => [],
+      ],
+
+      'TextContentSection' => [
+        'content' => ['html' => '', 'content' => '', 'text' => ''],
+        'bgColor' => 'bg-white',
+        'paddingY' => 'py-10 sm:py-15 md:py-25 lg:py-37.5',
+        'paddingX' => 'px-5 sm:px-10 md:px-20 lg:px-50',
+        'maxWidth' => 'max-w-4xl lg:max-w-6xl',
+        'sectionId' => 'text-content',
+        'sectionClassName' => '',
+      ],
+
+      // ============================================
+      // JOBS SECTION (has display settings in data)
+      // ============================================
+      'JobsSection' => [
+        'section' => [
+          'title' => 'Join our big family',
+          'description' => "Join us on this journey of kindness, and let's make a difference, one act of charity at a time.",
+          'limit' => null,
+        ],
+        'filter' => ['placeholder' => 'Browse By'],
+        'jobs' => [],
+      ],
+
+      // ============================================
+      // OUR PROGRAMS SECTION (has display settings in custom_props)
+      // ============================================
+      'OurProgramsSection' => [
+        // This section gets data from programs table
+        // Display settings are in custom_props
+        'section' => [
+          'title' => 'Our Programs',
+          'description' => 'Explore our impactful programs that are transforming lives in coastal communities',
+          'button' => ['text' => 'View All Programs', 'link' => '/projects-programs'],
+        ],
+        'programs' => [],
+      ],
+
+      // ============================================
+      // BLOG SECTION (data from blogs table)
+      // ============================================
+      'BlogSection' => [
+        // Data comes from blogs table
+        // Display settings in custom_props
+        'sectionTitle' => 'Latest Stories',
+      ],
+
+      // ============================================
+      // PUBLICATIONS SECTION (data from publications table)
+      // ============================================
+      'PublicationsSection' => [
+        // Data comes from publications table
+        // Display settings in custom_props
+        'sectionTitle' => 'Our Publications',
+      ],
+
+      // ============================================
+      // SHARED DATA SECTIONS (read-only, data from shared_data)
+      // ============================================
+      'StoriesSection' => [
+        // Data comes from shared_data table
+        'section' => ['title' => 'Stories', 'description' => ''],
+        'stories' => [],
+      ],
+
+      'FAQSection' => [
+        // Data comes from shared_data table
+        'section' => ['title' => 'Frequently Asked Questions', 'subtitle' => ''],
+        'faqs' => [],
+      ],
+
+      'UpcomingEventsSection' => [
+        // Data comes from shared_data table
+        'section' => [
+          'title' => 'Upcoming Events',
+          'description' => '',
+          'button' => ['text' => 'View All Events', 'link' => '/events'],
+        ],
+        'image' => ['src' => '', 'alt' => 'Upcoming Events', 'className' => ''],
+        'events' => [],
+      ],
+
+      // ============================================
+      // DEFAULT / FALLBACK
+      // ============================================
       default => null,
     };
   }

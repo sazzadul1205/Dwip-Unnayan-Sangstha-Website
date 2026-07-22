@@ -1,65 +1,14 @@
 // resources/js/components/Shared/DynamicSectionRenderer.jsx
 
-/**
- * ============================================
- * DYNAMIC SECTION RENDERER
- * ============================================
- * 
- * PURPOSE:
- * - Dynamically loads and renders a section component
- * - Passes the correct data to the section based on configuration
- * - Handles lazy loading with Suspense
- * - Parses custom props from section configuration
- * 
- * DATA FLOW:
- * 1. Receives section configuration from pageData
- * 2. Looks up the component in SECTION_COMPONENTS registry
- * 3. Determines what data to pass based on data_table and data_key
- * 4. Renders the component with the resolved props
- * 
- * PROP RESOLUTION LOGIC:
- * 1. If config.isMultiProp: Pass multiple props from pageData
- * 2. Else if propName and dataKey: Pass dataKey as propName
- * 3. Else if propName: Pass pageData[propName] as prop
- * 4. Fallback: Try to find data in pageData by various keys
- * 
- * ============================================
- */
-
-// React
 import React, { Suspense } from 'react';
-
-// Import section loader
 import SectionLoader from './SectionLoader';
-
-// Import section registry
 import { SECTION_COMPONENTS, SECTION_CONFIGS } from '../config/sectionRegistry';
 
-/**
- * DynamicSectionRenderer Component
- * 
- * @param {Object} props
- * @param {Object} props.section - Section configuration from API
- *   - id: Unique section ID
- *   - component: Component name (e.g., 'HomeBanner', 'FAQSection')
- *   - propName: Name of the prop the component expects (e.g., 'data')
- *   - dataKey: Key to look for in pageData
- *   - custom_props: JSON string of custom props
- *   - data_table: Where to get data (shared_data, custom_section_data, etc.)
- * @param {Object} props.pageData - All page data from DynamicPage
- * @param {Object} props.globalProps - Global props (storageUrl, sharedData, etc.)
- * 
- * @returns {JSX.Element} Rendered section with Suspense
- */
 const DynamicSectionRenderer = ({
   section,
   pageData,
   globalProps = {}
 }) => {
-  // console.log("section", section);
-  // console.log("pageData", pageData?.pageData);
-  // console.log("globalProps", globalProps);
-
   // ============================================
   // EXTRACT SECTION CONFIG
   // ============================================
@@ -67,13 +16,10 @@ const DynamicSectionRenderer = ({
     id,
     component: componentName,
     propName,
-    dataKey,
-    // Support both field names (custom_props from DB, customProps from frontend)
+    dataKey,  // 🔥 This is the key used in pageData
     custom_props: customPropsFromDb,
     customProps: customPropsFromFrontend,
-    // isSpecialSection is intentionally omitted - reserved for future use
-    // If needed in the future, uncomment the line below:
-    // isSpecialSection,
+    data: sectionData,  // Data attached directly to section
   } = section;
 
   // ============================================
@@ -81,7 +27,6 @@ const DynamicSectionRenderer = ({
   // ============================================
   const Component = SECTION_COMPONENTS[componentName];
 
-  // If component doesn't exist, skip rendering
   if (!Component) {
     console.warn(`[DynamicSectionRenderer] Component "${componentName}" not found in registry`);
     return null;
@@ -90,7 +35,6 @@ const DynamicSectionRenderer = ({
   // ============================================
   // PARSE CUSTOM PROPS
   // ============================================
-  // Use the correct field name (prefer custom_props from database)
   const rawCustomProps = customPropsFromDb || customPropsFromFrontend || {};
 
   let parsedCustomProps = {};
@@ -110,87 +54,94 @@ const DynamicSectionRenderer = ({
   // ============================================
   // BUILD COMPONENT PROPS
   // ============================================
-  // Start with global props, then override with custom props
-  // This allows custom props to override global props if needed
   const baseProps = { ...globalProps, ...parsedCustomProps };
 
-  // Get configuration for this component from sectionRegistry
   const config = SECTION_CONFIGS[componentName];
 
-  // Build component props based on configuration
+  // ============================================
+  // 🔥 RESOLVE DATA USING DATAKEY
+  // ============================================
+  let dataValue = undefined;
+
+  // 1. First, check if data is attached directly to the section
+  if (sectionData !== undefined && sectionData !== null) {
+    dataValue = sectionData;
+  }
+
+  // 2. If not, try to find data in pageData using dataKey
+  if (dataValue === undefined && dataKey && pageData) {
+    const dataSource = pageData?.pageData || pageData || {};
+
+    // Try the exact dataKey
+    if (dataSource[dataKey] !== undefined) {
+      dataValue = dataSource[dataKey];
+    }
+
+    // If dataKey has underscores, try with hyphens
+    if (dataValue === undefined && dataKey.includes('_')) {
+      const hyphenKey = dataKey.replace(/_/g, '-');
+      if (dataSource[hyphenKey] !== undefined) {
+        dataValue = dataSource[hyphenKey];
+      }
+    }
+
+    // If dataKey has hyphens, try with underscores
+    if (dataValue === undefined && dataKey.includes('-')) {
+      const underscoreKey = dataKey.replace(/-/g, '_');
+      if (dataSource[underscoreKey] !== undefined) {
+        dataValue = dataSource[underscoreKey];
+      }
+    }
+  }
+
+  // 3. Try using propName
+  if (dataValue === undefined && propName && pageData) {
+    const dataSource = pageData?.pageData || pageData || {};
+    if (dataSource[propName] !== undefined) {
+      dataValue = dataSource[propName];
+    }
+  }
+
+  // 4. Try kebab-case of propName
+  if (dataValue === undefined && propName && pageData) {
+    const dataSource = pageData?.pageData || pageData || {};
+    const kebabProp = propName.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase();
+    if (dataSource[kebabProp] !== undefined) {
+      dataValue = dataSource[kebabProp];
+    }
+  }
+
+  // 5. Try snake_case of propName
+  if (dataValue === undefined && propName && pageData) {
+    const dataSource = pageData?.pageData || pageData || {};
+    const snakeProp = propName.replace(/([a-z])([A-Z])/g, '$1_$2').toLowerCase();
+    if (dataSource[snakeProp] !== undefined) {
+      dataValue = dataSource[snakeProp];
+    }
+  }
+
+  // ============================================
+  // BUILD COMPONENT PROPS
+  // ============================================
   const componentProps = { ...baseProps };
-
-  // ============================================
-  // RESOLVE DATA SOURCE
-  // ============================================
-  // The data might be nested in pageData.pageData or at the root level
-  // Check if pageData has a 'pageData' property that contains the actual data
-  const dataSource = pageData?.pageData || pageData || {};
-
-  // ============================================
-  // RESOLVE PROPS BASED ON CONFIGURATION
-  // ============================================
 
   if (config?.isMultiProp) {
     // Multi-prop components: pass multiple props
-    config.props.forEach(prop => {
-      if (dataSource[prop] !== undefined) {
-        componentProps[prop] = dataSource[prop];
-      }
-    });
+    if (dataValue && typeof dataValue === 'object') {
+      Object.assign(componentProps, dataValue);
+    }
   } else {
     // Single prop components
     const propNameToUse = propName || config?.propName || 'data';
 
-    // Try to find the data
-    let dataValue = undefined;
-
-    // 1. Try using dataKey first
-    if (dataKey && dataSource[dataKey] !== undefined) {
-      dataValue = dataSource[dataKey];
+    if (dataValue !== undefined) {
+      componentProps[propNameToUse] = dataValue;
     }
-
-    // 2. If not found, try using propName
-    if (dataValue === undefined && propName && dataSource[propName] !== undefined) {
-      dataValue = dataSource[propName];
-    }
-
-    // 3. If still not found, try kebab-case versions
-    if (dataValue === undefined && dataKey) {
-      const kebabKey = dataKey.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase();
-      if (dataSource[kebabKey] !== undefined) {
-        dataValue = dataSource[kebabKey];
-      }
-    }
-
-    // 4. If still not found, try to guess based on component name
-    if (dataValue === undefined) {
-      const guessedKey = componentName.replace('Section', '').replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase();
-      if (dataSource[guessedKey] !== undefined) {
-        dataValue = dataSource[guessedKey];
-      }
-    }
-
-    // 5. Final fallback: try any key that might contain the data
-    if (dataValue === undefined) {
-      // Try to find any key in dataSource that contains the component name
-      const componentLower = componentName.toLowerCase();
-      for (const key in dataSource) {
-        if (key.toLowerCase().includes(componentLower.replace('section', ''))) {
-          dataValue = dataSource[key];
-          break;
-        }
-      }
-    }
-
-    // Set the prop
-    componentProps[propNameToUse] = dataValue;
   }
 
   // ============================================
-  // RENDER WITH SUSPENSE (for lazy loading)
+  // RENDER
   // ============================================
-  // Suspense handles the loading state while the lazy component loads
   return (
     <Suspense fallback={<SectionLoader message={`Loading ${id}...`} />}>
       <Component {...componentProps} />

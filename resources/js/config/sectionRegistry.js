@@ -37,6 +37,7 @@ export const SECTION_COMPONENTS = {
   ContactOfficeSection: lazy(() => import('../Sections/ContactOfficeSection/ContactOfficeSection')),
   ProgramImpactSection: lazy(() => import('../Sections/ProgramImpactSection/ProgramImpactSection')),
   UpcomingEventsSection: lazy(() => import('../Sections/UpcomingEventsSection/UpcomingEventsSection')),
+  TextContentSection: lazy(() => import('../Sections/TextContentSection/TextContentSection')),
   
   // --- Publications Section ---
   PublicationsSection: lazy(() => import('../Sections/PublicationsSection/PublicationsSection')),
@@ -71,6 +72,7 @@ export const SECTION_CONFIGS = {
   ProgramImpactSection: { propName: 'data', isMultiProp: false },
   OurProgramsSection: { propName: 'data', isMultiProp: false },
   UpcomingEventsSection: { propName: 'data', isMultiProp: false },
+  TextContentSection: { propName: 'data', isMultiProp: false },
   
   // BlogSection consumes a single data prop
   BlogSection: { propName: 'data', isMultiProp: false },

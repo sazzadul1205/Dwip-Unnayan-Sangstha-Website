@@ -1,8 +1,8 @@
 /**
  * RichTextEditor Component
  * 
- * A WYSIWYG (What You See Is What You Get) text editor for blog content.
- * Generates clean HTML with Tailwind CSS classes matching the blog seeder format.
+ * A WYSIWYG (What You See Is What You Get) text editor.
+ * Generates clean HTML with Tailwind CSS classes matching the application's global styles.
  * Supports text formatting, lists, headers, colors, and image insertion.
  * 
  * @param {string} value - HTML content to display/edit
@@ -24,6 +24,50 @@ import {
 } from 'react-icons/fa';
 import axios from 'axios';
 import Swal from 'sweetalert2';
+
+// ============================================================
+// GLOBAL STYLING CONSTANTS
+// These styles apply to ALL content, not just blogs
+// ============================================================
+
+const GLOBAL_STYLES = {
+  // Paragraph - global paragraph styling
+  paragraph: 'font-400 text-base sm:text-lg lg:text-xl text-[#333333] leading-relaxed mb-4',
+
+  // Headings - global heading styles
+  headings: {
+    1: 'font-700 text-2xl sm:text-3xl lg:text-4xl text-[#080C14] mt-8 mb-4',
+    2: 'font-700 text-2xl sm:text-3xl lg:text-4xl text-[#080C14] mt-8 mb-4',
+    3: 'font-700 text-xl sm:text-2xl lg:text-3xl text-[#080C14] mt-8 mb-4',
+    4: 'font-700 text-lg sm:text-xl lg:text-2xl text-[#080C14] mt-6 mb-3',
+    5: 'font-700 text-base sm:text-lg lg:text-xl text-[#080C14] mt-6 mb-3',
+    6: 'font-700 text-sm sm:text-base lg:text-lg text-[#080C14] mt-4 mb-2',
+    7: 'font-700 text-sm sm:text-base lg:text-base text-[#080C14] mt-4 mb-2',
+  },
+
+  // Lists - global list styles
+  unorderedList: 'list-disc pl-6 space-y-3 mb-6',
+  orderedList: 'list-decimal pl-6 space-y-3 mb-6',
+  listItem: 'font-400 text-base sm:text-lg lg:text-xl text-[#333333] leading-relaxed',
+
+  // Strong/emphasis - global highlight color
+  strong: 'text-[#009BE2] font-700',
+
+  // Image - global image styling
+  image: 'rounded-lg max-w-full h-auto',
+
+  // Links - global link styling
+  link: 'text-[#009BE2] hover:underline',
+
+  // Blockquote - global blockquote styling
+  blockquote: 'border-l-4 border-[#009BE2] pl-4 italic text-[#333333]',
+
+  // Code - global code styling
+  code: 'bg-gray-100 rounded px-2 py-1 text-sm font-mono',
+
+  // Horizontal rule
+  hr: 'border-t border-gray-300 my-8',
+};
 
 const RichTextEditor = ({
   value = '',
@@ -65,7 +109,7 @@ const RichTextEditor = ({
   const [imageSettings, setImageSettings] = useState({
     url: '',
     width: 400,
-    alignment: 'center', // 'left' | 'center' | 'right'
+    alignment: 'center',
     alt: '',
   });
   const [showImageSettingsModal, setShowImageSettingsModal] = useState(false);
@@ -159,7 +203,7 @@ const RichTextEditor = ({
   }, [onChange, restoreSelection, updateActiveFormats]);
 
   // ============================================================
-  // HEADER / LIST / COLOR HANDLERS (unchanged)
+  // HEADER HANDLER (using GLOBAL_STYLES)
   // ============================================================
 
   const handleHeader = useCallback((level) => {
@@ -173,19 +217,11 @@ const RichTextEditor = ({
     const selectedText = selection.toString() || ' ';
 
     if (level === 'normal') {
-      const pHtml = `<p class="font-400 text-base sm:text-lg lg:text-xl text-[#333333] leading-relaxed mb-4">${selectedText}</p>`;
+      const pHtml = `<p class="${GLOBAL_STYLES.paragraph}">${selectedText}</p>`;
       document.execCommand('insertHTML', false, pHtml);
     } else {
-      const headerClasses = {
-        1: 'font-700 text-2xl sm:text-3xl lg:text-4xl text-[#080C14] mt-8 mb-4',
-        2: 'font-700 text-xl sm:text-2xl lg:text-3xl text-[#080C14] mt-8 mb-4',
-        3: 'font-700 text-lg sm:text-xl lg:text-2xl text-[#080C14] mt-6 mb-3',
-        4: 'font-700 text-base sm:text-lg lg:text-xl text-[#080C14] mt-6 mb-3',
-        5: 'font-700 text-sm sm:text-base lg:text-lg text-[#080C14] mt-4 mb-2',
-        6: 'font-700 text-sm sm:text-base lg:text-base text-[#080C14] mt-4 mb-2',
-        7: 'font-700 text-xs sm:text-sm lg:text-sm text-[#080C14] mt-4 mb-2',
-      };
-      const hHtml = `<h${level} class="${headerClasses[level] || headerClasses[1]}">${selectedText}</h${level}>`;
+      const hClass = GLOBAL_STYLES.headings[level] || GLOBAL_STYLES.headings[1];
+      const hHtml = `<h${level} class="${hClass}">${selectedText}</h${level}>`;
       document.execCommand('insertHTML', false, hHtml);
     }
 
@@ -194,6 +230,10 @@ const RichTextEditor = ({
     onChange(html);
     updateActiveFormats();
   }, [onChange, restoreSelection, updateActiveFormats]);
+
+  // ============================================================
+  // LIST HANDLER (using GLOBAL_STYLES)
+  // ============================================================
 
   const handleList = useCallback((type) => {
     const el = editorRef.current;
@@ -207,11 +247,11 @@ const RichTextEditor = ({
 
     let html = el.innerHTML;
     if (type === 'ul') {
-      html = html.replace(/<ul>/g, '<ul class="list-disc pl-6 space-y-3 mb-6">');
-      html = html.replace(/<li>/g, '<li class="font-400 text-base sm:text-lg lg:text-xl text-[#333333] leading-relaxed">');
+      html = html.replace(/<ul>/g, `<ul class="${GLOBAL_STYLES.unorderedList}">`);
+      html = html.replace(/<li>/g, `<li class="${GLOBAL_STYLES.listItem}">`);
     } else {
-      html = html.replace(/<ol>/g, '<ol class="list-decimal pl-6 space-y-3 mb-6">');
-      html = html.replace(/<li>/g, '<li class="font-400 text-base sm:text-lg lg:text-xl text-[#333333] leading-relaxed">');
+      html = html.replace(/<ol>/g, `<ol class="${GLOBAL_STYLES.orderedList}">`);
+      html = html.replace(/<li>/g, `<li class="${GLOBAL_STYLES.listItem}">`);
     }
 
     el.innerHTML = html;
@@ -220,6 +260,10 @@ const RichTextEditor = ({
     updateActiveFormats();
   }, [onChange, restoreSelection, updateActiveFormats]);
 
+  // ============================================================
+  // COLOR HANDLER
+  // ============================================================
+
   const handleColor = useCallback((color) => {
     setSelectedColor(color);
     exec('foreColor', color);
@@ -227,7 +271,7 @@ const RichTextEditor = ({
   }, [exec]);
 
   // ============================================================
-  // IMAGE INSERTION (NEW)
+  // IMAGE HANDLERS
   // ============================================================
 
   const handleImageUpload = () => {
@@ -273,7 +317,6 @@ const RichTextEditor = ({
 
       // Upload to server
       const response = await axios.post(
-         
         route('admin.upload-editor-image'),
         { image: base64 },
         { headers: { 'Content-Type': 'application/json' } }
@@ -328,27 +371,20 @@ const RichTextEditor = ({
 
     // Build alignment classes
     let alignClass = '';
-    let wrapperStyle = '';
     if (alignment === 'left') {
       alignClass = 'float-left mr-4';
     } else if (alignment === 'right') {
       alignClass = 'float-right ml-4';
-    } else { // center
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      wrapperStyle = 'text-align: center;';
     }
 
-    // Build image HTML
-    const imgTag = `<img src="${url}" alt="${alt || 'Image'}" style="width: ${width}px; max-width: 100%; height: auto;" class="rounded-lg ${alignClass}" />`;
+    // Build image HTML with global styling
+    const imgTag = `<img src="${url}" alt="${alt || 'Image'}" style="width: ${width}px; max-width: 100%; height: auto;" class="${GLOBAL_STYLES.image} ${alignClass}" />`;
 
-    // Wrap in a div if centered
+    // Wrap in appropriate container
     let finalHtml = imgTag;
     if (alignment === 'center') {
       finalHtml = `<div style="text-align: center; margin: 1rem 0;">${imgTag}</div>`;
     } else {
-      // For left/right we add a small margin via class already, and we wrap in a div with clearfix? not needed.
-      // Add a paragraph wrapper or just insert directly.
-      // We'll insert as a block with some margin.
       finalHtml = `<div style="margin: 1rem 0;" class="clearfix">${imgTag}</div>`;
     }
 
@@ -365,7 +401,7 @@ const RichTextEditor = ({
   };
 
   // ============================================================
-  // LIFECYCLE EFFECTS (unchanged)
+  // LIFECYCLE EFFECTS
   // ============================================================
 
   useEffect(() => {
@@ -699,60 +735,59 @@ const RichTextEditor = ({
       )}
 
       <style>{`
+        /* Editor placeholder */
         .editor-placeholder:empty:before {
           content: attr(data-placeholder);
           color: #9ca3af;
           pointer-events: none;
         }
-        .editor-placeholder h1 {
-          font-size: 2.25rem;
-          font-weight: 700;
-          color: #080C14;
-          margin-top: 2rem;
-          margin-bottom: 1rem;
-        }
+
+        /* Global element styles - these apply to ALL content */
+        .editor-placeholder h1,
         .editor-placeholder h2 {
-          font-size: 1.875rem;
           font-weight: 700;
           color: #080C14;
           margin-top: 2rem;
           margin-bottom: 1rem;
         }
+        .editor-placeholder h1 { font-size: 1.5rem; }
+        .editor-placeholder h2 { font-size: 1.5rem; }
         .editor-placeholder h3 {
-          font-size: 1.5rem;
           font-weight: 700;
           color: #080C14;
-          margin-top: 1.5rem;
-          margin-bottom: 0.75rem;
+          font-size: 1.25rem;
+          margin-top: 2rem;
+          margin-bottom: 1rem;
         }
         .editor-placeholder h4 {
-          font-size: 1.25rem;
           font-weight: 700;
           color: #080C14;
+          font-size: 1.125rem;
           margin-top: 1.5rem;
           margin-bottom: 0.75rem;
         }
         .editor-placeholder h5 {
-          font-size: 1.125rem;
           font-weight: 700;
           color: #080C14;
-          margin-top: 1rem;
-          margin-bottom: 0.5rem;
+          font-size: 1rem;
+          margin-top: 1.5rem;
+          margin-bottom: 0.75rem;
         }
         .editor-placeholder h6 {
-          font-size: 1rem;
           font-weight: 700;
           color: #080C14;
+          font-size: 0.875rem;
           margin-top: 1rem;
           margin-bottom: 0.5rem;
         }
         .editor-placeholder h7 {
-          font-size: 0.875rem;
           font-weight: 700;
           color: #080C14;
+          font-size: 0.875rem;
           margin-top: 1rem;
           margin-bottom: 0.5rem;
         }
+
         .editor-placeholder p {
           font-weight: 400;
           font-size: 1rem;
@@ -760,54 +795,101 @@ const RichTextEditor = ({
           line-height: 1.625;
           margin-bottom: 1rem;
         }
+
         .editor-placeholder strong {
           color: #009BE2;
           font-weight: 700;
         }
+
         .editor-placeholder ul {
           list-style-type: disc;
           padding-left: 1.5rem;
           margin-bottom: 1.5rem;
         }
+        .editor-placeholder ul li {
+          margin-bottom: 0.75rem;
+        }
+
         .editor-placeholder ol {
           list-style-type: decimal;
           padding-left: 1.5rem;
           margin-bottom: 1.5rem;
         }
+        .editor-placeholder ol li {
+          margin-bottom: 0.75rem;
+        }
+
         .editor-placeholder li {
           font-weight: 400;
           font-size: 1rem;
           color: #333333;
           line-height: 1.625;
-          margin-bottom: 0.75rem;
         }
+
         .editor-placeholder img {
           max-width: 100%;
           height: auto;
           border-radius: 0.5rem;
         }
+
+        .editor-placeholder a {
+          color: #009BE2;
+          text-decoration: underline;
+        }
+
+        .editor-placeholder blockquote {
+          border-left: 4px solid #009BE2;
+          padding-left: 1rem;
+          font-style: italic;
+          color: #333333;
+        }
+
+        .editor-placeholder code {
+          background-color: #f3f4f6;
+          border-radius: 0.25rem;
+          padding: 0.125rem 0.5rem;
+          font-size: 0.875rem;
+          font-family: monospace;
+        }
+
+        .editor-placeholder hr {
+          border-top: 1px solid #d1d5db;
+          margin: 2rem 0;
+        }
+
         .editor-placeholder .clearfix::after {
           content: "";
           display: table;
           clear: both;
         }
+
+        /* Responsive breakpoints */
         @media (min-width: 640px) {
+          .editor-placeholder h1,
+          .editor-placeholder h2 { font-size: 2rem; }
+          .editor-placeholder h3 { font-size: 1.75rem; }
+          .editor-placeholder h4 { font-size: 1.5rem; }
+          .editor-placeholder h5 { font-size: 1.25rem; }
+          .editor-placeholder h6 { font-size: 1.125rem; }
+          .editor-placeholder h7 { font-size: 1rem; }
           .editor-placeholder p,
           .editor-placeholder li {
             font-size: 1.125rem;
           }
-          .editor-placeholder h1 { font-size: 2.5rem; }
-          .editor-placeholder h2 { font-size: 2rem; }
-          .editor-placeholder h3 { font-size: 1.75rem; }
         }
+
         @media (min-width: 1024px) {
+          .editor-placeholder h1,
+          .editor-placeholder h2 { font-size: 2.5rem; }
+          .editor-placeholder h3 { font-size: 2.25rem; }
+          .editor-placeholder h4 { font-size: 2rem; }
+          .editor-placeholder h5 { font-size: 1.75rem; }
+          .editor-placeholder h6 { font-size: 1.5rem; }
+          .editor-placeholder h7 { font-size: 1.25rem; }
           .editor-placeholder p,
           .editor-placeholder li {
             font-size: 1.25rem;
           }
-          .editor-placeholder h1 { font-size: 3rem; }
-          .editor-placeholder h2 { font-size: 2.25rem; }
-          .editor-placeholder h3 { font-size: 2rem; }
         }
       `}</style>
     </div>
