@@ -29,7 +29,6 @@ export const ModuleAccessStep = ({ formData, setFormData, permissions, accessLev
     return moduleAccess?.access_level || 'no_access';
   };
 
-  // Get access level color
   const getAccessLevelColor = (level) => {
     switch (level) {
       case 'manage': return 'text-red-600 bg-red-50 border-red-200';
@@ -49,14 +48,8 @@ export const ModuleAccessStep = ({ formData, setFormData, permissions, accessLev
   };
 
   return (
-    <StepWrapper
-      title="Module Access Levels"
-      description="Define access levels for each module (overrides individual permissions)"
-      isActive={true}
-      stepNumber={3}
-    >
+    <StepWrapper title="Module Access Levels" description="Define access levels for each module (overrides individual permissions)" isActive={true} stepNumber={3}>
       <div className="space-y-6">
-        {/* Access Level Legend */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 p-4 bg-gray-50 rounded-xl">
           {accessLevels.map(level => (
             <div key={level.value} className="text-center">
@@ -74,50 +67,31 @@ export const ModuleAccessStep = ({ formData, setFormData, permissions, accessLev
           ))}
         </div>
 
-        {/* Module Access List */}
         <div className="border border-gray-200 rounded-xl overflow-hidden">
           <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
-            <h3 className="font-medium text-gray-700 flex items-center gap-2">
-              <FaLock size={14} className="text-purple-600" />
-              Module Access Configuration
-            </h3>
-            <p className="text-xs text-gray-500 mt-1">
-              Set access levels for each module.
-            </p>
+            <h3 className="font-medium text-gray-700 flex items-center gap-2"><FaLock size={14} className="text-purple-600" /> Module Access Configuration</h3>
+            <p className="text-xs text-gray-500 mt-1">Set access levels for each module.</p>
           </div>
-
           <div className="divide-y divide-gray-100">
             {permissions.map(module => {
               const currentLevel = getModuleAccessLevel(module.module);
-
               return (
                 <div key={module.module} className="p-4 hover:bg-gray-50 transition-colors">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
                         <span className="font-medium text-gray-900">{module.module}</span>
-                        <span className="text-xs text-gray-400">
-                          ({module.permissions.length} permissions)
-                        </span>
+                        <span className="text-xs text-gray-400">({module.permissions.length} permissions)</span>
                       </div>
-                      <p className="text-xs text-gray-500 mt-0.5">
-                        Set access level for all {module.module} module permissions
-                      </p>
+                      <p className="text-xs text-gray-500 mt-0.5">Set access level for all {module.module} module permissions</p>
                     </div>
-
                     <div className="flex items-center gap-2">
-                      <select
-                        value={currentLevel}
-                        onChange={(e) => handleModuleAccessChange(module.module, e.target.value)}
-                        className={`px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent ${getAccessLevelColor(currentLevel)}`}
-                      >
+                      <select value={currentLevel} onChange={(e) => handleModuleAccessChange(module.module, e.target.value)}
+                        className={`px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent ${getAccessLevelColor(currentLevel)}`}>
                         {accessLevels.map(level => (
-                          <option key={level.value} value={level.value}>
-                            {level.label}
-                          </option>
+                          <option key={level.value} value={level.value}>{level.label}</option>
                         ))}
                       </select>
-
                       {currentLevel !== 'no_access' && (
                         <div className={`text-xs px-2 py-1 rounded-full ${getAccessLevelColor(currentLevel)}`}>
                           {getAccessLevelIcon(currentLevel)} {currentLevel}
@@ -131,7 +105,6 @@ export const ModuleAccessStep = ({ formData, setFormData, permissions, accessLev
           </div>
         </div>
 
-        {/* Info Box */}
         <div className="bg-purple-50 rounded-lg p-4 flex items-start gap-3">
           <FaInfoCircle className="text-purple-500 mt-0.5" size={18} />
           <div className="text-sm text-purple-800">
