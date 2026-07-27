@@ -17,6 +17,60 @@ import ArrowIcon from '../../Shared/ArrowIcon';
 // Utils
 import { hasValue } from '../../utils/sectionHelpers';
 
+// ============================================
+// SKELETON LOADING COMPONENTS
+// ============================================
+
+// Individual job skeleton card
+const JobSkeletonCard = () => (
+  <div className="bg-white p-5 sm:p-6 md:p-8 lg:p-10 rounded-2xl animate-pulse">
+    <div className="flex flex-col md:flex-row items-start justify-between gap-5">
+      <div className="flex-1 w-full">
+        {/* Tags skeleton */}
+        <div className="flex items-center gap-2 sm:gap-3 mb-3 flex-wrap">
+          <div className="h-4 w-20 bg-gray-200 rounded-full" />
+          <div className="h-4 w-px bg-gray-200" />
+          <div className="h-4 w-24 bg-gray-200 rounded-full" />
+          <div className="h-4 w-px bg-gray-200" />
+          <div className="h-4 w-16 bg-gray-200 rounded-full" />
+        </div>
+        {/* Title skeleton */}
+        <div className="h-8 bg-gray-200 rounded-lg mb-3 w-3/4" />
+        {/* Description skeleton */}
+        <div className="space-y-2">
+          <div className="h-4 bg-gray-200 rounded w-full" />
+          <div className="h-4 bg-gray-200 rounded w-5/6" />
+          <div className="h-4 bg-gray-200 rounded w-4/6" />
+        </div>
+        {/* Salary skeleton */}
+        <div className="mt-3 h-5 bg-gray-200 rounded w-40" />
+      </div>
+      <div className="w-full md:w-auto mt-4 md:mt-0">
+        <div className="h-12 bg-gray-200 rounded-md w-full md:w-36" />
+      </div>
+    </div>
+  </div>
+);
+
+// Multiple skeleton cards
+const JobSkeleton = ({ count = 3 }) => {
+  return (
+    <>
+      {Array.from({ length: count }).map((_, index) => (
+        <JobSkeletonCard key={`skeleton-${index}`} />
+      ))}
+    </>
+  );
+};
+
+// Loading more skeleton (shows 2 cards)
+const LoadingMoreSkeleton = () => (
+  <div className="space-y-4 sm:space-y-5 lg:space-y-6">
+    <JobSkeletonCard />
+    <JobSkeletonCard />
+  </div>
+);
+
 const JobsSection = ({
   data: propData,
   customProps = {},
@@ -31,6 +85,7 @@ const JobsSection = ({
   apiEndpoint = '/api/jobs',
   apiParams = {},
   publicJobsRoute = '/backend/seeker/jobs',
+  perPage = 10,
 }) => {
   // ============================================
   // STATE
@@ -40,41 +95,44 @@ const JobsSection = ({
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState(null);
   const [filterOptions, setFilterOptions] = useState([{ value: 'all', label: 'All Jobs' }]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [hasMorePages, setHasMorePages] = useState(true);
+  const [initialFetchDone, setInitialFetchDone] = useState(false);
 
   // ============================================
-  // REFS – HOLD THE LATEST VALUES WITHOUT TRIGGERING RE‑RENDERS
+  // REFS
   // ============================================
   const searchRef = useRef(null);
   const debounceTimerRef = useRef(null);
   const isFetchingRef = useRef(false);
-  const initialFetchDone = useRef(false);
+  const observerRef = useRef(null);
+  const loadMoreDebounceRef = useRef(null);
 
-  // Values that can change without causing a re‑fetch reference change
   const apiParamsRef = useRef(apiParams);
   const propDataRef = useRef(propData);
   const apiEndpointRef = useRef(apiEndpoint);
   const publicJobsRouteRef = useRef(publicJobsRoute);
-
-  // Computed values (we'll update these refs whenever the corresponding props change)
-  const limitRef = useRef(999);
+  const perPageRef = useRef(perPage);
+  const displayLimitRef = useRef(999);
   const shouldFetchAllRef = useRef(true);
-  const effectiveLimitRef = useRef(null);
+
   const titleRef = useRef('Job Openings');
   const descriptionRef = useRef('Join our team and make a difference');
   const filterPlaceholderRef = useRef('Browse By');
 
   // ============================================
-  // UPDATE REFS WHEN PROPS CHANGE (without triggering effects)
+  // UPDATE REFS WHEN PROPS CHANGE
   // ============================================
   useEffect(() => {
     apiParamsRef.current = apiParams;
     propDataRef.current = propData;
     apiEndpointRef.current = apiEndpoint;
     publicJobsRouteRef.current = publicJobsRoute;
+    perPageRef.current = perPage;
 
-    // Compute limit values
     let lim = 999;
     if (customProps.limit !== undefined && customProps.limit !== null && customProps.limit !== '') {
       const val = parseInt(customProps.limit);
@@ -86,15 +144,14 @@ const JobsSection = ({
       const val = parseInt(propLimit);
       if (!isNaN(val)) lim = val;
     }
-    limitRef.current = lim;
-    shouldFetchAllRef.current = (lim === 999 || lim === 0);
-    effectiveLimitRef.current = shouldFetchAllRef.current ? null : Math.max(1, lim);
 
-    // Title, description, placeholder
+    displayLimitRef.current = lim;
+    shouldFetchAllRef.current = (lim === 999 || lim === 0);
+
     titleRef.current = customProps.title || propData?.data?.section?.title || propTitle || 'Job Openings';
     descriptionRef.current = customProps.description || propData?.data?.section?.description || propDescription || 'Join our team and make a difference';
     filterPlaceholderRef.current = customProps.filterPlaceholder || propData?.data?.filter?.placeholder || propFilterPlaceholder || 'Browse By';
-  }, [customProps, propData, propTitle, propDescription, propLimit, propFilterPlaceholder, apiParams, apiEndpoint, publicJobsRoute]);
+  }, [customProps, propData, propTitle, propDescription, propLimit, propFilterPlaceholder, apiParams, apiEndpoint, publicJobsRoute, perPage]);
 
   // ============================================
   // CLOSE SEARCH DROPDOWN ON OUTSIDE CLICK
@@ -110,24 +167,25 @@ const JobsSection = ({
   }, []);
 
   // ============================================
-  // FETCH LOGIC (stable – no dependencies that change)
+  // FETCH JOBS
   // ============================================
   const fetchJobs = useCallback(async (params = {}) => {
-    if (isFetchingRef.current) return; // prevent concurrent requests
+    if (isFetchingRef.current) return;
     isFetchingRef.current = true;
 
     try {
       setLoading(true);
       setError(null);
+      setCurrentPage(1);
+      setJobs([]);
 
-      // Get latest values from refs
-      const currentSearch = searchTerm; // closure captures latest state
+      const currentSearch = searchTerm;
       const currentFilter = selectedFilter;
       const endpoint = apiEndpointRef.current;
       const route = publicJobsRouteRef.current;
-      const fetchAll = shouldFetchAllRef.current;
-      const effLimit = effectiveLimitRef.current;
       const currentApiParams = apiParamsRef.current || {};
+      const currentPerPage = perPageRef.current;
+      const displayLimit = displayLimitRef.current;
 
       const queryParams = new URLSearchParams();
 
@@ -137,13 +195,10 @@ const JobsSection = ({
       if (currentFilter && currentFilter !== 'all') {
         queryParams.append('job_type', currentFilter);
       }
-      if (fetchAll) {
-        queryParams.append('limit', 999);
-        queryParams.append('all', 'true');
-      } else {
-        const maxLimit = Math.max(1, effLimit + 1);
-        queryParams.append('limit', maxLimit);
-      }
+
+      const effectivePerPage = displayLimit < currentPerPage ? displayLimit : currentPerPage;
+      queryParams.append('page', 1);
+      queryParams.append('per_page', effectivePerPage);
 
       Object.keys(currentApiParams).forEach(key => {
         if (currentApiParams[key] !== undefined && currentApiParams[key] !== null) {
@@ -160,10 +215,24 @@ const JobsSection = ({
       const response = await axios.get(url);
 
       let fetchedJobs = [];
-      if (response.data?.data?.data) fetchedJobs = response.data.data.data || [];
-      else if (response.data?.data) fetchedJobs = response.data.data || [];
-      else if (Array.isArray(response.data)) fetchedJobs = response.data;
-      else fetchedJobs = response.data?.jobs || [];
+      let meta = {};
+
+      if (response.data?.success && Array.isArray(response.data?.data)) {
+        fetchedJobs = response.data.data;
+        meta = response.data.meta || {};
+      } else if (response.data?.data && Array.isArray(response.data?.data)) {
+        fetchedJobs = response.data.data;
+        meta = response.data.meta || {};
+      } else if (response.data?.data?.data && Array.isArray(response.data?.data?.data)) {
+        fetchedJobs = response.data.data.data;
+        meta = response.data.data.meta || {};
+      } else if (Array.isArray(response.data)) {
+        fetchedJobs = response.data;
+      } else if (response.data?.jobs && Array.isArray(response.data?.jobs)) {
+        fetchedJobs = response.data.jobs;
+      } else {
+        fetchedJobs = [];
+      }
 
       if (!Array.isArray(fetchedJobs)) fetchedJobs = [];
 
@@ -184,11 +253,22 @@ const JobsSection = ({
         employer: job.employer,
       }));
 
-      setJobs(mappedJobs);
+      const limitedJobs = mappedJobs.slice(0, displayLimit);
+      setJobs(limitedJobs);
 
-      // Update filter options
+      if (displayLimit < 999 && limitedJobs.length >= displayLimit) {
+        setHasMorePages(false);
+      } else if (meta && meta.total !== undefined) {
+        const currentPageNum = meta.current_page || 1;
+        const lastPage = meta.last_page || 1;
+        const hasMore = currentPageNum < lastPage && limitedJobs.length < displayLimit;
+        setHasMorePages(hasMore);
+      } else {
+        setHasMorePages(fetchedJobs.length === currentPerPage && limitedJobs.length < displayLimit);
+      }
+
       const types = new Set();
-      mappedJobs.forEach(job => {
+      limitedJobs.forEach(job => {
         if (job.type) {
           const type = job.type.toLowerCase().replace(/\s+/g, '-');
           types.add(type);
@@ -204,56 +284,205 @@ const JobsSection = ({
     } catch (err) {
       console.error('Error fetching jobs:', err);
       setError(err.response?.data?.message || err.message || 'Failed to load jobs');
-
-      // Fallback to static data from propData
-      const fallbackData = propDataRef.current;
-      if (fallbackData) {
-        let parsed = fallbackData;
-        if (typeof fallbackData === 'string') {
-          try { parsed = JSON.parse(fallbackData); } catch (e) {
-            console.error('Error parsing fallback data:', e);
-            /* empty */
-
-          }
-        }
-        const findJobsArray = (obj) => {
-          if (!obj || typeof obj !== 'object') return null;
-          if (obj.jobs && Array.isArray(obj.jobs) && obj.jobs.length) return obj.jobs;
-          for (const key in obj) {
-            const result = findJobsArray(obj[key]);
-            if (result) return result;
-          }
-          return null;
-        };
-        const fallbackJobs = findJobsArray(parsed);
-        if (fallbackJobs && fallbackJobs.length) {
-          const mapped = fallbackJobs.map(job => ({
-            ...job,
-            link: job.slug ? `${publicJobsRouteRef.current}/${job.slug}` : `${publicJobsRouteRef.current}/${job.id}`,
-          }));
-          setJobs(mapped);
-          setError(null);
-        }
-      }
     } finally {
       setLoading(false);
       isFetchingRef.current = false;
+      setInitialFetchDone(true);
     }
-  }, [searchTerm, selectedFilter]); // These are the only state variables that should trigger a new fetch
+  }, [searchTerm, selectedFilter]);
+
+  // ============================================
+  // LOAD MORE JOBS
+  // ============================================
+  const loadMoreJobs = useCallback(async () => {
+    if (isFetchingRef.current || loadingMore || !hasMorePages) return;
+
+    const displayLimit = displayLimitRef.current;
+    if (jobs.length >= displayLimit) {
+      setHasMorePages(false);
+      return;
+    }
+
+    const nextPage = currentPage + 1;
+    setLoadingMore(true);
+    isFetchingRef.current = true;
+
+    try {
+      const endpoint = apiEndpointRef.current;
+      const currentSearch = searchTerm;
+      const currentFilter = selectedFilter;
+      const currentPerPage = perPageRef.current;
+
+      const queryParams = new URLSearchParams();
+
+      queryParams.append('page', nextPage);
+      queryParams.append('per_page', currentPerPage);
+
+      if (currentSearch.trim()) {
+        queryParams.append('search', currentSearch.trim());
+      }
+      if (currentFilter && currentFilter !== 'all') {
+        queryParams.append('job_type', currentFilter);
+      }
+
+      const currentApiParams = apiParamsRef.current || {};
+      Object.keys(currentApiParams).forEach(key => {
+        if (currentApiParams[key] !== undefined && currentApiParams[key] !== null) {
+          queryParams.append(key, currentApiParams[key]);
+        }
+      });
+
+      const url = `${endpoint}?${queryParams.toString()}`;
+      const response = await axios.get(url);
+
+      let fetchedJobs = [];
+      let meta = {};
+
+      if (response.data?.success && Array.isArray(response.data?.data)) {
+        fetchedJobs = response.data.data;
+        meta = response.data.meta || {};
+      } else if (response.data?.data && Array.isArray(response.data?.data)) {
+        fetchedJobs = response.data.data;
+        meta = response.data.meta || {};
+      } else if (response.data?.data?.data && Array.isArray(response.data?.data?.data)) {
+        fetchedJobs = response.data.data.data;
+        meta = response.data.data.meta || {};
+      } else if (Array.isArray(response.data)) {
+        fetchedJobs = response.data;
+      } else if (response.data?.jobs && Array.isArray(response.data?.jobs)) {
+        fetchedJobs = response.data.jobs;
+      } else {
+        fetchedJobs = [];
+      }
+
+      if (!Array.isArray(fetchedJobs)) fetchedJobs = [];
+
+      if (fetchedJobs.length === 0) {
+        setHasMorePages(false);
+        setLoadingMore(false);
+        isFetchingRef.current = false;
+        return;
+      }
+
+      const mappedJobs = fetchedJobs.map(job => ({
+        id: job.id,
+        title: job.title || 'Untitled Position',
+        description: job.description || job.requirements || 'No description available.',
+        type: job.job_type || job.type || 'Full-time',
+        department: job.department || job.category?.name || 'General',
+        location: job.location || job.locations?.[0]?.name || 'Bangladesh',
+        link: job.slug ? `${publicJobsRouteRef.current}/${job.slug}` : `${publicJobsRouteRef.current}/${job.id}`,
+        slug: job.slug,
+        views: job.views_count || 0,
+        salary_min: job.salary_min,
+        salary_max: job.salary_max,
+        is_active: job.is_active,
+        category: job.category,
+        employer: job.employer,
+      }));
+
+      const allJobs = [...jobs, ...mappedJobs];
+      const limitedJobs = allJobs.slice(0, displayLimit);
+
+      setJobs(limitedJobs);
+      setCurrentPage(nextPage);
+
+      if (limitedJobs.length >= displayLimit) {
+        setHasMorePages(false);
+      } else if (meta && meta.total !== undefined) {
+        const lastPage = meta.last_page || 1;
+        const hasMore = nextPage < lastPage;
+        setHasMorePages(hasMore);
+      } else {
+        setHasMorePages(fetchedJobs.length === currentPerPage);
+      }
+
+    } catch (err) {
+      console.error('Error loading more jobs:', err);
+      setError(err.response?.data?.message || err.message || 'Failed to load more jobs');
+      setHasMorePages(false);
+    } finally {
+      setLoadingMore(false);
+      isFetchingRef.current = false;
+    }
+  }, [currentPage, hasMorePages, loadingMore, searchTerm, selectedFilter, jobs]);
+
+  // ============================================
+  // INFINITE SCROLL - Intersection Observer
+  // ============================================
+  useEffect(() => {
+    if (jobs.length === 0 || !hasMorePages || loading || loadingMore) return;
+
+    const displayLimit = displayLimitRef.current;
+    if (jobs.length >= displayLimit) {
+      setHasMorePages(false);
+      return;
+    }
+
+    if (observerRef.current) {
+      observerRef.current.disconnect();
+      observerRef.current = null;
+    }
+
+    const jobElements = document.querySelectorAll('[data-job-id]');
+    if (jobElements.length === 0) return;
+
+    const lastElement = jobElements[jobElements.length - 1];
+
+    if (loadMoreDebounceRef.current) {
+      clearTimeout(loadMoreDebounceRef.current);
+      loadMoreDebounceRef.current = null;
+    }
+
+    observerRef.current = new IntersectionObserver(
+      (entries) => {
+        if (loadMoreDebounceRef.current) {
+          clearTimeout(loadMoreDebounceRef.current);
+        }
+
+        if (entries[0].isIntersecting && hasMorePages && !loadingMore && !isFetchingRef.current) {
+          loadMoreDebounceRef.current = setTimeout(() => {
+            if (jobs.length >= displayLimitRef.current) {
+              setHasMorePages(false);
+              loadMoreDebounceRef.current = null;
+              return;
+            }
+            loadMoreJobs();
+            loadMoreDebounceRef.current = null;
+          }, 300);
+        }
+      },
+      {
+        root: null,
+        rootMargin: '0px 0px 200px 0px',
+        threshold: 0.1,
+      }
+    );
+
+    observerRef.current.observe(lastElement);
+
+    return () => {
+      if (loadMoreDebounceRef.current) {
+        clearTimeout(loadMoreDebounceRef.current);
+        loadMoreDebounceRef.current = null;
+      }
+      if (observerRef.current) {
+        observerRef.current.disconnect();
+        observerRef.current = null;
+      }
+    };
+  }, [jobs, hasMorePages, loading, loadingMore, loadMoreJobs]);
 
   // ============================================
   // DEBOUNCED FETCH ON SEARCH/FILTER CHANGE
   // ============================================
   useEffect(() => {
-    // Skip on initial mount – we'll handle that separately
-    if (!initialFetchDone.current) return;
+    if (!initialFetchDone) return;
 
-    // Clear any pending debounce
     if (debounceTimerRef.current) {
       clearTimeout(debounceTimerRef.current);
     }
 
-    // Schedule a new fetch with debounce (500ms)
     debounceTimerRef.current = setTimeout(() => {
       fetchJobs();
     }, 500);
@@ -263,17 +492,15 @@ const JobsSection = ({
         clearTimeout(debounceTimerRef.current);
       }
     };
-  }, [searchTerm, selectedFilter, fetchJobs]); // fetchJobs is stable (depends only on searchTerm and selectedFilter, which are included)
+  }, [searchTerm, selectedFilter, fetchJobs, initialFetchDone]);
 
   // ============================================
-  // INITIAL FETCH (runs once on mount)
+  // INITIAL FETCH
   // ============================================
   useEffect(() => {
-    if (!initialFetchDone.current) {
-      initialFetchDone.current = true;
+    if (!initialFetchDone) {
       fetchJobs();
     }
-    // We intentionally don't include fetchJobs as a dependency because we want to run once.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -296,6 +523,11 @@ const JobsSection = ({
     }
   };
 
+  const handleFilterChange = (filter) => {
+    setSelectedFilter(filter);
+    setIsSearchOpen(false);
+  };
+
   // ============================================
   // DERIVED DATA
   // ============================================
@@ -313,7 +545,7 @@ const JobsSection = ({
 
   const searchSuggestions = isSearchOpen && searchTerm.trim() !== '' ? filteredJobs.slice(0, 5) : [];
 
-  const displayLimit = shouldFetchAllRef.current ? filteredJobs.length : Math.max(1, effectiveLimitRef.current);
+  const displayLimit = displayLimitRef.current;
   const displayedJobs = filteredJobs.slice(0, displayLimit);
 
   const title = titleRef.current;
@@ -341,6 +573,27 @@ const JobsSection = ({
           )}
 
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 w-full lg:w-auto">
+            {filterOptions.length > 1 && (
+              <div className="relative w-full sm:w-auto">
+                <select
+                  value={selectedFilter}
+                  onChange={(e) => handleFilterChange(e.target.value)}
+                  className="w-full sm:w-auto px-4 py-3 sm:py-4 border border-[#A3A3A3] rounded-[14px] bg-white text-[14px] sm:text-[16px] font-400 text-[#515151] outline-none focus:border-[#009BE2] focus:ring-1 focus:ring-[#009BE2] transition-all duration-300 appearance-none pr-10"
+                >
+                  {filterOptions.map(option => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                  <svg className="w-4 h-4 text-[#A3A3A3]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
+              </div>
+            )}
+
             <div className="relative w-full lg:min-w-80" ref={searchRef}>
               <div className="relative">
                 <input
@@ -383,13 +636,10 @@ const JobsSection = ({
         </div>
       )}
 
-      {/* Loading */}
+      {/* Skeleton Loading - Initial Load */}
       {loading && jobs.length === 0 && (
-        <div className="flex items-center justify-center min-h-50">
-          <div className="text-center">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-[#009BE2] border-t-transparent" />
-            <p className="mt-4 text-[#524B48]">Loading jobs...</p>
-          </div>
+        <div className="space-y-4 sm:space-y-5 lg:space-y-6">
+          <JobSkeleton count={3} />
         </div>
       )}
 
@@ -410,8 +660,13 @@ const JobsSection = ({
       {/* Jobs list */}
       {!loading && jobs.length > 0 && (
         <div className="space-y-4 sm:space-y-5 lg:space-y-6">
-          {displayedJobs.map((job) => (
-            <div key={job.id} id={`job-${job.id}`} className="bg-white p-5 sm:p-6 md:p-8 lg:p-10 rounded-2xl hover:shadow-lg transition-all duration-300">
+          {displayedJobs.map((job, index) => (
+            <div
+              key={job.id || `job-${index}`}
+              id={`job-${job.id}`}
+              data-job-id={job.id}
+              className="bg-white p-5 sm:p-6 md:p-8 lg:p-10 rounded-2xl hover:shadow-lg transition-all duration-300"
+            >
               <div className="flex flex-col md:flex-row items-start justify-between gap-5">
                 <div className="flex-1 w-full">
                   {(hasValue(job.type) || hasValue(job.department) || hasValue(job.location)) && (
@@ -447,7 +702,7 @@ const JobsSection = ({
                     </h3>
                   )}
                   {hasValue(job.description) && (
-                    <p className="text-[#524B48] text-[15px] sm:text-[16px] md:text-[17px] lg:text-[18px] font-400 leading-relaxed">
+                    <p className="text-[#524B48] text-[15px] sm:text-[16px] md:text-[17px] lg:text-[18px] font-400 leading-relaxed line-clamp-3">
                       {job.description}
                     </p>
                   )}
@@ -473,6 +728,24 @@ const JobsSection = ({
               </div>
             </div>
           ))}
+
+          {/* Loading More - Skeleton */}
+          {loadingMore && (
+            <div className="pt-2">
+              <LoadingMoreSkeleton />
+            </div>
+          )}
+
+          {/* No More Jobs Message */}
+          {!loadingMore && !hasMorePages && jobs.length > 0 && (
+            <div className="text-center py-8">
+              <p className="text-[#524B48] text-[14px]">
+                {jobs.length >= displayLimitRef.current
+                  ? `Showing ${displayLimitRef.current} jobs (display limit reached)`
+                  : "You've reached the end of the list"}
+              </p>
+            </div>
+          )}
 
           {filteredJobs.length === 0 && jobs.length > 0 && (
             <div className="bg-white p-8 sm:p-10 lg:p-12 rounded-2xl text-center">

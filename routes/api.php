@@ -85,11 +85,25 @@ Route::get('/api/programs', function () {
   ]);
 })->name('api.programs');
 
-// Job Listing API Routes
+// ============================================
+// ✅ JOB LISTING API ROUTES (Infinite Scroll)
+// ============================================
 Route::prefix('api/jobs')->group(function () {
-  Route::get('/', [JobListingApiController::class, 'index']);
+  // Main endpoint with pagination support
+  Route::get('/', [JobListingApiController::class, 'index'])->name('api.jobs.index');
+
+  // ✅ Filter options endpoint
+  Route::get('/filter-options', [JobListingApiController::class, 'filterOptions'])->name('api.jobs.filters');
+
+  // Popular jobs
   Route::get('/popular', [JobListingApiController::class, 'popular'])->name('api.jobs.popular');
+
+  // Trending jobs
   Route::get('/trending', [JobListingApiController::class, 'trending'])->name('api.jobs.trending');
-  Route::get('/{identifier}', [JobListingApiController::class, 'show']);
-  Route::get('/{slug}/related', [JobListingApiController::class, 'related']);
+
+  // Single job by ID or slug
+  Route::get('/{identifier}', [JobListingApiController::class, 'show'])->name('api.jobs.show');
+
+  // Related jobs
+  Route::get('/{slug}/related', [JobListingApiController::class, 'related'])->name('api.jobs.related');
 });

@@ -22,7 +22,7 @@ class JobListingApiController extends Controller
   /**
    * Default items per page.
    */
-  private const DEFAULT_PER_PAGE = 15;
+  private const DEFAULT_PER_PAGE = 10; // ✅ Changed to 10 for infinite scroll
 
   /**
    * Cache duration in seconds (5 minutes).
@@ -40,7 +40,7 @@ class JobListingApiController extends Controller
   private const RATE_LIMIT_DECAY = 60;
 
   /**
-   * Get job listings with search, fixed sort by views, and limit support.
+   * Get job listings with infinite scroll support.
    * @return JsonResponse
    */
   public function index(Request $request): JsonResponse
@@ -48,54 +48,82 @@ class JobListingApiController extends Controller
     $this->checkApiRateLimit($request, 'job_listings');
     $this->logApiRequest($request, 'job_listings');
 
-    $cacheKey = $this->getCacheKey($request, 'job_listings');
+    // ✅ Don't cache for infinite scroll to ensure real-time data
+    // $cacheKey = $this->getCacheKey($request, 'job_listings');
+    // return Cache::remember($cacheKey, self::CACHE_DURATION, function () use ($request) {
 
-    return Cache::remember($cacheKey, self::CACHE_DURATION, function () use ($request) {
-      try {
-        $query = JobListing::with(['category', 'locations', 'employer']);
+    try {
+      $query = JobListing::with(['category', 'locations', 'employer']);
 
-        // Apply active filter by default (unless show_all is true)
-        if (!$request->boolean('show_all')) {
-          $query->active()->published();
-        } elseif ($request->has('is_active')) {
-          $query->where('is_active', $request->boolean('is_active'));
-        }
+      // Apply active filter by default (unless show_all is true)
+      if (!$request->boolean('show_all')) {
+        $query->active()->published();
+      } elseif ($request->has('is_active')) {
+        $query->where('is_active', $request->boolean('is_active'));
+      }
 
-        // Search
-        if ($request->filled('search')) {
-          $query->search($request->search);
-        }
+      // ✅ Search
+      if ($request->filled('search')) {
+        $search = $request->search;
+        $query->where(function ($q) use ($search) {
+          $q->where('title', 'like', "%{$search}%")
+            ->orWhere('description', 'like', "%{$search}%")
+            ->orWhereHas('category', fn($cat) => $cat->where('name', 'like', "%{$search}%"))
+            ->orWhereHas('locations', fn($loc) => $loc->where('name', 'like', "%{$search}%"));
+        });
+      }
 
-        // Fixed sort by views (most viewed first)
-        $query->orderBy('views_count', 'desc');
+      // ✅ Filter by job type
+      if ($request->filled('job_type')) {
+        $query->where('job_type', $request->job_type);
+      }
 
-        // Handle limit (returns all results up to limit)
-        if ($request->has('limit')) {
-          $limit = $this->sanitizeLimit($request->input('limit'));
-          $data = $query->limit($limit)->get();
-          return $this->successResponse($data);
-        }
+      // ✅ Filter by category
+      if ($request->filled('category')) {
+        $query->whereHas('category', fn($q) => $q->where('slug', $request->category));
+      }
 
-        // Handle pagination
-        if ($request->has('page')) {
-          $perPage = $this->sanitizePerPage($request->input('per_page', self::DEFAULT_PER_PAGE));
-          $data = $query->paginate($perPage);
-          return $this->successResponse($data);
-        }
+      // ✅ Filter by location
+      if ($request->filled('location')) {
+        $query->whereHas('locations', fn($q) => $q->where('locations.id', $request->location));
+      }
 
-        // Default: return paginated results
+      // ✅ Filter by experience level
+      if ($request->filled('experience_level')) {
+        $query->where('experience_level', $request->experience_level);
+      }
+
+      // ✅ Fixed sort by views (most viewed first) - but can be overridden
+      $sort = $request->input('sort', 'views');
+      $this->applySorting($query, $sort);
+
+      // ✅ Handle limit (for backward compatibility)
+      if ($request->has('limit')) {
+        $limit = $this->sanitizeLimit($request->input('limit'));
+        $data = $query->limit($limit)->get();
+        return $this->successResponse($data);
+      }
+
+      // ✅ Handle pagination for infinite scroll
+      if ($request->has('page')) {
         $perPage = $this->sanitizePerPage($request->input('per_page', self::DEFAULT_PER_PAGE));
         $data = $query->paginate($perPage);
-
         return $this->successResponse($data);
-      } catch (\Exception $e) {
-        Log::error('JobListing API error: ' . $e->getMessage(), [
-          'trace' => $e->getTraceAsString(),
-          'request' => $request->all(),
-        ]);
-        return $this->errorResponse('Failed to fetch job listings');
       }
-    });
+
+      // ✅ Default: return paginated results
+      $perPage = $this->sanitizePerPage($request->input('per_page', self::DEFAULT_PER_PAGE));
+      $data = $query->paginate($perPage);
+
+      return $this->successResponse($data);
+    } catch (\Exception $e) {
+      Log::error('JobListing API error: ' . $e->getMessage(), [
+        'trace' => $e->getTraceAsString(),
+        'request' => $request->all(),
+      ]);
+      return $this->errorResponse('Failed to fetch job listings');
+    }
+    // }); // Remove cache
   }
 
   /**
@@ -169,9 +197,114 @@ class JobListingApiController extends Controller
     });
   }
 
+  /**
+   * Get job filter options (for frontend dropdowns).
+   */
+  public function filterOptions(Request $request): JsonResponse
+  {
+    $this->checkApiRateLimit($request, 'filter_options');
+
+    try {
+      // Get categories with job counts
+      $categories = \App\Models\JobCategory::whereHas('jobListings', function ($query) {
+        $query->where('is_active', true)
+          ->whereNull('deleted_at')
+          ->where('application_deadline', '>=', now());
+      })
+        ->active()
+        ->orderBy('name')
+        ->get()
+        ->map(fn($category) => [
+          'id' => $category->id,
+          'name' => $category->name,
+          'slug' => $category->slug,
+          'count' => $category->jobListings()->where('is_active', true)->count(),
+        ]);
+
+      // Get locations with job counts
+      $locations = \App\Models\Location::whereHas('jobListings', function ($query) {
+        $query->where('is_active', true)
+          ->whereNull('deleted_at')
+          ->where('application_deadline', '>=', now());
+      })
+        ->active()
+        ->orderBy('name')
+        ->get()
+        ->map(fn($location) => [
+          'id' => $location->id,
+          'name' => $location->name,
+          'count' => $location->jobListings()->where('is_active', true)->count(),
+        ]);
+
+      // Get distinct job types
+      $jobTypes = JobListing::where('is_active', true)
+        ->whereNull('deleted_at')
+        ->where('application_deadline', '>=', now())
+        ->distinct()
+        ->pluck('job_type')
+        ->toArray();
+
+      // Get distinct experience levels
+      $experienceLevels = JobListing::where('is_active', true)
+        ->whereNull('deleted_at')
+        ->where('application_deadline', '>=', now())
+        ->distinct()
+        ->pluck('experience_level')
+        ->toArray();
+
+      return response()->json([
+        'success' => true,
+        'data' => [
+          'categories' => $categories,
+          'locations' => $locations,
+          'job_types' => $jobTypes,
+          'experience_levels' => $experienceLevels,
+        ],
+      ]);
+    } catch (\Exception $e) {
+      Log::error('Filter options error: ' . $e->getMessage());
+      return response()->json([
+        'success' => false,
+        'message' => 'Failed to fetch filter options',
+      ], 500);
+    }
+  }
+
     // ==========================================
     // PRIVATE HELPER METHODS
     // ==========================================
+
+  /**
+   * Apply sorting to the query.
+   */
+  private function applySorting($query, string $sort): void
+  {
+    switch ($sort) {
+      case 'latest':
+        $query->orderBy('created_at', 'desc');
+        break;
+      case 'oldest':
+        $query->orderBy('created_at', 'asc');
+        break;
+      case 'views':
+        $query->orderBy('views_count', 'desc');
+        break;
+      case 'popular':
+        $query->orderBy('applications_count', 'desc');
+        break;
+      case 'salary_high':
+        $query->orderByRaw('COALESCE(salary_max, salary_min, 0) DESC');
+        break;
+      case 'salary_low':
+        $query->orderByRaw('COALESCE(salary_min, salary_max, 0) ASC');
+        break;
+      case 'deadline_soon':
+        $query->orderBy('application_deadline', 'asc');
+        break;
+      default:
+        $query->orderBy('created_at', 'desc');
+    }
+  }
 
   /**
    * Fetch related jobs using priority logic.
@@ -296,7 +429,6 @@ class JobListingApiController extends Controller
   private function getMatchReasons(JobListing $job, Collection $relatedJobs): array
   {
     $reasons = [];
-
     $jobLocationIds = $job->locations->pluck('id')->toArray();
 
     foreach ($relatedJobs as $related) {
@@ -415,6 +547,21 @@ class JobListingApiController extends Controller
 
   private function successResponse(mixed $data, int $status = 200): JsonResponse
   {
+    // ✅ Format response consistently for paginated data
+    if (is_object($data) && method_exists($data, 'toArray')) {
+      $data = $data->toArray();
+    }
+
+    // Check if it's a paginated response (has data, links, meta)
+    if (is_array($data) && isset($data['data']) && isset($data['links']) && isset($data['meta'])) {
+      return response()->json([
+        'success' => true,
+        'data' => $data['data'],
+        'meta' => $data['meta'],
+        'links' => $data['links'],
+      ], $status);
+    }
+
     return response()->json([
       'success' => true,
       'data' => $data,
