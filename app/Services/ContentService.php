@@ -1,5 +1,4 @@
 <?php
-// app/Services/ContentService.php
 
 namespace App\Services;
 
@@ -18,18 +17,12 @@ use Illuminate\Support\Facades\Log;
 
 class ContentService
 {
-  /**
-   * Cache duration in minutes.
-   */
   protected int $cacheMinutes = 60;
 
-    /* ==========================================
+  /* ==========================================
      | PAGE & SECTION METHODS
      |========================================== */
 
-  /**
-   * Get a page by slug.
-   */
   public function getPage(string $slug): ?Page
   {
     return Cache::remember("page.{$slug}", $this->cacheMinutes, function () use ($slug) {
@@ -37,9 +30,6 @@ class ContentService
     });
   }
 
-  /**
-   * Get all enabled sections for a page, ordered by display_order.
-   */
   public function getPageSections(string $pageSlug): Collection
   {
     return Cache::remember("sections.{$pageSlug}", $this->cacheMinutes, function () use ($pageSlug) {
@@ -51,12 +41,11 @@ class ContentService
   }
 
   /**
-   * Get data for a specific section (custom_section_data, about_content, etc.)
+   * @return mixed (type depends on data_table)
    */
   public function getSectionData(string $pageSlug, string $sectionKey)
   {
     $cacheKey = "section_data.{$pageSlug}.{$sectionKey}";
-
     return Cache::remember($cacheKey, $this->cacheMinutes, function () use ($pageSlug, $sectionKey) {
       $sectionConfig = SectionConfig::forPage($pageSlug)
         ->where('section_key', $sectionKey)
@@ -89,92 +78,68 @@ class ContentService
     });
   }
 
-    /* ==========================================
+  /* ==========================================
      | SHARED DATA METHODS
      |========================================== */
 
-  /**
-   * Get shared data by type (topbar, navbar, footer, faq, upcoming-events, stories).
-   */
   public function getSharedData(string $type): ?SharedData
   {
     $key = "shared.{$type}";
-
-    // Check if cache exists and is a model instance
     $cached = Cache::get($key);
 
     if ($cached instanceof SharedData) {
       return $cached;
     }
 
-    // If cache is invalid or missing, fetch from database
     $result = SharedData::ofType($type)->active()->first();
-
     if ($result) {
       Cache::put($key, $result, $this->cacheMinutes * 60);
     }
-
     return $result;
   }
 
-  /**
-   * Get topbar data.
-   */
+  /* ==========================================
+ | SHARED DATA METHODS
+ |========================================== */
+
   public function getTopbar(): ?SharedData
   {
     return $this->getSharedData('topbar');
   }
 
-  /**
-   * Get navbar data.
-   */
   public function getNavbar(): ?SharedData
   {
     return $this->getSharedData('navbar');
   }
 
-  /**
-   * Get footer data.
-   */
   public function getFooter(): ?SharedData
   {
     return $this->getSharedData('footer');
   }
 
-  /**
-   * Get FAQ data.
-   */
   public function getFaqs(): ?SharedData
   {
     return $this->getSharedData('faq');
   }
 
-  /**
-   * Get upcoming events data.
-   */
   public function getUpcomingEvents(): ?SharedData
   {
     return $this->getSharedData('upcoming-events');
   }
 
-  /**
-   * Get stories data. 👈 NEW
-   */
   public function getStories(): ?SharedData
   {
     return $this->getSharedData('stories');
   }
 
-    /* ==========================================
+  /* ==========================================
      | BLOG METHODS
      |========================================== */
 
-  /**
-   * Get all active blogs, optionally limited.
-   */
   public function getBlogs(?int $limit = null): Collection
   {
-    return Cache::remember("blogs.all." . ($limit ?? 'all'), $this->cacheMinutes, function () use ($limit) {
+    $key = "blogs.all." . ($limit ?? 'all');
+    return Cache::remember($key, $this->cacheMinutes, function () use ($limit) {
       return Blog::active()
         ->latest()
         ->when($limit, fn($q) => $q->limit($limit))
@@ -182,12 +147,10 @@ class ContentService
     });
   }
 
-  /**
-   * Get featured blogs, optionally limited.
-   */
   public function getFeaturedBlogs(?int $limit = null): Collection
   {
-    return Cache::remember("blogs.featured." . ($limit ?? 'all'), $this->cacheMinutes, function () use ($limit) {
+    $key = "blogs.featured." . ($limit ?? 'all');
+    return Cache::remember($key, $this->cacheMinutes, function () use ($limit) {
       return Blog::active()
         ->featured()
         ->latest()
@@ -196,9 +159,6 @@ class ContentService
     });
   }
 
-  /**
-   * Get a single blog by slug.
-   */
   public function getBlog(string $slug): Blog
   {
     return Cache::remember("blog.{$slug}", $this->cacheMinutes, function () use ($slug) {
@@ -206,16 +166,11 @@ class ContentService
     });
   }
 
-  /**
-   * Get related blogs excluding a given blog ID, optionally filtered by tags.
-   */
   public function getRelatedBlogs(int $blogId, array $tags = [], int $limit = 3): Collection
   {
-    $cacheKey = "blogs.related.{$blogId}." . md5(implode(',', $tags) . $limit);
-
-    return Cache::remember($cacheKey, $this->cacheMinutes, function () use ($blogId, $tags, $limit) {
+    $key = "blogs.related.{$blogId}." . md5(implode(',', $tags) . $limit);
+    return Cache::remember($key, $this->cacheMinutes, function () use ($blogId, $tags, $limit) {
       $query = Blog::active()->where('id', '!=', $blogId);
-
       if (!empty($tags)) {
         $query->where(function ($q) use ($tags) {
           foreach ($tags as $tag) {
@@ -223,21 +178,18 @@ class ContentService
           }
         });
       }
-
       return $query->latest()->limit($limit)->get();
     });
   }
 
-    /* ==========================================
+  /* ==========================================
      | PROGRAM METHODS
      |========================================== */
 
-  /**
-   * Get all active programs, optionally limited.
-   */
   public function getPrograms(?int $limit = null): Collection
   {
-    return Cache::remember("programs.all." . ($limit ?? 'all'), $this->cacheMinutes, function () use ($limit) {
+    $key = "programs.all." . ($limit ?? 'all');
+    return Cache::remember($key, $this->cacheMinutes, function () use ($limit) {
       return Program::active()
         ->ordered()
         ->when($limit, fn($q) => $q->limit($limit))
@@ -245,12 +197,10 @@ class ContentService
     });
   }
 
-  /**
-   * Get featured programs, optionally limited.
-   */
   public function getFeaturedPrograms(?int $limit = null): Collection
   {
-    return Cache::remember("programs.featured." . ($limit ?? 'all'), $this->cacheMinutes, function () use ($limit) {
+    $key = "programs.featured." . ($limit ?? 'all');
+    return Cache::remember($key, $this->cacheMinutes, function () use ($limit) {
       return Program::active()
         ->featured()
         ->ordered()
@@ -259,9 +209,6 @@ class ContentService
     });
   }
 
-  /**
-   * Get a single program by slug.
-   */
   public function getProgram(string $slug): Program
   {
     return Cache::remember("program.{$slug}", $this->cacheMinutes, function () use ($slug) {
@@ -269,13 +216,10 @@ class ContentService
     });
   }
 
-    /* ==========================================
+  /* ==========================================
      | ABOUT CONTENT METHODS
      |========================================== */
 
-  /**
-   * Get about content by slug.
-   */
   public function getAboutContent(string $slug): AboutContent
   {
     return Cache::remember("about.{$slug}", $this->cacheMinutes, function () use ($slug) {
@@ -283,9 +227,6 @@ class ContentService
     });
   }
 
-  /**
-   * Get the main about page content (type = 'main').
-   */
   public function getMainAboutContent(): ?AboutContent
   {
     return Cache::remember('about.main', $this->cacheMinutes, function () {
@@ -293,9 +234,6 @@ class ContentService
     });
   }
 
-  /**
-   * Get all detail about pages (type = 'detail').
-   */
   public function getAboutDetails(): Collection
   {
     return Cache::remember('about.details', $this->cacheMinutes, function () {
@@ -303,16 +241,14 @@ class ContentService
     });
   }
 
-    /* ==========================================
+  /* ==========================================
      | PUBLICATION METHODS
      |========================================== */
 
-  /**
-   * Get all publications with optional limit
-   */
   public function getPublications(?int $limit = null): Collection
   {
-    return Cache::remember("publications.all." . ($limit ?? 'all'), $this->cacheMinutes, function () use ($limit) {
+    $key = "publications.all." . ($limit ?? 'all');
+    return Cache::remember($key, $this->cacheMinutes, function () use ($limit) {
       return Publication::active()
         ->latest()
         ->when($limit, fn($q) => $q->limit($limit))
@@ -320,12 +256,10 @@ class ContentService
     });
   }
 
-  /**
-   * Get featured publications with optional limit
-   */
   public function getFeaturedPublications(?int $limit = null): Collection
   {
-    return Cache::remember("publications.featured." . ($limit ?? 'all'), $this->cacheMinutes, function () use ($limit) {
+    $key = "publications.featured." . ($limit ?? 'all');
+    return Cache::remember($key, $this->cacheMinutes, function () use ($limit) {
       return Publication::active()
         ->featured()
         ->latest()
@@ -334,9 +268,6 @@ class ContentService
     });
   }
 
-  /**
-   * Get publication by slug
-   */
   public function getPublication(string $slug): Publication
   {
     return Cache::remember("publication.{$slug}", $this->cacheMinutes, function () use ($slug) {
@@ -344,16 +275,11 @@ class ContentService
     });
   }
 
-  /**
-   * Get related publications with tag matching
-   */
   public function getRelatedPublications(int $publicationId, array $tags = [], int $limit = 3): Collection
   {
-    $cacheKey = "publications.related.{$publicationId}." . md5(implode(',', $tags) . $limit);
-
-    return Cache::remember($cacheKey, $this->cacheMinutes, function () use ($publicationId, $tags, $limit) {
+    $key = "publications.related.{$publicationId}." . md5(implode(',', $tags) . $limit);
+    return Cache::remember($key, $this->cacheMinutes, function () use ($publicationId, $tags, $limit) {
       $query = Publication::active()->where('id', '!=', $publicationId);
-
       if (!empty($tags)) {
         $query->where(function ($q) use ($tags) {
           foreach ($tags as $tag) {
@@ -361,25 +287,21 @@ class ContentService
           }
         });
       }
-
       return $query->latest()->limit($limit)->get();
     });
   }
 
-    /* ==========================================
+  /* ==========================================
      | JOBS METHODS
      |========================================== */
 
-  /**
-   * Get active job listings, optionally limited.
-   */
   public function getJobs(?int $limit = 5): Collection
   {
     if (!class_exists(JobListing::class)) {
       return collect();
     }
-
-    return Cache::remember("jobs." . ($limit ?? 'all'), $this->cacheMinutes, function () use ($limit) {
+    $key = "jobs." . ($limit ?? 'all');
+    return Cache::remember($key, $this->cacheMinutes, function () use ($limit) {
       return JobListing::active()
         ->orderBy('views_count', 'desc')
         ->when($limit, fn($q) => $q->limit($limit))
@@ -387,16 +309,14 @@ class ContentService
     });
   }
 
-    /* ==========================================
-     | CUSTOM SECTION DATA (direct access)
+  /* ==========================================
+     | CUSTOM SECTION DATA
      |========================================== */
 
-  /**
-   * Get custom section data for a page and section key.
-   */
   public function getCustomSectionData(string $pageSlug, string $sectionKey): ?CustomSectionData
   {
-    return Cache::remember("custom.{$pageSlug}.{$sectionKey}", $this->cacheMinutes, function () use ($pageSlug, $sectionKey) {
+    $key = "custom.{$pageSlug}.{$sectionKey}";
+    return Cache::remember($key, $this->cacheMinutes, function () use ($pageSlug, $sectionKey) {
       return CustomSectionData::forPage($pageSlug)
         ->forSection($sectionKey)
         ->active()
@@ -404,14 +324,10 @@ class ContentService
     });
   }
 
-    /* ==========================================
-     | UTILITY: CLEAR CACHE
+  /* ==========================================
+     | UTILITY
      |========================================== */
 
-  /**
-   * Clear all cached content data.
-   * Useful after CMS updates.
-   */
   public function clearCache(): void
   {
     Cache::flush();

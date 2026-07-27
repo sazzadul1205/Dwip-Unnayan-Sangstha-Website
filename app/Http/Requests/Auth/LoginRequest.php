@@ -42,18 +42,18 @@ class LoginRequest extends FormRequest
     {
         $this->ensureIsNotRateLimited();
 
-        $email = $this->email;
+        $email = $this->input('email');
 
         if (! Auth::attempt($this->only('email', 'password'), $this->boolean('remember'))) {
             RateLimiter::hit($this->throttleKey());
 
-            // Log failed attempt
             SimpleLogger::security(
                 "❌ Failed login attempt for: {$email}",
                 [
-                    'email' => $email,
-                    'attempts' => RateLimiter::attempts($this->throttleKey()),
-                    'ip' => $this->ip()
+                    'email'      => $email,
+                    'attempts'   => RateLimiter::attempts($this->throttleKey()),
+                    'ip'         => $this->ip(),
+                    'user_agent' => $this->userAgent(),
                 ]
             );
 
@@ -64,13 +64,14 @@ class LoginRequest extends FormRequest
 
         RateLimiter::clear($this->throttleKey());
 
-        // Log successful login
         SimpleLogger::security(
             "✅ User logged in: " . Auth::user()->email,
             [
-                'user_id' => Auth::id(),
-                'email' => Auth::user()->email,
-                'roles' => Auth::user()->roles->pluck('name')->implode(', ')
+                'user_id'    => Auth::id(),
+                'email'      => Auth::user()->email,
+                'roles'      => Auth::user()->roles->pluck('name')->implode(', '),
+                'ip'         => $this->ip(),
+                'user_agent' => $this->userAgent(),
             ]
         );
     }
@@ -103,6 +104,6 @@ class LoginRequest extends FormRequest
      */
     public function throttleKey(): string
     {
-        return Str::transliterate(Str::lower($this->string('email')) . '|' . $this->ip());
+        return Str::transliterate(Str::lower($this->input('email')) . '|' . $this->ip());
     }
 }

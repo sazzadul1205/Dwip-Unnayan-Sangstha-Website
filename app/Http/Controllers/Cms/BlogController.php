@@ -1,115 +1,106 @@
 <?php
-// app/Http/Controllers/Cms/BlogController.php
 
 namespace App\Http\Controllers\Cms;
 
 use App\Http\Controllers\Controller;
 use App\Models\pages\Blog;
 use App\Models\User;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Str;
-use Illuminate\Support\Facades\Storage;
-use Inertia\Inertia;
-use Inertia\Response;
 use App\Services\SimpleLogger;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class BlogController extends Controller
 {
   /**
-   * Display blogs
+   * Max image size in bytes (5MB).
+   */
+  protected int $maxImageSize = 5 * 1024 * 1024;
+
+  /**
+   * Display blogs – with caching for admin list.
    */
   public function index(): Response|RedirectResponse
   {
-    $user = Auth::user();
-    if (!$user instanceof User) {
-      abort(401);
-    }
+    $user = $this->getAuthUser();
+
     if (!$user->hasPermission('blogs.view')) {
       return redirect()->route('unauthorized.access')
         ->with('error', 'You do not have permission to view blogs.');
     }
 
     try {
-      $items = Blog::withTrashed()->orderBy('created_at', 'desc')->get();
+      // Cache the list for 5 minutes
+      $items = Cache::remember('blog_admin_list', 300, function () {
+        return Blog::withTrashed()->orderBy('created_at', 'desc')->get();
+      });
+
       return Inertia::render('Backend/CMS/Blogs/Index', ['items' => $items]);
     } catch (\Exception $e) {
       Log::error('Failed to fetch blogs: ' . $e->getMessage());
       return Inertia::render('Backend/CMS/Blogs/Index', [
         'items' => [],
-        'flash' => ['error' => 'Failed to load blogs. Please try again.']
+        'flash' => ['error' => 'Failed to load blogs. Please try again.'],
       ]);
     }
   }
 
   /**
-   * Store a new blog
+   * Store a new blog – with rate limiting.
    */
-  public function store(Request $request)
+  public function store(Request $request): RedirectResponse
   {
-    $user = Auth::user();
-    if (!$user instanceof User) {
-      abort(401);
-    }
+    $user = $this->getAuthUser();
+
     if (!$user->hasPermission('blogs.create')) {
       return redirect()->back()->with('error', 'You do not have permission to create blogs.');
     }
 
+    $this->checkRateLimit('blog_create', $user->id);
+
     try {
-      $validator = Validator::make($request->all(), [
-        'title' => 'required|string|max:255',
-        'slug' => 'nullable|string|unique:blogs,slug',
-        'excerpt' => 'nullable|string|max:500',
-        'full_content' => 'nullable|string',
-        'image' => 'nullable|string',
-        'date' => 'nullable|string|max:255',
-        'author' => 'nullable|string|max:255',
-        'read_time' => 'nullable|integer|min:1|max:60',
-        'tags' => 'nullable|array',
-        'tags.*' => 'string|max:50',
-        'is_featured' => 'boolean',
-        'is_active' => 'boolean',
-      ]);
+      $validated = $this->validateBlog($request);
 
-      if ($validator->fails()) {
-        return back()->withErrors($validator)->withInput();
-      }
-
-      $data = $request->all();
+      $data = $this->prepareData($validated, $request);
 
       // Process image if it's a base64 string
       if (!empty($data['image']) && $this->isBase64Image($data['image'])) {
         $uploadedPath = $this->uploadImage($data['image']);
-        if ($uploadedPath) {
-          $data['image'] = $uploadedPath;
-        } else {
-          unset($data['image']);
-          Log::warning('Image upload failed for blog: ' . ($data['title'] ?? 'unknown'));
-        }
+        $data['image'] = $uploadedPath ?? null;
       }
 
-      $this->cleanSessionOldInput();
-
+      // Generate slug if not provided
       if (empty($data['slug'])) {
         $data['slug'] = $this->generateUniqueSlug($data['title']);
       }
 
-      $data['is_featured'] = filter_var($data['is_featured'] ?? false, FILTER_VALIDATE_BOOLEAN);
-      $data['is_active'] = filter_var($data['is_active'] ?? true, FILTER_VALIDATE_BOOLEAN);
+      // Set defaults if missing
       $data['date'] = $data['date'] ?? now()->format('F j, Y');
       $data['author'] = $data['author'] ?? 'Admin';
-      $data['read_time'] = (int)($data['read_time'] ?? 5);
+      $data['read_time'] = (int) ($data['read_time'] ?? 5);
+      $data['is_featured'] = filter_var($data['is_featured'] ?? false, FILTER_VALIDATE_BOOLEAN);
+      $data['is_active'] = filter_var($data['is_active'] ?? true, FILTER_VALIDATE_BOOLEAN);
 
+      // Ensure tags are stored as JSON
       if (isset($data['tags']) && is_array($data['tags'])) {
         $data['tags'] = array_values(array_unique(array_filter($data['tags'])));
       }
 
       $blog = Blog::create($data);
 
-      // Log blog creation
+      // Clear cache
+      $this->clearCache();
+
+      RateLimiter::clear($this->getThrottleKey('blog_create', $user->id));
+
       SimpleLogger::cms(
         "Blog created: {$blog->title}",
         [
@@ -119,17 +110,20 @@ class BlogController extends Controller
           'author' => $blog->author,
           'is_active' => $blog->is_active,
           'is_featured' => $blog->is_featured,
-          'created_by' => Auth::user()?->email ?? 'system'
+          'created_by' => $user->email,
+          'ip' => $request->ip(),
         ]
       );
 
       session()->forget('_old_input');
 
       return redirect()->back()->with('success', '✅ Blog created successfully!');
+    } catch (ValidationException $e) {
+      return back()->withErrors($e->errors())->withInput();
     } catch (\Exception $e) {
       Log::error('Blog creation failed: ' . $e->getMessage(), [
         'trace' => $e->getTraceAsString(),
-        'input' => $request->except(['image', 'full_content'])
+        'input' => $request->except(['image', 'full_content']),
       ]);
 
       return back()
@@ -139,70 +133,49 @@ class BlogController extends Controller
   }
 
   /**
-   * Update a blog
+   * Update a blog – with rate limiting.
    */
-  public function update(Request $request, int $id)
+  public function update(Request $request, int $id): RedirectResponse
   {
+    $user = $this->getAuthUser();
 
-    $user = Auth::user();
-    if (!$user instanceof User) {
-      abort(401);
-    }
     if (!$user->hasPermission('blogs.update')) {
       return redirect()->back()->with('error', 'You do not have permission to update blogs.');
     }
+
+    $this->checkRateLimit('blog_update', $user->id);
+
     try {
       $blog = Blog::withTrashed()->findOrFail($id);
 
-      $validator = Validator::make($request->all(), [
-        'title' => 'required|string|max:255',
-        'slug' => 'nullable|string|unique:blogs,slug,' . $id,
-        'excerpt' => 'nullable|string|max:500',
-        'full_content' => 'nullable|string',
-        'image' => 'nullable|string',
-        'date' => 'nullable|string|max:255',
-        'author' => 'nullable|string|max:255',
-        'read_time' => 'nullable|integer|min:1|max:60',
-        'tags' => 'nullable|array',
-        'tags.*' => 'string|max:50',
-        'is_featured' => 'boolean',
-        'is_active' => 'boolean',
-      ]);
+      $validated = $this->validateBlog($request, $id);
 
-      if ($validator->fails()) {
-        return back()->withErrors($validator)->withInput();
-      }
-
-      $data = $request->all();
+      $data = $this->prepareData($validated, $request);
 
       // Track changes for logging
       $oldTitle = $blog->title;
       $oldStatus = $blog->is_active;
       $oldFeatured = $blog->is_featured;
 
+      // Process image if it's a base64 string
       if (!empty($data['image']) && $this->isBase64Image($data['image'])) {
+        // Delete old image if exists
         if ($blog->image && !filter_var($blog->image, FILTER_VALIDATE_URL)) {
           $this->deleteImageFile($blog->image);
         }
 
         $uploadedPath = $this->uploadImage($data['image']);
-        if ($uploadedPath) {
-          $data['image'] = $uploadedPath;
-        } else {
-          unset($data['image']);
-          Log::warning('Image upload failed for blog update: ' . ($data['title'] ?? 'unknown'));
-        }
+        $data['image'] = $uploadedPath ?? null;
       }
 
-      $this->cleanSessionOldInput();
-
+      // Regenerate slug if title changed and slug not manually set
       if (empty($data['slug']) || ($data['title'] !== $blog->title && $data['slug'] === $blog->slug)) {
         $data['slug'] = $this->generateUniqueSlug($data['title'], $id);
       }
 
       $data['is_featured'] = filter_var($data['is_featured'] ?? false, FILTER_VALIDATE_BOOLEAN);
       $data['is_active'] = filter_var($data['is_active'] ?? true, FILTER_VALIDATE_BOOLEAN);
-      $data['read_time'] = (int)($data['read_time'] ?? 5);
+      $data['read_time'] = (int) ($data['read_time'] ?? 5);
 
       if (isset($data['tags']) && is_array($data['tags'])) {
         $data['tags'] = array_values(array_unique(array_filter($data['tags'])));
@@ -210,7 +183,12 @@ class BlogController extends Controller
 
       $blog->update($data);
 
-      // Log the changes
+      // Clear cache
+      $this->clearCache();
+
+      RateLimiter::clear($this->getThrottleKey('blog_update', $user->id));
+
+      // Log changes
       $changes = [];
       if ($oldTitle !== $blog->title) {
         $changes['title'] = ['old' => $oldTitle, 'new' => $blog->title];
@@ -228,7 +206,8 @@ class BlogController extends Controller
           [
             'blog_id' => $blog->id,
             'changes' => $changes,
-            'updated_by' => Auth::user()?->email ?? 'system'
+            'updated_by' => $user->email,
+            'ip' => $request->ip(),
           ]
         );
       }
@@ -236,11 +215,13 @@ class BlogController extends Controller
       session()->forget('_old_input');
 
       return redirect()->back()->with('success', '✅ Blog updated successfully!');
+    } catch (ValidationException $e) {
+      return back()->withErrors($e->errors())->withInput();
     } catch (\Exception $e) {
       Log::error('Blog update failed: ' . $e->getMessage(), [
         'trace' => $e->getTraceAsString(),
         'blog_id' => $id,
-        'input' => $request->except(['image', 'full_content'])
+        'input' => $request->except(['image', 'full_content']),
       ]);
 
       return back()
@@ -250,24 +231,39 @@ class BlogController extends Controller
   }
 
   /**
-   * Toggle blog status
+   * Toggle blog active status – with rate limiting.
    */
-  public function toggleStatus(int $id)
+  public function toggleStatus(int $id): RedirectResponse
   {
+    $user = $this->getAuthUser();
 
-    $user = Auth::user();
-    if (!$user instanceof User) {
-      abort(401);
-    }
     if (!$user->hasPermission('blogs.update')) {
       return redirect()->back()->with('error', 'You do not have permission to change blog status.');
     }
+
+    $this->checkRateLimit('blog_toggle_status', $user->id);
+
     try {
       $blog = Blog::findOrFail($id);
       $blog->is_active = !$blog->is_active;
       $blog->save();
 
+      $this->clearCache();
+
+      RateLimiter::clear($this->getThrottleKey('blog_toggle_status', $user->id));
+
       $status = $blog->is_active ? 'activated' : 'deactivated';
+
+      SimpleLogger::cms(
+        "Blog {$status}: {$blog->title}",
+        [
+          'blog_id' => $id,
+          'new_status' => $blog->is_active ? 'active' : 'inactive',
+          'updated_by' => $user->email,
+          'ip' => request()->ip(),
+        ]
+      );
+
       return redirect()->back()->with('success', "✅ Blog {$status} successfully.");
     } catch (\Exception $e) {
       Log::error('Blog status toggle failed: ' . $e->getMessage(), ['blog_id' => $id]);
@@ -276,17 +272,18 @@ class BlogController extends Controller
   }
 
   /**
-   * Toggle featured status
+   * Toggle featured status – with rate limiting.
    */
-  public function toggleFeatured(int $id)
+  public function toggleFeatured(int $id): RedirectResponse
   {
-    $user = Auth::user();
-    if (!$user instanceof User) {
-      abort(401);
-    }
+    $user = $this->getAuthUser();
+
     if (!$user->hasPermission('blogs.update')) {
       return redirect()->back()->with('error', 'You do not have permission to change featured status.');
     }
+
+    $this->checkRateLimit('blog_toggle_featured', $user->id);
+
     try {
       $blog = Blog::findOrFail($id);
 
@@ -298,7 +295,22 @@ class BlogController extends Controller
       $blog->is_featured = !$blog->is_featured;
       $blog->save();
 
+      $this->clearCache();
+
+      RateLimiter::clear($this->getThrottleKey('blog_toggle_featured', $user->id));
+
       $status = $blog->is_featured ? 'featured' : 'unfeatured';
+
+      SimpleLogger::cms(
+        "Blog {$status}: {$blog->title}",
+        [
+          'blog_id' => $id,
+          'is_featured' => $blog->is_featured,
+          'updated_by' => $user->email,
+          'ip' => request()->ip(),
+        ]
+      );
+
       return redirect()->back()->with('success', "✅ Blog {$status} successfully.");
     } catch (\Exception $e) {
       Log::error('Blog featured toggle failed: ' . $e->getMessage(), ['blog_id' => $id]);
@@ -307,17 +319,17 @@ class BlogController extends Controller
   }
 
   /**
-   * Soft delete a blog
+   * Soft delete a blog – with rate limiting.
    */
-  public function destroy(int $id)
+  public function destroy(int $id): RedirectResponse
   {
-    $user = Auth::user();
-    if (!$user instanceof User) {
-      abort(401);
-    }
+    $user = $this->getAuthUser();
+
     if (!$user->hasPermission('blogs.destroy')) {
       return redirect()->back()->with('error', 'You do not have permission to delete blogs.');
     }
+
+    $this->checkRateLimit('blog_delete', $user->id);
 
     try {
       $blog = Blog::findOrFail($id);
@@ -327,11 +339,16 @@ class BlogController extends Controller
         [
           'blog_id' => $blog->id,
           'title' => $blog->title,
-          'deleted_by' => Auth::user()?->email ?? 'system'
+          'deleted_by' => $user->email,
+          'ip' => request()->ip(),
         ]
       );
 
       $blog->delete();
+
+      $this->clearCache();
+
+      RateLimiter::clear($this->getThrottleKey('blog_delete', $user->id));
 
       return redirect()->back()->with('success', '🗑️ Blog moved to trash successfully.');
     } catch (\Exception $e) {
@@ -341,27 +358,33 @@ class BlogController extends Controller
   }
 
   /**
-   * Restore a soft-deleted blog
+   * Restore a soft-deleted blog – with rate limiting.
    */
-  public function restore(int $id)
+  public function restore(int $id): RedirectResponse
   {
-    $user = Auth::user();
-    if (!$user instanceof User) {
-      abort(401);
-    }
+    $user = $this->getAuthUser();
+
     if (!$user->hasPermission('blogs.restore')) {
       return redirect()->back()->with('error', 'You do not have permission to restore blogs.');
     }
+
+    $this->checkRateLimit('blog_restore', $user->id);
+
     try {
       $blog = Blog::withTrashed()->findOrFail($id);
       $blog->restore();
+
+      $this->clearCache();
+
+      RateLimiter::clear($this->getThrottleKey('blog_restore', $user->id));
 
       SimpleLogger::cms(
         "Blog restored: {$blog->title}",
         [
           'blog_id' => $blog->id,
           'title' => $blog->title,
-          'restored_by' => Auth::user()?->email ?? 'system'
+          'restored_by' => $user->email,
+          'ip' => request()->ip(),
         ]
       );
 
@@ -372,53 +395,104 @@ class BlogController extends Controller
     }
   }
 
+    // ==========================================
+    // PRIVATE HELPER METHODS
+    // ==========================================
+
   /**
-   * Clean session old input to prevent max_allowed_packet errors
+   * Get the authenticated user.
    */
-  protected function cleanSessionOldInput(): void
+  private function getAuthUser(): User
   {
-    if (session()->has('_old_input')) {
-      $oldInput = session()->get('_old_input');
-      if (isset($oldInput['image']) && $this->isBase64Image($oldInput['image'])) {
-        unset($oldInput['image']);
-        session()->put('_old_input', $oldInput);
-      }
+    $user = Auth::user();
+    if (!$user instanceof User) {
+      abort(401, 'Unauthenticated');
     }
+    return $user;
   }
 
   /**
-   * Generate a unique slug
+   * Check rate limit for admin actions.
    */
-  protected function generateUniqueSlug(string $title, ?int $excludeId = null): string
+  private function checkRateLimit(string $action, int $userId, int $maxAttempts = 10, int $decaySeconds = 3600): void
   {
-    $slug = Str::slug($title);
-    $originalSlug = $slug;
-    $counter = 1;
-
-    while (Blog::withTrashed()
-      ->where('slug', $slug)
-      ->when($excludeId, fn($q) => $q->where('id', '!=', $excludeId))
-      ->exists()
-    ) {
-      $slug = $originalSlug . '-' . $counter;
-      $counter++;
+    $key = $this->getThrottleKey($action, $userId);
+    if (RateLimiter::tooManyAttempts($key, $maxAttempts)) {
+      Log::warning("Rate limit exceeded for {$action}", ['user_id' => $userId]);
+      throw ValidationException::withMessages([
+        'rate_limit' => 'Too many attempts. Please wait a moment.',
+      ]);
     }
-
-    return $slug;
+    RateLimiter::hit($key, $decaySeconds);
   }
 
   /**
-   * Check if string is a base64 image
+   * Get throttle key.
    */
-  protected function isBase64Image(string $string): bool
+  private function getThrottleKey(string $action, int $userId): string
+  {
+    return "blog_{$action}|{$userId}";
+  }
+
+  /**
+   * Clear the blog cache.
+   */
+  private function clearCache(): void
+  {
+    Cache::forget('blog_admin_list');
+    // Also clear frontend cache if you have one
+    Cache::forget('frontend_blog_list');
+  }
+
+  /**
+   * Validate blog data.
+   */
+  private function validateBlog(Request $request, ?int $excludeId = null): array
+  {
+    $rules = [
+      'title' => 'required|string|max:255',
+      'slug' => 'nullable|string|unique:blogs,slug,' . ($excludeId ?? 'NULL'),
+      'excerpt' => 'nullable|string|max:500',
+      'full_content' => 'nullable|string',
+      'image' => 'nullable|string',
+      'date' => 'nullable|string|max:255',
+      'author' => 'nullable|string|max:255',
+      'read_time' => 'nullable|integer|min:1|max:60',
+      'tags' => 'nullable|array',
+      'tags.*' => 'string|max:50',
+      'is_featured' => 'nullable|boolean',
+      'is_active' => 'nullable|boolean',
+    ];
+
+    return $request->validate($rules);
+  }
+
+  /**
+   * Prepare data from validated input.
+   */
+  private function prepareData(array $validated, Request $request): array
+  {
+    $data = $validated;
+
+    // Cast booleans
+    $data['is_featured'] = filter_var($data['is_featured'] ?? false, FILTER_VALIDATE_BOOLEAN);
+    $data['is_active'] = filter_var($data['is_active'] ?? true, FILTER_VALIDATE_BOOLEAN);
+
+    return $data;
+  }
+
+  /**
+   * Check if string is a base64 image.
+   */
+  private function isBase64Image(string $string): bool
   {
     return str_starts_with($string, 'data:image/');
   }
 
   /**
-   * Upload image and return the path
+   * Upload image and return the path.
    */
-  protected function uploadImage(string $base64String): ?string
+  private function uploadImage(string $base64String): ?string
   {
     try {
       // Validate base64 format
@@ -439,19 +513,16 @@ class BlogController extends Controller
         return null;
       }
 
-      // Check file size (max 5MB)
-      if (strlen($imageContent) > 5 * 1024 * 1024) {
-        Log::warning('Image too large: ' . strlen($imageContent) . ' bytes');
+      // Check file size
+      if (strlen($imageContent) > $this->maxImageSize) {
+        Log::warning('Image too large: ' . strlen($imageContent) . ' bytes (max: ' . $this->maxImageSize . ')');
         return null;
       }
 
       $extension = $this->getImageExtension($base64String);
-
-      // Simple timestamp-based filename
       $filename = date('Ymd_His') . '_' . uniqid() . '.' . $extension;
       $path = 'Blogs/' . $filename;
 
-      // Store the image
       $stored = Storage::disk('public')->put($path, $imageContent);
 
       if (!$stored) {
@@ -467,38 +538,36 @@ class BlogController extends Controller
   }
 
   /**
-   * Get image extension from base64 string
+   * Get image extension from base64 string.
    */
-  protected function getImageExtension(string $base64String): string
+  private function getImageExtension(string $base64String): string
   {
-    $mimeMap = [
-      'jpeg' => 'jpg',
-      'jpg' => 'jpg',
-      'png' => 'png',
-      'gif' => 'gif',
-      'webp' => 'webp',
-      'svg+xml' => 'svg',
-      'bmp' => 'bmp',
-      'tiff' => 'tiff',
-      'x-icon' => 'ico',
-      'vnd.microsoft.icon' => 'ico',
-    ];
-
     if (preg_match('/^data:image\/([^;]+);base64,/', $base64String, $matches)) {
-      $mimeType = $matches[1];
-      return $mimeMap[$mimeType] ?? 'png';
+      $mime = $matches[1];
+      $map = [
+        'jpeg' => 'jpg',
+        'jpg' => 'jpg',
+        'png' => 'png',
+        'gif' => 'gif',
+        'webp' => 'webp',
+        'svg+xml' => 'svg',
+        'bmp' => 'bmp',
+        'tiff' => 'tiff',
+        'x-icon' => 'ico',
+        'vnd.microsoft.icon' => 'ico',
+      ];
+      return $map[$mime] ?? 'png';
     }
 
     return 'png';
   }
 
   /**
-   * Delete image file from storage
+   * Delete image file from storage.
    */
-  protected function deleteImageFile(string $imagePath): void
+  private function deleteImageFile(string $imagePath): void
   {
     try {
-      // Remove storage prefix if present
       $relativePath = str_replace('/storage/', '', $imagePath);
       if (Storage::disk('public')->exists($relativePath)) {
         Storage::disk('public')->delete($relativePath);
@@ -510,17 +579,20 @@ class BlogController extends Controller
   }
 
   /**
-   * Delete images embedded in HTML content (only from editor-images folder)
+   * Delete images embedded in HTML content (only from editor-images folder).
    */
-  protected function deleteImagesFromContent(?string $content): void
+  private function deleteImagesFromContent(?string $content): void
   {
-    if (empty($content)) return;
+    if (empty($content)) {
+      return;
+    }
 
     preg_match_all('/<img[^>]+src="([^"]+)"/i', $content, $matches);
-    if (empty($matches[1])) return;
+    if (empty($matches[1])) {
+      return;
+    }
 
     foreach ($matches[1] as $src) {
-      // Only delete images from the editor-images folder
       if (str_starts_with($src, '/storage/editor-images/')) {
         $relativePath = str_replace('/storage/', '', $src);
         try {
@@ -533,5 +605,26 @@ class BlogController extends Controller
         }
       }
     }
+  }
+
+  /**
+   * Generate a unique slug.
+   */
+  private function generateUniqueSlug(string $title, ?int $excludeId = null): string
+  {
+    $slug = Str::slug($title);
+    $originalSlug = $slug;
+    $counter = 1;
+
+    while (Blog::withTrashed()
+      ->where('slug', $slug)
+      ->when($excludeId, fn($q) => $q->where('id', '!=', $excludeId))
+      ->exists()
+    ) {
+      $slug = $originalSlug . '-' . $counter;
+      $counter++;
+    }
+
+    return $slug;
   }
 }

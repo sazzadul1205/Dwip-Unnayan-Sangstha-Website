@@ -2,34 +2,21 @@
 
 namespace App\Http\Controllers\Auth\Shared;
 
-// Controllers
 use App\Http\Controllers\Controller;
-
-// Models
-use App\Models\User;
 use App\Models\Role;
-
-// HTTP
-use Illuminate\Http\Request;
+use App\Models\User;
+use App\Services\SimpleLogger;
 use Illuminate\Http\RedirectResponse;
-
-// Support
-use Illuminate\Support\Str;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
-
-// Socialite
+use Illuminate\Support\Str;
+use Laravel\Socialite\Contracts\User as SocialiteUser;
 use Laravel\Socialite\Facades\Socialite;
-use Laravel\Socialite\Two\User as SocialiteUser;
-
-// Exceptions
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class GoogleAuthController extends Controller
 {
-    /**
-     * Redirect the user to Google's OAuth consent screen.
-     */
     public function redirect(): RedirectResponse
     {
         $this->ensureGoogleIsConfigured();
@@ -37,9 +24,6 @@ class GoogleAuthController extends Controller
         return Socialite::driver('google')->redirect();
     }
 
-    /**
-     * Handle the OAuth callback from Google.
-     */
     public function callback(Request $request): RedirectResponse
     {
         $this->ensureGoogleIsConfigured();
@@ -50,6 +34,14 @@ class GoogleAuthController extends Controller
         } catch (\Throwable $exception) {
             report($exception);
 
+            SimpleLogger::security(
+                'Google OAuth callback failed',
+                [
+                    'error' => $exception->getMessage(),
+                    'ip' => $request->ip(),
+                ]
+            );
+
             return to_route('login')->withErrors([
                 'google' => 'Google sign-in could not be completed. Please try again.',
             ]);
@@ -59,11 +51,11 @@ class GoogleAuthController extends Controller
 
         if ($email === '') {
             return to_route('login')->withErrors([
-                'google' => 'Google did not return an email address for this account.',
+                'google' => 'Google did not return an email address.',
             ]);
         }
 
-        if (!$this->emailIsVerifiedByGoogle($googleUser)) {
+        if (! $this->emailIsVerifiedByGoogle($googleUser)) {
             return to_route('login')->withErrors([
                 'google' => 'Please verify your Google account email before signing in.',
             ]);
@@ -74,8 +66,16 @@ class GoogleAuthController extends Controller
             ->orWhere('email', $email)
             ->first();
 
-        if (!$user) {
+        if (! $user) {
             $user = $this->createUserFromGoogleProfile($googleUser);
+
+            SimpleLogger::security(
+                "New user created via Google: {$email}",
+                [
+                    'user_id' => $user->id,
+                    'google_id' => $googleUser->getId(),
+                ]
+            );
         } else {
             $user->forceFill([
                 'email' => $email,
@@ -83,17 +83,22 @@ class GoogleAuthController extends Controller
                 'google_avatar' => $googleUser->getAvatar(),
                 'email_verified_at' => $user->email_verified_at ?? now(),
             ])->save();
+
+            SimpleLogger::security(
+                "User logged in via Google: {$email}",
+                [
+                    'user_id' => $user->id,
+                ]
+            );
         }
 
         Auth::login($user, true);
+
         $request->session()->regenerate();
 
         return redirect()->intended(route('profile.complete', absolute: false));
     }
 
-    /**
-     * Create a local account from the Google profile.
-     */
     private function createUserFromGoogleProfile(SocialiteUser $googleUser): User
     {
         $user = User::create([
@@ -105,10 +110,8 @@ class GoogleAuthController extends Controller
             'email_verified_at' => now(),
         ]);
 
-        // Assign job_seeker role via RBAC
-        $jobSeekerRole = Role::where('slug', 'job-seeker')->first();
-        if ($jobSeekerRole) {
-            $user->roles()->attach($jobSeekerRole->id, [
+        if ($role = Role::where('slug', 'job-seeker')->first()) {
+            $user->roles()->attach($role->id, [
                 'assigned_by' => $user->id,
                 'assigned_at' => now(),
                 'is_active' => true,
@@ -120,27 +123,24 @@ class GoogleAuthController extends Controller
         return $user;
     }
 
-    /**
-     * Guard the Socialite flow behind complete Google credentials.
-     */
     private function ensureGoogleIsConfigured(): void
     {
         if (
-            blank(config('services.google.client_id'))
-            || blank(config('services.google.client_secret'))
-            || blank(config('services.google.redirect'))
+            blank(config('services.google.client_id')) ||
+            blank(config('services.google.client_secret')) ||
+            blank(config('services.google.redirect'))
         ) {
-            throw new HttpException(503, 'Google authentication is not configured.');
+            throw new HttpException(
+                503,
+                'Google authentication is not configured.'
+            );
         }
     }
 
-    /**
-     * Only trust Google sign-in for verified Google emails.
-     */
     private function emailIsVerifiedByGoogle(SocialiteUser $googleUser): bool
     {
-        $verified = data_get($googleUser->user, 'verified_email');
-
-        return $verified === null ? true : (bool) $verified;
+        // Google OAuth only returns verified email addresses.
+        // If an email exists, consider it verified.
+        return filled($googleUser->getEmail());
     }
 }

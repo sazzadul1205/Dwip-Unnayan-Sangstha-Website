@@ -5,245 +5,253 @@ namespace App\Http\Controllers\Backend;
 use App\Http\Controllers\Controller;
 use App\Models\Location;
 use App\Models\User;
+use App\Services\SimpleLogger;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Inertia\Inertia;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Validation\ValidationException;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class LocationController extends Controller
 {
     /**
-     * Display a listing of locations with pagination and filters
+     * Cache duration in seconds (5 minutes).
      */
-    public function index(Request $request)
+    protected int $cacheDuration = 300;
+
+    /**
+     * Rate limit max attempts per hour.
+     */
+    protected int $rateLimitAttempts = 10;
+
+    /**
+     * Display a listing of locations with pagination and filters.
+     */
+    public function index(Request $request): Response|RedirectResponse
     {
-        $user = Auth::user();
+        $user = $this->getAuthUser();
 
-        // Check if user is logged in
-        if (!$user instanceof User) {
-            abort(401);
-        }
-
-        // Check permission to view locations
         if (!$user->hasPermission('locations.view')) {
             return redirect()->route('unauthorized.access')
                 ->with('error', 'You do not have permission to view locations.');
         }
 
-        $query = Location::withTrashed();
+        $cacheKey = 'locations_index_' . md5(json_encode($request->query()));
 
-        // Filter by status
-        if ($request->filled('status') && $request->status !== 'all') {
-            if ($request->status === 'active') {
-                $query->where('is_active', true)->whereNull('deleted_at');
-            } elseif ($request->status === 'inactive') {
-                $query->where('is_active', false)->whereNull('deleted_at');
-            } elseif ($request->status === 'deleted') {
-                $query->onlyTrashed();
+        $data = Cache::remember($cacheKey, $this->cacheDuration, function () use ($request) {
+            $query = Location::withTrashed();
+
+            $status = $request->input('status', 'all');
+            if ($status !== 'all') {
+                match ($status) {
+                    'active' => $query->where('is_active', true)->whereNull('deleted_at'),
+                    'inactive' => $query->where('is_active', false)->whereNull('deleted_at'),
+                    'deleted' => $query->onlyTrashed(),
+                    default => null,
+                };
             }
-        }
 
-        // Search by name or address
-        if ($request->filled('search')) {
-            $search = $request->search;
-            $query->where(function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                    ->orWhere('address', 'like', "%{$search}%");
-            });
-        }
+            if ($request->filled('search')) {
+                $search = $request->search;
+                $query->where(function ($q) use ($search) {
+                    $q->where('name', 'like', "%{$search}%")
+                        ->orWhere('address', 'like', "%{$search}%");
+                });
+            }
 
-        // Sort
-        $sortField = $request->get('sort', 'name');
-        $sortDirection = $request->get('direction', 'asc');
-        $allowedSortFields = ['name', 'is_active', 'created_at', 'updated_at'];
+            $sortField = $request->input('sort', 'name');
+            $sortDirection = $request->input('direction', 'asc');
+            $allowedSortFields = ['name', 'is_active', 'created_at', 'updated_at'];
 
-        if (in_array($sortField, $allowedSortFields)) {
-            $query->orderBy($sortField, $sortDirection);
-        } else {
-            $query->orderBy('name', 'asc');
-        }
+            if (in_array($sortField, $allowedSortFields)) {
+                $query->orderBy($sortField, $sortDirection);
+            } else {
+                $query->orderBy('name', 'asc');
+            }
 
-        $locations = $query->paginate(9)->withQueryString();
+            $locations = $query->paginate(9)->withQueryString();
 
-        // Get summary statistics
-        $stats = [
-            'total' => Location::count(),
-            'active' => Location::where('is_active', true)->count(),
-            'inactive' => Location::where('is_active', false)->count(),
-            'total_deleted' => Location::onlyTrashed()->count(),
-        ];
+            $stats = [
+                'total' => Location::count(),
+                'active' => Location::where('is_active', true)->count(),
+                'inactive' => Location::where('is_active', false)->count(),
+                'total_deleted' => Location::onlyTrashed()->count(),
+            ];
 
-        return Inertia::render('Backend/Locations/Index', [
-            'locations' => $locations,
-            'filters' => $request->only(['search', 'status', 'sort', 'direction']),
-            'stats' => $stats,
-        ]);
+            return [
+                'locations' => $locations,
+                'filters' => $request->only(['search', 'status', 'sort', 'direction']),
+                'stats' => $stats,
+            ];
+        });
+
+        return Inertia::render('Backend/Locations/Index', $data);
     }
 
     /**
-     * Store a newly created location
+     * Store a newly created location – with rate limiting.
      */
-    public function store(Request $request)
+    public function store(Request $request): RedirectResponse
     {
-        $user = Auth::user();
+        $user = $this->getAuthUser();
 
-        // Check if user is logged in
-        if (!$user instanceof User) {
-            abort(401);
-        }
-
-        // Check permission to create location
         if (!$user->hasPermission('locations.create')) {
             return redirect()->back()->with('error', 'You do not have permission to create locations.');
         }
 
-        $validated = $request->validate([
-            'name' => 'required|string|max:255|unique:locations,name',
-            'address' => 'nullable|string|max:500',
-            'is_active' => 'boolean'
-        ]);
+        $this->checkRateLimit('location_create', $user->id);
 
         try {
-            $location = Location::create([
-                'name' => $validated['name'],
-                'address' => $validated['address'] ?? null,
-                'is_active' => $validated['is_active'] ?? true,
+            $validated = $request->validate([
+                'name' => 'required|string|max:255|unique:locations,name',
+                'address' => 'nullable|string|max:500',
+                'is_active' => 'nullable|boolean',
             ]);
 
-            Log::info('Location created', [
-                'location_id' => $location->id,
-                'location_name' => $location->name,
-                'created_by' => Auth::id(),
-            ]);
+            $validated['is_active'] = filter_var($validated['is_active'] ?? true, FILTER_VALIDATE_BOOLEAN);
+
+            $location = Location::create($validated);
+
+            $this->clearCache();
+            RateLimiter::clear($this->getThrottleKey('location_create', $user->id));
+
+            SimpleLogger::cms(
+                "Location created: {$location->name}",
+                [
+                    'location_id' => $location->id,
+                    'address' => $location->address,
+                    'is_active' => $location->is_active,
+                    'created_by' => $user->email,
+                    'ip' => $request->ip(),
+                ]
+            );
 
             return redirect()->back()->with('success', 'Location created successfully.');
+        } catch (ValidationException $e) {
+            return back()->withErrors($e->errors())->withInput();
         } catch (\Exception $e) {
-            Log::error('Failed to create location', [
-                'error' => $e->getMessage(),
-                'data' => $validated,
-            ]);
-
-            return redirect()->back()->with('error', 'Failed to create location: ' . $e->getMessage());
+            Log::error('Failed to create location: ' . $e->getMessage());
+            return back()->with('error', 'Failed to create location: ' . $e->getMessage())->withInput();
         }
     }
 
     /**
-     * Update the specified location
+     * Update the specified location – with rate limiting.
      */
-    public function update(Request $request, Location $location)
+    public function update(Request $request, Location $location): RedirectResponse
     {
-        $user = Auth::user();
+        $user = $this->getAuthUser();
 
-        // Check if user is logged in
-        if (!$user instanceof User) {
-            abort(401);
-        }
-
-        // Check permission to edit location
         if (!$user->hasPermission('locations.edit')) {
             return redirect()->back()->with('error', 'You do not have permission to edit locations.');
         }
 
-        $validated = $request->validate([
-            'name' => 'required|string|max:255|unique:locations,name,' . $location->id,
-            'address' => 'nullable|string|max:500',
-            'is_active' => 'boolean'
-        ]);
+        $this->checkRateLimit('location_update', $user->id);
 
         try {
-            $location->update([
-                'name' => $validated['name'],
-                'address' => $validated['address'] ?? null,
-                'is_active' => $validated['is_active'] ?? $location->is_active,
+            $validated = $request->validate([
+                'name' => 'required|string|max:255|unique:locations,name,' . $location->id,
+                'address' => 'nullable|string|max:500',
+                'is_active' => 'nullable|boolean',
             ]);
 
-            Log::info('Location updated', [
-                'location_id' => $location->id,
-                'location_name' => $location->name,
-                'updated_by' => Auth::id(),
-            ]);
+            $validated['is_active'] = filter_var($validated['is_active'] ?? $location->is_active, FILTER_VALIDATE_BOOLEAN);
+
+            $oldName = $location->name;
+            $oldStatus = $location->is_active;
+
+            $location->update($validated);
+
+            $this->clearCache();
+            RateLimiter::clear($this->getThrottleKey('location_update', $user->id));
+
+            $changes = [];
+            if ($oldName !== $location->name) {
+                $changes['name'] = ['old' => $oldName, 'new' => $location->name];
+            }
+            if ($oldStatus !== $location->is_active) {
+                $changes['status'] = ['old' => $oldStatus ? 'active' : 'inactive', 'new' => $location->is_active ? 'active' : 'inactive'];
+            }
+
+            SimpleLogger::cms(
+                "Location updated: {$location->name}",
+                [
+                    'location_id' => $location->id,
+                    'changes' => $changes,
+                    'updated_by' => $user->email,
+                    'ip' => $request->ip(),
+                ]
+            );
 
             return redirect()->back()->with('success', 'Location updated successfully.');
+        } catch (ValidationException $e) {
+            return back()->withErrors($e->errors())->withInput();
         } catch (\Exception $e) {
-            Log::error('Failed to update location', [
-                'location_id' => $location->id,
-                'error' => $e->getMessage(),
-            ]);
-
-            return redirect()->back()->with('error', 'Failed to update location: ' . $e->getMessage());
+            Log::error('Failed to update location: ' . $e->getMessage());
+            return back()->with('error', 'Failed to update location: ' . $e->getMessage())->withInput();
         }
     }
 
     /**
-     * Toggle location active status
+     * Toggle location active status – with rate limiting.
      */
-    public function toggleActive(Location $location)
+    public function toggleActive(Location $location): RedirectResponse
     {
-        $user = Auth::user();
+        $user = $this->getAuthUser();
 
-        // Check if user is logged in
-        if (!$user instanceof User) {
-            abort(401);
-        }
-
-        // Check permission to toggle location status
         if (!$user->hasPermission('locations.toggle_active')) {
             return redirect()->back()->with('error', 'You do not have permission to change location status.');
         }
+
+        $this->checkRateLimit('location_toggle', $user->id);
 
         try {
             $newStatus = !$location->is_active;
             $location->update(['is_active' => $newStatus]);
 
-            Log::info('Location status toggled', [
-                'location_id' => $location->id,
-                'location_name' => $location->name,
-                'new_status' => $newStatus,
-                'updated_by' => Auth::id(),
-            ]);
+            $this->clearCache();
+            RateLimiter::clear($this->getThrottleKey('location_toggle', $user->id));
 
-            return redirect()->back()->with('success', "Location has been " . ($newStatus ? 'activated' : 'deactivated') . ".");
+            $statusText = $newStatus ? 'activated' : 'deactivated';
+
+            SimpleLogger::cms(
+                "Location {$statusText}: {$location->name}",
+                [
+                    'location_id' => $location->id,
+                    'new_status' => $newStatus,
+                    'updated_by' => $user->email,
+                    'ip' => request()->ip(),
+                ]
+            );
+
+            return redirect()->back()->with('success', "Location has been " . $statusText . ".");
         } catch (\Exception $e) {
-            Log::error('Failed to toggle location status', [
-                'location_id' => $location->id,
-                'error' => $e->getMessage(),
-            ]);
-
+            Log::error('Failed to toggle location status: ' . $e->getMessage());
             return redirect()->back()->with('error', 'Failed to update location status.');
         }
     }
 
     /**
-     * Soft delete the specified location
+     * Soft delete the specified location – with rate limiting.
      */
-    public function destroy(Location $location)
+    public function destroy(Location $location): RedirectResponse
     {
-        $user = Auth::user();
+        $user = $this->getAuthUser();
 
-        // Check if user is logged in
-        if (!$user instanceof User) {
-            abort(401);
-        }
-
-        // Check permission to delete location
         if (!$user->hasPermission('locations.delete')) {
             return redirect()->back()->with('error', 'You do not have permission to delete locations.');
         }
 
-        // Check if location is used in any job listings
+        $this->checkRateLimit('location_delete', $user->id);
+
         $jobListingsCount = $location->jobListings()->count();
 
-        Log::info('Delete attempt', [
-            'location_id' => $location->id,
-            'location_name' => $location->name,
-            'job_count' => $jobListingsCount,
-        ]);
-
         if ($jobListingsCount > 0) {
-            // Return redirect with error flash for Inertia
-            Log::info('Returning error response', [
-                'message' => "Cannot delete location '{$location->name}'. It is currently used in {$jobListingsCount} job listing(s)."
-            ]);
             return redirect()->back()->with('error', "Cannot delete location '{$location->name}'. It is currently used in {$jobListingsCount} job listing(s).");
         }
 
@@ -251,146 +259,137 @@ class LocationController extends Controller
             $locationName = $location->name;
             $location->delete();
 
-            Log::info('Location soft deleted', [
-                'location_id' => $location->id,
-                'location_name' => $locationName,
-                'deleted_by' => Auth::id(),
-            ]);
+            $this->clearCache();
+            RateLimiter::clear($this->getThrottleKey('location_delete', $user->id));
+
+            SimpleLogger::cms(
+                "Location deleted: {$locationName}",
+                [
+                    'location_id' => $location->id,
+                    'deleted_by' => $user->email,
+                    'ip' => request()->ip(),
+                ]
+            );
 
             return redirect()->back()->with('success', "Location '{$locationName}' moved to trash.");
         } catch (\Exception $e) {
-            Log::error('Failed to delete location', [
-                'location_id' => $location->id,
-                'error' => $e->getMessage(),
-            ]);
-
+            Log::error('Failed to delete location: ' . $e->getMessage());
             return redirect()->back()->with('error', 'Failed to delete location: ' . $e->getMessage());
         }
     }
 
     /**
-     * Restore a soft-deleted location
+     * Restore a soft-deleted location – with rate limiting.
      */
-    public function restore(int $id)
+    public function restore(int $id): RedirectResponse
     {
-        $user = Auth::user();
+        $user = $this->getAuthUser();
 
-        // Check if user is logged in
-        if (!$user instanceof User) {
-            abort(401);
-        }
-
-        // Check permission to restore location
         if (!$user->hasPermission('locations.restore')) {
             return redirect()->back()->with('error', 'You do not have permission to restore locations.');
         }
 
-        $location = Location::onlyTrashed()->findOrFail($id);
+        $this->checkRateLimit('location_restore', $user->id);
 
         try {
+            $location = Location::onlyTrashed()->findOrFail($id);
+            $locationName = $location->name;
             $location->restore();
 
-            Log::info('Location restored', [
-                'location_id' => $location->id,
-                'location_name' => $location->name,
-                'restored_by' => Auth::id(),
-            ]);
+            $this->clearCache();
+            RateLimiter::clear($this->getThrottleKey('location_restore', $user->id));
 
-            return redirect()->back()->with('success', "Location '{$location->name}' restored successfully.");
+            SimpleLogger::cms(
+                "Location restored: {$locationName}",
+                [
+                    'location_id' => $location->id,
+                    'restored_by' => $user->email,
+                    'ip' => request()->ip(),
+                ]
+            );
+
+            return redirect()->back()->with('success', "Location '{$locationName}' restored successfully.");
         } catch (\Exception $e) {
-            Log::error('Failed to restore location', [
-                'location_id' => $id,
-                'error' => $e->getMessage(),
-            ]);
-
+            Log::error('Failed to restore location: ' . $e->getMessage());
             return redirect()->back()->with('error', 'Failed to restore location: ' . $e->getMessage());
         }
     }
 
     /**
-     * Permanently delete a soft-deleted location (force delete)
+     * Permanently delete a soft-deleted location (force delete) – with rate limiting.
      */
-    public function forceDelete(int $id)
+    public function forceDelete(int $id): RedirectResponse
     {
-        $user = Auth::user();
+        $user = $this->getAuthUser();
 
-        // Check if user is logged in
-        if (!$user instanceof User) {
-            abort(401);
-        }
-
-        // Check permission to force delete location
         if (!$user->hasPermission('locations.force_delete')) {
             return redirect()->back()->with('error', 'You do not have permission to permanently delete locations.');
         }
 
-        $location = Location::onlyTrashed()->findOrFail($id);
-
-        // Check if location is used in any job listings
-        $jobListingsCount = $location->jobListings()->count();
-
-        if ($jobListingsCount > 0) {
-            return redirect()->back()->with('error', "Cannot permanently delete location '{$location->name}' because it is used in {$jobListingsCount} job listing(s).");
-        }
+        $this->checkRateLimit('location_force_delete', $user->id);
 
         try {
+            $location = Location::onlyTrashed()->findOrFail($id);
+
+            $jobListingsCount = $location->jobListings()->count();
+            if ($jobListingsCount > 0) {
+                return redirect()->back()->with('error', "Cannot permanently delete location '{$location->name}' because it is used in {$jobListingsCount} job listing(s).");
+            }
+
             $locationName = $location->name;
             $location->forceDelete();
 
-            Log::info('Location force deleted permanently', [
-                'location_id' => $id,
-                'location_name' => $locationName,
-                'deleted_by' => Auth::id(),
-            ]);
+            $this->clearCache();
+            RateLimiter::clear($this->getThrottleKey('location_force_delete', $user->id));
+
+            SimpleLogger::cms(
+                "Location permanently deleted: {$locationName}",
+                [
+                    'location_id' => $location->id,
+                    'deleted_by' => $user->email,
+                    'ip' => request()->ip(),
+                ]
+            );
 
             return redirect()->back()->with('success', "Location '{$locationName}' has been permanently deleted.");
         } catch (\Exception $e) {
-            Log::error('Failed to force delete location', [
-                'location_id' => $id,
-                'error' => $e->getMessage(),
-            ]);
-
+            Log::error('Failed to force delete location: ' . $e->getMessage());
             return redirect()->back()->with('error', 'Failed to permanently delete location: ' . $e->getMessage());
         }
     }
 
-    /**
-     * Bulk soft delete locations
-     */
-    public function bulkDelete(Request $request)
+    // ==========================================
+    // BULK OPERATIONS – with rate limiting
+    // ==========================================
+
+    public function bulkDelete(Request $request): RedirectResponse
     {
-        $user = Auth::user();
+        $user = $this->getAuthUser();
 
-        // Check if user is logged in
-        if (!$user instanceof User) {
-            abort(401);
-        }
-
-        // Check permission for bulk delete
         if (!$user->hasPermission('locations.bulk_delete')) {
             return redirect()->back()->with('error', 'You do not have permission to bulk delete locations.');
         }
 
-        $request->validate([
+        $this->checkRateLimit('location_bulk_delete', $user->id);
+
+        $validated = $request->validate([
             'location_ids' => 'required|array',
             'location_ids.*' => 'exists:locations,id',
         ]);
 
         $deletedCount = 0;
-        $failedLocations = [];
+        $failed = [];
 
-        foreach ($request->location_ids as $locationId) {
+        foreach ($validated['location_ids'] as $locationId) {
             $location = Location::find($locationId);
-
             if (!$location) {
-                $failedLocations[] = "Location ID {$locationId} not found";
+                $failed[] = "Location ID {$locationId} not found";
                 continue;
             }
 
-            // Check if location is used in job listings
-            $jobListingsCount = $location->jobListings()->count();
-            if ($jobListingsCount > 0) {
-                $failedLocations[] = "{$location->name} (used in {$jobListingsCount} job(s))";
+            $jobCount = $location->jobListings()->count();
+            if ($jobCount > 0) {
+                $failed[] = "{$location->name} (used in {$jobCount} job(s))";
                 continue;
             }
 
@@ -398,146 +397,145 @@ class LocationController extends Controller
                 $location->delete();
                 $deletedCount++;
             } catch (\Exception $e) {
-                $failedLocations[] = $location->name;
-                Log::error('Bulk delete failed for location', [
-                    'location_id' => $locationId,
-                    'error' => $e->getMessage(),
-                ]);
+                $failed[] = $location->name;
+                Log::error('Bulk delete failed for location', ['location_id' => $locationId, 'error' => $e->getMessage()]);
             }
         }
 
-        if ($deletedCount === 0 && !empty($failedLocations)) {
-            return redirect()->back()->with('error', 'Cannot delete locations: ' . implode(', ', $failedLocations));
-        }
+        $this->clearCache();
+        RateLimiter::clear($this->getThrottleKey('location_bulk_delete', $user->id));
 
         $message = "{$deletedCount} location(s) moved to trash successfully.";
-        if (!empty($failedLocations)) {
-            $message .= " Failed: " . implode(', ', $failedLocations);
+        if (!empty($failed)) {
+            $message .= " Failed: " . implode(', ', $failed);
         }
 
-        $status = $deletedCount > 0 ? 'success' : 'error';
-        return redirect()->back()->with($status, $message);
+        SimpleLogger::cms(
+            "Bulk delete locations",
+            [
+                'deleted_count' => $deletedCount,
+                'failed' => $failed,
+                'performed_by' => $user->email,
+                'ip' => $request->ip(),
+            ]
+        );
+
+        return redirect()->back()->with($deletedCount > 0 ? 'success' : 'error', $message);
     }
 
-    /**
-     * Bulk restore soft-deleted locations
-     */
-    public function bulkRestore(Request $request)
+    public function bulkRestore(Request $request): RedirectResponse
     {
-        $user = Auth::user();
+        $user = $this->getAuthUser();
 
-        // Check if user is logged in
-        if (!$user instanceof User) {
-            abort(401);
-        }
-
-        // Check permission for bulk restore
         if (!$user->hasPermission('locations.bulk_restore')) {
             return redirect()->back()->with('error', 'You do not have permission to bulk restore locations.');
         }
 
-        $request->validate([
+        $this->checkRateLimit('location_bulk_restore', $user->id);
+
+        $validated = $request->validate([
             'location_ids' => 'required|array',
             'location_ids.*' => 'exists:locations,id',
         ]);
 
         $restoredCount = Location::onlyTrashed()
-            ->whereIn('id', $request->location_ids)
+            ->whereIn('id', $validated['location_ids'])
             ->restore();
 
-        Log::info('Bulk locations restored', [
-            'count' => $restoredCount,
-            'location_ids' => $request->location_ids,
-            'restored_by' => Auth::id(),
-        ]);
+        $this->clearCache();
+        RateLimiter::clear($this->getThrottleKey('location_bulk_restore', $user->id));
+
+        SimpleLogger::cms(
+            "Bulk restore locations",
+            [
+                'restored_count' => $restoredCount,
+                'location_ids' => $validated['location_ids'],
+                'performed_by' => $user->email,
+                'ip' => $request->ip(),
+            ]
+        );
 
         return redirect()->back()->with('success', "{$restoredCount} location(s) restored successfully.");
     }
 
-    /**
-     * Bulk activate locations
-     */
-    public function bulkActivate(Request $request)
+    public function bulkActivate(Request $request): RedirectResponse
     {
-        $user = Auth::user();
+        $user = $this->getAuthUser();
 
-        // Check if user is logged in
-        if (!$user instanceof User) {
-            abort(401);
-        }
-
-        // Check permission for bulk activate
         if (!$user->hasPermission('locations.bulk_activate')) {
             return redirect()->back()->with('error', 'You do not have permission to bulk activate locations.');
         }
 
-        $request->validate([
+        $this->checkRateLimit('location_bulk_activate', $user->id);
+
+        $validated = $request->validate([
             'location_ids' => 'required|array',
             'location_ids.*' => 'exists:locations,id',
         ]);
 
-        $updatedCount = Location::whereIn('id', $request->location_ids)
+        $updatedCount = Location::whereIn('id', $validated['location_ids'])
             ->whereNull('deleted_at')
             ->update(['is_active' => true]);
 
-        Log::info('Bulk locations activated', [
-            'count' => $updatedCount,
-            'location_ids' => $request->location_ids,
-            'updated_by' => Auth::id(),
-        ]);
+        $this->clearCache();
+        RateLimiter::clear($this->getThrottleKey('location_bulk_activate', $user->id));
+
+        SimpleLogger::cms(
+            "Bulk activate locations",
+            [
+                'activated_count' => $updatedCount,
+                'location_ids' => $validated['location_ids'],
+                'performed_by' => $user->email,
+                'ip' => $request->ip(),
+            ]
+        );
 
         return redirect()->back()->with('success', "{$updatedCount} location(s) activated successfully.");
     }
 
-    /**
-     * Bulk deactivate locations
-     */
-    public function bulkDeactivate(Request $request)
+    public function bulkDeactivate(Request $request): RedirectResponse
     {
-        $user = Auth::user();
+        $user = $this->getAuthUser();
 
-        // Check if user is logged in
-        if (!$user instanceof User) {
-            abort(401);
-        }
-
-        // Check permission for bulk deactivate
         if (!$user->hasPermission('locations.bulk_deactivate')) {
             return redirect()->back()->with('error', 'You do not have permission to bulk deactivate locations.');
         }
 
-        $request->validate([
+        $this->checkRateLimit('location_bulk_deactivate', $user->id);
+
+        $validated = $request->validate([
             'location_ids' => 'required|array',
             'location_ids.*' => 'exists:locations,id',
         ]);
 
-        $updatedCount = Location::whereIn('id', $request->location_ids)
+        $updatedCount = Location::whereIn('id', $validated['location_ids'])
             ->whereNull('deleted_at')
             ->update(['is_active' => false]);
 
-        Log::info('Bulk locations deactivated', [
-            'count' => $updatedCount,
-            'location_ids' => $request->location_ids,
-            'updated_by' => Auth::id(),
-        ]);
+        $this->clearCache();
+        RateLimiter::clear($this->getThrottleKey('location_bulk_deactivate', $user->id));
+
+        SimpleLogger::cms(
+            "Bulk deactivate locations",
+            [
+                'deactivated_count' => $updatedCount,
+                'location_ids' => $validated['location_ids'],
+                'performed_by' => $user->email,
+                'ip' => $request->ip(),
+            ]
+        );
 
         return redirect()->back()->with('success', "{$updatedCount} location(s) deactivated successfully.");
     }
 
     /**
-     * Get active locations for dropdowns
+     * Get active locations for dropdowns.
      */
-    public function getActiveLocations()
+    public function getActiveLocations(): JsonResponse
     {
-        // Public AJAX endpoint - check if user is authenticated at least
-        $user = Auth::user();
+        $user = $this->getAuthUser();
 
-        // Check if user is logged in
-        if (!$user instanceof User) {
-            abort(401);
-        }
-
-        if (!$user || !$user->hasPermission('locations.get_active')) {
+        if (!$user->hasPermission('locations.get_active')) {
             return response()->json(['error' => 'Unauthorized'], 403);
         }
 
@@ -546,5 +544,53 @@ class LocationController extends Controller
             ->get(['id', 'name', 'address']);
 
         return response()->json($locations);
+    }
+
+    // ==========================================
+    // PRIVATE HELPER METHODS
+    // ==========================================
+
+    /**
+     * Get the authenticated user.
+     */
+    private function getAuthUser(): User
+    {
+        $user = Auth::user();
+        if (!$user instanceof User) {
+            abort(401, 'Unauthenticated');
+        }
+        return $user;
+    }
+
+    /**
+     * Check rate limit for admin actions.
+     */
+    private function checkRateLimit(string $action, int $userId, int $maxAttempts = 10, int $decaySeconds = 3600): void
+    {
+        $key = $this->getThrottleKey($action, $userId);
+        if (RateLimiter::tooManyAttempts($key, $maxAttempts)) {
+            Log::warning("Rate limit exceeded for {$action}", ['user_id' => $userId]);
+            throw ValidationException::withMessages([
+                'rate_limit' => 'Too many attempts. Please wait a moment.',
+            ]);
+        }
+        RateLimiter::hit($key, $decaySeconds);
+    }
+
+    /**
+     * Get throttle key.
+     */
+    private function getThrottleKey(string $action, int $userId): string
+    {
+        return "location_{$action}|{$userId}";
+    }
+
+    /**
+     * Clear location cache keys.
+     */
+    private function clearCache(): void
+    {
+        Cache::forget('locations_index_*');
+        Cache::forget('locations_active');
     }
 }

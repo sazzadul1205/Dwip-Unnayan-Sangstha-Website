@@ -1,18 +1,30 @@
 <?php
-// app/Http/Controllers/Backend/LogController.php
 
 namespace App\Http\Controllers\Backend;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Services\SimpleLogger;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
-use App\Services\SimpleLogger;
+use Inertia\Response;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class LogController extends Controller
 {
-  private $logTypes = [
+  /**
+   * Log types mapping.
+   *
+   * @var array<string, string>
+   */
+  private array $logTypes = [
     'security' => '🔒 Security Logs',
     'jobs' => '💼 Jobs Log',
     'applications' => '📄 Applications Log',
@@ -23,34 +35,214 @@ class LogController extends Controller
   ];
 
   /**
-   * Display the log viewer
+   * Cache duration in seconds (1 minute).
    */
-  public function index(Request $request)
-  {
-    /** @var User $user */
-    $user = Auth::user();
+  protected int $cacheDuration = 60;
 
-    // Check permission
+  /**
+   * Rate limit max attempts per hour.
+   */
+  protected int $rateLimitAttempts = 10;
+
+  /**
+   * Display the log viewer – with caching.
+   */
+  public function index(Request $request): Response|RedirectResponse
+  {
+    $user = $this->getAuthUser();
+
     if (!$user->hasPermission('logs.view')) {
       return redirect()->route('unauthorized.access')
         ->with('error', 'You do not have permission to view logs.');
     }
 
-    $type = $request->get('type', 'security');
-    $limit = min((int) $request->get('limit', 200), 5000);
+    $type = $request->input('type', 'security');
+    $limit = min((int) $request->input('limit', 200), 5000);
 
-    return Inertia::render('Backend/Logs/Index', [
-      'logTypes' => $this->logTypes,
-      'currentType' => $type,
-      'logs' => $this->readLogFile($type, $limit),
-      'fileInfo' => $this->getFileInfo($type),
-      'canExport' => $user->hasPermission('logs.export'),
-      'canClear' => $user->hasPermission('logs.clear'),
-    ]);
+    $cacheKey = 'log_viewer_' . $type . '_' . $limit;
+
+    $data = Cache::remember($cacheKey, $this->cacheDuration, function () use ($type, $limit, $user) {
+      return [
+        'logTypes' => $this->logTypes,
+        'currentType' => $type,
+        'logs' => $this->readLogFile($type, $limit),
+        'fileInfo' => $this->getFileInfo($type),
+        'canExport' => $user->hasPermission('logs.export'),
+        'canClear' => $user->hasPermission('logs.clear'),
+      ];
+    });
+
+    return Inertia::render('Backend/Logs/Index', $data);
   }
 
   /**
-   * Read log file and parse entries
+   * Export log file – with rate limiting.
+   */
+  public function export(Request $request): BinaryFileResponse|RedirectResponse
+  {
+    $user = $this->getAuthUser();
+
+    if (!$user->hasPermission('logs.export')) {
+      return redirect()->back()->with('error', 'You do not have permission to export logs.');
+    }
+
+    $this->checkRateLimit('log_export', $user->id);
+
+    $type = $request->input('type', 'security');
+    $filePath = storage_path("logs/{$type}.log");
+
+    if (!file_exists($filePath)) {
+      return back()->with('error', 'Log file not found.');
+    }
+
+    $filename = "{$type}_log_" . date('Y-m-d') . '.txt';
+
+    RateLimiter::clear($this->getThrottleKey('log_export', $user->id));
+
+    SimpleLogger::system(
+      "📥 Log exported: {$type}",
+      [
+        'type' => $type,
+        'filename' => $filename,
+        'exported_by' => $user->email,
+        'ip' => $request->ip(),
+      ]
+    );
+
+    return response()->download($filePath, $filename);
+  }
+
+  /**
+   * Clear log file – with rate limiting.
+   */
+  public function clear(Request $request): RedirectResponse
+  {
+    $user = $this->getAuthUser();
+
+    if (!$user->hasPermission('logs.clear')) {
+      return redirect()->back()->with('error', 'You do not have permission to clear logs.');
+    }
+
+    $this->checkRateLimit('log_clear', $user->id);
+
+    $type = $request->input('type', 'security');
+    $filePath = storage_path("logs/{$type}.log");
+
+    if (file_exists($filePath)) {
+      file_put_contents($filePath, '');
+    }
+
+    RateLimiter::clear($this->getThrottleKey('log_clear', $user->id));
+    $this->clearCache();
+
+    SimpleLogger::system(
+      "🗑️ Log cleared: {$type}",
+      [
+        'type' => $type,
+        'cleared_by' => $user->email,
+        'ip' => $request->ip(),
+      ]
+    );
+
+    return back()->with('success', "{$type} log cleared successfully.");
+  }
+
+  /**
+   * Get log statistics – with rate limiting.
+   */
+  public function stats(Request $request): JsonResponse|RedirectResponse
+  {
+    $user = $this->getAuthUser();
+
+    if (!$user->hasPermission('logs.view')) {
+      return response()->json(['error' => 'Unauthorized'], 403);
+    }
+
+    $this->checkRateLimit('log_stats', $user->id, 20);
+
+    $cacheKey = 'log_stats';
+
+    $stats = Cache::remember($cacheKey, $this->cacheDuration, function () {
+      $stats = [];
+      foreach (array_keys($this->logTypes) as $type) {
+        $filePath = storage_path("logs/{$type}.log");
+        if (file_exists($filePath)) {
+          $lineCount = 0;
+          $handle = fopen($filePath, 'r');
+          while (fgets($handle) !== false) {
+            $lineCount++;
+          }
+          fclose($handle);
+          $stats[$type] = $lineCount;
+        } else {
+          $stats[$type] = 0;
+        }
+      }
+      return $stats;
+    });
+
+    RateLimiter::clear($this->getThrottleKey('log_stats', $user->id));
+
+    return response()->json([
+      'stats' => $stats,
+      'total' => array_sum($stats),
+    ]);
+  }
+
+    // ==========================================
+    // PRIVATE HELPER METHODS
+    // ==========================================
+
+  /**
+   * Get the authenticated user.
+   */
+  private function getAuthUser(): User
+  {
+    $user = Auth::user();
+    if (!$user instanceof User) {
+      abort(401, 'Unauthenticated');
+    }
+    return $user;
+  }
+
+  /**
+   * Check rate limit for log actions.
+   */
+  private function checkRateLimit(string $action, int $userId, ?int $maxAttempts = null, int $decaySeconds = 3600): void
+  {
+    $max = $maxAttempts ?? $this->rateLimitAttempts;
+    $key = $this->getThrottleKey($action, $userId);
+
+    if (RateLimiter::tooManyAttempts($key, $max)) {
+      Log::warning("Rate limit exceeded for {$action}", ['user_id' => $userId]);
+      throw ValidationException::withMessages([
+        'rate_limit' => 'Too many attempts. Please wait a moment.',
+      ]);
+    }
+    RateLimiter::hit($key, $decaySeconds);
+  }
+
+  /**
+   * Get throttle key.
+   */
+  private function getThrottleKey(string $action, int $userId): string
+  {
+    return "log_{$action}|{$userId}";
+  }
+
+  /**
+   * Clear log cache keys.
+   */
+  private function clearCache(): void
+  {
+    Cache::forget('log_viewer_*');
+    Cache::forget('log_stats');
+  }
+
+  /**
+   * Read log file and parse entries.
+   *
+   * @return array<int, array<string, mixed>>
    */
   private function readLogFile(string $type, int $limit = 200): array
   {
@@ -60,7 +252,6 @@ class LogController extends Controller
       return [];
     }
 
-    // Read last N lines efficiently
     $file = new \SplFileObject($filePath);
     $file->seek(PHP_INT_MAX);
     $totalLines = $file->key();
@@ -78,15 +269,16 @@ class LogController extends Controller
       }
     }
 
-    return array_reverse($logs); // Newest first
+    return array_reverse($logs);
   }
 
   /**
-   * Parse a single log line
+   * Parse a single log line.
+   *
+   * @return array<string, mixed>|null
    */
   private function parseLogLine(string $line): ?array
   {
-    // Parse: [2024-01-15 10:30:00] [User: 5] [admin@test.com] [IP: 127.0.0.1] Message {"context":"data"}
     preg_match(
       '/\[(.*?)\] \[User: (.*?)\] \[(.*?)\] \[IP: (.*?)\] (.*?)(?:\s+(.*))?$/',
       $line,
@@ -109,7 +301,7 @@ class LogController extends Controller
   }
 
   /**
-   * Check if log entry should be highlighted
+   * Check if log entry should be highlighted.
    */
   private function isHighlighted(string $message): bool
   {
@@ -123,7 +315,7 @@ class LogController extends Controller
       'deleted',
       'Deleted',
       'permanently',
-      'Permanently'
+      'Permanently',
     ];
 
     foreach ($highlightPatterns as $pattern) {
@@ -135,7 +327,9 @@ class LogController extends Controller
   }
 
   /**
-   * Get file information
+   * Get file information.
+   *
+   * @return array<string, mixed>
    */
   private function getFileInfo(string $type): array
   {
@@ -146,7 +340,7 @@ class LogController extends Controller
         'exists' => false,
         'size' => '0 B',
         'lines' => 0,
-        'last_modified' => 'Never'
+        'last_modified' => 'Never',
       ];
     }
 
@@ -166,7 +360,7 @@ class LogController extends Controller
   }
 
   /**
-   * Format bytes to human readable
+   * Format bytes to human readable.
    */
   private function formatBytes(int|float $bytes): string
   {
@@ -180,107 +374,5 @@ class LogController extends Controller
       return number_format($bytes / 1024, 2) . ' KB';
     }
     return $bytes . ' B';
-  }
-
-  /**
-   * Export log file
-   */
-  public function export(Request $request)
-  {
-    /** @var User $user */
-    $user = Auth::user();
-
-    // Check permission
-    if (!$user->hasPermission('logs.export')) {
-      return redirect()->back()->with('error', 'You do not have permission to export logs.');
-    }
-
-    $type = $request->get('type', 'security');
-    $filePath = storage_path("logs/{$type}.log");
-
-    if (!file_exists($filePath)) {
-      return back()->with('error', 'Log file not found.');
-    }
-
-    $filename = "{$type}_log_" . date('Y-m-d') . '.txt';
-
-    // Log the export
-    SimpleLogger::system(
-      "📥 Log exported: {$type}",
-      [
-        'type' => $type,
-        'filename' => $filename,
-        'exported_by' => $user->email
-      ]
-    );
-
-    return response()->download($filePath, $filename);
-  }
-
-  /**
-   * Clear log file
-   */
-  public function clear(Request $request)
-  {
-    /** @var User $user */
-    $user = Auth::user();
-
-    // Check permission
-    if (!$user->hasPermission('logs.clear')) {
-      return redirect()->back()->with('error', 'You do not have permission to clear logs.');
-    }
-
-    $type = $request->get('type', 'security');
-    $filePath = storage_path("logs/{$type}.log");
-
-    if (file_exists($filePath)) {
-      file_put_contents($filePath, '');
-    }
-
-    // Log the clearing
-    SimpleLogger::system(
-      "🗑️ Log cleared: {$type}",
-      [
-        'type' => $type,
-        'cleared_by' => $user->email
-      ]
-    );
-
-    return back()->with('success', "{$type} log cleared successfully.");
-  }
-
-  /**
-   * Get log statistics
-   */
-  public function stats(Request $request)
-  {
-    /** @var User $user */
-    $user = Auth::user();
-
-    // Check permission
-    if (!$user->hasPermission('logs.view')) {
-      return response()->json(['error' => 'Unauthorized'], 403);
-    }
-
-    $stats = [];
-    foreach (array_keys($this->logTypes) as $type) {
-      $filePath = storage_path("logs/{$type}.log");
-      if (file_exists($filePath)) {
-        $lineCount = 0;
-        $handle = fopen($filePath, 'r');
-        while (fgets($handle) !== false) {
-          $lineCount++;
-        }
-        fclose($handle);
-        $stats[$type] = $lineCount;
-      } else {
-        $stats[$type] = 0;
-      }
-    }
-
-    return response()->json([
-      'stats' => $stats,
-      'total' => array_sum($stats)
-    ]);
   }
 }

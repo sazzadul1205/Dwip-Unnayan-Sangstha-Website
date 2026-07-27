@@ -1,155 +1,210 @@
 <?php
-// app/Http/Controllers/Cms/SharedDataController.php
 
 namespace App\Http\Controllers\Cms;
 
 use App\Http\Controllers\Controller;
 use App\Models\pages\SharedData;
 use App\Models\User;
+use App\Services\SimpleLogger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
-use Inertia\Inertia;
-use Inertia\Response;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class SharedDataController extends Controller
 {
   /**
-   * Display shared data management page
+   * Max image size in bytes (5MB).
+   */
+  protected int $maxImageSize = 5 * 1024 * 1024;
+
+  /**
+   * Display shared data management page – with caching.
    */
   public function index(): Response|RedirectResponse
   {
-    $user = Auth::user();
-    if (!$user instanceof User) {
-      abort(401);
-    }
+    $user = $this->getAuthUser();
+
     if (!$user->hasPermission('shared_data.view')) {
       return redirect()->route('unauthorized.access')
         ->with('error', 'You do not have permission to view shared data.');
     }
 
-    $sharedData = SharedData::whereIn('type', [
-      'topbar',
-      'navbar',
-      'footer',
-      'faq',
-      'upcoming-events',
-      'stories'
-    ])->get();
+    try {
+      $sharedData = Cache::remember('shared_data_list', 300, function () {
+        return SharedData::whereIn('type', [
+          'topbar',
+          'navbar',
+          'footer',
+          'faq',
+          'upcoming-events',
+          'stories',
+        ])->get();
+      });
 
-    return Inertia::render('Backend/CMS/Shared/Index', [
-      'sharedData' => $sharedData,
-    ]);
+      return Inertia::render('Backend/CMS/Shared/Index', [
+        'sharedData' => $sharedData,
+      ]);
+    } catch (\Exception $e) {
+      Log::error('Failed to fetch shared data: ' . $e->getMessage());
+      return Inertia::render('Backend/CMS/Shared/Index', [
+        'sharedData' => [],
+        'flash' => ['error' => 'Failed to load shared data. Please try again.'],
+      ]);
+    }
   }
 
   /**
-   * Update shared data
+   * Update shared data – with rate limiting.
    */
-  public function update(Request $request, int $id)
+  public function update(Request $request, int $id): RedirectResponse
   {
-    $user = Auth::user();
-    if (!$user instanceof User) {
-      abort(401);
-    }
+    $user = $this->getAuthUser();
+
     if (!$user->hasPermission('shared_data.update')) {
       return redirect()->back()->with('error', 'You do not have permission to update shared data.');
     }
 
-    $shared = SharedData::findOrFail($id);
-
-    $validator = Validator::make($request->all(), [
-      'data' => 'required|array',
-      'is_active' => 'boolean',
-    ]);
-
-    if ($validator->fails()) {
-      return back()->withErrors($validator)->withInput();
-    }
-
-    // Use database transaction for data integrity
-    DB::beginTransaction();
+    $this->checkRateLimit('shared_data_update', $user->id);
 
     try {
-      // Decode old data if it's a JSON string
-      $oldData = $shared->data;
-      if (is_string($oldData)) {
-        $oldData = json_decode($oldData, true);
-        if (!is_array($oldData)) {
-          $oldData = [];
-        }
-      } elseif (!is_array($oldData)) {
-        $oldData = [];
-      }
+      $shared = SharedData::findOrFail($id);
 
-      // Process data - handle image uploads
-      $processedData = $this->processData($request->data, $oldData, $shared->type);
+      $validated = $request->validate([
+        'data' => 'required|array',
+        'is_active' => 'nullable|boolean',
+      ]);
 
-      // Always store as JSON string for consistency
+      DB::beginTransaction();
+
+      // Decode old data
+      $oldData = $this->decodeData($shared->data);
+
+      // Process data – handle image uploads
+      $processedData = $this->processData($validated['data'], $oldData, $shared->type);
+
+      // Always store as JSON string
       $dataToSave = json_encode($processedData);
 
       $shared->update([
         'data' => $dataToSave,
-        'is_active' => $request->is_active ?? true,
+        'is_active' => $request->boolean('is_active', true),
       ]);
 
-      // Clear cache for this type
+      // Clear cache for this type and the list
       $this->clearCache($shared->type);
 
       DB::commit();
 
+      RateLimiter::clear($this->getThrottleKey('shared_data_update', $user->id));
+
+      SimpleLogger::cms(
+        "Shared data updated: {$shared->type}",
+        [
+          'shared_id' => $id,
+          'type' => $shared->type,
+          'updated_by' => $user->email,
+          'ip' => $request->ip(),
+        ]
+      );
+
       return redirect()->back()->with('success', ucfirst($shared->type) . ' updated successfully.');
+    } catch (ValidationException $e) {
+      return back()->withErrors($e->errors())->withInput();
     } catch (\Exception $e) {
       DB::rollBack();
 
       Log::error('Failed to update shared data', [
-        'type' => $shared->type,
+        'type' => $shared->type ?? 'unknown',
         'id' => $id,
         'error' => $e->getMessage(),
-        'trace' => $e->getTraceAsString()
+        'trace' => $e->getTraceAsString(),
       ]);
 
       return back()->with('error', 'Failed to update: ' . $e->getMessage())->withInput();
     }
   }
 
+    // ==========================================
+    // PRIVATE HELPER METHODS
+    // ==========================================
+
   /**
-   * Clear cache for a specific type
+   * Get the authenticated user.
    */
-  protected function clearCache(string $type): void
+  private function getAuthUser(): User
   {
-    Cache::forget('shared.' . $type);
-    Cache::forget('shared_data_' . $type); // Alternative cache key
+    $user = Auth::user();
+    if (!$user instanceof User) {
+      abort(401, 'Unauthenticated');
+    }
+    return $user;
   }
 
   /**
-   * Process data - main entry point
+   * Check rate limit for admin actions.
    */
-  protected function processData(array $newData, array $oldData, string $type): array
+  private function checkRateLimit(string $action, int $userId, int $maxAttempts = 10, int $decaySeconds = 3600): void
   {
-    // Create a copy to work with
-    $processed = $newData;
-
-    // Process based on type
-    switch ($type) {
-      case 'navbar':
-        $processed = $this->processNavbarData($newData, $oldData);
-        break;
-      case 'footer':
-        $processed = $this->processFooterData($newData, $oldData);
-        break;
-      case 'upcoming-events':
-        $processed = $this->processUpcomingEventsData($newData, $oldData);
-        break;
-      default:
-        $processed = $this->processArrayRecursive($newData, $oldData);
-        break;
+    $key = $this->getThrottleKey($action, $userId);
+    if (RateLimiter::tooManyAttempts($key, $maxAttempts)) {
+      Log::warning("Rate limit exceeded for {$action}", ['user_id' => $userId]);
+      throw ValidationException::withMessages([
+        'rate_limit' => 'Too many attempts. Please wait a moment.',
+      ]);
     }
+    RateLimiter::hit($key, $decaySeconds);
+  }
+
+  /**
+   * Get throttle key.
+   */
+  private function getThrottleKey(string $action, int $userId): string
+  {
+    return "shared_{$action}|{$userId}";
+  }
+
+  /**
+   * Clear cache for a specific type and the main list.
+   */
+  private function clearCache(string $type): void
+  {
+    Cache::forget('shared.' . $type);
+    Cache::forget('shared_data_' . $type);
+    Cache::forget('shared_data_list');
+  }
+
+  /**
+   * Decode shared data from stored format.
+   */
+  private function decodeData(mixed $data): array
+  {
+    if (is_string($data)) {
+      $decoded = json_decode($data, true);
+      return is_array($decoded) ? $decoded : [];
+    }
+    return is_array($data) ? $data : [];
+  }
+
+  /**
+   * Process data – main entry point.
+   */
+  private function processData(array $newData, array $oldData, string $type): array
+  {
+    $processed = match ($type) {
+      'navbar' => $this->processNavbarData($newData, $oldData),
+      'footer' => $this->processFooterData($newData, $oldData),
+      'upcoming-events' => $this->processUpcomingEventsData($newData, $oldData),
+      default => $this->processArrayRecursive($newData, $oldData),
+    };
 
     // Specifically handle link icons for footer type
     if ($type === 'footer') {
@@ -160,20 +215,17 @@ class SharedDataController extends Controller
   }
 
   /**
-   * Process navbar data with special logo handling
+   * Process navbar data with special logo handling.
    */
-  protected function processNavbarData(array $newData, array $oldData): array
+  private function processNavbarData(array $newData, array $oldData): array
   {
     // Handle logo image
     if (isset($newData['logo']['src']) && $this->isBase64Image($newData['logo']['src'])) {
-      // Delete old logo if it exists
       if (!empty($oldData['logo']['src'] ?? '')) {
         $this->deleteImage($oldData['logo']['src']);
       }
-
       $newData['logo']['src'] = $this->uploadLogo($newData['logo']['src'], 'navbar');
-    } else if (isset($newData['logo']['src']) && empty($newData['logo']['src'])) {
-      // Logo was removed
+    } elseif (isset($newData['logo']['src']) && empty($newData['logo']['src'])) {
       if (!empty($oldData['logo']['src'] ?? '')) {
         $this->deleteImage($oldData['logo']['src']);
       }
@@ -191,9 +243,9 @@ class SharedDataController extends Controller
   }
 
   /**
-   * Process footer data with special logo handling
+   * Process footer data with special logo handling.
    */
-  protected function processFooterData(array $newData, array $oldData): array
+  private function processFooterData(array $newData, array $oldData): array
   {
     // Handle logo image
     if (isset($newData['logo']['src']) && $this->isBase64Image($newData['logo']['src'])) {
@@ -201,7 +253,7 @@ class SharedDataController extends Controller
         $this->deleteImage($oldData['logo']['src']);
       }
       $newData['logo']['src'] = $this->uploadLogo($newData['logo']['src'], 'footer');
-    } else if (isset($newData['logo']['src']) && empty($newData['logo']['src'])) {
+    } elseif (isset($newData['logo']['src']) && empty($newData['logo']['src'])) {
       if (!empty($oldData['logo']['src'] ?? '')) {
         $this->deleteImage($oldData['logo']['src']);
       }
@@ -219,30 +271,27 @@ class SharedDataController extends Controller
   }
 
   /**
-   * Process link icons for footer
+   * Process link icons for footer.
    */
-  protected function processLinkIcons(array $newData, array $oldData, array $processed): array
+  private function processLinkIcons(array $newData, array $oldData, array $processed): array
   {
     $iconFields = [
       'quickLinkLinkIcon',
-      'OurProgramLinkIcon'
+      'OurProgramLinkIcon',
     ];
 
     foreach ($iconFields as $field) {
       if (isset($newData[$field]) && $this->isBase64Image($newData[$field])) {
-        // Delete old icon if exists
         if (!empty($oldData[$field] ?? '') && !$this->isBase64Image($oldData[$field])) {
           $this->deleteImage($oldData[$field]);
         }
         $processed[$field] = $this->uploadLinkIcon($newData[$field]);
-      } else if (isset($newData[$field]) && empty($newData[$field])) {
-        // Icon was removed
+      } elseif (isset($newData[$field]) && empty($newData[$field])) {
         if (!empty($oldData[$field] ?? '')) {
           $this->deleteImage($oldData[$field]);
         }
         $processed[$field] = '';
-      } else if (isset($newData[$field])) {
-        // Keep existing icon path
+      } elseif (isset($newData[$field])) {
         $processed[$field] = $newData[$field];
       }
     }
@@ -251,9 +300,9 @@ class SharedDataController extends Controller
   }
 
   /**
-   * Process upcoming events data
+   * Process upcoming events data.
    */
-  protected function processUpcomingEventsData(array $newData, array $oldData): array
+  private function processUpcomingEventsData(array $newData, array $oldData): array
   {
     // Process section data
     if (isset($newData['section']) && is_array($newData['section'])) {
@@ -276,21 +325,21 @@ class SharedDataController extends Controller
       $oldEvents = $oldData['events'] ?? [];
 
       foreach ($newData['events'] as $index => $event) {
-        // Process event image
         if (isset($event['image']) && $this->isBase64Image($event['image'])) {
-          // Delete old event image if it exists
           if (!empty($oldEvents[$index]['image'] ?? '')) {
             $this->deleteImage($oldEvents[$index]['image']);
           }
           $newData['events'][$index]['image'] = $this->uploadEventImage($event['image'], 'event-' . ($index + 1));
         }
 
-        // Process other nested arrays in event
         if (is_array($event)) {
           $oldEvent = $oldEvents[$index] ?? [];
           foreach ($event as $key => $value) {
             if ($key !== 'image' && is_array($value)) {
-              $newData['events'][$index][$key] = $this->processArrayRecursive($value, $oldEvent[$key] ?? []);
+              $newData['events'][$index][$key] = $this->processArrayRecursive(
+                $value,
+                $oldEvent[$key] ?? []
+              );
             }
           }
         }
@@ -301,20 +350,14 @@ class SharedDataController extends Controller
   }
 
   /**
-   * Upload logo image
+   * Upload logo image.
    */
-  protected function uploadLogo(string $base64String, string $type): string
+  private function uploadLogo(string $base64String, string $type): string
   {
     try {
       $imageContent = $this->decodeBase64Image($base64String);
       $extension = $this->getImageExtension($base64String) ?: 'png';
-
-      // Simplified filename: YYYYMMDD_UUID.extension
-      $datePrefix = date('Ymd');
-      $uuid = Str::uuid();
-      $filename = $datePrefix . '_' . $uuid . '.' . $extension;
-
-      // Single directory structure: images/logos/filename
+      $filename = date('Ymd') . '_' . Str::uuid() . '.' . $extension;
       $path = 'images/logos/' . $filename;
 
       Storage::disk('public')->put($path, $imageContent);
@@ -327,20 +370,14 @@ class SharedDataController extends Controller
   }
 
   /**
-   * Upload event image
+   * Upload event image.
    */
-  protected function uploadEventImage(string $base64String, string $prefix = 'event'): string
+  private function uploadEventImage(string $base64String, string $prefix = 'event'): string
   {
     try {
       $imageContent = $this->decodeBase64Image($base64String);
       $extension = $this->getImageExtension($base64String) ?: 'jpg';
-
-      // Simplified filename: YYYYMMDD_UUID.extension
-      $datePrefix = date('Ymd');
-      $uuid = Str::uuid();
-      $filename = $datePrefix . '_' . $uuid . '.' . $extension;
-
-      // Single directory structure: UpcomingEvent/filename
+      $filename = date('Ymd') . '_' . Str::uuid() . '.' . $extension;
       $path = 'UpcomingEvent/' . $filename;
 
       Storage::disk('public')->put($path, $imageContent);
@@ -353,18 +390,14 @@ class SharedDataController extends Controller
   }
 
   /**
-   * Upload link icon
+   * Upload link icon.
    */
-  protected function uploadLinkIcon(string $base64String): string
+  private function uploadLinkIcon(string $base64String): string
   {
     try {
       $imageContent = $this->decodeBase64Image($base64String);
       $extension = $this->getImageExtension($base64String) ?: 'png';
-
-      $datePrefix = date('Ymd');
-      $uuid = Str::uuid();
-      $filename = $datePrefix . '_' . $uuid . '.' . $extension;
-
+      $filename = date('Ymd') . '_' . Str::uuid() . '.' . $extension;
       $path = 'images/icons/' . $filename;
 
       Storage::disk('public')->put($path, $imageContent);
@@ -377,41 +410,14 @@ class SharedDataController extends Controller
   }
 
   /**
-   * Process array recursively for image uploads
+   * Upload generic image.
    */
-  protected function processArrayRecursive(array $data, array $oldData): array
-  {
-    foreach ($data as $key => $value) {
-      if (is_array($value)) {
-        $oldValue = $oldData[$key] ?? [];
-        $data[$key] = $this->processArrayRecursive($value, $oldValue);
-      } elseif (is_string($value) && $this->isBase64Image($value)) {
-        // Check if this is a new image or existing path
-        if (!empty($oldData[$key] ?? '') && !$this->isBase64Image($oldData[$key])) {
-          $this->deleteImage($oldData[$key]);
-        }
-        $data[$key] = $this->uploadGenericImage($value);
-      }
-    }
-
-    return $data;
-  }
-
-  /**
-   * Upload generic image
-   */
-  protected function uploadGenericImage(string $base64String): string
+  private function uploadGenericImage(string $base64String): string
   {
     try {
       $imageContent = $this->decodeBase64Image($base64String);
       $extension = $this->getImageExtension($base64String) ?: 'png';
-
-      // Simplified filename: YYYYMMDD_UUID.extension
-      $datePrefix = date('Ymd');
-      $uuid = Str::uuid();
-      $filename = $datePrefix . '_' . $uuid . '.' . $extension;
-
-      // Single directory structure: uploads/shared/filename
+      $filename = date('Ymd') . '_' . Str::uuid() . '.' . $extension;
       $path = 'uploads/shared/' . $filename;
 
       Storage::disk('public')->put($path, $imageContent);
@@ -424,9 +430,29 @@ class SharedDataController extends Controller
   }
 
   /**
-   * Decode base64 image
+   * Process array recursively for image uploads.
    */
-  protected function decodeBase64Image(string $base64String): string
+  private function processArrayRecursive(array $data, array $oldData): array
+  {
+    foreach ($data as $key => $value) {
+      if (is_array($value)) {
+        $oldValue = $oldData[$key] ?? [];
+        $data[$key] = $this->processArrayRecursive($value, $oldValue);
+      } elseif (is_string($value) && $this->isBase64Image($value)) {
+        if (!empty($oldData[$key] ?? '') && !$this->isBase64Image($oldData[$key])) {
+          $this->deleteImage($oldData[$key]);
+        }
+        $data[$key] = $this->uploadGenericImage($value);
+      }
+    }
+
+    return $data;
+  }
+
+  /**
+   * Decode base64 image and return raw data.
+   */
+  private function decodeBase64Image(string $base64String): string
   {
     $imageData = explode(',', $base64String);
     $encodedData = $imageData[1] ?? $base64String;
@@ -436,7 +462,6 @@ class SharedDataController extends Controller
       throw new \Exception('Failed to decode base64 image');
     }
 
-    // Check if image is valid
     if (strlen($decoded) === 0) {
       throw new \Exception('Decoded image is empty');
     }
@@ -445,26 +470,21 @@ class SharedDataController extends Controller
   }
 
   /**
-   * Delete image from storage
+   * Delete image from storage.
    */
-  protected function deleteImage(string $imagePath): bool
+  private function deleteImage(string $imagePath): bool
   {
     if (empty($imagePath)) {
       return false;
     }
 
-    // Only delete if it's a stored path (not URL or base64)
     if (str_starts_with($imagePath, 'http') || $this->isBase64Image($imagePath)) {
       return false;
     }
 
-    // Remove /storage/ prefix to get the storage path
     $path = str_replace('/storage/', '', $imagePath);
-
-    // Remove leading slash if present
     $path = ltrim($path, '/');
 
-    // Don't delete if path is empty or invalid
     if (empty($path) || $path === '/' || $path === 'storage') {
       return false;
     }
@@ -481,17 +501,17 @@ class SharedDataController extends Controller
   }
 
   /**
-   * Check if string is a base64 image
+   * Check if string is a base64 image.
    */
-  protected function isBase64Image(string $string): bool
+  private function isBase64Image(string $string): bool
   {
     return str_starts_with($string, 'data:image/');
   }
 
   /**
-   * Get image extension from base64 string
+   * Get image extension from base64 string.
    */
-  protected function getImageExtension(string $base64String): ?string
+  private function getImageExtension(string $base64String): ?string
   {
     $mimeMap = [
       'image/jpeg' => 'jpg',
@@ -508,40 +528,9 @@ class SharedDataController extends Controller
     ];
 
     if (preg_match('/^data:([^;]+);base64,/', $base64String, $matches)) {
-      $mimeType = $matches[1];
-      return $mimeMap[$mimeType] ?? 'png';
+      return $mimeMap[$matches[1]] ?? 'png';
     }
 
     return 'png';
-  }
-
-  /**
-   * Get image mime type from base64 string
-   */
-  protected function getImageMimeType(string $base64String): ?string
-  {
-    if (preg_match('/^data:([^;]+);base64,/', $base64String, $matches)) {
-      return $matches[1];
-    }
-    return null;
-  }
-
-  /**
-   * Get the size of base64 image in bytes
-   */
-  protected function getBase64ImageSize(string $base64String): int
-  {
-    $imageData = explode(',', $base64String);
-    $encodedData = $imageData[1] ?? '';
-    return (int) (strlen($encodedData) * 3 / 4);
-  }
-
-  /**
-   * Validate base64 image size
-   */
-  protected function validateImageSize(string $base64String, int $maxSize = 5 * 1024 * 1024): bool
-  {
-    $size = $this->getBase64ImageSize($base64String);
-    return $size <= $maxSize;
   }
 }

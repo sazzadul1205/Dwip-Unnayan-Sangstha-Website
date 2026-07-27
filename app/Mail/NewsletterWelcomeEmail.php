@@ -1,5 +1,4 @@
 <?php
-// app/Mail/NewsletterWelcomeEmail.php
 
 namespace App\Mail;
 
@@ -16,17 +15,11 @@ class NewsletterWelcomeEmail extends Mailable
 
   public NewsletterSubscription $subscription;
 
-  /**
-   * Create a new message instance.
-   */
   public function __construct(NewsletterSubscription $subscription)
   {
     $this->subscription = $subscription;
   }
 
-  /**
-   * Get the message envelope.
-   */
   public function envelope(): Envelope
   {
     return new Envelope(
@@ -34,9 +27,6 @@ class NewsletterWelcomeEmail extends Mailable
     );
   }
 
-  /**
-   * Get the message content definition.
-   */
   public function content(): Content
   {
     return new Content(

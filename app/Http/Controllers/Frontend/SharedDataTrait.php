@@ -1,28 +1,38 @@
 <?php
-// app/Http/Controllers/Frontend/SharedDataTrait.php
 
 namespace App\Http\Controllers\Frontend;
 
 use App\Models\pages\SharedData;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 
 trait SharedDataTrait
 {
   /**
-   * Get shared data for all frontend pages
-   * (TopBar, Navbar, Footer, Stories)
+   * Cache duration in minutes.
+   */
+  protected int $sharedDataCacheMinutes = 5;
+
+  /**
+   * Get shared data for all frontend pages.
+   *
+   * @return array<string, mixed>  Keys: topbarData, navbarData, footerData, storiesData
    */
   public function getSharedData(): array
   {
-    $asset = function ($path) {
-      return route('asset', ['path' => ltrim($path, '/')]);
-    };
+    // Cache the entire result to avoid multiple DB queries per request
+    return Cache::remember('frontend_shared_data', $this->sharedDataCacheMinutes * 60, function () {
+      $asset = fn(string $path): string => route('asset', ['path' => ltrim($path, '/')]);
 
-    return $this->fetchSharedData($asset);
+      return $this->fetchSharedData($asset);
+    });
   }
 
   /**
-   * Fetch shared data from database
+   * Fetch shared data from the database.
+   *
+   * @param callable(string): string $asset  Asset URL generator
+   * @return array<string, mixed>
    */
   private function fetchSharedData(callable $asset): array
   {
@@ -41,12 +51,16 @@ trait SharedDataTrait
           ->where('is_active', true)
           ->first();
 
-        $sharedData[$key] = $record && !empty($record->data)
-          ? $this->transformAssetUrls($record->data, $asset)
-          : [];
+        if ($record && !empty($record->data)) {
+          $data = is_string($record->data) ? json_decode($record->data, true) : $record->data;
+          $sharedData[$key] = $this->transformAssetUrls($data ?? [], $asset);
+        } else {
+          $sharedData[$key] = [];
+        }
       } catch (\Exception $e) {
-        // Log the error but continue with empty data
-        Log::error("Failed to fetch shared data for type: {$type}", ['error' => $e->getMessage()]);
+        Log::error("Failed to fetch shared data for type: {$type}", [
+          'error' => $e->getMessage(),
+        ]);
         $sharedData[$key] = [];
       }
     }
@@ -55,59 +69,46 @@ trait SharedDataTrait
   }
 
   /**
-   * Transform asset placeholders in data
+   * Recursively transform asset: paths to actual URLs.
+   *
+   * @param mixed $data      The data to transform (array, string, or other)
+   * @param callable $asset  Asset URL generator
+   * @param int $depth       Current recursion depth (prevents infinite loops)
+   * @return mixed
    */
-  private function transformAssetUrls(mixed $data, callable $asset): array
+  private function transformAssetUrls($data, callable $asset, int $depth = 0)
   {
-    // If data is null or empty, return empty array
-    if (empty($data)) {
-      return [];
+    // Safety: prevent deep recursion (max 10 levels)
+    if ($depth > 10) {
+      Log::warning('transformAssetUrls recursion depth exceeded', ['depth' => $depth]);
+      return $data;
     }
 
-    // If data is not an array, try to decode it from JSON
-    if (is_string($data)) {
-      $decoded = json_decode($data, true);
-      if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
-        $data = $decoded;
-      } else {
-        // If it's a string that's not JSON, return it as a string in an array
-        return $this->transformStringValue($data, $asset);
+    // If it's a string with 'asset:' prefix, replace it
+    if (is_string($data) && str_starts_with($data, 'asset:')) {
+      $path = substr($data, 6);
+      return $asset($path);
+    }
+
+    // If it's an array, recurse
+    if (is_array($data)) {
+      $result = [];
+      foreach ($data as $key => $value) {
+        $result[$key] = $this->transformAssetUrls($value, $asset, $depth + 1);
       }
+      return $result;
     }
 
-    // If data is not an array, return empty array
-    if (!is_array($data)) {
-      return [];
-    }
-
-    $transformed = [];
-
-    foreach ($data as $key => $value) {
-      if (is_array($value)) {
-        $transformed[$key] = $this->transformAssetUrls($value, $asset);
-      } elseif (is_string($value) && str_starts_with($value, 'asset:')) {
-        $path = substr($value, 6);
-        $transformed[$key] = $asset($path);
-      } else {
-        $transformed[$key] = $value;
-      }
-    }
-
-    return $transformed;
+    // Other types (int, bool, null) – return as is
+    return $data;
   }
 
   /**
-   * Transform a string value that might contain asset placeholders
+   * Clear the shared data cache (useful after updating shared data in admin).
    */
-  private function transformStringValue(string $value, callable $asset): array
+  public function clearSharedDataCache(): void
   {
-    // If the string contains asset: prefix, transform it
-    if (str_starts_with($value, 'asset:')) {
-      $path = substr($value, 6);
-      return [$asset($path)];
-    }
-
-    // Otherwise return the string as is in an array
-    return [$value];
+    Cache::forget('frontend_shared_data');
+    Log::info('Shared data cache cleared');
   }
 }

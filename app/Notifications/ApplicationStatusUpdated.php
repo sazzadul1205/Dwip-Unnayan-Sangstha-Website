@@ -10,18 +10,30 @@ class ApplicationStatusUpdated extends Notification
 {
     use Queueable;
 
+    /**
+     * Create a new notification instance.
+     */
     public function __construct(
         private readonly Application $application,
         private readonly ?string $previousStatus = null,
         private readonly ?string $notes = null,
-    ) {
-    }
+    ) {}
 
+    /**
+     * Get the notification's delivery channels.
+     *
+     * @return array<int, string>
+     */
     public function via(object $notifiable): array
     {
         return ['database'];
     }
 
+    /**
+     * Get the array representation of the notification.
+     *
+     * @return array<string, mixed>
+     */
     public function toArray(object $notifiable): array
     {
         $jobTitle = $this->application->jobListing?->title ?? 'job';
@@ -41,9 +53,25 @@ class ApplicationStatusUpdated extends Notification
             'notes' => $this->notes,
             'title' => "Application {$statusLabel}",
             'message' => $message,
+            'icon' => $this->getStatusIcon($this->application->status),
+            'type' => 'application_status',
             'route_name' => 'backend.apply.show',
             'route_params' => ['id' => $this->application->id],
             'created_at' => now()->toISOString(),
         ];
+    }
+
+    /**
+     * Get the icon for the notification based on status.
+     */
+    private function getStatusIcon(string $status): string
+    {
+        return match ($status) {
+            'pending' => '🕒',
+            'shortlisted' => '⭐',
+            'rejected' => '❌',
+            'hired' => '🎉',
+            default => '📋',
+        };
     }
 }

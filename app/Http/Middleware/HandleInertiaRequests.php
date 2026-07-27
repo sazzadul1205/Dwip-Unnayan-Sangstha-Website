@@ -1,15 +1,11 @@
 <?php
-// middleware/HandleInertiaRequests.php
+
 namespace App\Http\Middleware;
 
-// Support
 use Illuminate\Foundation\Inspiring;
-
-// HTTP
 use Illuminate\Http\Request;
-
-// Inertia
 use Inertia\Middleware;
+use Illuminate\Support\Facades\Cache;
 
 class HandleInertiaRequests extends Middleware
 {
@@ -36,13 +32,31 @@ class HandleInertiaRequests extends Middleware
 
         $roles = [];
         $permissions = [];
+        $primaryRole = null;
 
         if ($user) {
-            $roles = $user->roles()
-                ->get(['roles.id', 'roles.name', 'roles.slug', 'roles.level'])
-                ->toArray();
+            // Cache roles and permissions for 5 minutes to reduce DB load
+            $cacheKey = 'user_roles_permissions_' . $user->id;
+            $cached = Cache::remember($cacheKey, 300, function () use ($user) {
+                $roles = $user->roles()
+                    ->get(['roles.id', 'roles.name', 'roles.slug', 'roles.level'])
+                    ->toArray();
 
-            $permissions = $user->getAllPermissions();
+                $permissions = $user->getAllPermissions();
+
+                $primaryRole = null;
+                if (!empty($roles)) {
+                    // Highest level (lowest number) is most privileged
+                    usort($roles, fn($a, $b) => $a['level'] <=> $b['level']);
+                    $primaryRole = $roles[0]['slug'] ?? null;
+                }
+
+                return compact('roles', 'permissions', 'primaryRole');
+            });
+
+            $roles = $cached['roles'];
+            $permissions = $cached['permissions'];
+            $primaryRole = $cached['primaryRole'];
         }
 
         return array_merge(parent::share($request), [
@@ -53,13 +67,13 @@ class HandleInertiaRequests extends Middleware
                     'id' => $user->id,
                     'name' => $user->name,
                     'email' => $user->email,
-                    // 'role' => $user->role, // REMOVED - no longer exists
                     'google_id' => $user->google_id,
                     'google_avatar' => $user->google_avatar,
                     'email_verified_at' => $user->email_verified_at,
                     'created_at' => $user->created_at,
                     'roles' => $roles,
                     'permissions' => $permissions,
+                    'primary_role' => $primaryRole, 
                 ] : null,
             ],
             'flash' => [

@@ -1,55 +1,38 @@
 <?php
-// app/Http/Controllers/JobListing/JobListingController.php
 
 namespace App\Http\Controllers\JobListing;
 
 use Carbon\Carbon;
 use Inertia\Inertia;
-
-// Str
 use Illuminate\Support\Str;
-
-// Requests
 use Illuminate\Http\Request;
-
-// Facades
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Database\Eloquent\Builder;
-
-// Controllers
+use Illuminate\Validation\ValidationException;
 use App\Http\Controllers\Controller;
-
-// Models
 use App\Models\User;
 use App\Models\JobView;
 use App\Models\Location;
 use App\Models\JobListing;
 use App\Models\Application;
 use App\Models\JobCategory;
-
-// Services
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
-
-// Services
 use App\Services\SimpleLogger;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Collection;
 
 class JobListingController extends Controller
 {
     // ==========================================
-    // PUBLIC METHODS (No permission checks)
+    // PUBLIC METHODS (Read‑only)
     // ==========================================
 
-    /**
-     * Display public job listings for applicants
-     * Only shows active, non-deleted jobs with valid deadlines
-     * Fully queryable with filters and sorting
-     */
-    public function index(Request $request)
+    public function index(Request $request): \Inertia\Response
     {
-        $user = Auth::user();
-
         $query = JobListing::where('is_active', true)
             ->whereNull('deleted_at')
             ->where('application_deadline', '>=', now())
@@ -59,19 +42,10 @@ class JobListingController extends Controller
         $this->applyPublicFilters($query, $request);
         $this->applyPublicSorting($query, $request);
 
-        // Use simplePaginate instead of paginate to avoid count queries on large datasets
-        $jobListings = $query->paginate(12)->through(function ($jobListing) {
-            return $this->formatPublicJobListing($jobListing);
-        });
+        $jobListings = $query->paginate(12)->through(fn($job) => $this->formatPublicJobListing($job));
 
-        // Cache filter data for 5 minutes to reduce DB queries
-        $filterData = cache()->remember('public_job_filters', 300, function () {
-            return $this->getPublicFilterData();
-        });
-
-        $stats = cache()->remember('public_job_stats', 300, function () {
-            return $this->getPublicStats();
-        });
+        $filterData = cache()->remember('public_job_filters', 300, fn() => $this->getPublicFilterData());
+        $stats = cache()->remember('public_job_stats', 300, fn() => $this->getPublicStats());
 
         return Inertia::render('Backend/PublicJobListing/Index', [
             'jobListings' => $jobListings,
@@ -94,13 +68,8 @@ class JobListingController extends Controller
         ]);
     }
 
-    /**
-     * Display a single job listing and register a view
-     */
-    public function show(string $slug)
+    public function show(string $slug): \Inertia\Response
     {
-        $user = Auth::user();
-
         $jobListing = JobListing::where('slug', $slug)
             ->where('is_active', true)
             ->whereNull('deleted_at')
@@ -112,9 +81,9 @@ class JobListingController extends Controller
         $this->recordJobView($jobListing);
 
         $totalViews = $jobListing->views()->count();
-
         $hasApplied = false;
         $existingApplication = null;
+
         if (Auth::check()) {
             $existingApplication = $jobListing->applications()
                 ->where('user_id', Auth::id())
@@ -138,10 +107,7 @@ class JobListingController extends Controller
         ]);
     }
 
-    /**
-     * Get popular jobs based on views (Public API)
-     */
-    public function popular()
+    public function popular(): JsonResponse
     {
         $popularJobs = JobListing::where('is_active', true)
             ->whereNull('deleted_at')
@@ -151,15 +117,12 @@ class JobListingController extends Controller
             ->orderBy('views_count', 'desc')
             ->limit(10)
             ->get()
-            ->map(fn($job) => $this->formatPublicApiJob($job));
+            ->map(fn(JobListing $job) => $this->formatPublicApiJob($job));
 
         return response()->json($popularJobs);
     }
 
-    /**
-     * Get trending jobs based on recent applications (Public API)
-     */
-    public function trending()
+    public function trending(): JsonResponse
     {
         $trendingJobs = JobListing::where('is_active', true)
             ->whereNull('deleted_at')
@@ -169,25 +132,18 @@ class JobListingController extends Controller
             ->orderBy('applications_count', 'desc')
             ->limit(10)
             ->get()
-            ->map(fn($job) => $this->formatPublicApiJob($job));
+            ->map(fn(JobListing $job) => $this->formatPublicApiJob($job));
 
         return response()->json($trendingJobs);
     }
 
     // ==========================================
-    // ADMIN METHODS (With permission checks)
+    // ADMIN METHODS (Write operations with rate limiting)
     // ==========================================
 
-    /**
-     * Display a listing of job listings with filtering and pagination (Admin)
-     */
-    public function adminIndex(Request $request)
+    public function adminIndex(Request $request): \Inertia\Response|RedirectResponse
     {
-        $user = Auth::user();
-
-        if (!$user instanceof User) {
-            abort(401);
-        }
+        $user = $this->getAuthUser();
 
         if (!$user->hasPermission('job_listings.view')) {
             return redirect()->route('unauthorized.access')
@@ -196,18 +152,15 @@ class JobListingController extends Controller
 
         $query = JobListing::withTrashed()
             ->with(['category', 'locations', 'employer'])
-            ->withCount([
-                'applications' => fn($q) => $q->withTrashed(),
-                'views'
-            ]);
+            ->withCount(['applications' => fn($q) => $q->withTrashed(), 'views']);
 
         $this->applyAdminFilters($query, $request);
         $this->applyAdminSorting($query, $request);
 
         $perPage = $request->input('per_page', 7);
-        $jobListings = $query->paginate($perPage)->through(
-            fn($jobListing) => $this->formatAdminJobListing($jobListing)
-        )->withQueryString();
+        $jobListings = $query->paginate($perPage)
+            ->through(fn($job) => $this->formatAdminJobListing($job))
+            ->withQueryString();
 
         $filterOptions = $this->getAdminFilterOptions();
 
@@ -246,16 +199,9 @@ class JobListingController extends Controller
         ]);
     }
 
-    /**
-     * Show the form for creating a new job listing
-     */
-    public function adminCreate()
+    public function adminCreate(): \Inertia\Response|RedirectResponse
     {
-        $user = Auth::user();
-
-        if (!$user instanceof User) {
-            abort(401);
-        }
+        $user = $this->getAuthUser();
 
         if (!$user->hasPermission('job_listings.create')) {
             return redirect()->route('unauthorized.access')
@@ -268,21 +214,16 @@ class JobListingController extends Controller
         ]);
     }
 
-    /**
-     * Store a newly created job listing
-     */
-    public function adminStore(Request $request)
+    public function adminStore(Request $request): RedirectResponse
     {
-        $user = Auth::user();
-
-        if (!$user instanceof User) {
-            abort(401);
-        }
+        $user = $this->getAuthUser();
 
         if (!$user->hasPermission('job_listings.store')) {
             return redirect()->route('unauthorized.access')
                 ->with('error', 'You do not have permission to create job listings.');
         }
+
+        $this->checkRateLimit('job_create', $user->id, 10, 3600);
 
         $validated = $this->validateJobListing($request);
         $data = $this->prepareJobData($validated);
@@ -295,7 +236,8 @@ class JobListingController extends Controller
             $jobListing->locations()->sync($validated['location_ids']);
         }
 
-        // Log the activity
+        RateLimiter::clear($this->getThrottleKey('job_create', $user->id));
+
         SimpleLogger::jobs(
             "Job created: {$jobListing->title}",
             [
@@ -303,33 +245,25 @@ class JobListingController extends Controller
                 'title' => $jobListing->title,
                 'category' => $jobListing->category?->name ?? 'N/A',
                 'job_type' => $jobListing->job_type,
-                'experience_level' => $jobListing->experience_level,
-                'salary' => $jobListing->salary_min . ' - ' . $jobListing->salary_max,
-                'location_ids' => $validated['location_ids'] ?? [],
-                'created_by' => Auth::user()->email
+                'created_by' => Auth::user()->email,
+                'ip' => $request->ip(),
             ]
         );
 
         Log::info('Job listing created', [
             'job_id' => $jobListing->id,
             'title' => $jobListing->title,
-            'user_id' => Auth::id()
+            'user_id' => Auth::id(),
+            'ip' => $request->ip(),
         ]);
 
         return redirect()->route('backend.listing.index')
             ->with('success', 'Job listing created successfully');
     }
 
-    /**
-     * Display the specified job listing (Admin)
-     */
-    public function adminShow(JobListing $jobListing)
+    public function adminShow(JobListing $jobListing): \Inertia\Response|RedirectResponse
     {
-        $user = Auth::user();
-
-        if (!$user instanceof User) {
-            abort(401);
-        }
+        $user = $this->getAuthUser();
 
         if (!$user->hasPermission('job_listings.show')) {
             return redirect()->route('unauthorized.access')
@@ -356,7 +290,7 @@ class JobListingController extends Controller
             ->latest()
             ->limit(10)
             ->get()
-            ->map(fn($application) => $this->formatRecentApplication($application));
+            ->map(fn($app) => $this->formatRecentApplication($app));
 
         return Inertia::render('Backend/JobListings/Show', [
             'jobListing' => $this->formatAdminJobDetail($jobListing, $totalViews),
@@ -367,16 +301,9 @@ class JobListingController extends Controller
         ]);
     }
 
-    /**
-     * Show the form for editing the specified job listing
-     */
-    public function adminEdit(JobListing $jobListing)
+    public function adminEdit(JobListing $jobListing): \Inertia\Response|RedirectResponse
     {
-        $user = Auth::user();
-
-        if (!$user instanceof User) {
-            abort(401);
-        }
+        $user = $this->getAuthUser();
 
         if (!$user->hasPermission('job_listings.edit')) {
             return redirect()->route('unauthorized.access')
@@ -393,30 +320,22 @@ class JobListingController extends Controller
         ]);
     }
 
-    /**
-     * Update the specified job listing
-     */
-    public function adminUpdate(Request $request, JobListing $jobListing)
+    public function adminUpdate(Request $request, JobListing $jobListing): RedirectResponse
     {
-        $user = Auth::user();
-
-        if (!$user instanceof User) {
-            abort(401);
-        }
+        $user = $this->getAuthUser();
 
         if (!$user->hasPermission('job_listings.update')) {
             return redirect()->route('unauthorized.access')
                 ->with('error', 'You do not have permission to update job listings.');
         }
 
+        $this->checkRateLimit('job_update', $user->id, 10, 3600);
+
         $validated = $this->validateJobListing($request);
         $data = $this->prepareJobData($validated);
 
-        // Track changes for logging
         $oldTitle = $jobListing->title;
         $oldStatus = $jobListing->is_active;
-        $oldCategory = $jobListing->category_id;
-        $oldJobType = $jobListing->job_type;
 
         if ($jobListing->title !== $data['title']) {
             $data['slug'] = $this->generateUniqueSlug($data['title'], $jobListing->id);
@@ -432,7 +351,8 @@ class JobListingController extends Controller
             $jobListing->locations()->sync($validated['location_ids']);
         }
 
-        // Log the activity with changes
+        RateLimiter::clear($this->getThrottleKey('job_update', $user->id));
+
         $changes = [];
         if ($oldTitle !== $jobListing->title) {
             $changes['title'] = ['old' => $oldTitle, 'new' => $jobListing->title];
@@ -440,44 +360,38 @@ class JobListingController extends Controller
         if ($oldStatus !== $jobListing->is_active) {
             $changes['status'] = ['old' => $oldStatus ? 'active' : 'inactive', 'new' => $jobListing->is_active ? 'active' : 'inactive'];
         }
-        if ($oldCategory !== $jobListing->category_id) {
-            $changes['category'] = ['old' => $jobListing->category?->name ?? 'N/A', 'new' => $jobListing->category?->name ?? 'N/A'];
-        }
 
         SimpleLogger::jobs(
             "Job updated: {$jobListing->title}",
             [
                 'job_id' => $jobListing->id,
                 'changes' => $changes,
-                'updated_by' => Auth::user()->email
+                'updated_by' => Auth::user()->email,
+                'ip' => $request->ip(),
             ]
         );
 
         Log::info('Job listing updated', [
             'job_id' => $jobListing->id,
             'title' => $jobListing->title,
-            'user_id' => Auth::id()
+            'user_id' => Auth::id(),
+            'ip' => $request->ip(),
         ]);
 
         return redirect()->route('backend.listing.index')
             ->with('success', 'Job listing updated successfully');
     }
 
-    /**
-     * Remove the specified job listing (soft delete) - WITH applications
-     */
-    public function adminDestroy(JobListing $jobListing)
+    public function adminDestroy(JobListing $jobListing): RedirectResponse
     {
-        $user = Auth::user();
-
-        if (!$user instanceof User) {
-            abort(401);
-        }
+        $user = $this->getAuthUser();
 
         if (!$user->hasPermission('job_listings.destroy')) {
             return redirect()->route('unauthorized.access')
                 ->with('error', 'You do not have permission to delete job listings.');
         }
+
+        $this->checkRateLimit('job_delete', $user->id, 5, 3600);
 
         DB::beginTransaction();
 
@@ -487,94 +401,75 @@ class JobListingController extends Controller
 
             if ($applicationsCount > 0) {
                 $jobListing->applications()->delete();
-                Log::info('Job listing and associated applications soft deleted', [
-                    'job_id' => $jobListing->id,
-                    'job_title' => $jobTitle,
-                    'applications_count' => $applicationsCount,
-                    'deleted_by' => Auth::id()
-                ]);
             }
 
             $jobListing->delete();
 
-            // Log the deletion
+            RateLimiter::clear($this->getThrottleKey('job_delete', $user->id));
+
             SimpleLogger::jobs(
                 "Job deleted: {$jobTitle}",
                 [
                     'job_id' => $jobListing->id,
                     'title' => $jobTitle,
                     'applications_count' => $applicationsCount,
-                    'deleted_by' => Auth::user()->email
+                    'deleted_by' => Auth::user()->email,
+                    'ip' => request()->ip(),
                 ]
             );
 
             DB::commit();
 
             return redirect()->route('backend.listing.index')
-                ->with('success', "Job listing and {$applicationsCount} associated application(s) moved to trash.");
+                ->with('success', "Job listing and {$applicationsCount} application(s) moved to trash.");
         } catch (\Exception $e) {
             DB::rollBack();
-
-            Log::error('Failed to delete job listing with applications', [
-                'job_id' => $jobListing->id,
-                'error' => $e->getMessage()
-            ]);
-
+            Log::error('Failed to delete job listing', ['job_id' => $jobListing->id, 'error' => $e->getMessage()]);
             return redirect()->route('backend.listing.index')
                 ->with('error', 'Failed to delete job listing: ' . $e->getMessage());
         }
     }
 
-    /**
-     * Toggle active status
-     */
-    public function toggleActive(JobListing $jobListing)
+    public function toggleActive(JobListing $jobListing): RedirectResponse
     {
-        $user = Auth::user();
-
-        if (!$user instanceof User) {
-            abort(401);
-        }
+        $user = $this->getAuthUser();
 
         if (!$user->hasPermission('job_listings.toggle_active')) {
             return redirect()->route('unauthorized.access')
                 ->with('error', 'You do not have permission to change job status.');
         }
 
+        $this->checkRateLimit('job_toggle', $user->id, 10, 3600);
+
         $newStatus = !$jobListing->is_active;
         $jobListing->update(['is_active' => $newStatus]);
         $status = $newStatus ? 'activated' : 'deactivated';
 
-        // Log the status change
+        RateLimiter::clear($this->getThrottleKey('job_toggle', $user->id));
+
         SimpleLogger::jobs(
             "Job {$status}: {$jobListing->title}",
             [
                 'job_id' => $jobListing->id,
                 'title' => $jobListing->title,
                 'new_status' => $newStatus ? 'active' : 'inactive',
-                'updated_by' => Auth::user()->email
+                'updated_by' => Auth::user()->email,
+                'ip' => request()->ip(),
             ]
         );
 
         Log::info('Job listing status toggled', [
             'job_id' => $jobListing->id,
             'new_status' => $newStatus,
-            'user_id' => Auth::id()
+            'user_id' => Auth::id(),
         ]);
 
         return back()->with('success', "Job listing {$status} successfully");
     }
 
-    /**
-     * Display applications for a job listing
-     */
-    public function applications(JobListing $jobListing)
+    public function applications(JobListing $jobListing): \Inertia\Response|RedirectResponse
     {
-        $user = Auth::user();
-
-        if (!$user instanceof User) {
-            abort(401);
-        }
+        $user = $this->getAuthUser();
 
         if (!$user->hasPermission('job_listings.applications')) {
             return redirect()->route('unauthorized.access')
@@ -602,24 +497,15 @@ class JobListingController extends Controller
         ]);
     }
 
-    /**
-     * Update all job listing statuses based on dates
-     */
-    public function updateJobStatuses()
+    public function updateJobStatuses(): array|JsonResponse
     {
-        $user = Auth::user();
-
-        if (!$user instanceof User) {
-            abort(401);
-        }
+        $user = $this->getAuthUser();
 
         if (!$user->hasPermission('job_listings.update_statuses')) {
             return response()->json(['error' => 'Unauthorized'], 403);
         }
 
         $now = Carbon::now();
-
-        Log::info('Running job status update at ' . $now);
 
         $activated = JobListing::where('is_active', false)
             ->whereNotNull('publish_at')
@@ -636,21 +522,16 @@ class JobListingController extends Controller
         return ['activated' => $activated, 'deactivated' => $deactivated];
     }
 
-    /**
-     * Restore a soft-deleted job listing and its applications
-     */
-    public function restore(int $id)
+    public function restore(int $id): RedirectResponse
     {
-        $user = Auth::user();
-
-        if (!$user instanceof User) {
-            abort(401);
-        }
+        $user = $this->getAuthUser();
 
         if (!$user->hasPermission('job_listings.restore')) {
             return redirect()->route('unauthorized.access')
                 ->with('error', 'You do not have permission to restore job listings.');
         }
+
+        $this->checkRateLimit('job_restore', $user->id, 5, 3600);
 
         $jobListing = JobListing::withTrashed()->findOrFail($id);
 
@@ -663,61 +544,45 @@ class JobListingController extends Controller
 
         try {
             $jobListing->restore();
-
             $restoredApplications = Application::onlyTrashed()
                 ->where('job_listing_id', $jobListing->id)
                 ->restore();
 
-            // Log the restoration
+            RateLimiter::clear($this->getThrottleKey('job_restore', $user->id));
+
             SimpleLogger::jobs(
                 "Job restored: {$jobListing->title}",
                 [
                     'job_id' => $jobListing->id,
                     'title' => $jobListing->title,
                     'applications_restored' => $restoredApplications,
-                    'restored_by' => Auth::user()->email
+                    'restored_by' => Auth::user()->email,
+                    'ip' => request()->ip(),
                 ]
             );
 
             DB::commit();
 
-            Log::info('Job listing and applications restored', [
-                'job_id' => $jobListing->id,
-                'title' => $jobListing->title,
-                'applications_restored' => $restoredApplications,
-                'restored_by' => Auth::id()
-            ]);
-
             return redirect()->route('backend.listing.index')
                 ->with('success', "Job listing and {$restoredApplications} application(s) restored successfully.");
         } catch (\Exception $e) {
             DB::rollBack();
-
-            Log::error('Failed to restore job listing', [
-                'job_id' => $jobListing->id,
-                'error' => $e->getMessage()
-            ]);
-
+            Log::error('Failed to restore job listing', ['job_id' => $jobListing->id, 'error' => $e->getMessage()]);
             return redirect()->route('backend.listing.index')
                 ->with('error', 'Failed to restore job listing: ' . $e->getMessage());
         }
     }
 
-    /**
-     * Permanently delete a soft-deleted job listing and all related data
-     */
-    public function forceDelete(int $id)
+    public function forceDelete(int $id): RedirectResponse
     {
-        $user = Auth::user();
-
-        if (!$user instanceof User) {
-            abort(401);
-        }
+        $user = $this->getAuthUser();
 
         if (!$user->hasPermission('job_listings.force_delete')) {
             return redirect()->route('unauthorized.access')
                 ->with('error', 'You do not have permission to permanently delete job listings.');
         }
+
+        $this->checkRateLimit('job_force_delete', $user->id, 5, 3600);
 
         $jobListing = JobListing::withTrashed()->findOrFail($id);
 
@@ -746,55 +611,40 @@ class JobListingController extends Controller
             $jobListing->locations()->detach();
             $jobListing->forceDelete();
 
-            // Log the permanent deletion
+            RateLimiter::clear($this->getThrottleKey('job_force_delete', $user->id));
+
             SimpleLogger::jobs(
                 "Job permanently deleted: {$jobTitle}",
                 [
                     'job_id' => $id,
                     'title' => $jobTitle,
                     'applications_deleted' => $applications->count(),
-                    'deleted_by' => Auth::user()->email
+                    'deleted_by' => Auth::user()->email,
+                    'ip' => request()->ip(),
                 ]
             );
 
             DB::commit();
 
-            Log::info('Job listing permanently deleted', [
-                'job_id' => $jobListing->id,
-                'title' => $jobTitle,
-                'applications_deleted' => $applications->count(),
-                'deleted_by' => Auth::id()
-            ]);
-
             return redirect()->route('backend.listing.index')
                 ->with('success', "Job listing and {$applications->count()} application(s) permanently deleted.");
         } catch (\Exception $e) {
             DB::rollBack();
-
-            Log::error('Failed to force delete job listing', [
-                'job_id' => $jobListing->id,
-                'error' => $e->getMessage()
-            ]);
-
+            Log::error('Failed to force delete job listing', ['job_id' => $jobListing->id, 'error' => $e->getMessage()]);
             return redirect()->route('backend.listing.index')
                 ->with('error', 'Failed to permanently delete job listing: ' . $e->getMessage());
         }
     }
 
-    /**
-     * Bulk activate job listings
-     */
-    public function bulkActivate(Request $request)
+    public function bulkActivate(Request $request): RedirectResponse
     {
-        $user = Auth::user();
-
-        if (!$user instanceof User) {
-            abort(401);
-        }
+        $user = $this->getAuthUser();
 
         if (!$user->hasPermission('job_listings.bulk_activate')) {
             return redirect()->back()->with('error', 'You do not have permission to bulk activate jobs.');
         }
+
+        $this->checkRateLimit('job_bulk_activate', $user->id, 5, 3600);
 
         $validated = $request->validate([
             'job_ids' => 'required|array',
@@ -805,33 +655,30 @@ class JobListingController extends Controller
             ->whereNull('deleted_at')
             ->update(['is_active' => true]);
 
-        // Log bulk activation
+        RateLimiter::clear($this->getThrottleKey('job_bulk_activate', $user->id));
+
         SimpleLogger::jobs(
             "Bulk activated {$count} jobs",
             [
                 'job_ids' => $validated['job_ids'],
                 'count' => $count,
-                'performed_by' => Auth::user()->email
+                'performed_by' => Auth::user()->email,
+                'ip' => $request->ip(),
             ]
         );
 
         return redirect()->back()->with('success', "{$count} job listing(s) activated successfully.");
     }
 
-    /**
-     * Bulk deactivate job listings
-     */
-    public function bulkDeactivate(Request $request)
+    public function bulkDeactivate(Request $request): RedirectResponse
     {
-        $user = Auth::user();
-
-        if (!$user instanceof User) {
-            abort(401);
-        }
+        $user = $this->getAuthUser();
 
         if (!$user->hasPermission('job_listings.bulk_deactivate')) {
             return redirect()->back()->with('error', 'You do not have permission to bulk deactivate jobs.');
         }
+
+        $this->checkRateLimit('job_bulk_deactivate', $user->id, 5, 3600);
 
         $validated = $request->validate([
             'job_ids' => 'required|array',
@@ -842,33 +689,30 @@ class JobListingController extends Controller
             ->whereNull('deleted_at')
             ->update(['is_active' => false]);
 
-        // Log bulk deactivation
+        RateLimiter::clear($this->getThrottleKey('job_bulk_deactivate', $user->id));
+
         SimpleLogger::jobs(
             "Bulk deactivated {$count} jobs",
             [
                 'job_ids' => $validated['job_ids'],
                 'count' => $count,
-                'performed_by' => Auth::user()->email
+                'performed_by' => Auth::user()->email,
+                'ip' => $request->ip(),
             ]
         );
 
         return redirect()->back()->with('success', "{$count} job listing(s) deactivated successfully.");
     }
 
-    /**
-     * Bulk delete job listings (soft delete)
-     */
-    public function bulkDelete(Request $request)
+    public function bulkDelete(Request $request): RedirectResponse
     {
-        $user = Auth::user();
-
-        if (!$user instanceof User) {
-            abort(401);
-        }
+        $user = $this->getAuthUser();
 
         if (!$user->hasPermission('job_listings.bulk_delete')) {
             return redirect()->back()->with('error', 'You do not have permission to bulk delete jobs.');
         }
+
+        $this->checkRateLimit('job_bulk_delete', $user->id, 5, 3600);
 
         $validated = $request->validate([
             'job_ids' => 'required|array',
@@ -888,20 +732,23 @@ class JobListingController extends Controller
             ->whereNull('deleted_at')
             ->delete();
 
-        // Log bulk delete
+        RateLimiter::clear($this->getThrottleKey('job_bulk_delete', $user->id));
+
         SimpleLogger::jobs(
             "Bulk deleted {$count} jobs",
             [
                 'job_ids' => $validated['job_ids'],
                 'count' => $count,
-                'performed_by' => Auth::user()->email
+                'performed_by' => Auth::user()->email,
+                'ip' => $request->ip(),
             ]
         );
 
         Log::info('Bulk job listing delete', [
             'job_ids' => $validated['job_ids'],
             'count' => $count,
-            'user_id' => Auth::id()
+            'user_id' => Auth::id(),
+            'ip' => $request->ip(),
         ]);
 
         return redirect()->back()->with('success', "{$count} job listing(s) moved to trash.");
@@ -910,20 +757,16 @@ class JobListingController extends Controller
     /**
      * Display statistics dashboard for job listings
      */
-    public function statistics(Request $request)
+    public function statistics(Request $request): \Inertia\Response|RedirectResponse
     {
-        $user = Auth::user();
-
-        if (!$user instanceof User) {
-            abort(401);
-        }
+        $user = $this->getAuthUser();
 
         if (!$user->hasPermission('job_listings.statistics')) {
             return redirect()->route('unauthorized.access')
                 ->with('error', 'You do not have permission to view statistics.');
         }
 
-        $dateRange = $request->get('date_range', 'all');
+        $dateRange = $request->input('date_range', 'all');
         $startDate = $this->getStartDateFromRange($dateRange);
 
         // Job Listings Statistics
@@ -1157,6 +1000,32 @@ class JobListingController extends Controller
     // PRIVATE HELPER METHODS
     // ==========================================
 
+    private function getAuthUser(): User
+    {
+        $user = Auth::user();
+        if (!$user instanceof User) {
+            abort(401, 'Unauthenticated');
+        }
+        return $user;
+    }
+
+    private function checkRateLimit(string $action, int $userId, int $maxAttempts = 5, int $decaySeconds = 60): void
+    {
+        $key = $this->getThrottleKey($action, $userId);
+        if (RateLimiter::tooManyAttempts($key, $maxAttempts)) {
+            Log::warning("Rate limit exceeded for {$action}", ['user_id' => $userId]);
+            throw ValidationException::withMessages([
+                'rate_limit' => 'Too many attempts. Please wait a moment.',
+            ]);
+        }
+        RateLimiter::hit($key, $decaySeconds);
+    }
+
+    private function getThrottleKey(string $action, int $userId): string
+    {
+        return "job_{$action}|{$userId}";
+    }
+
     /**
      * Apply public filters to query
      */
@@ -1202,7 +1071,7 @@ class JobListingController extends Controller
      */
     private function applyPublicSorting(Builder $query, Request $request): void
     {
-        $sort = $request->get('sort', 'latest');
+        $sort = $request->input('sort', 'latest');
         switch ($sort) {
             case 'latest':
                 $query->orderBy('created_at', 'desc');
@@ -1707,6 +1576,9 @@ class JobListingController extends Controller
 
     /**
      * Format job for editing
+     * @param JobListing $jobListing
+     * @param array<int, int> $locationIds
+     * @return array
      */
     private function formatJobForEdit(JobListing $jobListing, array $locationIds): array
     {
@@ -1723,8 +1595,8 @@ class JobListingController extends Controller
             'as_per_companies_policy' => $jobListing->as_per_companies_policy,
             'education_requirement' => $jobListing->education_requirement,
             'education_details' => $jobListing->education_details,
-            'application_deadline' => $jobListing->application_deadline?->format('Y-m-d'),
-            'publish_at' => $jobListing->publish_at?->format('Y-m-d'),
+            'application_deadline' => $jobListing->application_deadline,
+            'publish_at' => $jobListing->publish_at,
             'description' => $jobListing->description,
             'requirements' => $jobListing->requirements,
             'benefits' => $jobListing->benefits ?? [],
@@ -1757,7 +1629,7 @@ class JobListingController extends Controller
     /**
      * Calculate application statistics
      */
-    private function calculateApplicationStats($applications): array
+    private function calculateApplicationStats(Collection $applications): array
     {
         return [
             'total' => $applications->count(),
@@ -1771,7 +1643,7 @@ class JobListingController extends Controller
     /**
      * Calculate average ATS score
      */
-    private function calculateAverageAtsScore($applications): ?float
+    private function calculateAverageAtsScore(Collection $applications): ?float
     {
         $completedATS = $applications->filter(function ($app) {
             return $app->isAtsCompleted() && $app->ats_score && isset($app->ats_score['percentage']);
@@ -1790,10 +1662,12 @@ class JobListingController extends Controller
 
     /**
      * Get related jobs
+     * @return array<int, array>
      */
     private function getRelatedJobs(JobListing $jobListing): array
     {
-        return JobListing::where('category_id', $jobListing->category_id)
+        /** @var \Illuminate\Support\Collection<int, JobListing> $relatedJobs */
+        $relatedJobs = JobListing::where('category_id', $jobListing->category_id)
             ->where('id', '!=', $jobListing->id)
             ->where('is_active', true)
             ->whereNull('deleted_at')
@@ -1801,8 +1675,10 @@ class JobListingController extends Controller
             ->with(['category', 'locations'])
             ->withCount(['applications', 'views'])
             ->limit(3)
-            ->get()
-            ->map(fn($job) => $this->formatPublicJobListing($job))
+            ->get();
+
+        return $relatedJobs
+            ->map(fn(JobListing $job) => $this->formatPublicJobListing($job))
             ->toArray();
     }
 

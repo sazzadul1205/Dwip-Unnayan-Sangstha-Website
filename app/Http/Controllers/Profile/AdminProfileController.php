@@ -1,70 +1,46 @@
 <?php
-// app/Http/Controllers/Profile/AdminProfileController.php
 
 namespace App\Http\Controllers\Profile;
 
-// Models
-use App\Models\User;
-
-// Controllers
 use App\Http\Controllers\Controller;
-
-// Requests
+use App\Models\User;
+use App\Services\SimpleLogger;
 use Illuminate\Http\Request;
-
-// Facades
+use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
-
-// Validation
+use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
-
-// Inertia
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
+use Inertia\Response;
 
 class AdminProfileController extends Controller
 {
-  /**
-   * @var \Illuminate\Contracts\Filesystem\Filesystem
-   */
-  protected $disk;
-
-  /**
-   * @var string
-   */
+  protected \Illuminate\Contracts\Filesystem\Filesystem $disk;
   protected string $iconPath = 'images';
+  protected array $allowedIconExtensions = ['png', 'ico', 'jpg', 'jpeg', 'svg', 'webp'];
+  protected array $iconFileNames = ['icon.png', 'icon.ico', 'icon.svg', 'icon.jpg', 'icon.jpeg', 'icon.webp', 'icon.gif'];
 
   public function __construct()
   {
     $this->disk = Storage::disk('public');
-    $this->iconPath = 'images';
   }
 
   /**
-   * Show the admin profile edit form with icon management.
+   * Show the admin profile edit form.
    */
-  public function edit()
+  public function edit(): Response|JsonResponse
   {
-    $user = Auth::user();
+    $user = $this->getAuthenticatedUser();
 
-    if (!$user instanceof User) {
-      abort(401);
-    }
-
-    // Check permission instead of role
     if (!$user->hasPermission('admin_profile.edit')) {
-      return redirect()->route('unauthorized.access')
-        ->with('error', 'You do not have permission to edit admin profile.');
+      return $this->unauthorizedResponse('You do not have permission to edit admin profile.');
     }
 
-    // Get user's highest role for display
     $primaryRole = $user->roles()->orderBy('level', 'desc')->first();
-
-    // Get current icon info - ADDED
-    $currentIcon = $this->getCurrentIcon();
-    $availableIcons = $this->getAvailableIcons();
 
     return Inertia::render('Backend/Profile/Admin/Edit', [
       'user' => [
@@ -73,23 +49,18 @@ class AdminProfileController extends Controller
         'email' => $user->email,
         'primary_role' => $primaryRole ? $primaryRole->name : 'Admin',
       ],
-      'currentIcon' => $currentIcon,            // ADDED
-      'availableIcons' => $availableIcons,      // ADDED
+      'currentIcon' => $this->getCurrentIcon(),
+      'availableIcons' => $this->getAvailableIcons(),
     ]);
   }
 
   /**
-   * Update the admin's profile information (name, email).
+   * Update the admin's profile information.
    */
-  public function update(Request $request)
+  public function update(Request $request): \Illuminate\Http\RedirectResponse
   {
-    $user = Auth::user();
+    $user = $this->getAuthenticatedUser();
 
-    if (!$user instanceof User) {
-      abort(401);
-    }
-
-    // Check permission instead of role
     if (!$user->hasPermission('admin_profile.update')) {
       return redirect()->route('unauthorized.access')
         ->with('error', 'You do not have permission to update admin profile.');
@@ -106,21 +77,26 @@ class AdminProfileController extends Controller
 
     $user->update($validated);
 
+    SimpleLogger::security(
+      "Admin profile updated: {$user->email}",
+      [
+        'user_id' => $user->id,
+        'email' => $user->email,
+        'ip' => $request->ip(),
+        'changes' => array_keys($validated),
+      ]
+    );
+
     return redirect()->back()->with('success', 'Profile updated successfully.');
   }
 
   /**
    * Update the admin's password.
    */
-  public function updatePassword(Request $request)
+  public function updatePassword(Request $request): \Illuminate\Http\RedirectResponse
   {
-    $user = Auth::user();
+    $user = $this->getAuthenticatedUser();
 
-    if (!$user instanceof User) {
-      abort(401);
-    }
-
-    // Check permission instead of role
     if (!$user->hasPermission('admin_profile.update_password')) {
       return redirect()->route('unauthorized.access')
         ->with('error', 'You do not have permission to update password.');
@@ -135,92 +111,90 @@ class AdminProfileController extends Controller
       'password' => Hash::make($request->password),
     ]);
 
+    SimpleLogger::security(
+      "Admin password updated: {$user->email}",
+      [
+        'user_id' => $user->id,
+        'email' => $user->email,
+        'ip' => $request->ip(),
+      ]
+    );
+
     return back()->with('success', 'Password updated successfully.');
   }
 
   /**
-   * Update the site icon.
+   * Update the site icon – with rate limiting.
    */
-  public function updateIcon(Request $request)
+  public function updateIcon(Request $request): JsonResponse
   {
-    $user = Auth::user();
+    $user = $this->getAuthenticatedUser();
 
-    if (!$user instanceof User) {
-      abort(401);
+    if (!$user->hasPermission('admin_profile.edit')) {
+      return $this->jsonError('You do not have permission to update the icon.', 403);
     }
 
-    // Check permission
-    if (!$user->hasPermission('admin_profile.edit')) {
-      return response()->json([
-        'success' => false,
-        'message' => 'You do not have permission to update the icon.'
-      ], 403);
+    // Rate limiting: 5 uploads per minute per user
+    $throttleKey = 'icon_upload|' . $user->id;
+    if (RateLimiter::tooManyAttempts($throttleKey, 5)) {
+      Log::warning('Icon upload rate limit exceeded', ['user_id' => $user->id]);
+      return $this->jsonError('Too many upload attempts. Please wait a moment.', 429);
     }
 
     try {
-      // Validate the request
       $validator = validator($request->all(), [
         'icon' => 'required|file|image|max:2048',
       ]);
 
       if ($validator->fails()) {
-        return response()->json([
-          'success' => false,
-          'message' => 'Validation failed',
-          'errors' => $validator->errors()
-        ], 422);
+        return $this->jsonError('Validation failed', 422, $validator->errors()->toArray());
       }
 
       $file = $request->file('icon');
       if (!$file) {
-        return response()->json([
-          'success' => false,
-          'message' => 'No file uploaded'
-        ], 400);
+        return $this->jsonError('No file uploaded', 400);
       }
 
       $extension = strtolower($file->getClientOriginalExtension());
 
-      // Allowed extensions
-      $allowed = ['png', 'ico', 'jpg', 'jpeg', 'svg', 'webp'];
-      if (!in_array($extension, $allowed)) {
-        return response()->json([
-          'success' => false,
-          'message' => 'Invalid file type. Allowed: ' . implode(', ', $allowed),
-        ], 422);
+      if (!in_array($extension, $this->allowedIconExtensions)) {
+        return $this->jsonError(
+          'Invalid file type. Allowed: ' . implode(', ', $this->allowedIconExtensions),
+          422
+        );
       }
 
-      // Delete old icon files
+      // Delete old icons
       $this->deleteOldIcons();
 
-      // Generate new filename
-      $filename = 'icon.' . $extension;
-
-      // Ensure directories exist
+      // Ensure directory exists
       if (!$this->disk->exists($this->iconPath)) {
         $this->disk->makeDirectory($this->iconPath);
       }
 
       // Store the file
+      $filename = 'icon.' . $extension;
       $path = $this->disk->putFileAs($this->iconPath, $file, $filename);
 
       if (!$path) {
         throw new \Exception('Failed to store file');
       }
 
-      // If it's a raster image, try to create additional formats
-      if (!in_array($extension, ['svg', 'ico'])) {
-        try {
-          // Create PNG version
-          $pngPath = $this->iconPath . '/icon.png';
-          $this->disk->put($pngPath, file_get_contents($file->getPathname()));
-        } catch (\Exception $e) {
-          Log::warning('Failed to create additional formats: ' . $e->getMessage());
-        }
-      }
+      // Clear rate limiter on success
+      RateLimiter::clear($throttleKey);
 
       // Ensure storage link exists
       $this->ensureStorageLinkExists();
+
+      SimpleLogger::security(
+        "Site icon updated by {$user->email}",
+        [
+          'user_id' => $user->id,
+          'filename' => $filename,
+          'extension' => $extension,
+          'ip' => $request->ip(),
+        ]
+      );
 
       return response()->json([
         'success' => true,
@@ -230,46 +204,45 @@ class AdminProfileController extends Controller
         ],
       ]);
     } catch (\Exception $e) {
-      Log::error('Icon update failed: ' . $e->getMessage());
-      return response()->json([
-        'success' => false,
-        'message' => 'Failed to update icon: ' . $e->getMessage(),
-      ], 500);
+      Log::error('Icon update failed: ' . $e->getMessage(), [
+        'user_id' => $user->id,
+        'trace' => $e->getTraceAsString(),
+      ]);
+      return $this->jsonError('Failed to update icon: ' . $e->getMessage(), 500);
     }
   }
 
   /**
    * Reset icon to default.
    */
-  public function resetIcon()
+  public function resetIcon(Request $request): JsonResponse
   {
-    $user = Auth::user();
+    $user = $this->getAuthenticatedUser();
 
-    if (!$user instanceof User) {
-      abort(401);
-    }
-
-    // Check permission
     if (!$user->hasPermission('admin_profile.edit')) {
-      return response()->json([
-        'success' => false,
-        'message' => 'You do not have permission to reset the icon.'
-      ], 403);
+      return $this->jsonError('You do not have permission to reset the icon.', 403);
     }
 
     try {
       $this->deleteOldIcons();
+
+      SimpleLogger::security(
+        "Site icon reset to default by {$user->email}",
+        [
+          'user_id' => $user->id,
+          'ip' => $request->ip(),
+        ]
+      );
 
       return response()->json([
         'success' => true,
         'message' => 'Icon reset to default successfully!',
       ]);
     } catch (\Exception $e) {
-      Log::error('Icon reset failed: ' . $e->getMessage());
-      return response()->json([
-        'success' => false,
-        'message' => 'Failed to reset icon: ' . $e->getMessage(),
-      ], 500);
+      Log::error('Icon reset failed: ' . $e->getMessage(), [
+        'user_id' => $user->id,
+      ]);
+      return $this->jsonError('Failed to reset icon: ' . $e->getMessage(), 500);
     }
   }
 
@@ -279,9 +252,7 @@ class AdminProfileController extends Controller
   protected function getCurrentIcon(): ?array
   {
     try {
-      $iconFiles = ['icon.png', 'icon.ico', 'icon.svg', 'icon.jpg', 'icon.jpeg', 'icon.webp'];
-
-      foreach ($iconFiles as $file) {
+      foreach ($this->iconFileNames as $file) {
         $path = $this->iconPath . '/' . $file;
         if ($this->disk->exists($path)) {
           return [
@@ -289,6 +260,7 @@ class AdminProfileController extends Controller
             'url' => $this->getIconUrl($file),
             'size' => $this->formatBytes($this->disk->size($path)),
             'last_modified' => date('Y-m-d H:i:s', $this->disk->lastModified($path)),
+            'extension' => pathinfo($file, PATHINFO_EXTENSION),
           ];
         }
       }
@@ -305,6 +277,10 @@ class AdminProfileController extends Controller
   protected function getAvailableIcons(): array
   {
     try {
+      if (!$this->disk->exists($this->iconPath)) {
+        return [];
+      }
+
       $files = $this->disk->files($this->iconPath);
       $icons = [];
 
@@ -316,6 +292,7 @@ class AdminProfileController extends Controller
             'url' => $this->getIconUrl($name),
             'size' => $this->formatBytes($this->disk->size($file)),
             'extension' => pathinfo($name, PATHINFO_EXTENSION),
+            'last_modified' => date('Y-m-d H:i:s', $this->disk->lastModified($file)),
           ];
         }
       }
@@ -333,9 +310,7 @@ class AdminProfileController extends Controller
   protected function deleteOldIcons(): void
   {
     try {
-      $iconFiles = ['icon.png', 'icon.ico', 'icon.svg', 'icon.jpg', 'icon.jpeg', 'icon.webp', 'icon.gif'];
-
-      foreach ($iconFiles as $file) {
+      foreach ($this->iconFileNames as $file) {
         $path = $this->iconPath . '/' . $file;
         if ($this->disk->exists($path)) {
           $this->disk->delete($path);
@@ -347,7 +322,19 @@ class AdminProfileController extends Controller
   }
 
   /**
-   * Format bytes.
+   * Get the authenticated user.
+   */
+  protected function getAuthenticatedUser(): User
+  {
+    $user = Auth::user();
+    if (!$user instanceof User) {
+      abort(401, 'Unauthenticated');
+    }
+    return $user;
+  }
+
+  /**
+   * Format bytes to human-readable string.
    */
   protected function formatBytes(int $bytes): string
   {
@@ -390,5 +377,33 @@ class AdminProfileController extends Controller
         Log::warning('Could not create storage link: ' . $e->getMessage());
       }
     }
+  }
+
+  /**
+   * Return a JSON error response.
+   */
+  protected function jsonError(string $message, int $status = 400, ?array $errors = null): JsonResponse
+  {
+    $response = [
+      'success' => false,
+      'message' => $message,
+    ];
+
+    if ($errors) {
+      $response['errors'] = $errors;
+    }
+
+    return response()->json($response, $status);
+  }
+
+  /**
+   * Return an unauthorized redirect response.
+   */
+  protected function unauthorizedResponse(string $message): JsonResponse
+  {
+    return response()->json([
+      'success' => false,
+      'message' => $message,
+    ], 403);
   }
 }

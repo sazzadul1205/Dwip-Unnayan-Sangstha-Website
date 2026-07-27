@@ -1,47 +1,34 @@
 <?php
-// app/Http/Controllers/Profile/EmployerProfileController.php
 
 namespace App\Http\Controllers\Profile;
 
-// Controllers
 use App\Http\Controllers\Controller;
-
-// Models
 use App\Models\User;
-
-// Requests
+use App\Services\SimpleLogger;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-
-// Facades
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
-
-// Validation
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Validation\Rule;
-
-// Inertia
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
+use Inertia\Response;
 
 class EmployerProfileController extends Controller
 {
     /**
      * Show the employer profile edit form.
      */
-    public function edit()
+    public function edit(): Response|RedirectResponse
     {
-        $user = Auth::user();
+        $user = $this->getAuthenticatedUser();
 
-        if (!$user instanceof User) {
-            abort(401);
-        }
-
-        // Check permission instead of role
         if (!$user->hasPermission('employer_profile.edit')) {
             return redirect()->route('unauthorized.access')
                 ->with('error', 'You do not have permission to edit employer profile.');
         }
 
-        // Get user's highest role for display
         $primaryRole = $user->roles()->orderBy('level', 'desc')->first();
 
         return Inertia::render('Backend/Profile/Employer/Edit', [
@@ -57,15 +44,10 @@ class EmployerProfileController extends Controller
     /**
      * Update the employer's profile information (name, email).
      */
-    public function update(Request $request)
+    public function update(Request $request): RedirectResponse
     {
-        $user = Auth::user();
+        $user = $this->getAuthenticatedUser();
 
-        if (!$user instanceof User) {
-            abort(401);
-        }
-
-        // Check permission instead of role
         if (!$user->hasPermission('employer_profile.update')) {
             return redirect()->route('unauthorized.access')
                 ->with('error', 'You do not have permission to update employer profile.');
@@ -82,21 +64,26 @@ class EmployerProfileController extends Controller
 
         $user->update($validated);
 
+        SimpleLogger::security(
+            "Employer profile updated: {$user->email}",
+            [
+                'user_id' => $user->id,
+                'email' => $user->email,
+                'ip' => $request->ip(),
+                'changes' => array_keys($validated),
+            ]
+        );
+
         return redirect()->back()->with('success', 'Profile updated successfully.');
     }
 
     /**
-     * Update the employer's password.
+     * Update the employer's password – with rate limiting.
      */
-    public function updatePassword(Request $request)
+    public function updatePassword(Request $request): RedirectResponse
     {
-        $user = Auth::user();
+        $user = $this->getAuthenticatedUser();
 
-        if (!$user instanceof User) {
-            abort(401);
-        }
-
-        // Check permission instead of role
         if (!$user->hasPermission('employer_profile.update_password')) {
             return redirect()->route('unauthorized.access')
                 ->with('error', 'You do not have permission to update password.');
@@ -107,10 +94,46 @@ class EmployerProfileController extends Controller
             'password' => ['required', 'string', 'min:8', 'confirmed'],
         ]);
 
+        // Rate limiting: 5 password change attempts per minute
+        $throttleKey = 'employer_password_change|' . $user->id;
+        if (RateLimiter::tooManyAttempts($throttleKey, 5)) {
+            SimpleLogger::security(
+                "Password change rate limit exceeded for employer {$user->email}",
+                ['user_id' => $user->id, 'ip' => $request->ip()]
+            );
+            throw ValidationException::withMessages([
+                'current_password' => 'Too many attempts. Please wait a moment.',
+            ]);
+        }
+
         $user->update([
             'password' => Hash::make($request->password),
         ]);
 
+        // Clear throttle on success
+        RateLimiter::clear($throttleKey);
+
+        SimpleLogger::security(
+            "Employer password updated: {$user->email}",
+            [
+                'user_id' => $user->id,
+                'email' => $user->email,
+                'ip' => $request->ip(),
+            ]
+        );
+
         return back()->with('success', 'Password updated successfully.');
+    }
+
+    /**
+     * Get the authenticated user.
+     */
+    private function getAuthenticatedUser(): User
+    {
+        $user = Auth::user();
+        if (!$user instanceof User) {
+            abort(401, 'Unauthenticated');
+        }
+        return $user;
     }
 }

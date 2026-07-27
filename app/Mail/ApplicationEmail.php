@@ -12,43 +12,35 @@ class ApplicationEmail extends Mailable
 {
   use Queueable, SerializesModels;
 
-    /* =========================================================
-     | PUBLIC PROPERTIES
-     |========================================================= */
-
   /**
-   * Email subject
+   * Email subject.
    */
   public string $subject;
 
   /**
-   * Email content/body
+   * Email content/body.
    */
   public string $content;
 
   /**
-   * Applicant full name
+   * Applicant full name.
    */
   public string $applicantName;
 
   /**
-   * Job title
+   * Job title.
    */
   public ?string $jobTitle;
 
   /**
-   * Company name
+   * Company name.
    */
-  public ?string $companyName;
+  public string $companyName;
 
   /**
-   * Application ID
+   * Application ID.
    */
   public int|string|null $applicationId;
-
-    /* =========================================================
-     | CONSTRUCTOR
-     |========================================================= */
 
   /**
    * Create a new message instance.
@@ -69,10 +61,6 @@ class ApplicationEmail extends Mailable
     $this->applicationId = $applicationId;
   }
 
-    /* =========================================================
-     | MAIL ENVELOPE
-     |========================================================= */
-
   /**
    * Get the message envelope.
    */
@@ -83,10 +71,6 @@ class ApplicationEmail extends Mailable
     );
   }
 
-    /* =========================================================
-     | MAIL CONTENT
-     |========================================================= */
-
   /**
    * Get the message content definition.
    */
@@ -94,12 +78,16 @@ class ApplicationEmail extends Mailable
   {
     return new Content(
       view: 'emails.application',
+      with: [
+        'subject' => $this->subject,
+        'content' => $this->content,
+        'applicantName' => $this->applicantName,
+        'jobTitle' => $this->jobTitle,
+        'companyName' => $this->companyName,
+        'applicationId' => $this->applicationId,
+      ],
     );
   }
-
-    /* =========================================================
-     | ATTACHMENTS
-     |========================================================= */
 
   /**
    * Get the attachments for the message.

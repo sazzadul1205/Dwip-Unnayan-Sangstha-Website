@@ -1,5 +1,4 @@
 <?php
-// app/Mail/NewsletterTestEmail.php
 
 namespace App\Mail;
 
@@ -31,6 +30,10 @@ class NewsletterTestEmail extends Mailable
   {
     return new Content(
       view: 'emails.newsletter-test',
+      with: [
+        'subject' => $this->subjectLine,
+        'year' => now()->year,
+      ],
     );
   }
 }

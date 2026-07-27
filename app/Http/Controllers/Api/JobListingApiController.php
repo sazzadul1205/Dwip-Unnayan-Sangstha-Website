@@ -1,121 +1,123 @@
 <?php
-// app/Http/Controllers/Api/JobListingApiController.php
 
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\JobListing;
+use App\Services\SimpleLogger;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Collection;
 
 class JobListingApiController extends Controller
 {
   /**
-   * Maximum items per page
+   * Maximum items per page.
    */
   private const MAX_PER_PAGE = 100;
 
   /**
-   * Default items per page
+   * Default items per page.
    */
   private const DEFAULT_PER_PAGE = 15;
 
   /**
-   * Get job listings with search, fixed sort by views, and limit support
-   * 
-   * @param Request $request
+   * Cache duration in seconds (5 minutes).
+   */
+  private const CACHE_DURATION = 300;
+
+  /**
+   * Rate limit max attempts per minute.
+   */
+  private const RATE_LIMIT_ATTEMPTS = 60;
+
+  /**
+   * Rate limit decay in seconds (1 minute).
+   */
+  private const RATE_LIMIT_DECAY = 60;
+
+  /**
+   * Get job listings with search, fixed sort by views, and limit support.
    * @return JsonResponse
-   * 
-   * Query Parameters:
-   * - search: Search by title, description, requirements, skills, keywords
-   * - limit: Number of results to return (max 100) - if provided, returns all results up to limit
-   * - page: Page number for pagination
-   * - per_page: Items per page (default 15, max 100)
-   * - show_all: If true, returns all records (ignores pagination)
-   * 
-   * Note: Results are always sorted by views_count DESC (most viewed first)
    */
   public function index(Request $request): JsonResponse
   {
-    try {
-      $query = JobListing::with(['category', 'locations', 'employer']);
+    $this->checkApiRateLimit($request, 'job_listings');
+    $this->logApiRequest($request, 'job_listings');
 
-      // Apply active filter by default (unless show_all is true)
-      if (!$request->boolean('show_all')) {
-        $query->active()->published();
-      } elseif ($request->has('is_active')) {
-        $query->where('is_active', $request->boolean('is_active'));
-      }
+    $cacheKey = $this->getCacheKey($request, 'job_listings');
 
-      // ============================================
-      // 1. SEARCH ONLY
-      // ============================================
-      if ($request->filled('search')) {
-        $searchTerm = $request->search;
-        $query->search($searchTerm);
-      }
+    return Cache::remember($cacheKey, self::CACHE_DURATION, function () use ($request) {
+      try {
+        $query = JobListing::with(['category', 'locations', 'employer']);
 
-      // ============================================
-      // 2. FIXED SORT BY VIEWS (Most viewed first)
-      // ============================================
-      $query->orderBy('views_count', 'desc');
+        // Apply active filter by default (unless show_all is true)
+        if (!$request->boolean('show_all')) {
+          $query->active()->published();
+        } elseif ($request->has('is_active')) {
+          $query->where('is_active', $request->boolean('is_active'));
+        }
 
-      // ============================================
-      // 3. LIMIT SUPPORT
-      // ============================================
-      // Handle limit (returns all results up to limit)
-      if ($request->has('limit')) {
-        $limit = $this->sanitizeLimit($request->limit);
-        $data = $query->limit($limit)->get();
-        return $this->successResponse($data);
-      }
+        // Search
+        if ($request->filled('search')) {
+          $query->search($request->search);
+        }
 
-      // Handle pagination
-      if ($request->has('page')) {
-        $perPage = $this->sanitizePerPage($request->per_page ?? self::DEFAULT_PER_PAGE);
+        // Fixed sort by views (most viewed first)
+        $query->orderBy('views_count', 'desc');
+
+        // Handle limit (returns all results up to limit)
+        if ($request->has('limit')) {
+          $limit = $this->sanitizeLimit($request->input('limit'));
+          $data = $query->limit($limit)->get();
+          return $this->successResponse($data);
+        }
+
+        // Handle pagination
+        if ($request->has('page')) {
+          $perPage = $this->sanitizePerPage($request->input('per_page', self::DEFAULT_PER_PAGE));
+          $data = $query->paginate($perPage);
+          return $this->successResponse($data);
+        }
+
+        // Default: return paginated results
+        $perPage = $this->sanitizePerPage($request->input('per_page', self::DEFAULT_PER_PAGE));
         $data = $query->paginate($perPage);
+
         return $this->successResponse($data);
+      } catch (\Exception $e) {
+        Log::error('JobListing API error: ' . $e->getMessage(), [
+          'trace' => $e->getTraceAsString(),
+          'request' => $request->all(),
+        ]);
+        return $this->errorResponse('Failed to fetch job listings');
       }
-
-      // Default: return paginated results
-      $perPage = $this->sanitizePerPage($request->per_page ?? self::DEFAULT_PER_PAGE);
-      $data = $query->paginate($perPage);
-
-      return $this->successResponse($data);
-    } catch (\Exception $e) {
-      Log::error('JobListing API error: ' . $e->getMessage(), [
-        'trace' => $e->getTraceAsString()
-      ]);
-
-      return $this->errorResponse('Failed to fetch job listings');
-    }
+    });
   }
 
   /**
-   * Get a single job listing by ID or slug
-   * 
-   * @param string $identifier
-   * @param Request $request
-   * @return JsonResponse
+   * Get a single job listing by ID or slug.
    */
   public function show(string $identifier, Request $request): JsonResponse
   {
+    $this->checkApiRateLimit($request, 'job_listings_show');
+    $this->logApiRequest($request, 'job_listings_show');
+
     try {
       $query = JobListing::with(['category', 'locations', 'employer']);
 
-      // If identifier is numeric, find by ID, otherwise find by slug
-      if (is_numeric($identifier)) {
-        $job = $query->find($identifier);
-      } else {
-        $job = $query->where('slug', $identifier)->first();
-      }
+      $job = is_numeric($identifier)
+        ? $query->find($identifier)
+        : $query->where('slug', $identifier)->first();
 
       if (!$job) {
         return $this->errorResponse('Job listing not found', 404);
       }
 
-      // Increment view count
+      // Increment view count (if requested)
       if ($request->boolean('increment_view', true)) {
         $job->incrementViews();
       }
@@ -128,140 +130,132 @@ class JobListingApiController extends Controller
   }
 
   /**
-   * Get related jobs for a specific job by slug
-   * Returns exactly 3 related jobs based on:
-   * 1. Same category (priority)
-   * 2. Same job type (secondary)
-   * 3. Similar title keywords (tertiary)
-   * 
-   * @param string $slug
-   * @param Request $request
-   * @return JsonResponse
+   * Get related jobs for a specific job by slug.
+   * Returns exactly 3 related jobs based on category, job type, and title keywords.
    */
   public function related(string $slug, Request $request): JsonResponse
   {
-    try {
-      // Find the job by slug
-      $job = JobListing::with(['category', 'locations', 'employer'])
-        ->where('slug', $slug)
-        ->first();
+    $this->checkApiRateLimit($request, 'job_listings_related');
+    $this->logApiRequest($request, 'job_listings_related');
 
-      if (!$job) {
-        return $this->errorResponse('Job listing not found', 404);
+    // Cache per slug and request params (excluding page for related)
+    $cacheKey = 'related_jobs_' . $slug . '_' . md5(json_encode($request->query()));
+
+    return Cache::remember($cacheKey, self::CACHE_DURATION, function () use ($slug, $request) {
+      try {
+        $job = JobListing::with(['category', 'locations', 'employer'])
+          ->where('slug', $slug)
+          ->first();
+
+        if (!$job) {
+          return $this->errorResponse('Job listing not found', 404);
+        }
+
+        $relatedJobs = $this->fetchRelatedJobs($job);
+
+        return $this->successResponse([
+          'current_job' => $job,
+          'related_jobs' => $relatedJobs,
+          'count' => $relatedJobs->count(),
+          'match_reasons' => $this->getMatchReasons($job, $relatedJobs),
+        ]);
+      } catch (\Exception $e) {
+        Log::error('JobListing related API error: ' . $e->getMessage(), [
+          'job_slug' => $slug,
+          'trace' => $e->getTraceAsString(),
+        ]);
+        return $this->errorResponse('Failed to fetch related jobs');
       }
+    });
+  }
 
-      // Start building the query for related jobs
-      $query = JobListing::with(['category', 'locations', 'employer'])
+    // ==========================================
+    // PRIVATE HELPER METHODS
+    // ==========================================
+
+  /**
+   * Fetch related jobs using priority logic.
+   */
+  private function fetchRelatedJobs(JobListing $job): Collection
+  {
+    $query = JobListing::with(['category', 'locations', 'employer'])
+      ->active()
+      ->published()
+      ->where('id', '!=', $job->id)
+      ->orderBy('views_count', 'desc');
+
+    // Priority 1: Same category
+    if ($job->category_id) {
+      $query->where('category_id', $job->category_id);
+    }
+
+    $relatedJobs = $query->limit(3)->get();
+
+    // Priority 2: Same job type (if less than 3)
+    if ($relatedJobs->count() < 3 && $job->job_type) {
+      $excludedIds = $relatedJobs->pluck('id')->toArray();
+      $excludedIds[] = $job->id;
+
+      $more = JobListing::with(['category', 'locations', 'employer'])
         ->active()
         ->published()
-        ->where('id', '!=', $job->id) // Exclude the current job
-        ->orderBy('views_count', 'desc'); // Sort by views
+        ->whereNotIn('id', $excludedIds)
+        ->where('job_type', $job->job_type)
+        ->orderBy('views_count', 'desc')
+        ->limit(3 - $relatedJobs->count())
+        ->get();
 
-      // ============================================
-      // PRIORITY 1: Same category
-      // ============================================
-      if ($job->category_id) {
-        $query->where('category_id', $job->category_id);
-      }
-
-      // ============================================
-      // PRIORITY 2: If we have less than 3, add by job type
-      // ============================================
-      $relatedJobs = $query->limit(3)->get();
-
-      if ($relatedJobs->count() < 3 && $job->job_type) {
-        // Get IDs of already selected jobs
-        $excludedIds = $relatedJobs->pluck('id')->toArray();
-        $excludedIds[] = $job->id;
-
-        $moreJobs = JobListing::with(['category', 'locations', 'employer'])
-          ->active()
-          ->published()
-          ->whereNotIn('id', $excludedIds)
-          ->where('job_type', $job->job_type)
-          ->orderBy('views_count', 'desc')
-          ->limit(3 - $relatedJobs->count())
-          ->get();
-
-        $relatedJobs = $relatedJobs->merge($moreJobs);
-      }
-
-      // ============================================
-      // PRIORITY 3: If we still have less than 3, add by similar title keywords
-      // ============================================
-      if ($relatedJobs->count() < 3 && $job->title) {
-        // Extract keywords from title (remove common words)
-        $keywords = $this->extractKeywords($job->title);
-
-        if (!empty($keywords)) {
-          $excludedIds = $relatedJobs->pluck('id')->toArray();
-          $excludedIds[] = $job->id;
-
-          // Build a search query using keywords
-          $titleQuery = JobListing::with(['category', 'locations', 'employer'])
-            ->active()
-            ->published()
-            ->whereNotIn('id', $excludedIds)
-            ->orderBy('views_count', 'desc');
-
-          // Add search conditions for each keyword
-          $titleQuery->where(function ($q) use ($keywords) {
-            foreach ($keywords as $keyword) {
-              $q->orWhere('title', 'LIKE', "%{$keyword}%");
-            }
-          });
-
-          $moreJobs = $titleQuery
-            ->limit(3 - $relatedJobs->count())
-            ->get();
-
-          $relatedJobs = $relatedJobs->merge($moreJobs);
-        }
-      }
-
-      // ============================================
-      // FALLBACK: If still less than 3, get any recent jobs
-      // ============================================
-      if ($relatedJobs->count() < 3) {
-        $excludedIds = $relatedJobs->pluck('id')->toArray();
-        $excludedIds[] = $job->id;
-
-        $fallbackJobs = JobListing::with(['category', 'locations', 'employer'])
-          ->active()
-          ->published()
-          ->whereNotIn('id', $excludedIds)
-          ->orderBy('views_count', 'desc')
-          ->limit(3 - $relatedJobs->count())
-          ->get();
-
-        $relatedJobs = $relatedJobs->merge($fallbackJobs);
-      }
-
-      // Ensure we always return exactly 3 (or less if not enough jobs exist)
-      $relatedJobs = $relatedJobs->take(3);
-
-      return $this->successResponse([
-        'current_job' => $job,
-        'related_jobs' => $relatedJobs,
-        'count' => $relatedJobs->count(),
-        'match_reasons' => $this->getMatchReasons($job, $relatedJobs)
-      ]);
-    } catch (\Exception $e) {
-      Log::error('JobListing related API error: ' . $e->getMessage(), [
-        'job_slug' => $slug,
-        'trace' => $e->getTraceAsString()
-      ]);
-
-      return $this->errorResponse('Failed to fetch related jobs');
+      $relatedJobs = $relatedJobs->merge($more);
     }
+
+    // Priority 3: Similar title keywords (if still less than 3)
+    if ($relatedJobs->count() < 3 && $job->title) {
+      $keywords = $this->extractKeywords($job->title);
+      if (!empty($keywords)) {
+        $excludedIds = $relatedJobs->pluck('id')->toArray();
+        $excludedIds[] = $job->id;
+
+        $titleQuery = JobListing::with(['category', 'locations', 'employer'])
+          ->active()
+          ->published()
+          ->whereNotIn('id', $excludedIds)
+          ->orderBy('views_count', 'desc');
+
+        $titleQuery->where(function ($q) use ($keywords) {
+          foreach ($keywords as $keyword) {
+            $q->orWhere('title', 'LIKE', "%{$keyword}%");
+          }
+        });
+
+        $more = $titleQuery->limit(3 - $relatedJobs->count())->get();
+        $relatedJobs = $relatedJobs->merge($more);
+      }
+    }
+
+    // Fallback: any recent jobs
+    if ($relatedJobs->count() < 3) {
+      $excludedIds = $relatedJobs->pluck('id')->toArray();
+      $excludedIds[] = $job->id;
+
+      $fallback = JobListing::with(['category', 'locations', 'employer'])
+        ->active()
+        ->published()
+        ->whereNotIn('id', $excludedIds)
+        ->orderBy('views_count', 'desc')
+        ->limit(3 - $relatedJobs->count())
+        ->get();
+
+      $relatedJobs = $relatedJobs->merge($fallback);
+    }
+
+    return $relatedJobs->take(3);
   }
 
   /**
-   * Extract keywords from a title for search
+   * Extract keywords from a title for search.
    */
   private function extractKeywords(string $title): array
   {
-    // Common words to exclude
     $stopWords = [
       'a',
       'an',
@@ -287,10 +281,8 @@ class JobListingApiController extends Controller
       'etc'
     ];
 
-    // Remove special characters and split
     $words = preg_split('/\s+/', preg_replace('/[^\w\s]/', '', strtolower($title)));
 
-    // Filter stop words and short words
     $keywords = array_filter($words, function ($word) use ($stopWords) {
       return strlen($word) > 2 && !in_array($word, $stopWords);
     });
@@ -299,11 +291,13 @@ class JobListingApiController extends Controller
   }
 
   /**
-   * Get match reasons for the related jobs
+   * Get match reasons for the related jobs.
    */
-  private function getMatchReasons(JobListing $job, $relatedJobs): array
+  private function getMatchReasons(JobListing $job, Collection $relatedJobs): array
   {
     $reasons = [];
+
+    $jobLocationIds = $job->locations->pluck('id')->toArray();
 
     foreach ($relatedJobs as $related) {
       $reason = [];
@@ -320,14 +314,11 @@ class JobListingApiController extends Controller
         $reason[] = 'Same employer';
       }
 
-      // Check if any locations match
-      $jobLocationIds = $job->locations->pluck('id')->toArray();
       $relatedLocationIds = $related->locations->pluck('id')->toArray();
       if (!empty(array_intersect($jobLocationIds, $relatedLocationIds))) {
         $reason[] = 'Same location';
       }
 
-      // Check title similarity
       if (empty($reason)) {
         $keywords = $this->extractKeywords($job->title);
         foreach ($keywords as $keyword) {
@@ -348,43 +339,93 @@ class JobListingApiController extends Controller
     return $reasons;
   }
 
+    // ==========================================
+    // RATE LIMITING & LOGGING HELPERS
+    // ==========================================
+
   /**
-   * Sanitize and validate per page value
+   * Check API rate limit per IP and endpoint.
    */
-  private function sanitizePerPage($value): int
+  private function checkApiRateLimit(Request $request, string $endpoint): void
+  {
+    $key = 'api_rate_limit_' . $endpoint . '|' . $request->ip();
+    if (RateLimiter::tooManyAttempts($key, self::RATE_LIMIT_ATTEMPTS)) {
+      Log::warning('API rate limit exceeded', [
+        'endpoint' => $endpoint,
+        'ip' => $request->ip(),
+        'available_in' => RateLimiter::availableIn($key),
+      ]);
+      abort(429, 'Too many requests. Please wait a moment.');
+    }
+    RateLimiter::hit($key, self::RATE_LIMIT_DECAY);
+  }
+
+  /**
+   * Log API request for audit purposes.
+   */
+  private function logApiRequest(Request $request, string $endpoint): void
+  {
+    $data = [
+      'endpoint' => $endpoint,
+      'ip' => $request->ip(),
+      'user_agent' => $request->userAgent(),
+      'query' => $request->query(),
+    ];
+
+    if ($request->user()) {
+      $data['user_id'] = $request->user()->id;
+    }
+
+    if (class_exists(SimpleLogger::class)) {
+      SimpleLogger::system("API Request: {$endpoint}", $data);
+    } else {
+      Log::info("API Request: {$endpoint}", $data);
+    }
+  }
+
+  /**
+   * Generate a cache key for a request.
+   */
+  private function getCacheKey(Request $request, string $endpoint): string
+  {
+    $params = $request->query();
+    ksort($params);
+    return 'api_' . $endpoint . '_' . md5(json_encode($params));
+  }
+
+  // ==========================================
+  // VALIDATION HELPERS
+  // ==========================================
+
+  private function sanitizePerPage(int|string $value): int
   {
     $perPage = (int) $value;
     return min(max($perPage, 1), self::MAX_PER_PAGE);
   }
 
-  /**
-   * Sanitize and validate limit value
-   */
-  private function sanitizeLimit($value, int $max = 100): int
+  private function sanitizeLimit(int|string $value, int $max = 100): int
   {
     $limit = (int) $value;
     return min(max($limit, 1), $max);
   }
 
-  /**
-   * Return success response
-   */
-  private function successResponse($data, int $status = 200): JsonResponse
+  // ==========================================
+  // RESPONSE HELPERS
+  // ==========================================
+
+  private function successResponse(mixed $data, int $status = 200): JsonResponse
   {
     return response()->json([
       'success' => true,
-      'data' => $data
+      'data' => $data,
     ], $status);
   }
 
-  /**
-   * Return error response
-   */
   private function errorResponse(string $message, int $status = 500): JsonResponse
   {
     return response()->json([
       'success' => false,
-      'message' => $message
+      'message' => $message,
     ], $status);
   }
 }

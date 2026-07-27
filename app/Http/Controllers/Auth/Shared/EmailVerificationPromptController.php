@@ -11,27 +11,21 @@ use Inertia\Response;
 
 class EmailVerificationPromptController extends Controller
 {
-    /**
-     * Show the email verification prompt page.
-     */
     public function __invoke(Request $request): Response|RedirectResponse
     {
         $user = $request->user();
 
-        // If already verified, check profile and redirect appropriately
         if ($user && $user->hasVerifiedEmail()) {
-            // Check if profile needs to be completed using hasRole method from trait
+            // For job-seekers, check profile completion
             if ($user->hasRole('job-seeker')) {
                 $profile = ApplicantProfile::where('user_id', $user->id)->first();
                 if (!$profile || !$profile->isComplete()) {
                     return redirect()->route('profile.complete');
                 }
             }
-
             return redirect()->route('backend.dashboard');
         }
 
-        // Not verified - show the verification page
         return Inertia::render('auth/JobSeeker/VerifyEmail', [
             'status' => $request->session()->get('status'),
         ]);

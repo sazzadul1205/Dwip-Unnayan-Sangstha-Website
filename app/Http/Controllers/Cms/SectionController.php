@@ -1,5 +1,4 @@
 <?php
-// app/Http/Controllers/Cms/SectionController.php
 
 namespace App\Http\Controllers\Cms;
 
@@ -13,210 +12,132 @@ use App\Models\pages\Program;
 use App\Models\pages\AboutContent;
 use App\Models\pages\Publication;
 use App\Models\User;
+use App\Services\SimpleLogger;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\Validator;
-use Illuminate\Validation\Rule;
-use Inertia\Inertia;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class SectionController extends Controller
 {
   /**
-   * Extract clean data from CustomSectionData model
+   * Max image size in bytes (5MB).
    */
-  protected function extractCustomSectionData(?CustomSectionData $customData): mixed
-  {
-    if (!$customData) {
-      return null;
-    }
-
-    try {
-      $rawData = $customData->data;
-
-      if (is_string($rawData)) {
-        $decodedData = json_decode($rawData, true);
-        if ($decodedData !== null) {
-          return $decodedData['data'] ?? $decodedData;
-        }
-        return $rawData;
-      }
-
-      return $rawData;
-    } catch (\Exception $e) {
-      Log::error('Failed to extract custom section data: ' . $e->getMessage());
-      return null;
-    }
-  }
+  protected int $maxImageSize = 5 * 1024 * 1024;
 
   /**
-   * Extract clean data from SharedData model
+   * Display a listing of sections for a specific page – with caching.
    */
-  protected function extractSharedData(?SharedData $shared): mixed
+  public function index(int $pageId): Response|RedirectResponse
   {
-    if (!$shared) {
-      return null;
-    }
+    $user = $this->getAuthUser();
 
-    try {
-      $rawData = $shared->data ?? $shared;
-
-      if (is_string($rawData)) {
-        $decodedData = json_decode($rawData, true);
-        if ($decodedData !== null) {
-          return $decodedData['data'] ?? $decodedData;
-        }
-        return $rawData;
-      }
-
-      return $rawData;
-    } catch (\Exception $e) {
-      Log::error('Failed to extract shared data: ' . $e->getMessage());
-      return null;
-    }
-  }
-
-  /**
-   * Display a listing of sections for a specific page.
-   */
-  public function index(int $pageId)
-  {
-    $user = Auth::user();
-    if (!$user instanceof User) {
-      abort(401);
-    }
     if (!$user->hasPermission('sections.view')) {
       return redirect()->route('unauthorized.access')
         ->with('error', 'You do not have permission to view sections.');
     }
+
     try {
-      $page = Page::withTrashed()->findOrFail($pageId);
+      $cacheKey = "sections_page_{$pageId}";
+      $sectionsData = Cache::remember($cacheKey, 300, function () use ($pageId) {
+        $page = Page::withTrashed()->findOrFail($pageId);
 
-      $sectionConfigs = SectionConfig::where('page_slug', $page->slug)
-        ->orderBy('display_order')
-        ->get();
+        $sectionConfigs = SectionConfig::where('page_slug', $page->slug)
+          ->orderBy('display_order')
+          ->get();
 
-      $customSectionData = CustomSectionData::where('page_slug', $page->slug)
-        ->get()
-        ->keyBy('section_key');
+        $customSectionData = CustomSectionData::where('page_slug', $page->slug)
+          ->get()
+          ->keyBy('section_key');
 
-      $sharedData = SharedData::whereIn('type', $sectionConfigs->pluck('section_key'))
-        ->get()
-        ->keyBy('type');
+        $sharedData = SharedData::whereIn('type', $sectionConfigs->pluck('section_key'))
+          ->get()
+          ->keyBy('type');
 
-      $sections = [];
+        $sections = [];
 
-      foreach ($sectionConfigs as $config) {
-        $section = $config->toArray();
+        foreach ($sectionConfigs as $config) {
+          $section = $config->toArray();
 
-        try {
-          switch ($config->data_table) {
-            case 'custom_section_data':
-              $section['data'] = $this->extractCustomSectionData(
-                $customSectionData->get($config->section_key)
-              );
-              break;
-
-            case 'shared_data':
-              $section['data'] = $this->extractSharedData(
-                $sharedData->get($config->section_key)
-              );
-              break;
-
-            case 'blogs':
-              $section['data'] = Blog::active()->latest()->get();
-              break;
-
-            case 'programs':
-              $section['data'] = Program::active()->ordered()->get();
-              break;
-
-            case 'about_content':
-              $aboutContent = AboutContent::where('slug', $config->section_key)
-                ->active()
-                ->first();
-              $section['data'] = $aboutContent ? $aboutContent->data : null;
-              break;
-
-            case 'publications':
-              $section['data'] = Publication::active()->latest()->get();
-              break;
-
-            default:
-              $section['data'] = null;
-              break;
+          try {
+            $section['data'] = $this->loadSectionData($config, $customSectionData, $sharedData);
+          } catch (\Exception $e) {
+            Log::error('Failed to load data for section: ' . $config->section_key, [
+              'error' => $e->getMessage(),
+              'data_table' => $config->data_table,
+            ]);
+            $section['data'] = null;
+            $section['data_error'] = 'Failed to load data: ' . $e->getMessage();
           }
-        } catch (\Exception $e) {
-          Log::error('Failed to load data for section: ' . $config->section_key, [
-            'error' => $e->getMessage(),
-            'data_table' => $config->data_table
-          ]);
-          $section['data'] = null;
-          $section['data_error'] = 'Failed to load data: ' . $e->getMessage();
+
+          $sections[] = $section;
         }
 
-        $sections[] = $section;
-      }
-      return Inertia::render('Backend/CMS/Section/Index', [
-        'page' => $page,
-        'sections' => $sections,
-      ]);
+        return [
+          'page' => $page,
+          'sections' => $sections,
+        ];
+      });
+
+      return Inertia::render('Backend/CMS/Section/Index', $sectionsData);
     } catch (\Exception $e) {
       Log::error('Failed to load sections page: ' . $e->getMessage(), [
         'page_id' => $pageId,
-        'trace' => $e->getTraceAsString()
+        'trace' => $e->getTraceAsString(),
       ]);
 
       return Inertia::render('Backend/CMS/Section/Index', [
         'page' => null,
         'sections' => [],
-        'flash' => ['error' => 'Failed to load sections: ' . $e->getMessage()]
+        'flash' => ['error' => 'Failed to load sections: ' . $e->getMessage()],
       ]);
     }
   }
 
   /**
-   * Update display order for multiple sections (drag & drop)
+   * Update display order for multiple sections (drag & drop) – with rate limiting.
    */
-  public function updateOrder(Request $request, int $pageId)
+  public function updateOrder(Request $request, int $pageId): JsonResponse
   {
-    $user = Auth::user();
-    if (!$user instanceof User) {
-      abort(401);
-    }
+    $user = $this->getAuthUser();
+
     if (!$user->hasPermission('sections.update')) {
       return response()->json(['error' => 'Unauthorized'], 403);
     }
+
+    $this->checkRateLimit('sections_update_order', $user->id);
+
     try {
       $page = Page::findOrFail($pageId);
 
-      $validator = Validator::make($request->all(), [
+      $validated = $request->validate([
         'orders' => 'required|array',
         'orders.*.id' => 'required|integer|exists:section_configs,id',
         'orders.*.display_order' => 'required|integer|min:0',
       ]);
 
-      if ($validator->fails()) {
-        return response()->json([
-          'success' => false,
-          'errors' => $validator->errors()
-        ], 422);
-      }
-
       DB::beginTransaction();
 
-      foreach ($request->orders as $orderData) {
+      $updatedCount = 0;
+      foreach ($validated['orders'] as $orderData) {
         $section = SectionConfig::where('id', $orderData['id'])
           ->where('page_slug', $page->slug)
           ->first();
 
         if ($section && !$section->is_fixed_section) {
-          $section->update([
-            'display_order' => $orderData['display_order']
-          ]);
+          $section->update(['display_order' => $orderData['display_order']]);
+          $updatedCount++;
         } elseif ($section && $section->is_fixed_section) {
           Log::warning('Attempted to reorder fixed section: ' . $section->section_key);
         }
@@ -224,40 +145,55 @@ class SectionController extends Controller
 
       DB::commit();
 
-      // Silent success - no message needed since the user sees the visual change
-      return response()->json([
-        'success' => true
-      ]);
+      $this->clearCache($pageId);
+
+      RateLimiter::clear($this->getThrottleKey('sections_update_order', $user->id));
+
+      SimpleLogger::cms(
+        "Section order updated",
+        [
+          'page_id' => $pageId,
+          'page_slug' => $page->slug,
+          'updated_count' => $updatedCount,
+          'updated_by' => $user->email,
+          'ip' => $request->ip(),
+        ]
+      );
+
+      return response()->json(['success' => true]);
+    } catch (ValidationException $e) {
+      return response()->json(['success' => false, 'errors' => $e->errors()], 422);
     } catch (\Exception $e) {
       DB::rollBack();
       Log::error('Failed to update section order: ' . $e->getMessage(), [
         'page_id' => $pageId,
-        'trace' => $e->getTraceAsString()
+        'trace' => $e->getTraceAsString(),
       ]);
 
       return response()->json([
         'success' => false,
-        'message' => 'Failed to update section order: ' . $e->getMessage()
+        'message' => 'Failed to update section order: ' . $e->getMessage(),
       ], 500);
     }
   }
 
   /**
-   * Store a newly created section in storage.
+   * Store a newly created section – with rate limiting.
    */
-  public function store(Request $request)
+  public function store(Request $request): RedirectResponse
   {
-    $user = Auth::user();
-    if (!$user instanceof User) {
-      abort(401);
-    }
+    $user = $this->getAuthUser();
+
     if (!$user->hasPermission('sections.create')) {
       return redirect()->back()->with('error', 'You do not have permission to create sections.');
     }
-    try {
-      $page = Page::findOrFail($request->page_id);
 
-      $validator = Validator::make($request->all(), [
+    $this->checkRateLimit('sections_create', $user->id);
+
+    try {
+      $page = Page::findOrFail($request->input('page_id'));
+
+      $validated = $request->validate([
         'page_id' => 'required|exists:pages,id',
         'component' => 'required|string|max:255',
         'section_key' => [
@@ -268,44 +204,58 @@ class SectionController extends Controller
             ->where(fn($query) => $query->where('page_slug', $page->slug)),
         ],
         'data_table' => 'required|string|max:255',
-        'is_enabled' => 'boolean',
+        'is_enabled' => 'nullable|boolean',
         'custom_props' => 'nullable|array',
       ]);
-
-      if ($validator->fails()) {
-        return back()->withErrors($validator)->withInput();
-      }
 
       DB::beginTransaction();
 
       $maxOrder = SectionConfig::where('page_slug', $page->slug)->max('display_order') ?? 0;
 
-      $dataKey = $this->generateDataKey($request->component, $request->section_key);
+      $dataKey = $this->generateDataKey($validated['component'], $validated['section_key']);
 
       $sectionConfig = SectionConfig::create([
         'page_slug' => $page->slug,
-        'section_key' => $request->section_key,
-        'component' => $request->component,
-        'data_table' => $request->data_table,
+        'section_key' => $validated['section_key'],
+        'component' => $validated['component'],
+        'data_table' => $validated['data_table'],
         'data_key' => $dataKey,
-        'prop_name' => $this->getPropName($request->component),
+        'prop_name' => $this->getPropName($validated['component']),
         'display_order' => $maxOrder + 1,
         'is_enabled' => $request->boolean('is_enabled', true),
         'is_fixed_section' => false,
-        'is_special_component' => $this->isSpecialComponent($request->component),
-        'custom_props' => $request->custom_props ?? [],
+        'is_special_component' => $this->isSpecialComponent($validated['component']),
+        'custom_props' => $request->input('custom_props', []),
       ]);
 
       $this->handleSectionDataCreation($sectionConfig);
 
       DB::commit();
 
+      $this->clearCache($page->id);
+
+      RateLimiter::clear($this->getThrottleKey('sections_create', $user->id));
+
+      SimpleLogger::cms(
+        "Section created: {$sectionConfig->section_key}",
+        [
+          'section_id' => $sectionConfig->id,
+          'page_slug' => $page->slug,
+          'component' => $sectionConfig->component,
+          'data_table' => $sectionConfig->data_table,
+          'created_by' => $user->email,
+          'ip' => $request->ip(),
+        ]
+      );
+
       return back()->with('success', '✅ Section created successfully.');
+    } catch (ValidationException $e) {
+      return back()->withErrors($e->errors())->withInput();
     } catch (\Exception $e) {
       DB::rollBack();
       Log::error('Failed to create section: ' . $e->getMessage(), [
         'trace' => $e->getTraceAsString(),
-        'input' => $request->all()
+        'input' => $request->all(),
       ]);
 
       return back()
@@ -315,21 +265,22 @@ class SectionController extends Controller
   }
 
   /**
-   * Update the specified section in storage.
+   * Update the specified section – with rate limiting.
    */
-  public function update(Request $request, int $id)
+  public function update(Request $request, int $id): RedirectResponse
   {
-    $user = Auth::user();
-    if (!$user instanceof User) {
-      abort(401);
-    }
+    $user = $this->getAuthUser();
+
     if (!$user->hasPermission('sections.update')) {
       return redirect()->back()->with('error', 'You do not have permission to update sections.');
     }
+
+    $this->checkRateLimit('sections_update', $user->id);
+
     try {
       $sectionConfig = SectionConfig::withTrashed()->findOrFail($id);
 
-      $validator = Validator::make($request->all(), [
+      $validated = $request->validate([
         'section_key' => [
           'required',
           'string',
@@ -341,32 +292,31 @@ class SectionController extends Controller
         'component' => 'sometimes|string|max:255',
         'data_table' => 'sometimes|string|max:255',
         'data_key' => 'sometimes|string|max:255',
-        'is_enabled' => 'boolean',
+        'is_enabled' => 'nullable|boolean',
         'custom_props' => 'nullable|array',
         'data' => 'nullable|array',
       ]);
 
-      if ($validator->fails()) {
-        return back()->withErrors($validator)->withInput();
-      }
+      DB::beginTransaction();
 
       $updateData = [];
 
-      if ($request->has('section_key')) {
-        $updateData['section_key'] = $request->input('section_key');
-      }
-      if ($request->has('is_enabled')) {
-        $updateData['is_enabled'] = $request->boolean('is_enabled');
+      if (isset($validated['section_key'])) {
+        $updateData['section_key'] = $validated['section_key'];
       }
 
-      if ($request->has('custom_props')) {
+      if (isset($validated['is_enabled'])) {
+        $updateData['is_enabled'] = (bool) $validated['is_enabled'];
+      }
+
+      if (isset($validated['custom_props'])) {
         $existingProps = $sectionConfig->custom_props ?? [];
-        $newProps = $request->input('custom_props');
+        $newProps = $validated['custom_props'];
 
-        if (isset($newProps['bgColor'])) {
-          $bgColor = $newProps['bgColor'];
-          if (is_string($bgColor) && preg_match('/^#[0-9a-fA-F]{6}$/', $bgColor)) {
-            $newProps['bgColor'] = 'bg-[' . $bgColor . ']';
+        // Normalize bgColor
+        if (isset($newProps['bgColor']) && is_string($newProps['bgColor'])) {
+          if (preg_match('/^#[0-9a-fA-F]{6}$/', $newProps['bgColor'])) {
+            $newProps['bgColor'] = 'bg-[' . $newProps['bgColor'] . ']';
           }
         }
 
@@ -375,28 +325,42 @@ class SectionController extends Controller
 
       $sectionConfig->update($updateData);
 
-      if ($request->has('data') && is_array($request->input('data'))) {
-        $data = $request->input('data');
-
+      // Handle custom data update
+      if (isset($validated['data']) && is_array($validated['data'])) {
+        $data = $validated['data'];
         if (isset($data['custom_props'])) {
           unset($data['custom_props']);
         }
 
-        switch ($sectionConfig->data_table) {
-          case 'custom_section_data':
-            $this->updateCustomSectionData($sectionConfig, $data);
-            break;
-          default:
-            Log::info('Skipping data update for non-custom section: ' . $sectionConfig->data_table);
-            break;
+        if ($sectionConfig->data_table === 'custom_section_data') {
+          $this->updateCustomSectionData($sectionConfig, $data);
         }
       }
 
+      DB::commit();
+
+      $this->clearCacheForSection($sectionConfig);
+
+      RateLimiter::clear($this->getThrottleKey('sections_update', $user->id));
+
+      SimpleLogger::cms(
+        "Section updated: {$sectionConfig->section_key}",
+        [
+          'section_id' => $id,
+          'page_slug' => $sectionConfig->page_slug,
+          'updated_by' => $user->email,
+          'ip' => $request->ip(),
+        ]
+      );
+
       return back()->with('success', '✅ Section updated successfully.');
+    } catch (ValidationException $e) {
+      return back()->withErrors($e->errors())->withInput();
     } catch (\Exception $e) {
+      DB::rollBack();
       Log::error('Failed to update section: ' . $e->getMessage(), [
         'section_id' => $id,
-        'trace' => $e->getTraceAsString()
+        'trace' => $e->getTraceAsString(),
       ]);
 
       return back()
@@ -406,53 +370,22 @@ class SectionController extends Controller
   }
 
   /**
-   * Update custom section data with image processing.
+   * Soft delete a section – with rate limiting.
    */
-  protected function updateCustomSectionData(SectionConfig $sectionConfig, array $newData)
+  public function destroy(int $id): RedirectResponse
   {
-    try {
-      $customData = CustomSectionData::where('page_slug', $sectionConfig->page_slug)
-        ->where('section_key', $sectionConfig->section_key)
-        ->first();
+    $user = $this->getAuthUser();
 
-      if (!$customData) {
-        $customData = new CustomSectionData();
-        $customData->page_slug = $sectionConfig->page_slug;
-        $customData->section_key = $sectionConfig->section_key;
-      }
-
-      $oldData = $customData->data ?? [];
-      $newData = $this->normalizeColorValues($newData);
-      $processedData = $this->processDataImages($newData, $oldData, $sectionConfig->section_key);
-
-      $customData->data = $processedData;
-      $customData->is_active = true;
-      $customData->save();
-    } catch (\Exception $e) {
-      Log::error('Failed to update custom section data: ' . $e->getMessage(), [
-        'section_key' => $sectionConfig->section_key,
-        'trace' => $e->getTraceAsString()
-      ]);
-      throw $e;
-    }
-  }
-
-  /**
-   * Soft delete a section (moves to trash)
-   */
-  public function destroy(int $id)
-  {
-    $user = Auth::user();
-    if (!$user instanceof User) {
-      abort(401);
-    }
     if (!$user->hasPermission('sections.destroy')) {
       return redirect()->back()->with('error', 'You do not have permission to delete sections.');
     }
+
+    $this->checkRateLimit('sections_delete', $user->id);
+
     try {
       DB::beginTransaction();
 
-      $sectionConfig = SectionConfig::withTrashed()->findOrFail($id);
+      $sectionConfig = SectionConfig::findOrFail($id);
 
       if ($sectionConfig->is_fixed_section) {
         return back()->with('error', '❌ Fixed sections cannot be deleted.');
@@ -472,12 +405,26 @@ class SectionController extends Controller
 
       DB::commit();
 
+      $this->clearCacheForSection($sectionConfig);
+
+      RateLimiter::clear($this->getThrottleKey('sections_delete', $user->id));
+
+      SimpleLogger::cms(
+        "Section deleted: {$sectionConfig->section_key}",
+        [
+          'section_id' => $id,
+          'page_slug' => $sectionConfig->page_slug,
+          'deleted_by' => $user->email,
+          'ip' => request()->ip(),
+        ]
+      );
+
       return back()->with('success', '🗑️ Section moved to trash successfully.');
     } catch (\Exception $e) {
       DB::rollBack();
       Log::error('Failed to delete section: ' . $e->getMessage(), [
         'section_id' => $id,
-        'trace' => $e->getTraceAsString()
+        'trace' => $e->getTraceAsString(),
       ]);
 
       return back()->with('error', 'Failed to delete section: ' . $e->getMessage());
@@ -485,17 +432,18 @@ class SectionController extends Controller
   }
 
   /**
-   * Restore a soft-deleted section
+   * Restore a soft-deleted section – with rate limiting.
    */
-  public function restore(int $id)
+  public function restore(int $id): RedirectResponse
   {
-    $user = Auth::user();
-    if (!$user instanceof User) {
-      abort(401);
-    }
+    $user = $this->getAuthUser();
+
     if (!$user->hasPermission('sections.restore')) {
       return redirect()->back()->with('error', 'You do not have permission to restore sections.');
     }
+
+    $this->checkRateLimit('sections_restore', $user->id);
+
     try {
       DB::beginTransaction();
 
@@ -520,12 +468,26 @@ class SectionController extends Controller
 
       DB::commit();
 
+      $this->clearCacheForSection($sectionConfig);
+
+      RateLimiter::clear($this->getThrottleKey('sections_restore', $user->id));
+
+      SimpleLogger::cms(
+        "Section restored: {$sectionConfig->section_key}",
+        [
+          'section_id' => $id,
+          'page_slug' => $sectionConfig->page_slug,
+          'restored_by' => $user->email,
+          'ip' => request()->ip(),
+        ]
+      );
+
       return back()->with('success', '🔄 Section restored successfully.');
     } catch (\Exception $e) {
       DB::rollBack();
       Log::error('Failed to restore section: ' . $e->getMessage(), [
         'section_id' => $id,
-        'trace' => $e->getTraceAsString()
+        'trace' => $e->getTraceAsString(),
       ]);
 
       return back()->with('error', 'Failed to restore section: ' . $e->getMessage());
@@ -533,17 +495,18 @@ class SectionController extends Controller
   }
 
   /**
-   * Force delete a section (permanently remove)
+   * Force delete a section – with rate limiting.
    */
-  public function forceDelete(int $id)
+  public function forceDelete(int $id): RedirectResponse
   {
-    $user = Auth::user();
-    if (!$user instanceof User) {
-      abort(401);
-    }
+    $user = $this->getAuthUser();
+
     if (!$user->hasPermission('sections.destroy')) {
       return redirect()->back()->with('error', 'You do not have permission to permanently delete sections.');
     }
+
+    $this->checkRateLimit('sections_force_delete', $user->id);
+
     try {
       DB::beginTransaction();
 
@@ -569,12 +532,26 @@ class SectionController extends Controller
 
       DB::commit();
 
+      $this->clearCacheForSection($sectionConfig);
+
+      RateLimiter::clear($this->getThrottleKey('sections_force_delete', $user->id));
+
+      SimpleLogger::cms(
+        "Section permanently deleted: {$sectionConfig->section_key}",
+        [
+          'section_id' => $id,
+          'page_slug' => $sectionConfig->page_slug,
+          'deleted_by' => $user->email,
+          'ip' => request()->ip(),
+        ]
+      );
+
       return back()->with('success', '🗑️ Section permanently deleted.');
     } catch (\Exception $e) {
       DB::rollBack();
       Log::error('Failed to force delete section: ' . $e->getMessage(), [
         'section_id' => $id,
-        'trace' => $e->getTraceAsString()
+        'trace' => $e->getTraceAsString(),
       ]);
 
       return back()->with('error', 'Failed to permanently delete section: ' . $e->getMessage());
@@ -582,18 +559,17 @@ class SectionController extends Controller
   }
 
   /**
-   * Get trashed (deleted) sections for a page
+   * Get trashed sections for a page.
    */
-  public function trashed(int $pageId)
+  public function trashed(int $pageId): Response|RedirectResponse
   {
-    $user = Auth::user();
-    if (!$user instanceof User) {
-      abort(401);
-    }
+    $user = $this->getAuthUser();
+
     if (!$user->hasPermission('sections.view')) {
       return redirect()->route('unauthorized.access')
         ->with('error', 'You do not have permission to view trashed sections.');
     }
+
     try {
       $page = Page::withTrashed()->findOrFail($pageId);
 
@@ -609,96 +585,261 @@ class SectionController extends Controller
     } catch (\Exception $e) {
       Log::error('Failed to load trashed sections: ' . $e->getMessage(), [
         'page_id' => $pageId,
-        'trace' => $e->getTraceAsString()
+        'trace' => $e->getTraceAsString(),
       ]);
 
       return Inertia::render('Backend/CMS/Section/Trashed', [
         'page' => null,
         'sections' => [],
-        'flash' => ['error' => 'Failed to load trashed sections: ' . $e->getMessage()]
+        'flash' => ['error' => 'Failed to load trashed sections: ' . $e->getMessage()],
       ]);
     }
   }
 
   /**
-   * Get the count of trashed sections for a page
+   * Get the count of trashed sections for a page.
    */
-  public function trashedCount(int $pageId)
+  public function trashedCount(int $pageId): JsonResponse
   {
-    $user = Auth::user();
-    if (!$user instanceof User) {
-      abort(401);
-    }
+    $user = $this->getAuthUser();
+
     if (!$user->hasPermission('sections.view')) {
       return response()->json(['error' => 'Unauthorized'], 403);
     }
 
     try {
       $page = Page::findOrFail($pageId);
-
       $count = SectionConfig::onlyTrashed()
         ->where('page_slug', $page->slug)
         ->count();
 
       return response()->json(['count' => $count]);
     } catch (\Exception $e) {
-      Log::error('Failed to get trashed count: ' . $e->getMessage(), [
-        'page_id' => $pageId
-      ]);
-
+      Log::error('Failed to get trashed count: ' . $e->getMessage(), ['page_id' => $pageId]);
       return response()->json(['count' => 0, 'error' => $e->getMessage()], 500);
     }
   }
 
   /**
-   * Get About Content options for dropdown
+   * Get About Content options for dropdown – with caching.
    */
-  public function getAboutContentOptions()
+  public function getAboutContentOptions(): JsonResponse
   {
-    $user = Auth::user();
-    if (!$user instanceof User) {
-      abort(401);
-    }
+    $user = $this->getAuthUser();
+
     if (!$user->hasPermission('sections.view')) {
       return response()->json(['error' => 'Unauthorized'], 403);
     }
+
     try {
-      $items = AboutContent::where('is_active', true)
-        ->orderBy('title')
-        ->get()
-        ->map(function ($item) {
-          return [
-            'id' => $item->id,
-            'slug' => $item->slug,
-            'title' => $item->title,
-            'type' => $item->type,
-            'content' => $item->content,
-            'full_content' => $item->full_content,
-            'image' => $item->image,
-            'icon' => $item->icon,
-            'bg_color' => $item->bg_color,
-            'btn_text' => $item->btn_text,
-            'btn_link' => $item->btn_link,
-            'display_order' => $item->display_order,
-            'is_featured' => $item->is_featured,
-            'tags' => $item->tags,
-          ];
-        });
+      $items = Cache::remember('about_content_options', 300, function () {
+        return AboutContent::where('is_active', true)
+          ->orderBy('title')
+          ->get()
+          ->map(function ($item) {
+            return [
+              'id' => $item->id,
+              'slug' => $item->slug,
+              'title' => $item->title,
+              'type' => $item->type,
+              'content' => $item->content,
+              'full_content' => $item->full_content,
+              'image' => $item->image,
+              'icon' => $item->icon,
+              'bg_color' => $item->bg_color,
+              'btn_text' => $item->btn_text,
+              'btn_link' => $item->btn_link,
+              'display_order' => $item->display_order,
+              'is_featured' => $item->is_featured,
+              'tags' => $item->tags,
+            ];
+          });
+      });
 
       return response()->json($items);
     } catch (\Exception $e) {
       Log::error('Error fetching about content options: ' . $e->getMessage());
       return response()->json([
         'error' => 'Failed to fetch about content options',
-        'message' => $e->getMessage()
+        'message' => $e->getMessage(),
       ], 500);
     }
   }
 
+    // ==========================================
+    // PRIVATE HELPER METHODS
+    // ==========================================
+
   /**
-   * Normalize color values in the data array
+   * Get the authenticated user.
    */
-  protected function normalizeColorValues(array $data): array
+  private function getAuthUser(): User
+  {
+    $user = Auth::user();
+    if (!$user instanceof User) {
+      abort(401, 'Unauthenticated');
+    }
+    return $user;
+  }
+
+  /**
+   * Check rate limit for admin actions.
+   */
+  private function checkRateLimit(string $action, int $userId, int $maxAttempts = 10, int $decaySeconds = 3600): void
+  {
+    $key = $this->getThrottleKey($action, $userId);
+    if (RateLimiter::tooManyAttempts($key, $maxAttempts)) {
+      Log::warning("Rate limit exceeded for {$action}", ['user_id' => $userId]);
+      throw ValidationException::withMessages([
+        'rate_limit' => 'Too many attempts. Please wait a moment.',
+      ]);
+    }
+    RateLimiter::hit($key, $decaySeconds);
+  }
+
+  /**
+   * Get throttle key.
+   */
+  private function getThrottleKey(string $action, int $userId): string
+  {
+    return "sections_{$action}|{$userId}";
+  }
+
+  /**
+   * Clear section cache for a specific page.
+   */
+  private function clearCache(int $pageId): void
+  {
+    Cache::forget("sections_page_{$pageId}");
+    Cache::forget('about_content_options');
+  }
+
+  /**
+   * Clear section cache for a specific section.
+   */
+  private function clearCacheForSection(SectionConfig $sectionConfig): void
+  {
+    $page = Page::where('slug', $sectionConfig->page_slug)->first();
+    if ($page) {
+      $this->clearCache($page->id);
+    }
+  }
+  /**
+   * Load section data based on data_table.
+   *
+   * @param SectionConfig $config
+   * @param Collection<string, CustomSectionData> $customSectionData
+   * @param Collection<string, SharedData> $sharedData
+   * @return mixed
+   */
+  private function loadSectionData(
+    SectionConfig $config,
+    Collection $customSectionData,
+    Collection $sharedData
+  ): mixed {
+    return match ($config->data_table) {
+      'custom_section_data' => $this->extractCustomSectionData(
+        $customSectionData->get($config->section_key)
+      ),
+      'shared_data' => $this->extractSharedData(
+        $sharedData->get($config->section_key)
+      ),
+      'blogs' => Blog::active()->latest()->get(),
+      'programs' => Program::active()->ordered()->get(),
+      'about_content' => $this->loadAboutContent($config->section_key),
+      'publications' => Publication::active()->latest()->get(),
+      default => null,
+    };
+  }
+
+  /**
+   * Load about content for a specific key.
+   */
+  private function loadAboutContent(string $sectionKey): mixed
+  {
+    $aboutContent = AboutContent::where('slug', $sectionKey)
+      ->active()
+      ->first();
+
+    return $aboutContent ? $aboutContent->data : null;
+  }
+
+  /**
+   * Extract clean data from CustomSectionData model.
+   */
+  private function extractCustomSectionData(?CustomSectionData $customData): mixed
+  {
+    if (!$customData) {
+      return null;
+    }
+
+    try {
+      $rawData = $customData->data;
+
+      if (is_string($rawData)) {
+        $decodedData = json_decode($rawData, true);
+        return ($decodedData !== null) ? ($decodedData['data'] ?? $decodedData) : $rawData;
+      }
+
+      return $rawData;
+    } catch (\Exception $e) {
+      Log::error('Failed to extract custom section data: ' . $e->getMessage());
+      return null;
+    }
+  }
+
+  /**
+   * Extract clean data from SharedData model.
+   */
+  private function extractSharedData(?SharedData $shared): mixed
+  {
+    if (!$shared) {
+      return null;
+    }
+
+    try {
+      $rawData = $shared->data ?? $shared;
+
+      if (is_string($rawData)) {
+        $decodedData = json_decode($rawData, true);
+        return ($decodedData !== null) ? ($decodedData['data'] ?? $decodedData) : $rawData;
+      }
+
+      return $rawData;
+    } catch (\Exception $e) {
+      Log::error('Failed to extract shared data: ' . $e->getMessage());
+      return null;
+    }
+  }
+
+  /**
+   * Update custom section data with image processing.
+   */
+  private function updateCustomSectionData(SectionConfig $sectionConfig, array $newData): void
+  {
+    $customData = CustomSectionData::where('page_slug', $sectionConfig->page_slug)
+      ->where('section_key', $sectionConfig->section_key)
+      ->first();
+
+    if (!$customData) {
+      $customData = new CustomSectionData();
+      $customData->page_slug = $sectionConfig->page_slug;
+      $customData->section_key = $sectionConfig->section_key;
+    }
+
+    $oldData = $customData->data ?? [];
+    $newData = $this->normalizeColorValues($newData);
+    $processedData = $this->processDataImages($newData, $oldData, $sectionConfig->section_key);
+
+    $customData->data = $processedData;
+    $customData->is_active = true;
+    $customData->save();
+  }
+
+  /**
+   * Normalize color values in the data array.
+   */
+  private function normalizeColorValues(array $data): array
   {
     foreach ($data as $key => $value) {
       if (is_array($value)) {
@@ -713,15 +854,15 @@ class SectionController extends Controller
   /**
    * Recursively process data to handle image uploads and deletions.
    */
-  protected function processDataImages(
-    array $newData,
-    array $oldData,
-    string $sectionKey
-  ): array {
+  private function processDataImages(array $newData, array $oldData, string $sectionKey): array
+  {
     return $this->processArray($newData, $oldData, $sectionKey);
   }
 
-  protected function processArray(array $newArray, ?array $oldArray, string $sectionKey): array
+  /**
+   * Recursively process array for image handling.
+   */
+  private function processArray(array $newArray, ?array $oldArray, string $sectionKey): array
   {
     if (!is_array($newArray)) {
       return $newArray;
@@ -758,6 +899,7 @@ class SectionController extends Controller
       }
     }
 
+    // Check for removed keys
     if (is_array($oldArray)) {
       foreach ($oldArray as $key => $oldValue) {
         if (!array_key_exists($key, $newArray) && is_string($oldValue) && !$this->isBase64Image($oldValue)) {
@@ -770,17 +912,25 @@ class SectionController extends Controller
   }
 
   /**
-   * Check if a string is a base64 image.
+   * Check if string is a base64 image.
    */
-  protected function isBase64Image(string $string): bool
+  private function isBase64Image(string $string): bool
   {
     return str_starts_with($string, 'data:image/');
   }
 
   /**
+   * Check if string is an image path (not base64).
+   */
+  private function isImagePath(string $string): bool
+  {
+    return str_starts_with($string, '/storage/') && !$this->isBase64Image($string);
+  }
+
+  /**
    * Upload a base64 image and return the storage path.
    */
-  protected function uploadImage(string $base64String, string $subPath = 'sections'): string
+  private function uploadImage(string $base64String, string $subPath = 'sections'): string
   {
     try {
       $imageData = explode(',', $base64String);
@@ -794,21 +944,16 @@ class SectionController extends Controller
         return '';
       }
 
-      // Check file size (max 5MB)
-      if (strlen($imageContent) > 5 * 1024 * 1024) {
+      if (strlen($imageContent) > $this->maxImageSize) {
         Log::warning('Image too large: ' . strlen($imageContent) . ' bytes');
         return '';
       }
 
       $extension = $this->getImageExtension($base64String);
-      $datePrefix = date('Ymd');
-      $uuid = Str::uuid();
-      $filename = $datePrefix . '_' . $uuid . '.' . $extension;
+      $filename = date('Ymd') . '_' . Str::uuid() . '.' . $extension;
       $path = $subPath . '/' . $filename;
 
-      $stored = Storage::disk('public')->put($path, $imageContent);
-
-      if (!$stored) {
+      if (!Storage::disk('public')->put($path, $imageContent)) {
         Log::error('Failed to store image: ' . $path);
         return '';
       }
@@ -823,7 +968,7 @@ class SectionController extends Controller
   /**
    * Get image extension from base64 string.
    */
-  protected function getImageExtension(string $base64String): string
+  private function getImageExtension(string $base64String): string
   {
     $mimeMap = [
       'image/jpeg' => 'jpg',
@@ -840,8 +985,7 @@ class SectionController extends Controller
     ];
 
     if (preg_match('/^data:([^;]+);base64,/', $base64String, $matches)) {
-      $mimeType = $matches[1];
-      return $mimeMap[$mimeType] ?? 'png';
+      return $mimeMap[$matches[1]] ?? 'png';
     }
 
     return 'png';
@@ -850,7 +994,7 @@ class SectionController extends Controller
   /**
    * Delete an image from storage if it exists.
    */
-  protected function deleteImage(string $path): void
+  private function deleteImage(string $path): void
   {
     try {
       $relativePath = str_replace('/storage/', '', $path);
@@ -864,21 +1008,12 @@ class SectionController extends Controller
   }
 
   /**
-   * Check if a string is an image path (not base64)
+   * Delete images from data recursively.
    */
-  protected function isImagePath(string $string): bool
-  {
-    return str_starts_with($string, '/storage/') &&
-      !$this->isBase64Image($string);
-  }
-
-  /**
-   * Delete images from data recursively
-   */
-  protected function deleteImagesFromData(mixed $data): void
+  private function deleteImagesFromData(mixed $data): void
   {
     if (is_array($data)) {
-      foreach ($data as $key => $value) {
+      foreach ($data as $value) {
         if (is_array($value)) {
           $this->deleteImagesFromData($value);
         } elseif (is_string($value) && $this->isImagePath($value)) {
@@ -891,7 +1026,7 @@ class SectionController extends Controller
   /**
    * Generate a unique data key for the section.
    */
-  protected function generateDataKey(string $component, string $sectionKey): string
+  private function generateDataKey(string $component, string $sectionKey): string
   {
     return Str::snake($component) . '_' . Str::snake($sectionKey);
   }
@@ -899,7 +1034,7 @@ class SectionController extends Controller
   /**
    * Get the frontend prop name for a section component.
    */
-  protected function getPropName(string $component): string
+  private function getPropName(string $component): string
   {
     return Str::camel($component);
   }
@@ -907,7 +1042,7 @@ class SectionController extends Controller
   /**
    * Determine whether the component is a special layout component.
    */
-  protected function isSpecialComponent(string $component): bool
+  private function isSpecialComponent(string $component): bool
   {
     return in_array($component, [
       'page-banner',
@@ -923,7 +1058,7 @@ class SectionController extends Controller
   /**
    * Create default section data after the config is stored.
    */
-  protected function handleSectionDataCreation(SectionConfig $sectionConfig): void
+  private function handleSectionDataCreation(SectionConfig $sectionConfig): void
   {
     if ($sectionConfig->data_table !== 'custom_section_data') {
       return;
@@ -946,26 +1081,6 @@ class SectionController extends Controller
     );
   }
 
-  /**
-   * Get default data template for a section.
-   */
-  protected function getSectionDataTemplate(string $sectionKey): ?array
-  {
-    return match ($sectionKey) {
-      'banner' => ['title' => '', 'subtitle' => '', 'image' => ''],
-      'stories' => ['items' => []],
-      'upcoming-events' => ['events' => []],
-      'topbar' => ['links' => []],
-      'navbar' => ['links' => []],
-      'footer' => ['links' => []],
-      default => null,
-    };
-  }
-
-
-  /**
-   * Get default data template for a section component.
-   */
   /**
    * Get default data template for a section component.
    */

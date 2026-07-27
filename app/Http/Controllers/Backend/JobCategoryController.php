@@ -5,400 +5,406 @@ namespace App\Http\Controllers\Backend;
 use App\Http\Controllers\Controller;
 use App\Models\JobCategory;
 use App\Models\User;
+use App\Services\SimpleLogger;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Inertia\Inertia;
-use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class JobCategoryController extends Controller
 {
     /**
-     * Display a listing (including soft deleted) with pagination and filters
+     * Cache duration in seconds (5 minutes).
      */
-    public function index(Request $request)
+    protected int $cacheDuration = 300;
+
+    /**
+     * Rate limit max attempts per hour.
+     */
+    protected int $rateLimitAttempts = 10;
+
+    /**
+     * Display a listing (including soft deleted) with pagination and filters.
+     */
+    public function index(Request $request): Response|RedirectResponse
     {
-        $user = Auth::user();
+        $user = $this->getAuthUser();
 
-        // Check if user is logged in
-        if (!$user instanceof User) {
-            abort(401);
-        }
-
-        // Check permission to view categories
         if (!$user->hasPermission('categories.view')) {
             return redirect()->route('unauthorized.access')
                 ->with('error', 'You do not have permission to view categories.');
         }
 
-        $query = JobCategory::withTrashed();
+        $cacheKey = 'job_categories_index_' . md5(json_encode($request->query()));
 
-        // Filter by status
-        if ($request->filled('status') && $request->status !== 'all') {
-            if ($request->status === 'active') {
-                $query->where('is_active', true)->whereNull('deleted_at');
-            } elseif ($request->status === 'inactive') {
-                $query->where('is_active', false)->whereNull('deleted_at');
-            } elseif ($request->status === 'deleted') {
-                $query->onlyTrashed();
+        $data = Cache::remember($cacheKey, $this->cacheDuration, function () use ($request) {
+            $query = JobCategory::withTrashed();
+
+            $status = $request->input('status', 'all');
+            if ($status !== 'all') {
+                match ($status) {
+                    'active' => $query->where('is_active', true)->whereNull('deleted_at'),
+                    'inactive' => $query->where('is_active', false)->whereNull('deleted_at'),
+                    'deleted' => $query->onlyTrashed(),
+                    default => null,
+                };
             }
-        }
 
-        // Search by name
-        if ($request->filled('search')) {
-            $search = $request->search;
-            $query->where('name', 'like', "%{$search}%");
-        }
+            if ($request->filled('search')) {
+                $search = $request->search;
+                $query->where('name', 'like', "%{$search}%");
+            }
 
-        // Sort
-        $sortField = $request->get('sort', 'name');
-        $sortDirection = $request->get('direction', 'asc');
-        $allowedSortFields = ['name', 'is_active', 'created_at', 'updated_at'];
+            $sortField = $request->input('sort', 'name');
+            $sortDirection = $request->input('direction', 'asc');
+            $allowedSortFields = ['name', 'is_active', 'created_at', 'updated_at'];
 
-        if (in_array($sortField, $allowedSortFields)) {
-            $query->orderBy($sortField, $sortDirection);
-        } else {
-            $query->orderBy('name', 'asc');
-        }
+            if (in_array($sortField, $allowedSortFields)) {
+                $query->orderBy($sortField, $sortDirection);
+            } else {
+                $query->orderBy('name', 'asc');
+            }
 
-        $categories = $query->paginate(9)->withQueryString();
+            $categories = $query->paginate(9)->withQueryString();
 
-        // Get summary statistics
-        $stats = [
-            'total' => JobCategory::count(),
-            'active' => JobCategory::where('is_active', true)->count(),
-            'inactive' => JobCategory::where('is_active', false)->count(),
-            'total_deleted' => JobCategory::onlyTrashed()->count(),
-        ];
+            $stats = [
+                'total' => JobCategory::count(),
+                'active' => JobCategory::where('is_active', true)->count(),
+                'inactive' => JobCategory::where('is_active', false)->count(),
+                'total_deleted' => JobCategory::onlyTrashed()->count(),
+            ];
 
-        return Inertia::render('Backend/JobCategories/Index', [
-            'categories' => $categories,
-            'filters' => $request->only(['search', 'status', 'sort', 'direction']),
-            'stats' => $stats,
-        ]);
+            return [
+                'categories' => $categories,
+                'filters' => $request->only(['search', 'status', 'sort', 'direction']),
+                'stats' => $stats,
+            ];
+        });
+
+        return Inertia::render('Backend/JobCategories/Index', $data);
     }
 
     /**
-     * Store a new category
+     * Store a new category – with rate limiting.
      */
-    public function store(Request $request)
+    public function store(Request $request): RedirectResponse
     {
-        $user = Auth::user();
+        $user = $this->getAuthUser();
 
-        // Check if user is logged in
-        if (!$user instanceof User) {
-            abort(401);
-        }
-
-        // Check permission to create category
         if (!$user->hasPermission('categories.create')) {
             return redirect()->back()->with('error', 'You do not have permission to create categories.');
         }
 
-        $validated = $request->validate([
-            'name' => 'required|string|max:255|unique:job_categories,name',
-            'is_active' => 'boolean',
-        ]);
+        $this->checkRateLimit('category_create', $user->id);
 
-        // Generate slug from name
-        $validated['slug'] = Str::slug($validated['name']);
+        try {
+            $validated = $request->validate([
+                'name' => 'required|string|max:255|unique:job_categories,name',
+                'is_active' => 'nullable|boolean',
+            ]);
 
-        // Check if slug is unique, if not make it unique
-        $originalSlug = $validated['slug'];
-        $counter = 1;
-        while (JobCategory::where('slug', $validated['slug'])->exists()) {
-            $validated['slug'] = $originalSlug . '-' . $counter;
-            $counter++;
+            $validated['is_active'] = filter_var($validated['is_active'] ?? true, FILTER_VALIDATE_BOOLEAN);
+            $validated['slug'] = $this->generateUniqueSlug($validated['name']);
+
+            $category = JobCategory::create($validated);
+
+            $this->clearCache();
+            RateLimiter::clear($this->getThrottleKey('category_create', $user->id));
+
+            SimpleLogger::cms(
+                "Job category created: {$category->name}",
+                [
+                    'category_id' => $category->id,
+                    'slug' => $category->slug,
+                    'is_active' => $category->is_active,
+                    'created_by' => $user->email,
+                    'ip' => $request->ip(),
+                ]
+            );
+
+            return redirect()->back()->with('success', 'Category created successfully');
+        } catch (ValidationException $e) {
+            return back()->withErrors($e->errors())->withInput();
+        } catch (\Exception $e) {
+            Log::error('Category creation failed: ' . $e->getMessage());
+            return back()->with('error', 'Failed to create category: ' . $e->getMessage())->withInput();
         }
-
-        JobCategory::create($validated);
-
-        return redirect()->back()->with('success', 'Category created successfully');
     }
 
     /**
-     * Update category
+     * Update category – with rate limiting.
      */
-    public function update(Request $request, int|string $category)
+    public function update(Request $request, int|string $category): RedirectResponse
     {
-        $user = Auth::user();
+        $user = $this->getAuthUser();
 
-        // Check if user is logged in
-        if (!$user instanceof User) {
-            abort(401);
-        }
-
-        // Check permission to edit category
         if (!$user->hasPermission('categories.edit')) {
             return redirect()->back()->with('error', 'You do not have permission to edit categories.');
         }
 
-        $jobCategory = JobCategory::findOrFail($category);
+        $this->checkRateLimit('category_update', $user->id);
 
-        $validated = $request->validate([
-            'name' => 'required|string|max:255|unique:job_categories,name,' . $jobCategory->id,
-            'is_active' => 'boolean',
-        ]);
+        try {
+            $jobCategory = JobCategory::findOrFail($category);
 
-        /**
-         * If name changed, regenerate slug
-         */
-        if ($jobCategory->name !== $validated['name']) {
+            $validated = $request->validate([
+                'name' => 'required|string|max:255|unique:job_categories,name,' . $jobCategory->id,
+                'is_active' => 'nullable|boolean',
+            ]);
 
-            $validated['slug'] = Str::slug($validated['name']);
+            $validated['is_active'] = filter_var($validated['is_active'] ?? true, FILTER_VALIDATE_BOOLEAN);
 
-            /**
-             * Ensure slug is unique
-             */
-            $originalSlug = $validated['slug'];
-            $counter = 1;
+            $oldName = $jobCategory->name;
+            $oldStatus = $jobCategory->is_active;
 
-            while (
-                JobCategory::where('slug', $validated['slug'])
-                ->where('id', '!=', $jobCategory->id)
-                ->exists()
-            ) {
-                $validated['slug'] = $originalSlug . '-' . $counter;
-                $counter++;
+            if ($jobCategory->name !== $validated['name']) {
+                $validated['slug'] = $this->generateUniqueSlug($validated['name'], $jobCategory->id);
             }
+
+            $jobCategory->update($validated);
+
+            $this->clearCache();
+            RateLimiter::clear($this->getThrottleKey('category_update', $user->id));
+
+            $changes = [];
+            if ($oldName !== $jobCategory->name) {
+                $changes['name'] = ['old' => $oldName, 'new' => $jobCategory->name];
+            }
+            if ($oldStatus !== $jobCategory->is_active) {
+                $changes['status'] = ['old' => $oldStatus ? 'active' : 'inactive', 'new' => $jobCategory->is_active ? 'active' : 'inactive'];
+            }
+
+            SimpleLogger::cms(
+                "Job category updated: {$jobCategory->name}",
+                [
+                    'category_id' => $jobCategory->id,
+                    'changes' => $changes,
+                    'updated_by' => $user->email,
+                    'ip' => $request->ip(),
+                ]
+            );
+
+            return redirect()->back()->with('success', 'Category updated successfully');
+        } catch (ValidationException $e) {
+            return back()->withErrors($e->errors())->withInput();
+        } catch (\Exception $e) {
+            Log::error('Category update failed: ' . $e->getMessage());
+            return back()->with('error', 'Failed to update category: ' . $e->getMessage())->withInput();
         }
-
-        /**
-         * Update category
-         */
-        $jobCategory->update($validated);
-
-        return redirect()
-            ->back()
-            ->with('success', 'Category updated successfully');
     }
 
     /**
-     * Soft delete
+     * Toggle active/inactive – with rate limiting.
      */
-    public function destroy(int|string $category)
+    public function toggleActive(int|string $category): RedirectResponse
     {
-        $user = Auth::user();
+        $user = $this->getAuthUser();
 
-        // Check if user is logged in
-        if (!$user instanceof User) {
-            abort(401);
+        if (!$user->hasPermission('categories.toggle_active')) {
+            return redirect()->back()->with('error', 'You do not have permission to change category status.');
         }
 
-        // Check permission to delete category
+        $this->checkRateLimit('category_toggle', $user->id);
+
+        try {
+            $jobCategory = JobCategory::findOrFail($category);
+            $newStatus = !$jobCategory->is_active;
+            $jobCategory->update(['is_active' => $newStatus]);
+
+            $this->clearCache();
+            RateLimiter::clear($this->getThrottleKey('category_toggle', $user->id));
+
+            $statusText = $newStatus ? 'activated' : 'deactivated';
+
+            SimpleLogger::cms(
+                "Job category {$statusText}: {$jobCategory->name}",
+                [
+                    'category_id' => $jobCategory->id,
+                    'new_status' => $newStatus,
+                    'updated_by' => $user->email,
+                    'ip' => request()->ip(),
+                ]
+            );
+
+            return redirect()->back()->with('success', "Category has been " . $statusText . ".");
+        } catch (\Exception $e) {
+            Log::error('Failed to toggle category status: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Failed to update category status.');
+        }
+    }
+
+    /**
+     * Soft delete – with rate limiting.
+     */
+    public function destroy(int|string $category): RedirectResponse
+    {
+        $user = $this->getAuthUser();
+
         if (!$user->hasPermission('categories.delete')) {
             return redirect()->back()->with('error', 'You do not have permission to delete categories.');
         }
 
+        $this->checkRateLimit('category_delete', $user->id);
+
         $jobCategory = JobCategory::findOrFail($category);
 
-        // Check if category has related job listings
         $jobListingsCount = $jobCategory->jobListings()->count();
-
-        Log::info('Delete attempt', [
-            'category_id' => $jobCategory->id,
-            'category_name' => $jobCategory->name,
-            'job_count' => $jobListingsCount,
-        ]);
 
         if ($jobListingsCount > 0) {
             return redirect()->back()->with('error', "Cannot delete category '{$jobCategory->name}'. It is currently used in {$jobListingsCount} job listing(s).");
         }
 
         try {
+            $categoryName = $jobCategory->name;
             $jobCategory->delete();
 
-            Log::info('Category soft deleted', [
-                'category_id' => $jobCategory->id,
-                'category_name' => $jobCategory->name,
-                'deleted_by' => Auth::id(),
-            ]);
+            $this->clearCache();
+            RateLimiter::clear($this->getThrottleKey('category_delete', $user->id));
 
-            return redirect()->back()->with('success', "Category '{$jobCategory->name}' moved to trash.");
+            SimpleLogger::cms(
+                "Job category deleted: {$categoryName}",
+                [
+                    'category_id' => $jobCategory->id,
+                    'deleted_by' => $user->email,
+                    'ip' => request()->ip(),
+                ]
+            );
+
+            return redirect()->back()->with('success', "Category '{$categoryName}' moved to trash.");
         } catch (\Exception $e) {
-            Log::error('Failed to delete category', [
-                'category_id' => $jobCategory->id,
-                'error' => $e->getMessage(),
-            ]);
-
+            Log::error('Failed to delete category: ' . $e->getMessage());
             return redirect()->back()->with('error', 'Failed to delete category: ' . $e->getMessage());
         }
     }
 
     /**
-     * Toggle active/inactive
+     * Restore soft deleted – with rate limiting.
      */
-    public function toggleActive(int|string $category)
+    public function restore(int $id): RedirectResponse
     {
-        $user = Auth::user();
+        $user = $this->getAuthUser();
 
-        // Check if user is logged in
-        if (!$user instanceof User) {
-            abort(401);
-        }
-
-        // Check permission to toggle category status
-        if (!$user->hasPermission('categories.toggle_active')) {
-            return redirect()->back()->with('error', 'You do not have permission to change category status.');
-        }
-
-        $jobCategory = JobCategory::findOrFail($category);
-
-        try {
-            $newStatus = !$jobCategory->is_active;
-            $jobCategory->update(['is_active' => $newStatus]);
-
-            Log::info('Category status toggled', [
-                'category_id' => $jobCategory->id,
-                'category_name' => $jobCategory->name,
-                'new_status' => $newStatus,
-                'updated_by' => Auth::id(),
-            ]);
-
-            return redirect()->back()->with('success', "Category has been " . ($newStatus ? 'activated' : 'deactivated') . ".");
-        } catch (\Exception $e) {
-            Log::error('Failed to toggle category status', [
-                'category_id' => $jobCategory->id,
-                'error' => $e->getMessage(),
-            ]);
-
-            return redirect()->back()->with('error', 'Failed to update category status.');
-        }
-    }
-
-    /**
-     * Restore soft deleted
-     */
-    public function restore(int $id)
-    {
-        $user = Auth::user();
-
-        // Check if user is logged in
-        if (!$user instanceof User) {
-            abort(401);
-        }
-
-        // Check permission to restore category
         if (!$user->hasPermission('categories.restore')) {
             return redirect()->back()->with('error', 'You do not have permission to restore categories.');
         }
 
-        $category = JobCategory::onlyTrashed()->findOrFail($id);
-
-        // Check if restoring would cause duplicate name/slug
-        $existingCategory = JobCategory::where('name', $category->name)
-            ->where('id', '!=', $category->id)
-            ->first();
-
-        if ($existingCategory) {
-            return redirect()->back()->with('error', 'Cannot restore: A category with the same name already exists.');
-        }
+        $this->checkRateLimit('category_restore', $user->id);
 
         try {
+            $category = JobCategory::onlyTrashed()->findOrFail($id);
+
+            // Check duplicate name
+            $existing = JobCategory::where('name', $category->name)
+                ->where('id', '!=', $category->id)
+                ->first();
+            if ($existing) {
+                return redirect()->back()->with('error', 'Cannot restore: A category with the same name already exists.');
+            }
+
             $categoryName = $category->name;
             $category->restore();
 
-            Log::info('Category restored', [
-                'category_id' => $category->id,
-                'category_name' => $categoryName,
-                'restored_by' => Auth::id(),
-            ]);
+            $this->clearCache();
+            RateLimiter::clear($this->getThrottleKey('category_restore', $user->id));
+
+            SimpleLogger::cms(
+                "Job category restored: {$categoryName}",
+                [
+                    'category_id' => $category->id,
+                    'restored_by' => $user->email,
+                    'ip' => request()->ip(),
+                ]
+            );
 
             return redirect()->back()->with('success', "Category '{$categoryName}' restored successfully.");
         } catch (\Exception $e) {
-            Log::error('Failed to restore category', [
-                'category_id' => $id,
-                'error' => $e->getMessage(),
-            ]);
-
+            Log::error('Failed to restore category: ' . $e->getMessage());
             return redirect()->back()->with('error', 'Failed to restore category: ' . $e->getMessage());
         }
     }
 
     /**
-     * Permanently delete (force delete)
+     * Permanently delete – with rate limiting.
      */
-    public function forceDelete(int $id)
+    public function forceDelete(int $id): RedirectResponse
     {
-        $user = Auth::user();
+        $user = $this->getAuthUser();
 
-        // Check if user is logged in
-        if (!$user instanceof User) {
-            abort(401);
-        }
-
-        // Check permission to force delete category
         if (!$user->hasPermission('categories.force_delete')) {
             return redirect()->back()->with('error', 'You do not have permission to permanently delete categories.');
         }
 
-        $category = JobCategory::onlyTrashed()->findOrFail($id);
-
-        // Check if category has related job listings
-        $jobListingsCount = $category->jobListings()->count();
-
-        if ($jobListingsCount > 0) {
-            return redirect()->back()->with('error', "Cannot permanently delete category '{$category->name}' because it is used in {$jobListingsCount} job listing(s).");
-        }
+        $this->checkRateLimit('category_force_delete', $user->id);
 
         try {
+            $category = JobCategory::onlyTrashed()->findOrFail($id);
+
+            $jobListingsCount = $category->jobListings()->count();
+            if ($jobListingsCount > 0) {
+                return redirect()->back()->with('error', "Cannot permanently delete category '{$category->name}' because it is used in {$jobListingsCount} job listing(s).");
+            }
+
             $categoryName = $category->name;
             $category->forceDelete();
 
-            Log::info('Category force deleted permanently', [
-                'category_id' => $id,
-                'category_name' => $categoryName,
-                'deleted_by' => Auth::id(),
-            ]);
+            $this->clearCache();
+            RateLimiter::clear($this->getThrottleKey('category_force_delete', $user->id));
+
+            SimpleLogger::cms(
+                "Job category permanently deleted: {$categoryName}",
+                [
+                    'category_id' => $category->id,
+                    'deleted_by' => $user->email,
+                    'ip' => request()->ip(),
+                ]
+            );
 
             return redirect()->back()->with('success', "Category '{$categoryName}' has been permanently deleted.");
         } catch (\Exception $e) {
-            Log::error('Failed to force delete category', [
-                'category_id' => $id,
-                'error' => $e->getMessage(),
-            ]);
-
+            Log::error('Failed to force delete category: ' . $e->getMessage());
             return redirect()->back()->with('error', 'Failed to permanently delete category: ' . $e->getMessage());
         }
     }
 
-    /**
-     * Bulk soft delete categories
-     */
-    public function bulkDelete(Request $request)
+    // ==========================================
+    // BULK OPERATIONS – with rate limiting
+    // ==========================================
+
+    public function bulkDelete(Request $request): RedirectResponse
     {
-        $user = Auth::user();
+        $user = $this->getAuthUser();
 
-        // Check if user is logged in
-        if (!$user instanceof User) {
-            abort(401);
-        }
-
-        // Check permission for bulk delete
         if (!$user->hasPermission('categories.bulk_delete')) {
             return redirect()->back()->with('error', 'You do not have permission to bulk delete categories.');
         }
 
-        $request->validate([
+        $this->checkRateLimit('category_bulk_delete', $user->id);
+
+        $validated = $request->validate([
             'category_ids' => 'required|array',
             'category_ids.*' => 'exists:job_categories,id',
         ]);
 
         $deletedCount = 0;
-        $failedCategories = [];
+        $failed = [];
 
-        foreach ($request->category_ids as $categoryId) {
+        foreach ($validated['category_ids'] as $categoryId) {
             $category = JobCategory::find($categoryId);
-
             if (!$category) {
-                $failedCategories[] = "Category ID {$categoryId} not found";
+                $failed[] = "Category ID {$categoryId} not found";
                 continue;
             }
 
-            // Check if category is used in job listings
-            $jobListingsCount = $category->jobListings()->count();
-            if ($jobListingsCount > 0) {
-                $failedCategories[] = "{$category->name} (used in {$jobListingsCount} job(s))";
+            $jobCount = $category->jobListings()->count();
+            if ($jobCount > 0) {
+                $failed[] = "{$category->name} (used in {$jobCount} job(s))";
                 continue;
             }
 
@@ -406,99 +412,95 @@ class JobCategoryController extends Controller
                 $category->delete();
                 $deletedCount++;
             } catch (\Exception $e) {
-                $failedCategories[] = $category->name;
-                Log::error('Bulk delete failed for category', [
-                    'category_id' => $categoryId,
-                    'error' => $e->getMessage(),
-                ]);
+                $failed[] = $category->name;
+                Log::error('Bulk delete failed for category', ['category_id' => $categoryId, 'error' => $e->getMessage()]);
             }
         }
 
-        if ($deletedCount === 0 && !empty($failedCategories)) {
-            return redirect()->back()->with('error', 'Cannot delete categories: ' . implode(', ', $failedCategories));
-        }
+        $this->clearCache();
+        RateLimiter::clear($this->getThrottleKey('category_bulk_delete', $user->id));
 
         $message = "{$deletedCount} category(ies) moved to trash successfully.";
-        if (!empty($failedCategories)) {
-            $message .= " Failed: " . implode(', ', $failedCategories);
+        if (!empty($failed)) {
+            $message .= " Failed: " . implode(', ', $failed);
         }
 
-        $status = $deletedCount > 0 ? 'success' : 'error';
-        return redirect()->back()->with($status, $message);
+        SimpleLogger::cms(
+            "Bulk delete categories",
+            [
+                'deleted_count' => $deletedCount,
+                'failed' => $failed,
+                'performed_by' => $user->email,
+                'ip' => $request->ip(),
+            ]
+        );
+
+        return redirect()->back()->with($deletedCount > 0 ? 'success' : 'error', $message);
     }
 
-    /**
-     * Bulk restore soft-deleted categories
-     */
-    public function bulkRestore(Request $request)
+    public function bulkRestore(Request $request): RedirectResponse
     {
-        $user = Auth::user();
+        $user = $this->getAuthUser();
 
-        // Check if user is logged in
-        if (!$user instanceof User) {
-            abort(401);
-        }
-
-        // Check permission for bulk restore
         if (!$user->hasPermission('categories.bulk_restore')) {
             return redirect()->back()->with('error', 'You do not have permission to bulk restore categories.');
         }
 
-        $request->validate([
+        $this->checkRateLimit('category_bulk_restore', $user->id);
+
+        $validated = $request->validate([
             'category_ids' => 'required|array',
             'category_ids.*' => 'exists:job_categories,id',
         ]);
 
         $restoredCount = JobCategory::onlyTrashed()
-            ->whereIn('id', $request->category_ids)
+            ->whereIn('id', $validated['category_ids'])
             ->restore();
 
-        Log::info('Bulk categories restored', [
-            'count' => $restoredCount,
-            'category_ids' => $request->category_ids,
-            'restored_by' => Auth::id(),
-        ]);
+        $this->clearCache();
+        RateLimiter::clear($this->getThrottleKey('category_bulk_restore', $user->id));
+
+        SimpleLogger::cms(
+            "Bulk restore categories",
+            [
+                'restored_count' => $restoredCount,
+                'category_ids' => $validated['category_ids'],
+                'performed_by' => $user->email,
+                'ip' => $request->ip(),
+            ]
+        );
 
         return redirect()->back()->with('success', "{$restoredCount} category(ies) restored successfully.");
     }
 
-    /**
-     * Bulk force delete categories
-     */
-    public function bulkForceDelete(Request $request)
+    public function bulkForceDelete(Request $request): RedirectResponse
     {
-        $user = Auth::user();
+        $user = $this->getAuthUser();
 
-        // Check if user is logged in
-        if (!$user instanceof User) {
-            abort(401);
-        }
-
-        // Check permission for bulk force delete
         if (!$user->hasPermission('categories.bulk_force_delete')) {
             return redirect()->back()->with('error', 'You do not have permission to permanently delete categories.');
         }
 
-        $request->validate([
+        $this->checkRateLimit('category_bulk_force_delete', $user->id);
+
+        $validated = $request->validate([
             'category_ids' => 'required|array',
             'category_ids.*' => 'exists:job_categories,id',
         ]);
 
         $deletedCount = 0;
-        $failedCategories = [];
+        $failed = [];
 
-        foreach ($request->category_ids as $categoryId) {
+        foreach ($validated['category_ids'] as $categoryId) {
             $category = JobCategory::onlyTrashed()->find($categoryId);
-
             if (!$category) {
-                $failedCategories[] = "Category ID {$categoryId} not found or not in trash";
+                $failed[] = "Category ID {$categoryId} not found or not in trash";
                 continue;
             }
 
-            // Check if category has related job listings
-            $jobListingsCount = $category->jobListings()->count();
-            if ($jobListingsCount > 0) {
-                $failedCategories[] = "{$category->name} (used in {$jobListingsCount} job(s))";
+            $jobCount = $category->jobListings()->count();
+            if ($jobCount > 0) {
+                $failed[] = "{$category->name} (used in {$jobCount} job(s))";
                 continue;
             }
 
@@ -506,111 +508,110 @@ class JobCategoryController extends Controller
                 $category->forceDelete();
                 $deletedCount++;
             } catch (\Exception $e) {
-                $failedCategories[] = $category->name;
-                Log::error('Bulk force delete failed for category', [
-                    'category_id' => $categoryId,
-                    'error' => $e->getMessage(),
-                ]);
+                $failed[] = $category->name;
+                Log::error('Bulk force delete failed for category', ['category_id' => $categoryId, 'error' => $e->getMessage()]);
             }
         }
 
-        if ($deletedCount === 0 && !empty($failedCategories)) {
-            return redirect()->back()->with('error', 'Cannot permanently delete categories: ' . implode(', ', $failedCategories));
-        }
+        $this->clearCache();
+        RateLimiter::clear($this->getThrottleKey('category_bulk_force_delete', $user->id));
 
         $message = "{$deletedCount} category(ies) permanently deleted.";
-        if (!empty($failedCategories)) {
-            $message .= " Failed: " . implode(', ', $failedCategories);
+        if (!empty($failed)) {
+            $message .= " Failed: " . implode(', ', $failed);
         }
 
-        $status = $deletedCount > 0 ? 'success' : 'error';
-        return redirect()->back()->with($status, $message);
+        SimpleLogger::cms(
+            "Bulk force delete categories",
+            [
+                'deleted_count' => $deletedCount,
+                'failed' => $failed,
+                'performed_by' => $user->email,
+                'ip' => $request->ip(),
+            ]
+        );
+
+        return redirect()->back()->with($deletedCount > 0 ? 'success' : 'error', $message);
     }
 
-    /**
-     * Bulk activate categories
-     */
-    public function bulkActivate(Request $request)
+    public function bulkActivate(Request $request): RedirectResponse
     {
-        $user = Auth::user();
+        $user = $this->getAuthUser();
 
-        // Check if user is logged in
-        if (!$user instanceof User) {
-            abort(401);
-        }
-
-        // Check permission for bulk activate
         if (!$user->hasPermission('categories.bulk_activate')) {
             return redirect()->back()->with('error', 'You do not have permission to bulk activate categories.');
         }
 
-        $request->validate([
+        $this->checkRateLimit('category_bulk_activate', $user->id);
+
+        $validated = $request->validate([
             'category_ids' => 'required|array',
             'category_ids.*' => 'exists:job_categories,id',
         ]);
 
-        $updatedCount = JobCategory::whereIn('id', $request->category_ids)
+        $updatedCount = JobCategory::whereIn('id', $validated['category_ids'])
             ->whereNull('deleted_at')
             ->update(['is_active' => true]);
 
-        Log::info('Bulk categories activated', [
-            'count' => $updatedCount,
-            'category_ids' => $request->category_ids,
-            'updated_by' => Auth::id(),
-        ]);
+        $this->clearCache();
+        RateLimiter::clear($this->getThrottleKey('category_bulk_activate', $user->id));
+
+        SimpleLogger::cms(
+            "Bulk activate categories",
+            [
+                'activated_count' => $updatedCount,
+                'category_ids' => $validated['category_ids'],
+                'performed_by' => $user->email,
+                'ip' => $request->ip(),
+            ]
+        );
 
         return redirect()->back()->with('success', "{$updatedCount} category(ies) activated successfully.");
     }
 
-    /**
-     * Bulk deactivate categories
-     */
-    public function bulkDeactivate(Request $request)
+    public function bulkDeactivate(Request $request): RedirectResponse
     {
-        $user = Auth::user();
+        $user = $this->getAuthUser();
 
-        // Check if user is logged in
-        if (!$user instanceof User) {
-            abort(401);
-        }
-
-        // Check permission for bulk deactivate
         if (!$user->hasPermission('categories.bulk_deactivate')) {
             return redirect()->back()->with('error', 'You do not have permission to bulk deactivate categories.');
         }
 
-        $request->validate([
+        $this->checkRateLimit('category_bulk_deactivate', $user->id);
+
+        $validated = $request->validate([
             'category_ids' => 'required|array',
             'category_ids.*' => 'exists:job_categories,id',
         ]);
 
-        $updatedCount = JobCategory::whereIn('id', $request->category_ids)
+        $updatedCount = JobCategory::whereIn('id', $validated['category_ids'])
             ->whereNull('deleted_at')
             ->update(['is_active' => false]);
 
-        Log::info('Bulk categories deactivated', [
-            'count' => $updatedCount,
-            'category_ids' => $request->category_ids,
-            'updated_by' => Auth::id(),
-        ]);
+        $this->clearCache();
+        RateLimiter::clear($this->getThrottleKey('category_bulk_deactivate', $user->id));
+
+        SimpleLogger::cms(
+            "Bulk deactivate categories",
+            [
+                'deactivated_count' => $updatedCount,
+                'category_ids' => $validated['category_ids'],
+                'performed_by' => $user->email,
+                'ip' => $request->ip(),
+            ]
+        );
 
         return redirect()->back()->with('success', "{$updatedCount} category(ies) deactivated successfully.");
     }
 
     /**
-     * Get active categories (for dropdowns, etc.)
+     * Get active categories for dropdowns.
      */
-    public function getActiveCategories()
+    public function getActiveCategories(): JsonResponse
     {
-        // Public AJAX endpoint - check if user is authenticated at least
-        $user = Auth::user();
+        $user = $this->getAuthUser();
 
-        // Check if user is logged in
-        if (!$user instanceof User) {
-            abort(401);
-        }
-
-        if (!$user || !$user->hasPermission('categories.get_active')) {
+        if (!$user->hasPermission('categories.get_active')) {
             return response()->json(['error' => 'Unauthorized'], 403);
         }
 
@@ -619,5 +620,73 @@ class JobCategoryController extends Controller
             ->get(['id', 'name', 'slug']);
 
         return response()->json($categories);
+    }
+
+    // ==========================================
+    // PRIVATE HELPER METHODS
+    // ==========================================
+
+    /**
+     * Get the authenticated user.
+     */
+    private function getAuthUser(): User
+    {
+        $user = Auth::user();
+        if (!$user instanceof User) {
+            abort(401, 'Unauthenticated');
+        }
+        return $user;
+    }
+
+    /**
+     * Check rate limit for admin actions.
+     */
+    private function checkRateLimit(string $action, int $userId, int $maxAttempts = 10, int $decaySeconds = 3600): void
+    {
+        $key = $this->getThrottleKey($action, $userId);
+        if (RateLimiter::tooManyAttempts($key, $maxAttempts)) {
+            Log::warning("Rate limit exceeded for {$action}", ['user_id' => $userId]);
+            throw ValidationException::withMessages([
+                'rate_limit' => 'Too many attempts. Please wait a moment.',
+            ]);
+        }
+        RateLimiter::hit($key, $decaySeconds);
+    }
+
+    /**
+     * Get throttle key.
+     */
+    private function getThrottleKey(string $action, int $userId): string
+    {
+        return "category_{$action}|{$userId}";
+    }
+
+    /**
+     * Clear category cache keys.
+     */
+    private function clearCache(): void
+    {
+        Cache::forget('job_categories_index_*');
+        Cache::forget('job_categories_active');
+    }
+
+    /**
+     * Generate a unique slug.
+     */
+    private function generateUniqueSlug(string $name, ?int $excludeId = null): string
+    {
+        $slug = Str::slug($name);
+        $originalSlug = $slug;
+        $counter = 1;
+
+        while (JobCategory::where('slug', $slug)
+            ->when($excludeId, fn($q) => $q->where('id', '!=', $excludeId))
+            ->exists()
+        ) {
+            $slug = $originalSlug . '-' . $counter;
+            $counter++;
+        }
+
+        return $slug;
     }
 }

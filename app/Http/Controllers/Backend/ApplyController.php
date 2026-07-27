@@ -2,64 +2,50 @@
 
 namespace App\Http\Controllers\Backend;
 
-// Inertia
-use Inertia\Inertia;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\Controller;
-
-// Models
-use App\Models\JobListing;
 use App\Models\Application;
 use App\Models\ApplicantCv;
 use App\Models\ApplicantProfile;
+use App\Models\JobListing;
 use App\Models\User;
-// ATS Components
 use App\Services\ATSService;
+use App\Services\SimpleLogger;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
+use Inertia\Inertia;
+use Inertia\Response;
+use Throwable;
 
 class ApplyController extends Controller
 {
-    protected AtsService $atsService;
+    protected ATSService $atsService;
 
     public function __construct(ATSService $atsService)
     {
         $this->atsService = $atsService;
     }
 
-
     /**
-     * List all applications for the authenticated user (including soft-deleted)
+     * List all applications for the authenticated user.
      */
-    public function index(Request $request)
+    public function index(Request $request): Response
     {
-        $user = Auth::user();
+        $user = $this->getAuthUser();
 
-        // Get all applications (active and soft-deleted) with pagination
         $applications = Application::withTrashed()
             ->where('user_id', $user->id)
             ->with(['jobListing', 'jobListing.employer'])
             ->orderBy('created_at', 'desc')
             ->paginate(10)
             ->through(function ($application) {
-                // Extract ATS score percentage correctly
-                $atsPercentage = null;
-                if ($application->ats_score) {
-                    if (is_array($application->ats_score)) {
-                        $atsPercentage = $application->ats_score['percentage'] ?? null;
-                    } elseif (is_string($application->ats_score)) {
-                        $atsData = json_decode($application->ats_score, true);
-                        $atsPercentage = $atsData['percentage'] ?? null;
-                    }
-                }
-
-                // Also try the accessor method
-                if (!$atsPercentage) {
-                    $atsPercentage = $application->getAtsScorePercentageAttribute();
-                }
-
+                $atsPercentage = $this->extractAtsPercentage($application);
                 return [
                     'id' => $application->id,
                     'job_title' => $application->jobListing->title,
@@ -75,7 +61,6 @@ class ApplyController extends Controller
                 ];
             });
 
-        // Calculate stats
         $stats = [
             'total' => Application::where('user_id', $user->id)->whereNull('deleted_at')->count(),
             'total_deleted' => Application::onlyTrashed()->where('user_id', $user->id)->count(),
@@ -97,11 +82,11 @@ class ApplyController extends Controller
     }
 
     /**
-     * Show the application form for a specific job
+     * Show the application form for a specific job.
      */
-    public function create(string $slug)
+    public function create(string $slug): Response|RedirectResponse
     {
-        $user = Auth::user();
+        $user = $this->getAuthUser();
 
         $jobListing = JobListing::where('slug', $slug)
             ->where('is_active', true)
@@ -109,10 +94,8 @@ class ApplyController extends Controller
             ->where('application_deadline', '>=', now())
             ->firstOrFail();
 
-        // Get or create applicant profile
         $applicantProfile = $user->applicantProfile;
 
-        // If no profile exists, create a basic one
         if (!$applicantProfile) {
             $applicantProfile = ApplicantProfile::create([
                 'user_id' => $user->id,
@@ -121,23 +104,19 @@ class ApplyController extends Controller
             ]);
         }
 
-        // Get user's CVs
         $cvs = ApplicantCv::where('applicant_profile_id', $applicantProfile->id)
             ->where('status', 'active')
             ->orderBy('is_primary', 'desc')
             ->orderBy('order_position')
             ->get()
-            ->map(function ($cv) {
-                return [
-                    'id' => $cv->id,
-                    'original_name' => $cv->original_name,
-                    'url' => $cv->url,
-                    'is_primary' => $cv->is_primary,
-                    'order_position' => $cv->order_position,
-                ];
-            });
+            ->map(fn($cv) => [
+                'id' => $cv->id,
+                'original_name' => $cv->original_name,
+                'url' => $cv->url,
+                'is_primary' => $cv->is_primary,
+                'order_position' => $cv->order_position,
+            ]);
 
-        // Check if user has already applied (including soft deleted)
         $existingApplication = Application::withTrashed()
             ->where('user_id', $user->id)
             ->where('job_listing_id', $jobListing->id)
@@ -148,7 +127,6 @@ class ApplyController extends Controller
                 ->with('error', 'You have already applied for this position.');
         }
 
-        // If soft-deleted application exists, we'll handle it during store
         $hasSoftDeleted = $existingApplication && $existingApplication->trashed();
 
         return Inertia::render('Backend/Apply/Create', [
@@ -182,11 +160,13 @@ class ApplyController extends Controller
     }
 
     /**
-     * Store a new application
+     * Store a new application – with rate limiting.
      */
-    public function store(Request $request, string $slug)
+    public function store(Request $request, string $slug): RedirectResponse
     {
-        $user = Auth::user();
+        $user = $this->getAuthUser();
+
+        $this->checkRateLimit('apply_store', $user->id);
 
         $jobListing = JobListing::where('slug', $slug)
             ->where('is_active', true)
@@ -194,41 +174,33 @@ class ApplyController extends Controller
             ->where('application_deadline', '>=', now())
             ->firstOrFail();
 
-        // Check for existing application (including soft deleted)
         $existingApplication = Application::withTrashed()
             ->where('user_id', $user->id)
             ->where('job_listing_id', $jobListing->id)
             ->first();
 
-        // Handle soft-deleted application - permanently remove it
         if ($existingApplication && $existingApplication->trashed()) {
             try {
-                // Delete associated resume file if exists
                 if ($existingApplication->resume_path && Storage::disk('public')->exists($existingApplication->resume_path)) {
                     Storage::disk('public')->delete($existingApplication->resume_path);
                 }
-
-                // Force delete the soft-deleted application
                 $existingApplication->forceDelete();
-
                 Log::info('Soft-deleted application removed for reapplication', [
                     'application_id' => $existingApplication->id,
                     'user_id' => $user->id,
-                    'job_listing_id' => $jobListing->id
+                    'job_listing_id' => $jobListing->id,
                 ]);
             } catch (\Exception $e) {
                 Log::error('Failed to remove soft-deleted application', [
                     'application_id' => $existingApplication->id,
-                    'error' => $e->getMessage()
+                    'error' => $e->getMessage(),
                 ]);
                 return redirect()->back()->with('error', 'Unable to process your application. Please contact support.');
             }
         } elseif ($existingApplication) {
-            // Active application exists
             return redirect()->back()->with('error', 'You have already applied for this position.');
         }
 
-        // Validate based on job requirements
         $rules = [
             'cv_id' => 'required|exists:applicant_cvs,id',
             'name' => 'required|string|max:255',
@@ -238,23 +210,18 @@ class ApplyController extends Controller
             'cover_letter' => 'nullable|string',
         ];
 
-        // Add social link requirements if needed
         if ($jobListing->required_linkedin_link) {
             $rules['linkedin_link'] = 'required|url|max:255';
         }
-
         if ($jobListing->required_facebook_link) {
             $rules['facebook_link'] = 'required|url|max:255';
         }
 
         $validated = $request->validate($rules);
 
-        // Get the CV
         $cv = ApplicantCv::findOrFail($validated['cv_id']);
 
-        // Get applicant profile
         $applicantProfile = $user->applicantProfile;
-
         if (!$applicantProfile) {
             $applicantProfile = ApplicantProfile::create([
                 'user_id' => $user->id,
@@ -263,13 +230,11 @@ class ApplyController extends Controller
                 'phone' => $validated['phone'] ?? null,
             ]);
         } else {
-            // Update profile with latest info
             $applicantProfile->update([
                 'phone' => $validated['phone'] ?? $applicantProfile->phone,
             ]);
         }
 
-        // Create the application
         try {
             $application = Application::create([
                 'user_id' => $user->id,
@@ -287,7 +252,6 @@ class ApplyController extends Controller
                 'ats_attempt_count' => 0,
             ]);
         } catch (\Illuminate\Database\QueryException $e) {
-            // Handle duplicate entry constraint violation
             if ($e->getCode() === '23000' && str_contains($e->getMessage(), 'applications_job_listing_id_user_id_unique')) {
                 Log::warning('Duplicate application detected during creation', [
                     'user_id' => $user->id,
@@ -295,15 +259,15 @@ class ApplyController extends Controller
                 ]);
                 return redirect()->back()->with('error', 'You have already applied for this job. Your application is being processed.');
             }
-
             Log::error('Database error during application creation', [
                 'user_id' => $user->id,
                 'job_listing_id' => $jobListing->id,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
-
             return redirect()->back()->with('error', 'Unable to submit application due to a system error. Please try again later.');
         }
+
+        RateLimiter::clear($this->getThrottleKey('apply_store', $user->id));
 
         Log::info('New application submitted', [
             'application_id' => $application->id,
@@ -311,138 +275,62 @@ class ApplyController extends Controller
             'user_id' => $user->id,
         ]);
 
-        // Calculate ATS score immediately (no queue)
+        SimpleLogger::applications(
+            "New application submitted: {$application->name} for {$jobListing->title}",
+            [
+                'application_id' => $application->id,
+                'job_title' => $jobListing->title,
+                'applicant_email' => $application->email,
+                'user_id' => $user->id,
+                'ip' => $request->ip(),
+            ]
+        );
+
         $atsCalculated = $this->calculateAtsInline($application);
 
         $message = 'Application submitted successfully!';
-        if ($atsCalculated) {
-            $message .= ' Your ATS score was calculated.';
-        } else {
-            $message .= ' ATS score calculation failed. You can retry from the application page.';
-        }
+        $message .= $atsCalculated ? ' Your ATS score was calculated.' : ' ATS score calculation failed. You can retry from the application page.';
 
         return redirect()->route('backend.apply.show', $application->id)
             ->with('success', $message);
     }
 
     /**
-     * Calculate ATS score inline (synchronously)
+     * Show a specific application.
      */
-    private function calculateAtsInline(Application $application): bool
+    public function show(int $id): Response
     {
-        try {
-            $application->load('jobListing');
-
-            if (!$application->jobListing) {
-                throw new \Exception('Job listing not found for ATS calculation');
-            }
-
-            $application->update(['ats_calculation_status' => Application::ATS_PROCESSING]);
-
-            $result = $this->atsService->calculateScore($application, $application->jobListing);
-
-            $application->update([
-                'ats_score' => $result,
-                'matched_keywords' => $result['matched_keywords'] ?? [],
-                'missing_keywords' => $result['missing_keywords'] ?? [],
-                'ats_calculation_status' => Application::ATS_COMPLETED,
-                'ats_last_attempted_at' => now(),
-                'ats_attempt_count' => ($application->ats_attempt_count ?? 0) + 1,
-            ]);
-
-            Log::info('ATS calculated inline successfully', [
-                'application_id' => $application->id,
-                'percentage' => $result['percentage'] ?? 0
-            ]);
-
-            return true;
-        } catch (\Throwable $e) {
-            Log::error('ATS calculation failed inline: ' . $e->getMessage(), [
-                'application_id' => $application->id
-            ]);
-
-            $this->markAtsFailed($application, $e->getMessage());
-            return false;
-        }
-    }
-
-    /**
-     * Mark ATS calculation as failed
-     */
-    private function markAtsFailed(Application $application, string $errorMessage): void
-    {
-        $application->update([
-            'ats_calculation_status' => Application::ATS_FAILED,
-            'ats_score' => [
-                'percentage' => 0,
-                'error' => $errorMessage,
-                'status' => 'failed',
-                'analysis' => [
-                    'level' => 'Error',
-                    'message' => 'We are having trouble calculating the ATS score. Please try recalculating later.',
-                    'color' => 'red',
-                    'matched_count' => 0,
-                    'missing_count' => 0,
-                    'top_matched' => [],
-                    'top_missing' => [],
-                    'suggestions' => [
-                        'Our system encountered an error while calculating your ATS score.',
-                        'Please try uploading a different resume format (PDF, DOC, or DOCX).',
-                        'Contact support if the issue persists.'
-                    ]
-                ]
-            ],
-            'ats_last_attempted_at' => now(),
-        ]);
-    }
-
-    /**
-     * Show a specific application (including soft-deleted ones)
-     */
-    public function show(int $id)
-    {
-        $user = Auth::user();
+        $user = $this->getAuthUser();
 
         $application = Application::withTrashed()
             ->with(['jobListing', 'jobListing.employer', 'applicantProfile'])
             ->where('user_id', Auth::id())
             ->findOrFail($id);
 
-        // Check if application is soft deleted
         $isDeleted = $application->trashed();
 
-        // Get the CV URL
         $cvUrl = null;
         if ($application->resume_path) {
             $cvUrl = asset('storage/' . $application->resume_path);
         }
 
-        // Get status timeline
         $statusTimeline = $application->statusTimelines()
             ->orderBy('created_at', 'desc')
             ->get()
-            ->map(function ($timeline) {
-                return [
-                    'status' => $timeline->status,
-                    'notes' => $timeline->notes,
-                    'created_at' => $timeline->created_at,
-                ];
-            });
+            ->map(fn($timeline) => [
+                'status' => $timeline->status,
+                'notes' => $timeline->notes,
+                'created_at' => $timeline->created_at,
+            ]);
 
-        // Get ATS score percentage
         $atsPercentage = $application->getAtsScorePercentageAttribute();
-
-        // Get ATS score details if available
         $atsDetails = $this->formatAtsDetails($application);
-
-        // Get ATS calculation status for UI
         $atsStatus = [
             'status' => $application->ats_calculation_status,
             'can_recalculate' => $this->canRecalculateAts($application),
             'is_stuck' => $application->isAtsCalculationStuck(),
         ];
 
-        // Add deleted_at to response
         $applicationData = [
             'id' => $application->id,
             'name' => $application->name,
@@ -460,8 +348,6 @@ class ApplyController extends Controller
             'ats_score' => $atsPercentage,
             'ats_calculation_status' => $application->ats_calculation_status,
         ];
-
-        // Add deleted_at if soft deleted
         if ($isDeleted) {
             $applicationData['deleted_at'] = $application->deleted_at;
         }
@@ -496,128 +382,23 @@ class ApplyController extends Controller
     }
 
     /**
-     * Format ATS details for frontend display
+     * Show form to edit an application (only if pending).
      */
-    private function formatAtsDetails(?Application $application): ?array
+    public function edit(int $id): Response|RedirectResponse
     {
-        if (!$application || !$application->isAtsCompleted() || !$application->ats_score) {
-            return null;
-        }
-
-        $atsScore = $application->ats_score;
-
-        return [
-            'percentage' => $atsScore['percentage'] ?? 0,
-            'matched_keywords' => $application->matched_keywords ?? ($atsScore['matched_keywords'] ?? []),
-            'missing_keywords' => $application->missing_keywords ?? ($atsScore['missing_keywords'] ?? []),
-            'matched_count' => $atsScore['matched_count'] ?? count($application->matched_keywords ?? []),
-            'total_keywords' => $atsScore['total_keywords'] ?? 0,
-            'extracted_skills' => $atsScore['extracted_skills'] ?? [],
-            'extracted_experience_years' => $atsScore['extracted_experience_years'] ?? 0,
-            'extracted_education' => $atsScore['extracted_education'] ?? 'Not specified',
-            'analysis' => $atsScore['analysis'] ?? [
-                'level' => 'N/A',
-                'message' => 'Analysis not available',
-                'color' => 'gray',
-                'suggestions' => []
-            ],
-            'calculated_at' => $atsScore['calculated_at'] ?? null,
-        ];
-    }
-
-    /**
-     * Check if ATS can be recalculated
-     */
-    private function canRecalculateAts(Application $application): bool
-    {
-        // Cannot recalculate if status is processing and not stuck
-        if ($application->ats_calculation_status === Application::ATS_PROCESSING) {
-            return $application->isAtsCalculationStuck();
-        }
-
-        // Can recalculate if completed (to refresh) or failed
-        return in_array($application->ats_calculation_status, [
-            Application::ATS_COMPLETED,
-            Application::ATS_FAILED
-        ]);
-    }
-
-    /**
-     * Recalculate ATS score for an application
-     */
-    public function recalculateAts(int $id)
-    {
-        $user = Auth::user();
-
-        $application = Application::where('user_id', Auth::id())
-            ->findOrFail($id);
-
-        // Check if recalculation is allowed
-        if (!$this->canRecalculateAts($application)) {
-            return response()->json([
-                'success' => false,
-                'error' => 'ATS calculation is already in progress. Please wait.'
-            ], 422);
-        }
-
-        try {
-            Log::info('ATS recalculation requested (inline)', [
-                'application_id' => $application->id
-            ]);
-
-            $inlineSuccess = $this->calculateAtsInline($application);
-
-            if ($inlineSuccess) {
-                $message = 'ATS score recalculated successfully!';
-            } else {
-                $message = 'ATS score recalculation encountered an error. Please try again later.';
-            }
-
-            if (request()->wantsJson()) {
-                return response()->json([
-                    'success' => true,
-                    'message' => $message
-                ]);
-            }
-
-            return redirect()->back()->with('success', $message);
-        } catch (\Exception $e) {
-            Log::error('Failed to queue ATS recalculation: ' . $e->getMessage(), [
-                'application_id' => $application->id
-            ]);
-
-            if (request()->wantsJson()) {
-                return response()->json([
-                    'success' => false,
-                    'error' => 'Failed to queue recalculation: ' . $e->getMessage()
-                ], 500);
-            }
-
-            return redirect()->back()->with('error', 'Failed to queue recalculation.');
-        }
-    }
-
-    /**
-     * Show form to edit an application (only if pending)
-     */
-    public function edit(int $id)
-    {
-        $user = Auth::user();
+        $user = $this->getAuthUser();
 
         $application = Application::with(['jobListing', 'applicantProfile'])
             ->where('user_id', Auth::id())
             ->findOrFail($id);
 
-        // Only allow editing if status is pending
         if ($application->status !== Application::STATUS_PENDING) {
             return redirect()->route('backend.apply.show', $application->id)
                 ->with('error', 'You cannot edit this application as it has already been reviewed.');
         }
 
         $applicantProfile = $application->applicantProfile ?? $user->applicantProfile;
-
-        // Get user's CVs
-        $cvs = [];
+        $cvs = collect();
         $currentCvId = null;
 
         if ($applicantProfile) {
@@ -626,17 +407,14 @@ class ApplyController extends Controller
                 ->orderBy('is_primary', 'desc')
                 ->orderBy('order_position')
                 ->get()
-                ->map(function ($cv) {
-                    return [
-                        'id' => $cv->id,
-                        'original_name' => $cv->original_name,
-                        'url' => $cv->url,
-                        'is_primary' => $cv->is_primary,
-                        'order_position' => $cv->order_position,
-                    ];
-                });
+                ->map(fn($cv) => [
+                    'id' => $cv->id,
+                    'original_name' => $cv->original_name,
+                    'url' => $cv->url,
+                    'is_primary' => $cv->is_primary,
+                    'order_position' => $cv->order_position,
+                ]);
 
-            // Find the CV that matches the current application's resume_path
             foreach ($cvs as $cv) {
                 $cvPath = $cv['url'] ? str_replace(asset('storage/'), '', $cv['url']) : '';
                 if ($cvPath === $application->resume_path) {
@@ -644,15 +422,12 @@ class ApplyController extends Controller
                     break;
                 }
             }
-
-            // If no match found by path, try to find by primary or first
             if (!$currentCvId && $cvs->isNotEmpty()) {
                 $primaryCv = $cvs->firstWhere('is_primary', true);
                 $currentCvId = $primaryCv ? $primaryCv['id'] : $cvs->first()['id'];
             }
         }
 
-        // Get ATS score percentage
         $atsPercentage = $application->getAtsScorePercentageAttribute();
 
         return Inertia::render('Backend/Apply/Edit', [
@@ -692,16 +467,17 @@ class ApplyController extends Controller
     }
 
     /**
-     * Update an existing application
+     * Update an existing application – with rate limiting.
      */
-    public function update(Request $request, int $id)
+    public function update(Request $request, int $id): RedirectResponse
     {
-        $user = Auth::user();
+        $user = $this->getAuthUser();
+
+        $this->checkRateLimit('apply_update', $user->id);
 
         $application = Application::where('user_id', Auth::id())
             ->findOrFail($id);
 
-        // Only allow updating if status is pending
         if ($application->status !== Application::STATUS_PENDING) {
             return redirect()->route('backend.apply.show', $application->id)
                 ->with('error', 'You cannot edit this application as it has already been reviewed.');
@@ -709,7 +485,6 @@ class ApplyController extends Controller
 
         $jobListing = $application->jobListing;
 
-        // Validation rules
         $rules = [
             'name' => 'required|string|max:255',
             'email' => 'required|email|max:255',
@@ -721,20 +496,15 @@ class ApplyController extends Controller
         if ($jobListing->required_linkedin_link) {
             $rules['linkedin_link'] = 'nullable|url|max:255';
         }
-
         if ($jobListing->required_facebook_link) {
             $rules['facebook_link'] = 'nullable|url|max:255';
         }
 
         $validated = $request->validate($rules);
 
-        // Get the CV
         $cv = ApplicantCv::findOrFail($validated['cv_id']);
-
-        // Check if resume has changed
         $resumeChanged = $application->resume_path !== $cv->cv_path;
 
-        // Update the application
         $application->update([
             'name' => $validated['name'],
             'email' => $validated['email'],
@@ -745,14 +515,12 @@ class ApplyController extends Controller
             'facebook_link' => $validated['facebook_link'] ?? null,
         ]);
 
-        // Update applicant profile with latest info
         if ($application->applicantProfile) {
             $application->applicantProfile->update([
                 'phone' => $validated['phone'] ?? $application->applicantProfile->phone,
             ]);
         }
 
-        // Reset ATS calculation status if resume changed
         if ($resumeChanged) {
             $application->update([
                 'ats_calculation_status' => Application::ATS_PENDING,
@@ -761,33 +529,45 @@ class ApplyController extends Controller
                 'missing_keywords' => null,
                 'ats_attempt_count' => 0,
             ]);
-
-            // Recalculate ATS score with new resume
             $this->calculateAtsInline($application);
 
             Log::info('ATS recalculated after resume change', [
                 'application_id' => $application->id,
                 'old_resume' => $application->getOriginal('resume_path'),
-                'new_resume' => $cv->cv_path
+                'new_resume' => $cv->cv_path,
             ]);
         }
+
+        RateLimiter::clear($this->getThrottleKey('apply_update', $user->id));
 
         Log::info('Application updated', [
             'application_id' => $application->id,
             'user_id' => Auth::id(),
-            'resume_changed' => $resumeChanged
+            'resume_changed' => $resumeChanged,
         ]);
+
+        SimpleLogger::applications(
+            "Application updated: #{$application->id} - {$application->name}",
+            [
+                'application_id' => $application->id,
+                'job_title' => $jobListing->title,
+                'applicant_email' => $application->email,
+                'resume_changed' => $resumeChanged,
+                'updated_by' => $user->email,
+                'ip' => $request->ip(),
+            ]
+        );
 
         return redirect()->route('backend.apply.show', $application->id)
             ->with('success', 'Application updated successfully!' . ($resumeChanged ? ' ATS score has been recalculated.' : ''));
     }
 
     /**
-     * Get ATS status for an application (AJAX endpoint)
+     * Get ATS status for an application (AJAX).
      */
-    public function getAtsStatus(int $id)
+    public function getAtsStatus(int $id): JsonResponse
     {
-        $user = Auth::user();
+        $user = $this->getAuthUser();
 
         $application = Application::where('user_id', Auth::id())
             ->findOrFail($id);
@@ -801,55 +581,124 @@ class ApplyController extends Controller
     }
 
     /**
-     * Withdraw/Cancel an application (Soft Delete) - Clear resume_path
+     * Recalculate ATS score – with rate limiting.
      */
-    public function destroy(int $id)
+    public function recalculateAts(int $id): JsonResponse|RedirectResponse
     {
-        $user = Auth::user();
+        $user = $this->getAuthUser();
+
+        $this->checkRateLimit('apply_recalculate_ats', $user->id);
 
         $application = Application::where('user_id', Auth::id())
             ->findOrFail($id);
 
-        // Only allow withdrawal if status is pending
+        if (!$this->canRecalculateAts($application)) {
+            if (request()->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'ATS calculation is already in progress. Please wait.',
+                ], 422);
+            }
+            return redirect()->back()->with('error', 'ATS calculation is already in progress. Please wait.');
+        }
+
+        try {
+            $success = $this->calculateAtsInline($application);
+            RateLimiter::clear($this->getThrottleKey('apply_recalculate_ats', $user->id));
+
+            $message = $success ? 'ATS score recalculated successfully!' : 'ATS score recalculation encountered an error. Please try again later.';
+
+            SimpleLogger::applications(
+                "ATS recalculated for application #{$application->id}",
+                [
+                    'application_id' => $application->id,
+                    'applicant_name' => $application->name,
+                    'job_title' => $application->jobListing?->title ?? 'N/A',
+                    'new_score' => $application->getAtsScorePercentageAttribute(),
+                    'calculated_by' => $user->email,
+                    'ip' => request()->ip(),
+                ]
+            );
+
+            if (request()->wantsJson()) {
+                return response()->json(['success' => $success, 'message' => $message]);
+            }
+            return redirect()->back()->with($success ? 'success' : 'error', $message);
+        } catch (\Exception $e) {
+            Log::error('Failed to recalculate ATS: ' . $e->getMessage(), [
+                'application_id' => $application->id,
+            ]);
+
+            if (request()->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'Failed to recalculate: ' . $e->getMessage(),
+                ], 500);
+            }
+            return redirect()->back()->with('error', 'Failed to recalculate: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Withdraw (soft delete) an application – with rate limiting.
+     */
+    public function destroy(int $id): RedirectResponse
+    {
+        $user = $this->getAuthUser();
+
+        $this->checkRateLimit('apply_destroy', $user->id);
+
+        $application = Application::where('user_id', Auth::id())
+            ->findOrFail($id);
+
         if ($application->status !== Application::STATUS_PENDING) {
             return redirect()->back()->with('error', 'You cannot withdraw this application as it has already been reviewed.');
         }
 
-        // Clear the resume_path before soft deleting
-        $application->update([
-            'resume_path' => null,
-        ]);
-
-        // Soft delete the application
+        $application->update(['resume_path' => null]);
         $application->delete();
+
+        RateLimiter::clear($this->getThrottleKey('apply_destroy', $user->id));
 
         Log::info('Application withdrawn (soft deleted - resume_path cleared)', [
             'application_id' => $application->id,
             'user_id' => Auth::id(),
         ]);
 
+        SimpleLogger::applications(
+            "Application withdrawn: #{$application->id} - {$application->name}",
+            [
+                'application_id' => $application->id,
+                'job_title' => $application->jobListing?->title ?? 'N/A',
+                'withdrawn_by' => $user->email,
+                'ip' => request()->ip(),
+            ]
+        );
+
         return redirect()->route('backend.apply.index')
             ->with('success', 'Application withdrawn successfully.');
     }
 
     /**
-     * Restore a soft-deleted application
+     * Restore a soft-deleted application – with rate limiting.
      */
-    public function restore(int $id)
+    public function restore(int $id): RedirectResponse
     {
-        $user = Auth::user();
+        $user = $this->getAuthUser();
+
+        $this->checkRateLimit('apply_restore', $user->id);
 
         $application = Application::withTrashed()
             ->where('user_id', Auth::id())
             ->findOrFail($id);
 
-        // Check if application is actually soft deleted
         if (!$application->trashed()) {
             return redirect()->back()->with('error', 'This application is not deleted.');
         }
 
-        // Restore the application
         $application->restore();
+
+        RateLimiter::clear($this->getThrottleKey('apply_restore', $user->id));
 
         Log::info('Application restored', [
             'application_id' => $application->id,
@@ -857,67 +706,85 @@ class ApplyController extends Controller
             'job_listing_id' => $application->job_listing_id,
         ]);
 
+        SimpleLogger::applications(
+            "Application restored: #{$application->id} - {$application->name}",
+            [
+                'application_id' => $application->id,
+                'job_title' => $application->jobListing?->title ?? 'N/A',
+                'restored_by' => $user->email,
+                'ip' => request()->ip(),
+            ]
+        );
+
         return redirect()->route('backend.apply.show', $application->id)
             ->with('success', 'Application restored successfully.');
     }
 
     /**
-     * Permanently delete a soft-deleted application (Force Delete)
+     * Permanently delete a soft-deleted application – with rate limiting.
      */
-    public function forceDelete(int $id)
+    public function forceDelete(int $id): RedirectResponse
     {
-        $user = Auth::user();
+        $user = $this->getAuthUser();
+
+        $this->checkRateLimit('apply_force_delete', $user->id);
 
         $application = Application::withTrashed()
             ->where('user_id', Auth::id())
             ->findOrFail($id);
 
-        // Check if application is actually soft deleted
         if (!$application->trashed()) {
             return redirect()->back()->with('error', 'Please withdraw the application first before permanently deleting.');
         }
 
         try {
-            // Delete associated resume file if exists            
             if ($application->resume_path && Storage::disk('public')->exists($application->resume_path)) {
                 Storage::disk('public')->delete($application->resume_path);
             }
-
-            // Force delete the application
             $application->forceDelete();
+
+            RateLimiter::clear($this->getThrottleKey('apply_force_delete', $user->id));
 
             Log::info('Application force deleted permanently', [
                 'application_id' => $application->id,
                 'user_id' => Auth::id(),
                 'job_listing_id' => $application->job_listing_id,
-                'resume_deleted' => true
+                'resume_deleted' => true,
             ]);
+
+            SimpleLogger::applications(
+                "Application permanently deleted: #{$application->id} - {$application->name}",
+                [
+                    'application_id' => $application->id,
+                    'job_title' => $application->jobListing?->title ?? 'N/A',
+                    'deleted_by' => $user->email,
+                    'ip' => request()->ip(),
+                ]
+            );
 
             return redirect()->route('backend.apply.index')
                 ->with('success', 'Application permanently deleted.');
         } catch (\Exception $e) {
             Log::error('Failed to force delete application', [
                 'application_id' => $application->id,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
-
             return redirect()->back()->with('error', 'Failed to delete application. Please try again.');
         }
     }
 
     /**
-     * List all soft-deleted applications for the authenticated user
+     * List soft-deleted applications.
      */
-    public function trashed(Request $request)
+    public function trashed(Request $request): Response
     {
-        $user = Auth::user();
+        $user = $this->getAuthUser();
 
         $query = Application::onlyTrashed()
             ->where('user_id', $user->id)
             ->with(['jobListing', 'jobListing.employer'])
             ->orderBy('deleted_at', 'desc');
 
-        // Search by job title
         if ($request->filled('search')) {
             $search = $request->search;
             $query->whereHas('jobListing', function ($q) use ($search) {
@@ -926,22 +793,7 @@ class ApplyController extends Controller
         }
 
         $applications = $query->paginate(10)->through(function ($application) {
-            // Extract ATS score percentage correctly
-            $atsPercentage = null;
-            if ($application->ats_score) {
-                if (is_array($application->ats_score)) {
-                    $atsPercentage = $application->ats_score['percentage'] ?? null;
-                } elseif (is_string($application->ats_score)) {
-                    $atsData = json_decode($application->ats_score, true);
-                    $atsPercentage = $atsData['percentage'] ?? null;
-                }
-            }
-
-            // Also try the accessor method
-            if (!$atsPercentage) {
-                $atsPercentage = $application->getAtsScorePercentageAttribute();
-            }
-
+            $atsPercentage = $this->extractAtsPercentage($application);
             return [
                 'id' => $application->id,
                 'job_title' => $application->jobListing->title,
@@ -956,15 +808,193 @@ class ApplyController extends Controller
             ];
         });
 
-        $stats = [
-            'total_deleted' => Application::onlyTrashed()->where('user_id', $user->id)->count(),
-        ];
+        $stats = ['total_deleted' => Application::onlyTrashed()->where('user_id', $user->id)->count()];
 
         return Inertia::render('Backend/Apply/Index', [
             'applications' => $applications,
             'stats' => $stats,
             'filters' => $request->only(['search']),
             'showTrashed' => true,
+        ]);
+    }
+
+    // ==========================================
+    // PRIVATE HELPER METHODS
+    // ==========================================
+
+    /**
+     * Get the authenticated user.
+     */
+    private function getAuthUser(): User
+    {
+        $user = Auth::user();
+        if (!$user instanceof User) {
+            abort(401, 'Unauthenticated');
+        }
+        return $user;
+    }
+
+    /**
+     * Check rate limit for actions.
+     */
+    private function checkRateLimit(string $action, int $userId, int $maxAttempts = 10, int $decaySeconds = 3600): void
+    {
+        $key = $this->getThrottleKey($action, $userId);
+        if (RateLimiter::tooManyAttempts($key, $maxAttempts)) {
+            Log::warning("Rate limit exceeded for {$action}", ['user_id' => $userId]);
+            throw ValidationException::withMessages([
+                'rate_limit' => 'Too many attempts. Please wait a moment.',
+            ]);
+        }
+        RateLimiter::hit($key, $decaySeconds);
+    }
+
+    /**
+     * Get throttle key.
+     */
+    private function getThrottleKey(string $action, int $userId): string
+    {
+        return "apply_{$action}|{$userId}";
+    }
+
+    /**
+     * Extract ATS percentage from application.
+     */
+    private function extractAtsPercentage(Application $application): ?float
+    {
+        $atsPercentage = null;
+
+        /** @var string|array|int|float|null $atsScore */
+        $atsScore = $application->ats_score;
+
+        if (is_array($atsScore)) {
+            $atsPercentage = $atsScore['percentage'] ?? null;
+        } elseif (is_string($atsScore)) {
+            $decoded = json_decode($atsScore, true);
+            if (is_array($decoded)) {
+                $atsPercentage = $decoded['percentage'] ?? null;
+            }
+        } elseif (is_numeric($atsScore)) {
+            $atsPercentage = (float) $atsScore;
+        }
+
+        if ($atsPercentage === null) {
+            $atsPercentage = $application->getAtsScorePercentageAttribute();
+        }
+
+        return $atsPercentage;
+    }
+
+    /**
+     * Calculate ATS score inline (synchronously).
+     */
+    private function calculateAtsInline(Application $application): bool
+    {
+        try {
+            $application->load('jobListing');
+            if (!$application->jobListing) {
+                throw new \Exception('Job listing not found for ATS calculation');
+            }
+
+            $application->update(['ats_calculation_status' => Application::ATS_PROCESSING]);
+
+            $result = $this->atsService->calculateScore($application, $application->jobListing);
+
+            $application->update([
+                'ats_score' => $result,
+                'matched_keywords' => $result['matched_keywords'] ?? [],
+                'missing_keywords' => $result['missing_keywords'] ?? [],
+                'ats_calculation_status' => Application::ATS_COMPLETED,
+                'ats_last_attempted_at' => now(),
+                'ats_attempt_count' => ($application->ats_attempt_count ?? 0) + 1,
+            ]);
+
+            Log::info('ATS calculated inline successfully', [
+                'application_id' => $application->id,
+                'percentage' => $result['percentage'] ?? 0,
+            ]);
+
+            return true;
+        } catch (Throwable $e) {
+            Log::error('ATS calculation failed inline: ' . $e->getMessage(), [
+                'application_id' => $application->id,
+            ]);
+            $this->markAtsFailed($application, $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Mark ATS calculation as failed.
+     */
+    private function markAtsFailed(Application $application, string $errorMessage): void
+    {
+        $application->update([
+            'ats_calculation_status' => Application::ATS_FAILED,
+            'ats_score' => [
+                'percentage' => 0,
+                'error' => $errorMessage,
+                'status' => 'failed',
+                'analysis' => [
+                    'level' => 'Error',
+                    'message' => 'We are having trouble calculating the ATS score. Please try recalculating later.',
+                    'color' => 'red',
+                    'matched_count' => 0,
+                    'missing_count' => 0,
+                    'top_matched' => [],
+                    'top_missing' => [],
+                    'suggestions' => [
+                        'Our system encountered an error while calculating your ATS score.',
+                        'Please try uploading a different resume format (PDF, DOC, or DOCX).',
+                        'Contact support if the issue persists.',
+                    ],
+                ],
+            ],
+            'ats_last_attempted_at' => now(),
+        ]);
+    }
+
+    /**
+     * Format ATS details for frontend.
+     */
+    private function formatAtsDetails(?Application $application): ?array
+    {
+        if (!$application || !$application->isAtsCompleted() || !$application->ats_score) {
+            return null;
+        }
+
+        $atsScore = $application->ats_score;
+
+        return [
+            'percentage' => $atsScore['percentage'] ?? 0,
+            'matched_keywords' => $application->matched_keywords ?? ($atsScore['matched_keywords'] ?? []),
+            'missing_keywords' => $application->missing_keywords ?? ($atsScore['missing_keywords'] ?? []),
+            'matched_count' => $atsScore['matched_count'] ?? count($application->matched_keywords ?? []),
+            'total_keywords' => $atsScore['total_keywords'] ?? 0,
+            'extracted_skills' => $atsScore['extracted_skills'] ?? [],
+            'extracted_experience_years' => $atsScore['extracted_experience_years'] ?? 0,
+            'extracted_education' => $atsScore['extracted_education'] ?? 'Not specified',
+            'analysis' => $atsScore['analysis'] ?? [
+                'level' => 'N/A',
+                'message' => 'Analysis not available',
+                'color' => 'gray',
+                'suggestions' => [],
+            ],
+            'calculated_at' => $atsScore['calculated_at'] ?? null,
+        ];
+    }
+
+    /**
+     * Check if ATS can be recalculated.
+     */
+    private function canRecalculateAts(Application $application): bool
+    {
+        if ($application->ats_calculation_status === Application::ATS_PROCESSING) {
+            return $application->isAtsCalculationStuck();
+        }
+        return in_array($application->ats_calculation_status, [
+            Application::ATS_COMPLETED,
+            Application::ATS_FAILED,
         ]);
     }
 }

@@ -1,148 +1,156 @@
 <?php
-// app/Http/Controllers/Backend/UserController.php
 
 namespace App\Http\Controllers\Backend;
 
 use App\Http\Controllers\Controller;
-use App\Models\User;
 use App\Models\Role;
+use App\Models\User;
+use App\Services\SimpleLogger;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
-use App\Services\SimpleLogger;
+use Inertia\Response;
 
 class UserController extends Controller
 {
     /**
-     * Display a listing of users with pagination and filters
+     * Cache duration in seconds (5 minutes).
      */
-    public function index(Request $request)
+    protected int $cacheDuration = 300;
+
+    /**
+     * Rate limit max attempts per hour.
+     */
+    protected int $rateLimitAttempts = 10;
+
+    /**
+     * Display a listing of users with pagination and filters.
+     */
+    public function index(Request $request): Response|RedirectResponse
     {
-        $user = Auth::user();
+        $user = $this->getAuthUser();
 
-        // Check if user is logged in
-        if (!$user instanceof User) {
-            abort(401);
-        }
-
-        // Check permission to view users
         if (!$user->hasPermission('users.view')) {
             return redirect()->route('unauthorized.access')
                 ->with('error', 'You do not have permission to view users.');
         }
 
-        $query = User::withTrashed()->with('roles');
+        $cacheKey = 'users_index_' . md5(json_encode($request->query()));
 
-        // Filter by status (active/deleted)
-        if ($request->filled('status') && $request->status !== 'all') {
-            if ($request->status === 'active') {
-                $query->whereNull('deleted_at');
-            } elseif ($request->status === 'deleted') {
-                $query->onlyTrashed();
+        $data = Cache::remember($cacheKey, $this->cacheDuration, function () use ($request) {
+            $query = User::withTrashed()->with('roles');
+
+            // Filter by status (active/deleted)
+            $status = $request->input('status', 'all');
+            if ($status !== 'all') {
+                if ($status === 'active') {
+                    $query->whereNull('deleted_at');
+                } elseif ($status === 'deleted') {
+                    $query->onlyTrashed();
+                }
             }
-        }
 
-        // Filter by verification status
-        if ($request->filled('email_verified')) {
-            if ($request->email_verified === 'verified') {
-                $query->whereNotNull('email_verified_at');
-            } elseif ($request->email_verified === 'unverified') {
-                $query->whereNull('email_verified_at');
+            // Filter by verification status
+            if ($request->filled('email_verified')) {
+                if ($request->email_verified === 'verified') {
+                    $query->whereNotNull('email_verified_at');
+                } elseif ($request->email_verified === 'unverified') {
+                    $query->whereNull('email_verified_at');
+                }
             }
-        }
 
-        // Filter by role
-        if ($request->filled('role')) {
-            $query->whereHas('roles', function ($q) use ($request) {
-                $q->where('slug', $request->role);
+            // Filter by role
+            if ($request->filled('role')) {
+                $query->whereHas('roles', function ($q) use ($request) {
+                    $q->where('slug', $request->role);
+                });
+            }
+
+            // Search by name or email
+            if ($request->filled('search')) {
+                $search = $request->search;
+                $query->where(function ($q) use ($search) {
+                    $q->where('name', 'like', "%{$search}%")
+                        ->orWhere('email', 'like', "%{$search}%");
+                });
+            }
+
+            // Sort
+            $sortField = $request->input('sort', 'created_at');
+            $sortDirection = $request->input('direction', 'desc');
+            $allowedSortFields = ['id', 'name', 'email', 'created_at', 'updated_at', 'email_verified_at'];
+
+            if (in_array($sortField, $allowedSortFields)) {
+                $query->orderBy($sortField, $sortDirection);
+            } else {
+                $query->orderBy('created_at', 'desc');
+            }
+
+            $users = $query->paginate(7)->withQueryString();
+
+            $users->through(function ($user) {
+                return [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'roles' => $user->roles->map(function ($role) {
+                        return [
+                            'id' => $role->id,
+                            'name' => $role->name,
+                            'slug' => $role->slug,
+                            'level' => $role->level,
+                        ];
+                    }),
+                    'email_verified_at' => $user->email_verified_at,
+                    'is_verified' => !is_null($user->email_verified_at),
+                    'created_at' => $user->created_at,
+                    'updated_at' => $user->updated_at,
+                    'deleted_at' => $user->deleted_at,
+                ];
             });
-        }
 
-        // Search by name or email
-        if ($request->filled('search')) {
-            $search = $request->search;
-            $query->where(function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                    ->orWhere('email', 'like', "%{$search}%");
-            });
-        }
+            $stats = [
+                'total' => User::count(),
+                'active' => User::whereNull('deleted_at')->count(),
+                'deleted' => User::onlyTrashed()->count(),
+                'verified' => User::whereNotNull('email_verified_at')->count(),
+                'unverified' => User::whereNull('email_verified_at')->whereNull('deleted_at')->count(),
+            ];
 
-        // Sort
-        $sortField = $request->get('sort', 'created_at');
-        $sortDirection = $request->get('direction', 'desc');
-        $allowedSortFields = ['id', 'name', 'email', 'created_at', 'updated_at', 'email_verified_at'];
+            $roles = Role::active()
+                ->orderBy('level', 'asc')
+                ->orderBy('name', 'asc')
+                ->get(['id', 'name', 'slug', 'description', 'level']);
 
-        if (in_array($sortField, $allowedSortFields)) {
-            $query->orderBy($sortField, $sortDirection);
-        } else {
-            $query->orderBy('created_at', 'desc');
-        }
-
-        $users = $query->paginate(7)->withQueryString();
-
-        // Transform users data
-        $users->through(function ($user) {
             return [
-                'id' => $user->id,
-                'name' => $user->name,
-                'email' => $user->email,
-                'roles' => $user->roles->map(function ($role) {
-                    return [
-                        'id' => $role->id,
-                        'name' => $role->name,
-                        'slug' => $role->slug,
-                        'level' => $role->level,
-                    ];
-                }),
-                'email_verified_at' => $user->email_verified_at,
-                'is_verified' => !is_null($user->email_verified_at),
-                'created_at' => $user->created_at,
-                'updated_at' => $user->updated_at,
-                'deleted_at' => $user->deleted_at,
+                'users' => $users,
+                'filters' => $request->only(['search', 'status', 'role', 'email_verified', 'sort', 'direction']),
+                'stats' => $stats,
+                'roles' => $roles,
             ];
         });
 
-        // Get summary statistics
-        $stats = [
-            'total' => User::count(),
-            'active' => User::whereNull('deleted_at')->count(),
-            'deleted' => User::onlyTrashed()->count(),
-            'verified' => User::whereNotNull('email_verified_at')->count(),
-            'unverified' => User::whereNull('email_verified_at')->whereNull('deleted_at')->count(),
-        ];
-
-        // Get roles from database for filter dropdown and form
-        $roles = Role::active()
-            ->orderBy('level', 'asc')
-            ->orderBy('name', 'asc')
-            ->get(['id', 'name', 'slug', 'description', 'level']);
-
-        return Inertia::render('Backend/Users/Index', [
-            'users' => $users,
-            'filters' => $request->only(['search', 'status', 'role', 'email_verified', 'sort', 'direction']),
-            'stats' => $stats,
-            'roles' => $roles,
-        ]);
+        return Inertia::render('Backend/Users/Index', $data);
     }
 
     /**
-     * Store a newly created user (auto-verified for backend creation)
+     * Store a newly created user (auto‑verified for backend creation) – with rate limiting.
      */
-    public function store(Request $request)
+    public function store(Request $request): RedirectResponse
     {
-        $user = Auth::user();
+        $user = $this->getAuthUser();
 
-        // Check if user is logged in
-        if (!$user instanceof User) {
-            abort(401);
-        }
-
-        // Check permission to create user
         if (!$user->hasPermission('users.create')) {
             return redirect()->back()->with('error', 'You do not have permission to create users.');
         }
+
+        $this->checkRateLimit('user_store', $user->id);
 
         $validated = $request->validate([
             'name' => 'required|string|max:255',
@@ -152,68 +160,65 @@ class UserController extends Controller
         ]);
 
         try {
-            // Get the role
             $role = Role::where('slug', $validated['role_slug'])->first();
 
-            // Create user (without role column)
-            $user = User::create([
+            $newUser = User::create([
                 'name' => $validated['name'],
                 'email' => $validated['email'],
                 'password' => Hash::make($validated['password']),
                 'email_verified_at' => now(),
             ]);
 
-            // Assign role using RBAC system
-            $user->assignRole($validated['role_slug'], Auth::id());
+            $newUser->assignRole($validated['role_slug'], $user->id);
 
-            // Log user creation
+            $this->clearCache();
+            RateLimiter::clear($this->getThrottleKey('user_store', $user->id));
+
             SimpleLogger::users(
-                "User created: {$user->name} ({$user->email})",
+                "User created: {$newUser->name} ({$newUser->email})",
                 [
-                    'user_id' => $user->id,
-                    'name' => $user->name,
-                    'email' => $user->email,
+                    'user_id' => $newUser->id,
+                    'name' => $newUser->name,
+                    'email' => $newUser->email,
                     'role' => $validated['role_slug'],
                     'verified' => true,
-                    'created_by' => Auth::user()->email
+                    'created_by' => $user->email,
+                    'ip' => $request->ip(),
                 ]
             );
 
             Log::info('User created and auto-verified', [
-                'user_id' => $user->id,
-                'user_email' => $user->email,
+                'user_id' => $newUser->id,
+                'user_email' => $newUser->email,
                 'role' => $validated['role_slug'],
-                'created_by' => Auth::id(),
+                'created_by' => $user->id,
                 'auto_verified' => true,
             ]);
 
             return redirect()->back()->with('success', 'User created and verified successfully.');
+        } catch (ValidationException $e) {
+            return back()->withErrors($e->errors())->withInput();
         } catch (\Exception $e) {
             Log::error('Failed to create user', [
                 'error' => $e->getMessage(),
                 'data' => $validated,
             ]);
-
-            return redirect()->back()->with('error', 'Failed to create user: ' . $e->getMessage());
+            return back()->with('error', 'Failed to create user: ' . $e->getMessage())->withInput();
         }
     }
 
     /**
-     * Update the specified user
+     * Update the specified user – with rate limiting.
      */
-    public function update(Request $request, int $id)
+    public function update(Request $request, int $id): RedirectResponse
     {
-        $authUser = Auth::user();
+        $authUser = $this->getAuthUser();
 
-        // Check if user is logged in
-        if (!$authUser instanceof User) {
-            abort(401);
-        }
-
-        // Check permission to update user
         if (!$authUser->hasPermission('users.update')) {
             return redirect()->back()->with('error', 'You do not have permission to update users.');
         }
+
+        $this->checkRateLimit('user_update', $authUser->id);
 
         $user = User::findOrFail($id);
 
@@ -234,17 +239,16 @@ class UserController extends Controller
                 'email' => $validated['email'],
             ];
 
-            // Only update password if provided
             if (!empty($validated['password'])) {
                 $updateData['password'] = Hash::make($validated['password']);
             }
 
             $user->update($updateData);
-
-            // Sync role using RBAC system
             $user->syncRoles([$validated['role_slug']]);
 
-            // Log the changes
+            $this->clearCache();
+            RateLimiter::clear($this->getThrottleKey('user_update', $authUser->id));
+
             $changes = [];
             if ($oldName !== $validated['name']) {
                 $changes['name'] = ['old' => $oldName, 'new' => $validated['name']];
@@ -262,7 +266,8 @@ class UserController extends Controller
                     [
                         'user_id' => $user->id,
                         'changes' => $changes,
-                        'updated_by' => Auth::user()->email
+                        'updated_by' => $authUser->email,
+                        'ip' => $request->ip(),
                     ]
                 );
             }
@@ -271,36 +276,33 @@ class UserController extends Controller
                 'user_id' => $user->id,
                 'user_email' => $user->email,
                 'role' => $validated['role_slug'],
-                'updated_by' => Auth::id(),
+                'updated_by' => $authUser->id,
             ]);
 
             return redirect()->back()->with('success', 'User updated successfully.');
+        } catch (ValidationException $e) {
+            return back()->withErrors($e->errors())->withInput();
         } catch (\Exception $e) {
             Log::error('Failed to update user', [
                 'user_id' => $user->id,
                 'error' => $e->getMessage(),
             ]);
-
-            return redirect()->back()->with('error', 'Failed to update user: ' . $e->getMessage());
+            return back()->with('error', 'Failed to update user: ' . $e->getMessage())->withInput();
         }
     }
 
     /**
-     * Verify a user (mark email as verified)
+     * Verify a user (mark email as verified) – with rate limiting.
      */
-    public function verify(int $id)
+    public function verify(int $id): RedirectResponse
     {
-        $authUser = Auth::user();
+        $authUser = $this->getAuthUser();
 
-        // Check if user is logged in
-        if (!$authUser instanceof User) {
-            abort(401);
-        }
-
-        // Check permission to verify user
         if (!$authUser->hasPermission('users.verify')) {
             return redirect()->back()->with('error', 'You do not have permission to verify users.');
         }
+
+        $this->checkRateLimit('user_verify', $authUser->id);
 
         $user = User::findOrFail($id);
 
@@ -308,9 +310,10 @@ class UserController extends Controller
             return redirect()->back()->with('info', 'User is already verified.');
         }
 
-        $user->update([
-            'email_verified_at' => now(),
-        ]);
+        $user->update(['email_verified_at' => now()]);
+
+        $this->clearCache();
+        RateLimiter::clear($this->getThrottleKey('user_verify', $authUser->id));
 
         SimpleLogger::users(
             "User verified: {$user->name} ({$user->email})",
@@ -318,44 +321,39 @@ class UserController extends Controller
                 'user_id' => $user->id,
                 'name' => $user->name,
                 'email' => $user->email,
-                'verified_by' => Auth::user()->email
+                'verified_by' => $authUser->email,
+                'ip' => request()->ip(),
             ]
         );
 
         Log::info('User manually verified', [
             'user_id' => $user->id,
             'user_email' => $user->email,
-            'verified_by' => Auth::id(),
+            'verified_by' => $authUser->id,
         ]);
 
         return redirect()->back()->with('success', "User '{$user->name}' has been verified successfully.");
     }
 
     /**
-     * Soft delete the specified user
+     * Soft delete the specified user – with rate limiting.
      */
-    public function destroy(int $id)
+    public function destroy(int $id): RedirectResponse
     {
-        $authUser = Auth::user();
+        $authUser = $this->getAuthUser();
 
-        // Check if user is logged in
-        if (!$authUser instanceof User) {
-            abort(401);
-        }
-
-        // Check permission to delete user
         if (!$authUser->hasPermission('users.destroy')) {
             return redirect()->back()->with('error', 'You do not have permission to delete users.');
         }
 
+        $this->checkRateLimit('user_destroy', $authUser->id);
+
         $user = User::findOrFail($id);
 
-        // Prevent self-deletion
-        if ($user->id === Auth::id()) {
+        if ($user->id === $authUser->id) {
             return redirect()->back()->with('error', 'You cannot delete your own account.');
         }
 
-        // Check if user has related data (optional)
         $hasApplications = $user->applications()->count() > 0;
         $hasJobListings = $user->jobListings()->count() > 0;
 
@@ -366,8 +364,10 @@ class UserController extends Controller
         try {
             $userName = $user->name;
             $userEmail = $user->email;
-
             $user->delete();
+
+            $this->clearCache();
+            RateLimiter::clear($this->getThrottleKey('user_destroy', $authUser->id));
 
             SimpleLogger::users(
                 "User soft deleted: {$userName} ({$userEmail})",
@@ -375,14 +375,15 @@ class UserController extends Controller
                     'user_id' => $user->id,
                     'name' => $userName,
                     'email' => $userEmail,
-                    'deleted_by' => Auth::user()->email
+                    'deleted_by' => $authUser->email,
+                    'ip' => request()->ip(),
                 ]
             );
 
             Log::info('User soft deleted', [
                 'user_id' => $user->id,
                 'user_name' => $userName,
-                'deleted_by' => Auth::id(),
+                'deleted_by' => $authUser->id,
             ]);
 
             return redirect()->back()->with('success', "User '{$userName}' moved to trash.");
@@ -391,32 +392,30 @@ class UserController extends Controller
                 'user_id' => $user->id,
                 'error' => $e->getMessage(),
             ]);
-
             return redirect()->back()->with('error', 'Failed to delete user: ' . $e->getMessage());
         }
     }
 
     /**
-     * Restore a soft-deleted user
+     * Restore a soft‑deleted user – with rate limiting.
      */
-    public function restore(int $id)
+    public function restore(int $id): RedirectResponse
     {
-        $authUser = Auth::user();
+        $authUser = $this->getAuthUser();
 
-        // Check if user is logged in
-        if (!$authUser instanceof User) {
-            abort(401);
-        }
-
-        // Check permission to restore user
         if (!$authUser->hasPermission('users.restore')) {
             return redirect()->back()->with('error', 'You do not have permission to restore users.');
         }
+
+        $this->checkRateLimit('user_restore', $authUser->id);
 
         $user = User::onlyTrashed()->findOrFail($id);
 
         try {
             $user->restore();
+
+            $this->clearCache();
+            RateLimiter::clear($this->getThrottleKey('user_restore', $authUser->id));
 
             SimpleLogger::users(
                 "User restored: {$user->name} ({$user->email})",
@@ -424,14 +423,15 @@ class UserController extends Controller
                     'user_id' => $user->id,
                     'name' => $user->name,
                     'email' => $user->email,
-                    'restored_by' => Auth::user()->email
+                    'restored_by' => $authUser->email,
+                    'ip' => request()->ip(),
                 ]
             );
 
             Log::info('User restored', [
                 'user_id' => $user->id,
                 'user_name' => $user->name,
-                'restored_by' => Auth::id(),
+                'restored_by' => $authUser->id,
             ]);
 
             return redirect()->back()->with('success', "User '{$user->name}' restored successfully.");
@@ -440,35 +440,32 @@ class UserController extends Controller
                 'user_id' => $id,
                 'error' => $e->getMessage(),
             ]);
-
             return redirect()->back()->with('error', 'Failed to restore user: ' . $e->getMessage());
         }
     }
 
     /**
-     * Permanently delete a soft-deleted user
+     * Permanently delete a soft‑deleted user – with rate limiting.
      */
-    public function forceDelete(int $id)
+    public function forceDelete(int $id): RedirectResponse
     {
-        $authUser = Auth::user();
+        $authUser = $this->getAuthUser();
 
-        // Check if user is logged in
-        if (!$authUser instanceof User) {
-            abort(401);
-        }
-
-        // Check permission to force delete user
         if (!$authUser->hasPermission('users.force_delete')) {
             return redirect()->back()->with('error', 'You do not have permission to permanently delete users.');
         }
+
+        $this->checkRateLimit('user_force_delete', $authUser->id);
 
         $user = User::onlyTrashed()->findOrFail($id);
 
         try {
             $userName = $user->name;
             $userEmail = $user->email;
-
             $user->forceDelete();
+
+            $this->clearCache();
+            RateLimiter::clear($this->getThrottleKey('user_force_delete', $authUser->id));
 
             SimpleLogger::users(
                 "User permanently deleted: {$userName} ({$userEmail})",
@@ -476,14 +473,15 @@ class UserController extends Controller
                     'user_id' => $id,
                     'name' => $userName,
                     'email' => $userEmail,
-                    'deleted_by' => Auth::user()->email
+                    'deleted_by' => $authUser->email,
+                    'ip' => request()->ip(),
                 ]
             );
 
             Log::info('User force deleted permanently', [
                 'user_id' => $id,
                 'user_name' => $userName,
-                'deleted_by' => Auth::id(),
+                'deleted_by' => $authUser->id,
             ]);
 
             return redirect()->back()->with('success', "User '{$userName}' has been permanently deleted.");
@@ -492,56 +490,50 @@ class UserController extends Controller
                 'user_id' => $id,
                 'error' => $e->getMessage(),
             ]);
-
             return redirect()->back()->with('error', 'Failed to permanently delete user: ' . $e->getMessage());
         }
     }
 
-    /**
-     * Bulk soft delete users
-     */
-    public function bulkDelete(Request $request)
+    // ==========================================
+    // BULK OPERATIONS – with rate limiting
+    // ==========================================
+
+    public function bulkDelete(Request $request): RedirectResponse
     {
-        $authUser = Auth::user();
+        $authUser = $this->getAuthUser();
 
-        // Check if user is logged in
-        if (!$authUser instanceof User) {
-            abort(401);
-        }
-
-        // Check permission for bulk delete
         if (!$authUser->hasPermission('users.bulk_delete')) {
             return redirect()->back()->with('error', 'You do not have permission to bulk delete users.');
         }
 
-        $request->validate([
+        $this->checkRateLimit('user_bulk_delete', $authUser->id);
+
+        $validated = $request->validate([
             'user_ids' => 'required|array',
             'user_ids.*' => 'exists:users,id',
         ]);
 
         $deletedCount = 0;
-        $failedUsers = [];
+        $failed = [];
 
-        foreach ($request->user_ids as $userId) {
+        foreach ($validated['user_ids'] as $userId) {
             $user = User::find($userId);
 
             if (!$user) {
-                $failedUsers[] = "User ID {$userId} not found";
+                $failed[] = "User ID {$userId} not found";
                 continue;
             }
 
-            // Prevent self-deletion
-            if ($user->id === Auth::id()) {
-                $failedUsers[] = "{$user->name} (cannot delete yourself)";
+            if ($user->id === $authUser->id) {
+                $failed[] = "{$user->name} (cannot delete yourself)";
                 continue;
             }
 
-            // Check if user has related data
             $hasApplications = $user->applications()->count() > 0;
             $hasJobListings = $user->jobListings()->count() > 0;
 
             if ($hasApplications || $hasJobListings) {
-                $failedUsers[] = "{$user->name} (has associated data)";
+                $failed[] = "{$user->name} (has associated data)";
                 continue;
             }
 
@@ -549,7 +541,7 @@ class UserController extends Controller
                 $user->delete();
                 $deletedCount++;
             } catch (\Exception $e) {
-                $failedUsers[] = $user->name;
+                $failed[] = $user->name;
                 Log::error('Bulk delete failed for user', [
                     'user_id' => $userId,
                     'error' => $e->getMessage(),
@@ -557,51 +549,114 @@ class UserController extends Controller
             }
         }
 
-        if ($deletedCount === 0 && !empty($failedUsers)) {
-            return redirect()->back()->with('error', 'Cannot delete users: ' . implode(', ', $failedUsers));
-        }
+        $this->clearCache();
+        RateLimiter::clear($this->getThrottleKey('user_bulk_delete', $authUser->id));
 
         $message = "{$deletedCount} user(s) moved to trash successfully.";
-        if (!empty($failedUsers)) {
-            $message .= " Failed: " . implode(', ', $failedUsers);
+        if (!empty($failed)) {
+            $message .= " Failed: " . implode(', ', $failed);
         }
 
-        $status = $deletedCount > 0 ? 'success' : 'error';
-        return redirect()->back()->with($status, $message);
+        SimpleLogger::users(
+            "Bulk delete users",
+            [
+                'deleted_count' => $deletedCount,
+                'failed' => $failed,
+                'performed_by' => $authUser->email,
+                'ip' => $request->ip(),
+            ]
+        );
+
+        return redirect()->back()->with($deletedCount > 0 ? 'success' : 'error', $message);
     }
 
-    /**
-     * Bulk restore soft-deleted users
-     */
-    public function bulkRestore(Request $request)
+    public function bulkRestore(Request $request): RedirectResponse
     {
-        $authUser = Auth::user();
+        $authUser = $this->getAuthUser();
 
-        // Check if user is logged in
-        if (!$authUser instanceof User) {
-            abort(401);
-        }
-
-        // Check permission for bulk restore
         if (!$authUser->hasPermission('users.bulk_restore')) {
             return redirect()->back()->with('error', 'You do not have permission to bulk restore users.');
         }
 
-        $request->validate([
+        $this->checkRateLimit('user_bulk_restore', $authUser->id);
+
+        $validated = $request->validate([
             'user_ids' => 'required|array',
             'user_ids.*' => 'exists:users,id',
         ]);
 
         $restoredCount = User::onlyTrashed()
-            ->whereIn('id', $request->user_ids)
+            ->whereIn('id', $validated['user_ids'])
             ->restore();
+
+        $this->clearCache();
+        RateLimiter::clear($this->getThrottleKey('user_bulk_restore', $authUser->id));
+
+        SimpleLogger::users(
+            "Bulk restore users",
+            [
+                'restored_count' => $restoredCount,
+                'user_ids' => $validated['user_ids'],
+                'performed_by' => $authUser->email,
+                'ip' => $request->ip(),
+            ]
+        );
 
         Log::info('Bulk users restored', [
             'count' => $restoredCount,
-            'user_ids' => $request->user_ids,
-            'restored_by' => Auth::id(),
+            'user_ids' => $validated['user_ids'],
+            'restored_by' => $authUser->id,
         ]);
 
         return redirect()->back()->with('success', "{$restoredCount} user(s) restored successfully.");
+    }
+
+    // ==========================================
+    // PRIVATE HELPER METHODS
+    // ==========================================
+
+    /**
+     * Get the authenticated user.
+     */
+    private function getAuthUser(): User
+    {
+        $user = Auth::user();
+        if (!$user instanceof User) {
+            abort(401, 'Unauthenticated');
+        }
+        return $user;
+    }
+
+    /**
+     * Check rate limit for user actions.
+     */
+    private function checkRateLimit(string $action, int $userId, ?int $maxAttempts = null, int $decaySeconds = 3600): void
+    {
+        $max = $maxAttempts ?? $this->rateLimitAttempts;
+        $key = $this->getThrottleKey($action, $userId);
+
+        if (RateLimiter::tooManyAttempts($key, $max)) {
+            Log::warning("Rate limit exceeded for {$action}", ['user_id' => $userId]);
+            throw ValidationException::withMessages([
+                'rate_limit' => 'Too many attempts. Please wait a moment.',
+            ]);
+        }
+        RateLimiter::hit($key, $decaySeconds);
+    }
+
+    /**
+     * Get throttle key.
+     */
+    private function getThrottleKey(string $action, int $userId): string
+    {
+        return "user_{$action}|{$userId}";
+    }
+
+    /**
+     * Clear user cache keys.
+     */
+    private function clearCache(): void
+    {
+        Cache::forget('users_index_*');
     }
 }

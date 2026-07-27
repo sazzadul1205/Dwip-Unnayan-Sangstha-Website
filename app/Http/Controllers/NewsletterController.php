@@ -1,26 +1,40 @@
 <?php
-// app/Http/Controllers/NewsletterController.php
 
 namespace App\Http\Controllers;
 
 use App\Models\NewsletterSubscription;
 use App\Mail\NewsletterWelcomeEmail;
 use App\Mail\NewsletterTestEmail;
+use App\Mail\NewsletterBulkEmail;
 use App\Models\User;
+use App\Services\SimpleLogger;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\RateLimiter;
 use Inertia\Inertia;
+use Inertia\Response;
+use Illuminate\Http\RedirectResponse;
+use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
 
 class NewsletterController extends Controller
 {
   /**
-   * Subscribe to newsletter
+   * Subscribe to newsletter – with rate limiting.
    */
   public function subscribe(Request $request)
   {
+    $throttleKey = 'newsletter_subscribe|' . $request->ip();
+    if (RateLimiter::tooManyAttempts($throttleKey, 10)) {
+      Log::warning('Newsletter subscribe rate limit exceeded', ['ip' => $request->ip()]);
+      return response()->json([
+        'success' => false,
+        'message' => 'Too many subscription attempts. Please wait a moment.',
+      ], 429);
+    }
+
     $validator = Validator::make($request->all(), [
       'email' => 'required|email|max:255',
       'name' => 'nullable|string|max:255',
@@ -41,16 +55,20 @@ class NewsletterController extends Controller
         $request->source ?? 'website'
       );
 
-      // Send welcome email
       try {
-        Mail::to($subscription->email)
-          ->send(new NewsletterWelcomeEmail($subscription));
+        Mail::to($subscription->email)->send(new NewsletterWelcomeEmail($subscription));
       } catch (\Exception $mailError) {
         Log::error('Failed to send welcome email: ' . $mailError->getMessage(), [
           'email' => $subscription->email,
         ]);
-        // Don't fail the subscription, just log the error
       }
+
+      RateLimiter::clear($throttleKey);
+
+      SimpleLogger::users(
+        "Newsletter subscription: {$subscription->email}",
+        ['email' => $subscription->email, 'source' => $request->source ?? 'website', 'ip' => $request->ip()]
+      );
 
       return response()->json([
         'success' => true,
@@ -74,10 +92,18 @@ class NewsletterController extends Controller
   }
 
   /**
-   * Unsubscribe from newsletter (via token)
+   * Unsubscribe via token.
    */
   public function unsubscribe(Request $request, string $token)
   {
+    $throttleKey = 'newsletter_unsubscribe|' . $request->ip();
+    if (RateLimiter::tooManyAttempts($throttleKey, 10)) {
+      return response()->json([
+        'success' => false,
+        'message' => 'Too many attempts. Please wait a moment.',
+      ], 429);
+    }
+
     $subscription = NewsletterSubscription::findByToken($token);
 
     if (!$subscription) {
@@ -96,6 +122,13 @@ class NewsletterController extends Controller
 
     $subscription->unsubscribe();
 
+    RateLimiter::clear($throttleKey);
+
+    SimpleLogger::users(
+      "Newsletter unsubscribed: {$subscription->email}",
+      ['email' => $subscription->email, 'ip' => $request->ip()]
+    );
+
     return response()->json([
       'success' => true,
       'message' => 'You have been successfully unsubscribed.',
@@ -103,10 +136,18 @@ class NewsletterController extends Controller
   }
 
   /**
-   * Unsubscribe via email (alternative method)
+   * Unsubscribe via email.
    */
   public function unsubscribeByEmail(Request $request)
   {
+    $throttleKey = 'newsletter_unsubscribe_email|' . $request->ip();
+    if (RateLimiter::tooManyAttempts($throttleKey, 10)) {
+      return response()->json([
+        'success' => false,
+        'message' => 'Too many attempts. Please wait a moment.',
+      ], 429);
+    }
+
     $validator = Validator::make($request->all(), [
       'email' => 'required|email|exists:newsletter_subscriptions,email',
     ]);
@@ -129,6 +170,13 @@ class NewsletterController extends Controller
 
     $subscription->unsubscribe();
 
+    RateLimiter::clear($throttleKey);
+
+    SimpleLogger::users(
+      "Newsletter unsubscribed (email): {$request->email}",
+      ['email' => $request->email, 'ip' => $request->ip()]
+    );
+
     return response()->json([
       'success' => true,
       'message' => 'You have been successfully unsubscribed.',
@@ -136,10 +184,18 @@ class NewsletterController extends Controller
   }
 
   /**
-   * Resubscribe to newsletter
+   * Resubscribe.
    */
   public function resubscribe(Request $request, string $token)
   {
+    $throttleKey = 'newsletter_resubscribe|' . $request->ip();
+    if (RateLimiter::tooManyAttempts($throttleKey, 10)) {
+      return response()->json([
+        'success' => false,
+        'message' => 'Too many attempts. Please wait a moment.',
+      ], 429);
+    }
+
     $subscription = NewsletterSubscription::findByToken($token);
 
     if (!$subscription) {
@@ -158,6 +214,13 @@ class NewsletterController extends Controller
 
     $subscription->resubscribe();
 
+    RateLimiter::clear($throttleKey);
+
+    SimpleLogger::users(
+      "Newsletter resubscribed: {$subscription->email}",
+      ['email' => $subscription->email, 'ip' => $request->ip()]
+    );
+
     return response()->json([
       'success' => true,
       'message' => 'You have been successfully resubscribed.',
@@ -165,10 +228,18 @@ class NewsletterController extends Controller
   }
 
   /**
-   * Get subscription status
+   * Get subscription status.
    */
   public function status(Request $request)
   {
+    $throttleKey = 'newsletter_status|' . $request->ip();
+    if (RateLimiter::tooManyAttempts($throttleKey, 20)) {
+      return response()->json([
+        'success' => false,
+        'message' => 'Too many requests. Please wait a moment.',
+      ], 429);
+    }
+
     $validator = Validator::make($request->all(), [
       'email' => 'required|email',
     ]);
@@ -197,43 +268,37 @@ class NewsletterController extends Controller
      |========================================== */
 
   /**
-   * Admin: List all subscribers
+   * Admin: List all subscribers.
+   * Return type: Response|RedirectResponse to handle unauthorized redirect.
    */
-  public function adminIndex(Request $request)
+  public function adminIndex(Request $request): Response|RedirectResponse
   {
     $user = Auth::user();
-    if (!$user instanceof User) {
-      abort(401);
-    }
-    if (!$user->hasPermission('newsletter.view')) {
+    if (!$user instanceof User || !$user->hasPermission('newsletter.view')) {
       return redirect()->route('unauthorized.access')
         ->with('error', 'You do not have permission to view newsletter subscribers.');
     }
 
     $query = NewsletterSubscription::query();
 
-    // Filter by status
-    if ($request->has('status') && $request->status !== 'all') {
-      $query->where('status', $request->status);
+    if ($request->input('status') && $request->input('status') !== 'all') {
+      $query->where('status', $request->input('status'));
     }
 
-    // Search by email or name
-    if ($request->has('search') && !empty($request->search)) {
-      $search = $request->search;
+    if ($request->filled('search')) {
+      $search = $request->input('search');
       $query->where(function ($q) use ($search) {
         $q->where('email', 'like', "%{$search}%")
           ->orWhere('name', 'like', "%{$search}%");
       });
     }
 
-    // Sort
-    $sortField = $request->get('sort', 'subscribed_at');
-    $sortDirection = $request->get('direction', 'desc');
+    $sortField = $request->input('sort', 'subscribed_at');
+    $sortDirection = $request->input('direction', 'desc');
     $query->orderBy($sortField, $sortDirection);
 
     $subscribers = $query->paginate(15);
 
-    // Stats
     $stats = [
       'total' => NewsletterSubscription::count(),
       'subscribed' => NewsletterSubscription::subscribed()->count(),
@@ -246,22 +311,19 @@ class NewsletterController extends Controller
       'subscribers' => $subscribers,
       'stats' => $stats,
       'filters' => [
-        'status' => $request->get('status', 'all'),
-        'search' => $request->get('search', ''),
+        'status' => $request->input('status', 'all'),
+        'search' => $request->input('search', ''),
       ],
     ]);
   }
 
   /**
-   * Admin: Export subscribers
+   * Admin: Export subscribers.
    */
-  public function adminExport(Request $request)
+  public function adminExport(Request $request): RedirectResponse|SymfonyResponse
   {
     $user = Auth::user();
-    if (!$user instanceof User) {
-      abort(401);
-    }
-    if (!$user->hasPermission('newsletter.export')) {
+    if (!$user instanceof User || !$user->hasPermission('newsletter.export')) {
       return redirect()->route('unauthorized.access')
         ->with('error', 'You do not have permission to export newsletter subscribers.');
     }
@@ -276,14 +338,12 @@ class NewsletterController extends Controller
     }
 
     $query = NewsletterSubscription::query();
-
-    if ($request->status && $request->status !== 'all') {
-      $query->where('status', $request->status);
+    if ($request->input('status') && $request->input('status') !== 'all') {
+      $query->where('status', $request->input('status'));
     }
 
     $subscribers = $query->get();
 
-    // Generate CSV
     $headers = [
       'Content-Type' => 'text/csv',
       'Content-Disposition' => 'attachment; filename="newsletter-subscribers-' . date('Y-m-d') . '.csv"',
@@ -291,11 +351,7 @@ class NewsletterController extends Controller
 
     $callback = function () use ($subscribers) {
       $file = fopen('php://output', 'w');
-
-      // Headers
       fputcsv($file, ['ID', 'Email', 'Name', 'Status', 'Subscribed At', 'Unsubscribed At', 'Source']);
-
-      // Data
       foreach ($subscribers as $subscriber) {
         fputcsv($file, [
           $subscriber->id,
@@ -307,25 +363,27 @@ class NewsletterController extends Controller
           $subscriber->source ?? '',
         ]);
       }
-
       fclose($file);
     };
+
+    SimpleLogger::security(
+      "Newsletter export by {$user->email}",
+      ['user_id' => $user->id, 'count' => $subscribers->count()]
+    );
 
     return response()->stream($callback, 200, $headers);
   }
 
   /**
-   * Admin: Bulk delete subscribers
+   * Admin: Bulk delete subscribers.
    */
-  public function adminBulkDelete(Request $request)
+  public function adminBulkDelete(Request $request): \Illuminate\Http\JsonResponse
   {
     $user = Auth::user();
-    if (!$user instanceof User) {
-      abort(401);
-    }
-    if (!$user->hasPermission('newsletter.delete')) {
+    if (!$user instanceof User || !$user->hasPermission('newsletter.delete')) {
       return response()->json(['error' => 'Unauthorized'], 403);
     }
+
     $validator = Validator::make($request->all(), [
       'ids' => 'required|array',
       'ids.*' => 'integer|exists:newsletter_subscriptions,id',
@@ -340,6 +398,11 @@ class NewsletterController extends Controller
 
     $count = NewsletterSubscription::whereIn('id', $request->ids)->delete();
 
+    SimpleLogger::security(
+      "Newsletter bulk delete by {$user->email}",
+      ['user_id' => $user->id, 'count' => $count, 'ids' => $request->ids]
+    );
+
     return response()->json([
       'success' => true,
       'message' => "{$count} subscriber(s) deleted successfully.",
@@ -348,18 +411,14 @@ class NewsletterController extends Controller
   }
 
   /**
-   * Admin: Bulk unsubscribe subscribers
+   * Admin: Bulk unsubscribe subscribers – FIXED METHOD.
    */
-  public function adminBulkUnsubscribe(Request $request)
+  public function adminBulkUnsubscribe(Request $request): \Illuminate\Http\JsonResponse
   {
     $user = Auth::user();
-    if (!$user instanceof User) {
-      abort(401);
-    }
-    if (!$user->hasPermission('newsletter.update')) { // or use newsletter.send? We'll add a new permission if needed, but for now use newsletter.send
+    if (!$user instanceof User || !$user->hasPermission('newsletter.update')) {
       return response()->json(['error' => 'Unauthorized'], 403);
     }
-
 
     $validator = Validator::make($request->all(), [
       'ids' => 'required|array',
@@ -373,12 +432,21 @@ class NewsletterController extends Controller
       ], 422);
     }
 
-    $count = NewsletterSubscription::whereIn('id', $request->ids)
+    // Get the actual models, then loop
+    $subscribers = NewsletterSubscription::whereIn('id', $request->ids)
       ->where('status', NewsletterSubscription::STATUS_SUBSCRIBED)
-      ->each(function ($subscriber) {
-        $subscriber->unsubscribe();
-      })
-      ->count();
+      ->get();
+
+    $count = 0;
+    foreach ($subscribers as $subscriber) {
+      $subscriber->unsubscribe();
+      $count++;
+    }
+
+    SimpleLogger::security(
+      "Newsletter bulk unsubscribe by {$user->email}",
+      ['user_id' => $user->id, 'count' => $count]
+    );
 
     return response()->json([
       'success' => true,
@@ -388,19 +456,22 @@ class NewsletterController extends Controller
   }
 
   /**
-   * Admin: Delete single subscriber
+   * Admin: Delete single subscriber.
    */
-  public function adminDestroy(int $id)
+  public function adminDestroy(int $id): \Illuminate\Http\JsonResponse
   {
     $user = Auth::user();
-    if (!$user instanceof User) {
-      abort(401);
-    }
-    if (!$user->hasPermission('newsletter.delete')) {
+    if (!$user instanceof User || !$user->hasPermission('newsletter.delete')) {
       return response()->json(['error' => 'Unauthorized'], 403);
     }
+
     $subscriber = NewsletterSubscription::findOrFail($id);
     $subscriber->delete();
+
+    SimpleLogger::security(
+      "Newsletter subscriber deleted by {$user->email}",
+      ['user_id' => $user->id, 'subscriber_id' => $id]
+    );
 
     return response()->json([
       'success' => true,
@@ -409,17 +480,15 @@ class NewsletterController extends Controller
   }
 
   /**
-   * Admin: Unsubscribe single subscriber
+   * Admin: Unsubscribe single subscriber.
    */
-  public function adminUnsubscribe(int $id)
+  public function adminUnsubscribe(int $id): \Illuminate\Http\JsonResponse
   {
     $user = Auth::user();
-    if (!$user instanceof User) {
-      abort(401);
-    }
-    if (!$user->hasPermission('newsletter.update')) {
+    if (!$user instanceof User || !$user->hasPermission('newsletter.update')) {
       return response()->json(['error' => 'Unauthorized'], 403);
     }
+
     $subscriber = NewsletterSubscription::findOrFail($id);
 
     if (!$subscriber->isSubscribed()) {
@@ -431,6 +500,11 @@ class NewsletterController extends Controller
 
     $subscriber->unsubscribe();
 
+    SimpleLogger::security(
+      "Newsletter subscriber unsubscribed by {$user->email}",
+      ['user_id' => $user->id, 'subscriber_id' => $id]
+    );
+
     return response()->json([
       'success' => true,
       'message' => 'Subscriber unsubscribed successfully.',
@@ -438,17 +512,15 @@ class NewsletterController extends Controller
   }
 
   /**
-   * Admin: Resubscribe single subscriber
+   * Admin: Resubscribe single subscriber.
    */
-  public function adminResubscribe(int $id)
+  public function adminResubscribe(int $id): \Illuminate\Http\JsonResponse
   {
     $user = Auth::user();
-    if (!$user instanceof User) {
-      abort(401);
-    }
-    if (!$user->hasPermission('newsletter.update')) {
+    if (!$user instanceof User || !$user->hasPermission('newsletter.update')) {
       return response()->json(['error' => 'Unauthorized'], 403);
     }
+
     $subscriber = NewsletterSubscription::findOrFail($id);
 
     if ($subscriber->isSubscribed()) {
@@ -460,6 +532,11 @@ class NewsletterController extends Controller
 
     $subscriber->resubscribe();
 
+    SimpleLogger::security(
+      "Newsletter subscriber resubscribed by {$user->email}",
+      ['user_id' => $user->id, 'subscriber_id' => $id]
+    );
+
     return response()->json([
       'success' => true,
       'message' => 'Subscriber resubscribed successfully.',
@@ -467,18 +544,22 @@ class NewsletterController extends Controller
   }
 
   /**
-   * Admin: Send test email
+   * Admin: Send test email.
    */
-  public function adminSendTest(Request $request)
+  public function adminSendTest(Request $request): \Illuminate\Http\JsonResponse
   {
     $user = Auth::user();
-    if (!$user instanceof User) {
-      abort(401);
-    }
-    if (!$user->hasPermission('newsletter.send')) {
+    if (!$user instanceof User || !$user->hasPermission('newsletter.send')) {
       return response()->json(['error' => 'Unauthorized'], 403);
     }
 
+    $throttleKey = 'newsletter_test_email|' . $user->id;
+    if (RateLimiter::tooManyAttempts($throttleKey, 3)) {
+      return response()->json([
+        'success' => false,
+        'message' => 'Too many test email requests. Please wait a moment.',
+      ], 429);
+    }
 
     $validator = Validator::make($request->all(), [
       'email' => 'required|email',
@@ -494,8 +575,15 @@ class NewsletterController extends Controller
 
     try {
       Mail::to($request->email)->send(new NewsletterTestEmail(
-        $request->subject ?? 'Newsletter Test Email'
+        $request->input('subject') ?? 'Newsletter Test Email'
       ));
+
+      RateLimiter::clear($throttleKey);
+
+      SimpleLogger::security(
+        "Newsletter test email sent by {$user->email}",
+        ['user_id' => $user->id, 'to' => $request->email]
+      );
 
       return response()->json([
         'success' => true,
@@ -503,7 +591,6 @@ class NewsletterController extends Controller
       ]);
     } catch (\Exception $e) {
       Log::error('Failed to send test email: ' . $e->getMessage());
-
       return response()->json([
         'success' => false,
         'message' => 'Failed to send test email: ' . $e->getMessage(),
@@ -512,17 +599,23 @@ class NewsletterController extends Controller
   }
 
   /**
-   * Admin: Send bulk email to selected subscribers
+   * Admin: Send bulk email.
    */
-  public function sendBulkEmail(Request $request)
+  public function sendBulkEmail(Request $request): \Illuminate\Http\JsonResponse
   {
     $user = Auth::user();
-    if (!$user instanceof User) {
-      abort(401);
-    }
-    if (!$user->hasPermission('newsletter.send')) {
+    if (!$user instanceof User || !$user->hasPermission('newsletter.send')) {
       return response()->json(['error' => 'Unauthorized'], 403);
     }
+
+    $throttleKey = 'newsletter_bulk_email|' . $user->id;
+    if (RateLimiter::tooManyAttempts($throttleKey, 2)) {
+      return response()->json([
+        'success' => false,
+        'message' => 'Too many bulk email requests. Please wait a moment.',
+      ], 429);
+    }
+
     $validator = Validator::make($request->all(), [
       'ids' => 'required|array',
       'ids.*' => 'integer|exists:newsletter_subscriptions,id',
@@ -553,20 +646,27 @@ class NewsletterController extends Controller
 
     foreach ($subscribers as $subscriber) {
       try {
-        Mail::to($subscriber->email)->send(new \App\Mail\NewsletterBulkEmail(
+        Mail::to($subscriber->email)->send(new NewsletterBulkEmail(
           $subscriber,
-          $request->subject,
-          $request->content
+          $request->input('subject'),
+          $request->input('content')
         ));
         $sentCount++;
       } catch (\Exception $e) {
         Log::error('Failed to send bulk email: ' . $e->getMessage(), [
           'email' => $subscriber->email,
-          'subject' => $request->subject,
+          'subject' => $request->input('subject'),
         ]);
         $failedCount++;
       }
     }
+
+    RateLimiter::clear($throttleKey);
+
+    SimpleLogger::security(
+      "Newsletter bulk email sent by {$user->email}",
+      ['user_id' => $user->id, 'sent' => $sentCount, 'failed' => $failedCount]
+    );
 
     return response()->json([
       'success' => true,

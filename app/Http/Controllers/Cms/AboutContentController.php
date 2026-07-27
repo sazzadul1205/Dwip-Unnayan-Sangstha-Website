@@ -1,141 +1,123 @@
 <?php
-// app/Http/Controllers/Cms/AboutContentController.php
 
 namespace App\Http\Controllers\Cms;
 
 use App\Http\Controllers\Controller;
 use App\Models\pages\AboutContent;
 use App\Models\User;
+use App\Services\SimpleLogger;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Str;
-use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class AboutContentController extends Controller
 {
   /**
-   * Display about content items
+   * Max image size in bytes (5MB for main images, 2MB for icons).
+   */
+  protected int $maxImageSize = 5 * 1024 * 1024;
+  protected int $maxIconSize = 2 * 1024 * 1024;
+
+  /**
+   * Display about content items – with caching.
    */
   public function index(): Response|RedirectResponse
   {
-    $user = Auth::user();
-    if (!$user instanceof User) {
-      abort(401);
-    }
+    $user = $this->getAuthUser();
+
     if (!$user->hasPermission('about.view')) {
       return redirect()->route('unauthorized.access')
         ->with('error', 'You do not have permission to view about content.');
     }
 
     try {
-      $items = AboutContent::withTrashed()->orderBy('display_order')->get();
+      // Cache the index for 5 minutes to reduce DB load
+      $items = Cache::remember('about_content_list', 300, function () {
+        return AboutContent::withTrashed()->orderBy('display_order')->get();
+      });
+
       return Inertia::render('Backend/CMS/About/Index', ['items' => $items]);
     } catch (\Exception $e) {
       Log::error('Failed to fetch about content: ' . $e->getMessage());
       return Inertia::render('Backend/CMS/About/Index', [
         'items' => [],
-        'flash' => ['error' => 'Failed to load about content. Please try again.']
+        'flash' => ['error' => 'Failed to load about content. Please try again.'],
       ]);
     }
   }
 
   /**
-   * Store new about content
+   * Store new about content – with rate limiting.
    */
-  public function store(Request $request)
+  public function store(Request $request): RedirectResponse
   {
+    $user = $this->getAuthUser();
 
-    $user = Auth::user();
-    if (!$user instanceof User) {
-      abort(401);
-    }
     if (!$user->hasPermission('about.create')) {
       return redirect()->back()->with('error', 'You do not have permission to create about content.');
     }
 
+    $this->checkRateLimit('about_create', $user->id);
+
     try {
-      $validator = Validator::make($request->all(), [
-        'slug' => 'required|string|unique:about_content,slug',
-        'title' => 'required|string|max:255',
-        'type' => 'required|string|in:main,detail',
-        'content' => 'nullable|string',
-        'full_content' => 'nullable|string',
-        'image' => 'nullable|string',
-        'icon' => 'nullable|string',
-        'bg_color' => 'nullable|string|max:255',
-        'btn_text' => 'nullable|string|max:255',
-        'btn_link' => 'nullable|string|max:255',
-        'display_order' => 'nullable|integer|min:0',
-        'is_featured' => 'boolean',
-        'tags' => 'nullable|array',
-        'is_active' => 'boolean',
-      ]);
+      $validated = $this->validateAboutContent($request);
 
-      if ($validator->fails()) {
-        return back()->withErrors($validator)->withInput();
-      }
+      $data = $this->prepareData($validated, $request);
 
-      $data = $request->all();
-
-      // Process image if it's a base64 string
-      if (!empty($data['image']) && $this->isBase64Image($data['image'])) {
-        $uploadedPath = $this->uploadImage($data['image']);
-        if ($uploadedPath) {
-          $data['image'] = $uploadedPath;
-        } else {
-          unset($data['image']);
-          Log::warning('Image upload failed for about content: ' . ($data['title'] ?? 'unknown'));
-        }
-      }
-
-      // Process icon if it's a base64 string
-      if (!empty($data['icon']) && $this->isBase64Image($data['icon'])) {
-        $uploadedPath = $this->uploadImage($data['icon'], 'About/icons');
-        if ($uploadedPath) {
-          $data['icon'] = $uploadedPath;
-        } else {
-          unset($data['icon']);
-          Log::warning('Icon upload failed for about content: ' . ($data['title'] ?? 'unknown'));
-        }
-      }
-
-      // Clear any session flash data that might contain large image data
-      $this->cleanSessionOldInput();
-
-      // Set default display order if not provided
-      if (!isset($data['display_order']) || $data['display_order'] === '') {
-        $data['display_order'] = AboutContent::withTrashed()->max('display_order') + 1;
-      }
-
-      // Set default slug if not provided
-      if (empty($data['slug'])) {
-        $data['slug'] = $this->generateUniqueSlug($data['title']);
-      }
-
-      // Ensure boolean values are cast correctly
-      $data['is_featured'] = filter_var($data['is_featured'] ?? false, FILTER_VALIDATE_BOOLEAN);
-      $data['is_active'] = filter_var($data['is_active'] ?? true, FILTER_VALIDATE_BOOLEAN);
+      // Process image uploads
+      $this->processImages($data, $request);
 
       // Ensure tags are stored as JSON
       if (isset($data['tags']) && is_array($data['tags'])) {
         $data['tags'] = array_values(array_unique(array_filter($data['tags'])));
       }
 
+      // Set default display order if not provided
+      if (!isset($data['display_order']) || $data['display_order'] === '') {
+        $data['display_order'] = AboutContent::withTrashed()->max('display_order') + 1;
+      }
+
+      // Generate slug if not provided
+      if (empty($data['slug'])) {
+        $data['slug'] = $this->generateUniqueSlug($data['title']);
+      }
+
+      // Cast booleans
+      $data['is_featured'] = filter_var($data['is_featured'] ?? false, FILTER_VALIDATE_BOOLEAN);
+      $data['is_active'] = filter_var($data['is_active'] ?? true, FILTER_VALIDATE_BOOLEAN);
+
       AboutContent::create($data);
 
-      // Clear any large data from session before redirect
-      session()->forget('_old_input');
+      // Clear cache
+      $this->clearCache();
+
+      RateLimiter::clear($this->getThrottleKey('about_create', $user->id));
+
+      SimpleLogger::cms(
+        "About content created: {$data['title']}",
+        [
+          'type' => $data['type'] ?? 'detail',
+          'created_by' => $user->email,
+          'ip' => $request->ip(),
+        ]
+      );
 
       return redirect()->back()->with('success', '✅ About content created successfully.');
+    } catch (ValidationException $e) {
+      return back()->withErrors($e->errors())->withInput();
     } catch (\Exception $e) {
       Log::error('About content creation failed: ' . $e->getMessage(), [
         'trace' => $e->getTraceAsString(),
-        'input' => $request->except(['image', 'icon', 'full_content'])
+        'input' => $request->except(['image', 'icon', 'full_content']),
       ]);
 
       return back()
@@ -145,99 +127,62 @@ class AboutContentController extends Controller
   }
 
   /**
-   * Update about content
+   * Update about content – with rate limiting.
    */
-  public function update(Request $request, int $id)
+  public function update(Request $request, int $id): RedirectResponse
   {
+    $user = $this->getAuthUser();
 
-    $user = Auth::user();
-    if (!$user instanceof User) {
-      abort(401);
-    }
     if (!$user->hasPermission('about.update')) {
       return redirect()->back()->with('error', 'You do not have permission to update about content.');
     }
+
+    $this->checkRateLimit('about_update', $user->id);
+
     try {
       $about = AboutContent::withTrashed()->findOrFail($id);
 
-      $validator = Validator::make($request->all(), [
-        'slug' => 'required|string|unique:about_content,slug,' . $id,
-        'title' => 'required|string|max:255',
-        'type' => 'required|string|in:main,detail',
-        'content' => 'nullable|string',
-        'full_content' => 'nullable|string',
-        'image' => 'nullable|string',
-        'icon' => 'nullable|string',
-        'bg_color' => 'nullable|string|max:255',
-        'btn_text' => 'nullable|string|max:255',
-        'btn_link' => 'nullable|string|max:255',
-        'display_order' => 'nullable|integer|min:0',
-        'is_featured' => 'boolean',
-        'tags' => 'nullable|array',
-        'is_active' => 'boolean',
-      ]);
+      $validated = $this->validateAboutContent($request, $id);
 
-      if ($validator->fails()) {
-        return back()->withErrors($validator)->withInput();
-      }
+      $data = $this->prepareData($validated, $request);
 
-      $data = $request->all();
-
-      // Process image if it's a base64 string
-      if (!empty($data['image']) && $this->isBase64Image($data['image'])) {
-        // Delete old image if exists
-        if ($about->image && !filter_var($about->image, FILTER_VALIDATE_URL)) {
-          $this->deleteImageFile($about->image);
-        }
-
-        $uploadedPath = $this->uploadImage($data['image']);
-        if ($uploadedPath) {
-          $data['image'] = $uploadedPath;
-        } else {
-          unset($data['image']);
-          Log::warning('Image upload failed for about content update: ' . ($data['title'] ?? 'unknown'));
-        }
-      }
-
-      // Process icon if it's a base64 string
-      if (!empty($data['icon']) && $this->isBase64Image($data['icon'])) {
-        // Delete old icon if exists
-        if ($about->icon && !filter_var($about->icon, FILTER_VALIDATE_URL)) {
-          $this->deleteImageFile($about->icon);
-        }
-
-        $uploadedPath = $this->uploadImage($data['icon'], 'About/icons');
-        if ($uploadedPath) {
-          $data['icon'] = $uploadedPath;
-        } else {
-          unset($data['icon']);
-          Log::warning('Icon upload failed for about content update: ' . ($data['title'] ?? 'unknown'));
-        }
-      }
-
-      // Clear any session flash data that might contain large image data
-      $this->cleanSessionOldInput();
-
-      // Ensure boolean values are cast correctly
-      $data['is_featured'] = filter_var($data['is_featured'] ?? false, FILTER_VALIDATE_BOOLEAN);
-      $data['is_active'] = filter_var($data['is_active'] ?? true, FILTER_VALIDATE_BOOLEAN);
+      // Process images – delete old ones when replacing
+      $this->processImages($data, $request, $about);
 
       // Ensure tags are stored as JSON
       if (isset($data['tags']) && is_array($data['tags'])) {
         $data['tags'] = array_values(array_unique(array_filter($data['tags'])));
       }
 
+      // Cast booleans
+      $data['is_featured'] = filter_var($data['is_featured'] ?? false, FILTER_VALIDATE_BOOLEAN);
+      $data['is_active'] = filter_var($data['is_active'] ?? true, FILTER_VALIDATE_BOOLEAN);
+
       $about->update($data);
 
-      // Clear any large data from session before redirect
-      session()->forget('_old_input');
+      // Clear cache
+      $this->clearCache();
+
+      RateLimiter::clear($this->getThrottleKey('about_update', $user->id));
+
+      SimpleLogger::cms(
+        "About content updated: {$data['title']}",
+        [
+          'about_id' => $id,
+          'type' => $data['type'] ?? 'detail',
+          'updated_by' => $user->email,
+          'ip' => $request->ip(),
+        ]
+      );
 
       return redirect()->back()->with('success', '✅ About content updated successfully.');
+    } catch (ValidationException $e) {
+      return back()->withErrors($e->errors())->withInput();
     } catch (\Exception $e) {
       Log::error('About content update failed: ' . $e->getMessage(), [
         'trace' => $e->getTraceAsString(),
         'about_id' => $id,
-        'input' => $request->except(['image', 'icon', 'full_content'])
+        'input' => $request->except(['image', 'icon', 'full_content']),
       ]);
 
       return back()
@@ -247,24 +192,39 @@ class AboutContentController extends Controller
   }
 
   /**
-   * Toggle status
+   * Toggle active status – with rate limiting.
    */
-  public function toggleStatus(int $id)
+  public function toggleStatus(int $id): RedirectResponse
   {
-    $user = Auth::user();
-    if (!$user instanceof User) {
-      abort(401);
-    }
+    $user = $this->getAuthUser();
+
     if (!$user->hasPermission('about.update')) {
       return redirect()->back()->with('error', 'You do not have permission to change about content status.');
     }
+
+    $this->checkRateLimit('about_toggle', $user->id);
 
     try {
       $about = AboutContent::findOrFail($id);
       $about->is_active = !$about->is_active;
       $about->save();
 
+      $this->clearCache();
+
+      RateLimiter::clear($this->getThrottleKey('about_toggle', $user->id));
+
       $status = $about->is_active ? 'activated' : 'deactivated';
+
+      SimpleLogger::cms(
+        "About content {$status}: {$about->title}",
+        [
+          'about_id' => $id,
+          'new_status' => $about->is_active ? 'active' : 'inactive',
+          'updated_by' => $user->email,
+          'ip' => request()->ip(),
+        ]
+      );
+
       return redirect()->back()->with('success', "✅ About content {$status} successfully.");
     } catch (\Exception $e) {
       Log::error('About content status toggle failed: ' . $e->getMessage(), ['about_id' => $id]);
@@ -273,17 +233,17 @@ class AboutContentController extends Controller
   }
 
   /**
-   * Toggle featured status
+   * Toggle featured status – with rate limiting.
    */
-  public function toggleFeatured(int $id)
+  public function toggleFeatured(int $id): RedirectResponse
   {
-    $user = Auth::user();
-    if (!$user instanceof User) {
-      abort(401);
-    }
+    $user = $this->getAuthUser();
+
     if (!$user->hasPermission('about.update')) {
       return redirect()->back()->with('error', 'You do not have permission to change featured status.');
     }
+
+    $this->checkRateLimit('about_featured', $user->id);
 
     try {
       $about = AboutContent::findOrFail($id);
@@ -296,7 +256,22 @@ class AboutContentController extends Controller
       $about->is_featured = !$about->is_featured;
       $about->save();
 
+      $this->clearCache();
+
+      RateLimiter::clear($this->getThrottleKey('about_featured', $user->id));
+
       $status = $about->is_featured ? 'featured' : 'unfeatured';
+
+      SimpleLogger::cms(
+        "About content {$status}: {$about->title}",
+        [
+          'about_id' => $id,
+          'is_featured' => $about->is_featured,
+          'updated_by' => $user->email,
+          'ip' => request()->ip(),
+        ]
+      );
+
       return redirect()->back()->with('success', "✅ About content {$status} successfully.");
     } catch (\Exception $e) {
       Log::error('About content featured toggle failed: ' . $e->getMessage(), ['about_id' => $id]);
@@ -305,35 +280,43 @@ class AboutContentController extends Controller
   }
 
   /**
-   * Update display order (for drag & drop reordering)
+   * Update display order (drag & drop) – with rate limiting.
    */
-  public function updateOrder(Request $request)
+  public function updateOrder(Request $request): JsonResponse
   {
+    $user = $this->getAuthUser();
 
-    $user = Auth::user();
-    if (!$user instanceof User) {
-      abort(401);
-    }
     if (!$user->hasPermission('about.update')) {
       return response()->json(['error' => 'Unauthorized'], 403);
     }
 
+    $this->checkRateLimit('about_order', $user->id);
+
     try {
-      $validator = Validator::make($request->all(), [
+      $validated = $request->validate([
         'orders' => 'required|array',
         'orders.*.id' => 'required|integer|exists:about_content,id',
         'orders.*.display_order' => 'required|integer|min:0',
       ]);
 
-      if ($validator->fails()) {
-        return response()->json(['errors' => $validator->errors()], 422);
-      }
-
-      foreach ($request->orders as $order) {
+      foreach ($validated['orders'] as $order) {
         AboutContent::where('id', $order['id'])->update([
-          'display_order' => $order['display_order']
+          'display_order' => $order['display_order'],
         ]);
       }
+
+      $this->clearCache();
+
+      RateLimiter::clear($this->getThrottleKey('about_order', $user->id));
+
+      SimpleLogger::cms(
+        "About content order updated",
+        [
+          'count' => count($validated['orders']),
+          'updated_by' => $user->email,
+          'ip' => $request->ip(),
+        ]
+      );
 
       return response()->json(['success' => true, 'message' => 'Order updated successfully.']);
     } catch (\Exception $e) {
@@ -343,21 +326,34 @@ class AboutContentController extends Controller
   }
 
   /**
-   * Soft delete
+   * Soft delete – with rate limiting.
    */
-  public function destroy(int $id)
+  public function destroy(int $id): RedirectResponse
   {
-    $user = Auth::user();
-    if (!$user instanceof User) {
-      abort(401);
-    }
+    $user = $this->getAuthUser();
+
     if (!$user->hasPermission('about.destroy')) {
       return redirect()->back()->with('error', 'You do not have permission to delete about content.');
     }
 
+    $this->checkRateLimit('about_delete', $user->id);
+
     try {
       $about = AboutContent::findOrFail($id);
       $about->delete();
+
+      $this->clearCache();
+
+      RateLimiter::clear($this->getThrottleKey('about_delete', $user->id));
+
+      SimpleLogger::cms(
+        "About content deleted: {$about->title}",
+        [
+          'about_id' => $id,
+          'deleted_by' => $user->email,
+          'ip' => request()->ip(),
+        ]
+      );
 
       return redirect()->back()->with('success', '🗑️ About content moved to trash successfully.');
     } catch (\Exception $e) {
@@ -367,21 +363,34 @@ class AboutContentController extends Controller
   }
 
   /**
-   * Restore soft-deleted
+   * Restore soft-deleted – with rate limiting.
    */
-  public function restore(int $id)
+  public function restore(int $id): RedirectResponse
   {
-    $user = Auth::user();
-    if (!$user instanceof User) {
-      abort(401);
-    }
+    $user = $this->getAuthUser();
+
     if (!$user->hasPermission('about.restore')) {
       return redirect()->back()->with('error', 'You do not have permission to restore about content.');
     }
 
+    $this->checkRateLimit('about_restore', $user->id);
+
     try {
       $about = AboutContent::withTrashed()->findOrFail($id);
       $about->restore();
+
+      $this->clearCache();
+
+      RateLimiter::clear($this->getThrottleKey('about_restore', $user->id));
+
+      SimpleLogger::cms(
+        "About content restored: {$about->title}",
+        [
+          'about_id' => $id,
+          'restored_by' => $user->email,
+          'ip' => request()->ip(),
+        ]
+      );
 
       return redirect()->back()->with('success', '🔄 About content restored successfully.');
     } catch (\Exception $e) {
@@ -391,18 +400,17 @@ class AboutContentController extends Controller
   }
 
   /**
-   * Force delete – also deletes embedded images from content
+   * Force delete – also deletes embedded images – with rate limiting.
    */
-  public function forceDelete(int $id)
+  public function forceDelete(int $id): RedirectResponse
   {
+    $user = $this->getAuthUser();
 
-    $user = Auth::user();
-    if (!$user instanceof User) {
-      abort(401);
-    }
     if (!$user->hasPermission('about.destroy')) {
       return redirect()->back()->with('error', 'You do not have permission to permanently delete about content.');
     }
+
+    $this->checkRateLimit('about_force_delete', $user->id);
 
     try {
       $about = AboutContent::withTrashed()->findOrFail($id);
@@ -422,6 +430,19 @@ class AboutContentController extends Controller
 
       $about->forceDelete();
 
+      $this->clearCache();
+
+      RateLimiter::clear($this->getThrottleKey('about_force_delete', $user->id));
+
+      SimpleLogger::cms(
+        "About content permanently deleted: {$about->title}",
+        [
+          'about_id' => $id,
+          'deleted_by' => $user->email,
+          'ip' => request()->ip(),
+        ]
+      );
+
       return redirect()->back()->with('success', '🗑️ About content permanently deleted.');
     } catch (\Exception $e) {
       Log::error('About content force deletion failed: ' . $e->getMessage(), ['about_id' => $id]);
@@ -429,57 +450,135 @@ class AboutContentController extends Controller
     }
   }
 
+    // ==========================================
+    // PRIVATE HELPER METHODS
+    // ==========================================
+
   /**
-   * Clean session old input to prevent max_allowed_packet errors
+   * Get the authenticated user.
    */
-  protected function cleanSessionOldInput(): void
+  private function getAuthUser(): User
   {
-    if (session()->has('_old_input')) {
-      $oldInput = session()->get('_old_input');
-      if (isset($oldInput['image']) && $this->isBase64Image($oldInput['image'])) {
-        unset($oldInput['image']);
-        session()->put('_old_input', $oldInput);
+    $user = Auth::user();
+    if (!$user instanceof User) {
+      abort(401, 'Unauthenticated');
+    }
+    return $user;
+  }
+
+  /**
+   * Check rate limit for admin actions.
+   */
+  private function checkRateLimit(string $action, int $userId, int $maxAttempts = 10, int $decaySeconds = 3600): void
+  {
+    $key = $this->getThrottleKey($action, $userId);
+    if (RateLimiter::tooManyAttempts($key, $maxAttempts)) {
+      Log::warning("Rate limit exceeded for {$action}", ['user_id' => $userId]);
+      throw ValidationException::withMessages([
+        'rate_limit' => 'Too many attempts. Please wait a moment.',
+      ]);
+    }
+    RateLimiter::hit($key, $decaySeconds);
+  }
+
+  /**
+   * Get throttle key.
+   */
+  private function getThrottleKey(string $action, int $userId): string
+  {
+    return "about_{$action}|{$userId}";
+  }
+
+  /**
+   * Clear the about content cache.
+   */
+  private function clearCache(): void
+  {
+    Cache::forget('about_content_list');
+  }
+
+  /**
+   * Validate about content data.
+   */
+  private function validateAboutContent(Request $request, ?int $excludeId = null): array
+  {
+    $rules = [
+      'slug' => 'required|string|unique:about_content,slug,' . ($excludeId ?? 'NULL'),
+      'title' => 'required|string|max:255',
+      'type' => 'required|string|in:main,detail',
+      'content' => 'nullable|string',
+      'full_content' => 'nullable|string',
+      'image' => 'nullable|string',
+      'icon' => 'nullable|string',
+      'bg_color' => 'nullable|string|max:255',
+      'btn_text' => 'nullable|string|max:255',
+      'btn_link' => 'nullable|string|max:255',
+      'display_order' => 'nullable|integer|min:0',
+      'is_featured' => 'nullable|boolean',
+      'tags' => 'nullable|array',
+      'is_active' => 'nullable|boolean',
+    ];
+
+    return $request->validate($rules);
+  }
+
+  /**
+   * Prepare data from validated input.
+   */
+  private function prepareData(array $validated, Request $request): array
+  {
+    $data = $validated;
+
+    // Ensure boolean values are cast correctly
+    $data['is_featured'] = filter_var($data['is_featured'] ?? false, FILTER_VALIDATE_BOOLEAN);
+    $data['is_active'] = filter_var($data['is_active'] ?? true, FILTER_VALIDATE_BOOLEAN);
+
+    // Ensure tags are stored as JSON
+    if (isset($data['tags']) && is_array($data['tags'])) {
+      $data['tags'] = array_values(array_unique(array_filter($data['tags'])));
+    }
+
+    return $data;
+  }
+
+  /**
+   * Process image and icon uploads.
+   */
+  private function processImages(array &$data, Request $request, ?AboutContent $existing = null): void
+  {
+    // Process main image
+    if (!empty($data['image']) && $this->isBase64Image($data['image'])) {
+      if ($existing && $existing->image && !filter_var($existing->image, FILTER_VALIDATE_URL)) {
+        $this->deleteImageFile($existing->image);
       }
-      if (isset($oldInput['icon']) && $this->isBase64Image($oldInput['icon'])) {
-        unset($oldInput['icon']);
-        session()->put('_old_input', $oldInput);
+
+      $uploadedPath = $this->uploadImage($data['image']);
+      $data['image'] = $uploadedPath ?? null;
+    }
+
+    // Process icon
+    if (!empty($data['icon']) && $this->isBase64Image($data['icon'])) {
+      if ($existing && $existing->icon && !filter_var($existing->icon, FILTER_VALIDATE_URL)) {
+        $this->deleteImageFile($existing->icon);
       }
+
+      $uploadedPath = $this->uploadImage($data['icon'], 'About/icons');
+      $data['icon'] = $uploadedPath ?? null;
     }
   }
 
   /**
-   * Generate a unique slug
+   * Check if string is a base64 image.
    */
-  protected function generateUniqueSlug(string $title, ?int $excludeId = null): string
-  {
-    $slug = Str::slug($title);
-    $originalSlug = $slug;
-    $counter = 1;
-
-    while (AboutContent::withTrashed()
-      ->where('slug', $slug)
-      ->when($excludeId, fn($q) => $q->where('id', '!=', $excludeId))
-      ->exists()
-    ) {
-      $slug = $originalSlug . '-' . $counter;
-      $counter++;
-    }
-
-    return $slug;
-  }
-
-  /**
-   * Check if string is a base64 image
-   */
-  protected function isBase64Image(string $string): bool
+  private function isBase64Image(string $string): bool
   {
     return str_starts_with($string, 'data:image/');
   }
 
   /**
-   * Upload image and return the path
+   * Upload image and return the path.
    */
-  protected function uploadImage(string $base64String, string $subPath = 'About'): ?string
+  private function uploadImage(string $base64String, string $subPath = 'About'): ?string
   {
     try {
       // Validate base64 format
@@ -500,22 +599,17 @@ class AboutContentController extends Controller
         return null;
       }
 
-      // Check file size (max 5MB for images, 2MB for icons)
-      $maxSize = str_contains($subPath, 'icons') ? 2 * 1024 * 1024 : 5 * 1024 * 1024;
+      // Check file size
+      $maxSize = str_contains($subPath, 'icons') ? $this->maxIconSize : $this->maxImageSize;
       if (strlen($imageContent) > $maxSize) {
-        Log::warning('Image too large: ' . strlen($imageContent) . ' bytes');
+        Log::warning('Image too large: ' . strlen($imageContent) . ' bytes (max: ' . $maxSize . ')');
         return null;
       }
 
       $extension = $this->getImageExtension($base64String);
-
-      // Generate filename with date prefix: YYYYMMDD_UUID.extension
-      $datePrefix = date('Ymd');
-      $uuid = Str::uuid();
-      $filename = $datePrefix . '_' . $uuid . '.' . $extension;
+      $filename = date('Ymd') . '_' . Str::uuid() . '.' . $extension;
       $path = $subPath . '/' . $filename;
 
-      // Store the image
       $stored = Storage::disk('public')->put($path, $imageContent);
 
       if (!$stored) {
@@ -531,9 +625,9 @@ class AboutContentController extends Controller
   }
 
   /**
-   * Get image extension from base64 string
+   * Get image extension from base64 string.
    */
-  protected function getImageExtension(string $base64String): string
+  private function getImageExtension(string $base64String): string
   {
     $mimeMap = [
       'image/jpeg' => 'jpg',
@@ -550,17 +644,16 @@ class AboutContentController extends Controller
     ];
 
     if (preg_match('/^data:([^;]+);base64,/', $base64String, $matches)) {
-      $mimeType = $matches[1];
-      return $mimeMap[$mimeType] ?? 'png';
+      return $mimeMap[$matches[1]] ?? 'png';
     }
 
     return 'png';
   }
 
   /**
-   * Delete image file from storage
+   * Delete image file from storage.
    */
-  protected function deleteImageFile(string $imagePath): void
+  private function deleteImageFile(string $imagePath): void
   {
     try {
       $relativePath = str_replace('/storage/', '', $imagePath);
@@ -574,14 +667,18 @@ class AboutContentController extends Controller
   }
 
   /**
-   * Delete images embedded in HTML content (only from editor-images folder)
+   * Delete images embedded in HTML content (only from editor-images folder).
    */
-  protected function deleteImagesFromContent(?string $content): void
+  private function deleteImagesFromContent(?string $content): void
   {
-    if (empty($content)) return;
+    if (empty($content)) {
+      return;
+    }
 
     preg_match_all('/<img[^>]+src="([^"]+)"/i', $content, $matches);
-    if (empty($matches[1])) return;
+    if (empty($matches[1])) {
+      return;
+    }
 
     foreach ($matches[1] as $src) {
       if (str_starts_with($src, '/storage/editor-images/')) {
@@ -596,5 +693,26 @@ class AboutContentController extends Controller
         }
       }
     }
+  }
+
+  /**
+   * Generate a unique slug.
+   */
+  private function generateUniqueSlug(string $title, ?int $excludeId = null): string
+  {
+    $slug = Str::slug($title);
+    $originalSlug = $slug;
+    $counter = 1;
+
+    while (AboutContent::withTrashed()
+      ->where('slug', $slug)
+      ->when($excludeId, fn($q) => $q->where('id', '!=', $excludeId))
+      ->exists()
+    ) {
+      $slug = $originalSlug . '-' . $counter;
+      $counter++;
+    }
+
+    return $slug;
   }
 }

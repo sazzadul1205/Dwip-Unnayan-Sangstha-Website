@@ -10,12 +10,8 @@ use Inertia\Response;
 
 class EmailVerifiedController extends Controller
 {
-  /**
-   * Show the email verified success page.
-   */
   public function index(Request $request): Response|RedirectResponse
   {
-    // Make sure user is authenticated and email is verified
     if (!$request->user() || !$request->user()->hasVerifiedEmail()) {
       return redirect()->route('verification.notice');
     }

@@ -4,11 +4,15 @@ namespace App\Notifications;
 
 use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Notifications\Messages\MailMessage;
+use Illuminate\Notifications\Notification;
 
 class CustomVerifyEmailNotification extends VerifyEmail
 {
     /**
-     * Build the mail representation of the notification.
+     * Get the mail representation of the notification.
+     *
+     * @param mixed $notifiable
+     * @return MailMessage
      */
     public function toMail($notifiable): MailMessage
     {

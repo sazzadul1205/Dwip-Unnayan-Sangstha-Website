@@ -8,17 +8,16 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rules;
 use Illuminate\Validation\ValidationException;
+use App\Services\SimpleLogger;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class NewPasswordController extends Controller
 {
-    /**
-     * Show the password reset page.
-     */
     public function create(Request $request): Response
     {
         return Inertia::render('auth/Shared/ResetPassword', [
@@ -27,11 +26,6 @@ class NewPasswordController extends Controller
         ]);
     }
 
-    /**
-     * Handle an incoming new password request.
-     *
-     * @throws \Illuminate\Validation\ValidationException
-     */
     public function store(Request $request): RedirectResponse
     {
         $request->validate([
@@ -40,9 +34,17 @@ class NewPasswordController extends Controller
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
         ]);
 
-        // Here we will attempt to reset the user's password. If it is successful we
-        // will update the password on an actual user model and persist it to the
-        // database. Otherwise we will parse the error and return the response.
+        $throttleKey = 'password_reset|' . $request->email . '|' . $request->ip();
+        if (RateLimiter::tooManyAttempts($throttleKey, 5)) {
+            SimpleLogger::security(
+                "Password reset rate limit exceeded for email {$request->email}",
+                ['email' => $request->email, 'ip' => $request->ip()]
+            );
+            throw ValidationException::withMessages([
+                'email' => 'Too many reset attempts. Please try again later.',
+            ]);
+        }
+
         $status = Password::reset(
             $request->only('email', 'password', 'password_confirmation', 'token'),
             function ($user) use ($request) {
@@ -55,12 +57,20 @@ class NewPasswordController extends Controller
             }
         );
 
-        // If the password was successfully reset, we will redirect the user back to
-        // the application's home authenticated view. If there is an error we can
-        // redirect them back to where they came from with their error message.
         if ($status == Password::PasswordReset) {
+            RateLimiter::clear($throttleKey);
+            SimpleLogger::security(
+                "Password reset successful for email {$request->email}",
+                ['email' => $request->email, 'ip' => $request->ip()]
+            );
             return to_route('login')->with('status', __($status));
         }
+
+        RateLimiter::hit($throttleKey, 60);
+        SimpleLogger::security(
+            "Password reset failed for email {$request->email}",
+            ['email' => $request->email, 'status' => $status, 'ip' => $request->ip()]
+        );
 
         throw ValidationException::withMessages([
             'email' => [__($status)],

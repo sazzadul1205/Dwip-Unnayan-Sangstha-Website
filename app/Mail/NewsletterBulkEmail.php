@@ -1,5 +1,4 @@
 <?php
-// app/Mail/NewsletterBulkEmail.php
 
 namespace App\Mail;
 

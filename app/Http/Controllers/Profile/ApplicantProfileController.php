@@ -1,654 +1,79 @@
 <?php
-// app/Http/Controllers/Profile/ApplicantProfileController.php
 
 namespace App\Http\Controllers\Profile;
 
-// Models
-use App\Models\User;
-use App\Models\JobHistory;
+use App\Http\Controllers\Controller;
 use App\Models\Achievement;
 use App\Models\ApplicantCv;
 use App\Models\ApplicantProfile;
 use App\Models\EducationHistory;
-
-// Controllers
-use App\Http\Controllers\Controller;
+use App\Models\JobHistory;
+use App\Models\User;
 use App\Services\SimpleLogger;
-// Requests
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
-
-// Facades
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Storage;
-
-// Exceptions
-use Illuminate\Validation\ValidationException;
-
-use Illuminate\Http\UploadedFile;
-
-// Builder
-use Illuminate\Database\Eloquent\Builder;
-
-// Support
 use Illuminate\Support\Str;
-
-// Inertia
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
+use Inertia\Response;
+use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
 
 class ApplicantProfileController extends Controller
 {
+    protected array $allowedPhotoExtensions = ['jpeg', 'png', 'jpg', 'gif', 'webp'];
+    protected array $allowedCvExtensions = ['pdf', 'doc', 'docx'];
+    protected int $maxPhotoSize = 2048; // KB
+    protected int $maxCvSize = 5120; // KB
 
     /**
-     * Display all applicant profiles with comprehensive filtering and sorting
+     * Display all applicant profiles with comprehensive filtering and sorting.
      */
-    public function index(Request $request)
+    public function index(Request $request): Response
     {
-        $user = Auth::user();
-
-        // Check if user is logged in
-        if (!$user instanceof User) {
-            abort(401);
-        }
+        $user = $this->getAuthenticatedUser();
 
         $query = ApplicantProfile::with([
             'user',
-            'cvs' => function ($q) {
-                $q->where('status', 'active')->orderBy('order_position');
-            },
+            'cvs' => fn($q) => $q->where('status', 'active')->orderBy('order_position'),
             'primaryCv',
-            'jobHistories' => function ($q) {
-                $q->orderBy('starting_year', 'desc')->limit(3);
-            },
-            'educationHistories' => function ($q) {
-                $q->orderBy('passing_year', 'desc')->limit(2);
-            },
-            'achievements' => function ($q) {
-                $q->latest()->limit(3);
-            },
-            'applications' => function ($q) {
-                $q->latest()->limit(5);
-            }
+            'jobHistories' => fn($q) => $q->orderBy('starting_year', 'desc')->limit(3),
+            'educationHistories' => fn($q) => $q->orderBy('passing_year', 'desc')->limit(2),
+            'achievements' => fn($q) => $q->latest()->limit(3),
+            'applications' => fn($q) => $q->latest()->limit(5),
         ]);
 
-        // ==========================================
-        // SEARCH FILTERS
-        // ==========================================
+        // Apply all filters
+        $this->applyFilters($query, $request);
 
-        // Search by name (first_name or last_name)
-        if ($request->filled('search')) {
-            $search = $request->search;
-            $query->where(function ($q) use ($search) {
-                $q->where('first_name', 'like', "%{$search}%")
-                    ->orWhere('last_name', 'like', "%{$search}%")
-                    ->orWhereRaw("CONCAT(first_name, ' ', last_name) LIKE ?", ["%{$search}%"])
-                    ->orWhereHas('user', function ($userQuery) use ($search) {
-                        $userQuery->where('email', 'like', "%{$search}%");
-                    });
-            });
-        }
+        // Sorting – using ->input() instead of deprecated ->get()
+        $sortField = $request->input('sort', 'created_at');
+        $sortDirection = $request->input('direction', 'desc');
+        $this->applySorting($query, $sortField, $sortDirection);
 
-        // Search by email through user relation
-        if ($request->filled('email')) {
-            $query->whereHas('user', function ($q) use ($request) {
-                $q->where('email', 'like', "%{$request->email}%");
-            });
-        }
-
-        // ==========================================
-        // BASIC INFO FILTERS
-        // ==========================================
-
-        // Filter by gender
-        if ($request->filled('gender')) {
-            $query->where('gender', $request->gender);
-        }
-
-        // Filter by blood type
-        if ($request->filled('blood_type')) {
-            $query->where('blood_type', $request->blood_type);
-        }
-
-        // Filter by phone
-        if ($request->filled('phone')) {
-            $query->where('phone', 'like', "%{$request->phone}%");
-        }
-
-        // Address/location filter
-        if ($request->filled('address')) {
-            $query->where('address', 'like', "%{$request->address}%");
-        }
-
-        // ==========================================
-        // DATE RANGE FILTERS
-        // ==========================================
-
-        // Birth date range
-        if ($request->filled('birth_date_from')) {
-            $query->whereDate('birth_date', '>=', $request->birth_date_from);
-        }
-
-        if ($request->filled('birth_date_to')) {
-            $query->whereDate('birth_date', '<=', $request->birth_date_to);
-        }
-
-        // Age range (calculated from birth_date)
-        if ($request->filled('min_age')) {
-            $minBirthDate = now()->subYears((int) $request->min_age)->format('Y-m-d');
-            $query->whereDate('birth_date', '<=', $minBirthDate);
-        }
-
-        if ($request->filled('max_age')) {
-            $maxBirthDate = now()->subYears((int) $request->max_age)->format('Y-m-d');
-            $query->whereDate('birth_date', '>=', $maxBirthDate);
-        }
-
-        // Created date range
-        if ($request->filled('created_from')) {
-            $query->whereDate('created_at', '>=', $request->created_from);
-        }
-
-        if ($request->filled('created_to')) {
-            $query->whereDate('created_at', '<=', $request->created_to);
-        }
-
-        // Date range presets
-        if ($request->filled('date_range')) {
-            switch ($request->date_range) {
-                case 'today':
-                    $query->whereDate('created_at', today());
-                    break;
-                case 'yesterday':
-                    $query->whereDate('created_at', today()->subDay());
-                    break;
-                case 'this_week':
-                    $query->whereBetween('created_at', [now()->startOfWeek(), now()->endOfWeek()]);
-                    break;
-                case 'this_month':
-                    $query->whereMonth('created_at', now()->month);
-                    break;
-                case 'last_month':
-                    $query->whereMonth('created_at', now()->subMonth()->month);
-                    break;
-                case 'this_year':
-                    $query->whereYear('created_at', now()->year);
-                    break;
-            }
-        }
-
-        // ==========================================
-        // PROFESSIONAL INFO FILTERS
-        // ==========================================
-
-        // Experience years range
-        if ($request->filled('min_experience')) {
-            $query->where('experience_years', '>=', (int) $request->min_experience);
-        }
-
-        if ($request->filled('max_experience')) {
-            $query->where('experience_years', '<=', (int) $request->max_experience);
-        }
-
-        // Experience level categories
-        if ($request->filled('experience_level')) {
-            $ranges = [
-                'fresher' => ['min' => 0, 'max' => 0],
-                'entry' => ['min' => 0, 'max' => 1],
-                'junior' => ['min' => 1, 'max' => 3],
-                'mid' => ['min' => 3, 'max' => 6],
-                'senior' => ['min' => 6, 'max' => 10],
-                'expert' => ['min' => 10, 'max' => 100],
-            ];
-
-            if (isset($ranges[$request->experience_level])) {
-                $range = $ranges[$request->experience_level];
-                $query->whereBetween('experience_years', [$range['min'], $range['max']]);
-            }
-        }
-
-        // Current job title filter
-        if ($request->filled('current_job_title')) {
-            $query->where('current_job_title', 'like', "%{$request->current_job_title}%");
-        }
-
-        // Has current job (not null and not empty)
-        if ($request->filled('has_current_job')) {
-            if ($request->has_current_job === 'yes') {
-                $query->whereNotNull('current_job_title')
-                    ->where('current_job_title', '!=', '');
-            } else {
-                $query->where(function ($q) {
-                    $q->whereNull('current_job_title')
-                        ->orWhere('current_job_title', '');
-                });
-            }
-        }
-
-        // Has work experience
-        if ($request->filled('has_experience')) {
-            if ($request->has_experience === 'yes') {
-                $query->where('experience_years', '>', 0)
-                    ->orWhereNotNull('current_job_title');
-            } else {
-                $query->where(function ($q) {
-                    $q->whereNull('experience_years')
-                        ->orWhere('experience_years', 0);
-                })->where(function ($q) {
-                    $q->whereNull('current_job_title')
-                        ->orWhere('current_job_title', '');
-                });
-            }
-        }
-
-        // Has CV uploaded
-        if ($request->filled('has_cv')) {
-            if ($request->has_cv === 'yes') {
-                $query->whereHas('cvs', function ($q) {
-                    $q->where('status', 'active');
-                });
-            } else {
-                $query->whereDoesntHave('cvs', function ($q) {
-                    $q->where('status', 'active');
-                });
-            }
-        }
-
-        // Has primary CV
-        if ($request->filled('has_primary_cv')) {
-            if ($request->has_primary_cv === 'yes') {
-                $query->whereHas('primaryCv');
-            } else {
-                $query->whereDoesntHave('primaryCv');
-            }
-        }
-
-        // ==========================================
-        // COMPLETION & STATUS FILTERS
-        // ==========================================
-
-        // Profile completion status (using isComplete method)
-        if ($request->filled('completion_status')) {
-            switch ($request->completion_status) {
-                case 'complete':
-                    $query->complete();
-                    break;
-                case 'incomplete':
-                    foreach (ApplicantProfile::REQUIRED_FIELDS as $field) {
-                        $query->where(function ($q) use ($field) {
-                            $q->whereNull($field)->orWhere($field, '');
-                        });
-                    }
-                    break;
-                case 'minimal':
-                    foreach (ApplicantProfile::REQUIRED_FIELDS as $field) {
-                        $query->whereNotNull($field)->where($field, '!=', '');
-                    }
-                    $query->where(function ($q) {
-                        $q->whereNull('experience_years')
-                            ->orWhere('experience_years', 0);
-                    })->where(function ($q) {
-                        $q->whereNull('current_job_title')
-                            ->orWhere('current_job_title', '');
-                    });
-                    break;
-                case 'complete_with_cv':
-                    $query->complete()->whereHas('cvs', function ($q) {
-                        $q->where('status', 'active');
-                    });
-                    break;
-            }
-        }
-
-        // Completion percentage range
-        if ($request->filled('min_completion')) {
-            // Handled in collection transform
-        }
-
-        // Profile status (active/deleted)
-        if ($request->filled('trashed')) {
-            switch ($request->trashed) {
-                case 'only':
-                    $query->onlyTrashed();
-                    break;
-                case 'with':
-                    $query->withTrashed();
-                    break;
-            }
-        }
-
-        // ==========================================
-        // APPLICATION RELATED FILTERS
-        // ==========================================
-
-        // Has applied to any job
-        if ($request->filled('has_applied')) {
-            if ($request->has_applied === 'yes') {
-                $query->whereHas('applications');
-            } else {
-                $query->whereDoesntHave('applications');
-            }
-        }
-
-        // Minimum application count
-        if ($request->filled('min_applications')) {
-            $query->whereHas('applications', function ($q) use ($request) {
-                $q->havingRaw('COUNT(*) >= ?', [(int) $request->min_applications]);
-            });
-        }
-
-        // Filter by application status
-        if ($request->filled('application_status')) {
-            $query->whereHas('applications', function ($q) use ($request) {
-                $q->where('status', $request->application_status);
-            });
-        }
-
-        // Filter by job applied to
-        if ($request->filled('applied_to_job_id')) {
-            $query->whereHas('applications', function ($q) use ($request) {
-                $q->where('job_listing_id', $request->applied_to_job_id);
-            });
-        }
-
-        // Filter by ATS score range from applications
-        if ($request->filled('min_ats_score') || $request->filled('max_ats_score')) {
-            $query->whereHas('applications', function ($q) use ($request) {
-                if ($request->filled('min_ats_score')) {
-                    $minScore = (int) $request->min_ats_score;
-                    $q->where(function ($subQ) use ($minScore) {
-                        $subQ->whereRaw('JSON_EXTRACT(ats_score, "$.percentage") >= ?', [$minScore])
-                            ->orWhereRaw('ats_score >= ?', [$minScore]);
-                    });
-                }
-                if ($request->filled('max_ats_score')) {
-                    $maxScore = (int) $request->max_ats_score;
-                    $q->where(function ($subQ) use ($maxScore) {
-                        $subQ->whereRaw('JSON_EXTRACT(ats_score, "$.percentage") <= ?', [$maxScore])
-                            ->orWhereRaw('ats_score <= ?', [$maxScore]);
-                    });
-                }
-            });
-        }
-
-        // ==========================================
-        // SOCIAL LINKS FILTERS
-        // ==========================================
-
-        // Has any social links
-        if ($request->filled('has_social_links')) {
-            if ($request->has_social_links === 'yes') {
-                $query->whereNotNull('social_links')
-                    ->where('social_links', '!=', '[]')
-                    ->where('social_links', '!=', 'null');
-            } else {
-                $query->where(function ($q) {
-                    $q->whereNull('social_links')
-                        ->orWhere('social_links', '[]')
-                        ->orWhere('social_links', 'null');
-                });
-            }
-        }
-
-        // Specific social link presence
-        if ($request->filled('has_linkedin')) {
-            $query->whereJsonContains('social_links->linkedin', 'like', '%linkedin%');
-        }
-
-        if ($request->filled('has_facebook')) {
-            $query->whereJsonContains('social_links->facebook', 'like', '%facebook%');
-        }
-
-        if ($request->filled('has_twitter')) {
-            $query->whereJsonContains('social_links->twitter', 'like', '%twitter%');
-        }
-
-        // ==========================================
-        // JOB HISTORY FILTERS
-        // ==========================================
-
-        // Has job history entries
-        if ($request->filled('has_job_history')) {
-            if ($request->has_job_history === 'yes') {
-                $query->whereHas('jobHistories');
-            } else {
-                $query->whereDoesntHave('jobHistories');
-            }
-        }
-
-        // Minimum job history count
-        if ($request->filled('min_job_history_count')) {
-            $query->whereHas('jobHistories', function ($q) use ($request) {
-                $q->havingRaw('COUNT(*) >= ?', [(int) $request->min_job_history_count]);
-            });
-        }
-
-        // Worked at specific company
-        if ($request->filled('company_name')) {
-            $query->whereHas('jobHistories', function ($q) use ($request) {
-                $q->where('company_name', 'like', "%{$request->company_name}%");
-            });
-        }
-
-        // Held specific position
-        if ($request->filled('position')) {
-            $query->whereHas('jobHistories', function ($q) use ($request) {
-                $q->where('position', 'like', "%{$request->position}%");
-            });
-        }
-
-        // ==========================================
-        // EDUCATION FILTERS
-        // ==========================================
-
-        // Has education entries
-        if ($request->filled('has_education')) {
-            if ($request->has_education === 'yes') {
-                $query->whereHas('educationHistories');
-            } else {
-                $query->whereDoesntHave('educationHistories');
-            }
-        }
-
-        // Degree filter
-        if ($request->filled('degree')) {
-            $query->whereHas('educationHistories', function ($q) use ($request) {
-                $q->where('degree', 'like', "%{$request->degree}%");
-            });
-        }
-
-        // Institution filter
-        if ($request->filled('institution')) {
-            $query->whereHas('educationHistories', function ($q) use ($request) {
-                $q->where('institution_name', 'like', "%{$request->institution}%");
-            });
-        }
-
-        // Passing year range
-        if ($request->filled('min_passing_year')) {
-            $query->whereHas('educationHistories', function ($q) use ($request) {
-                $q->where('passing_year', '>=', (int) $request->min_passing_year);
-            });
-        }
-
-        if ($request->filled('max_passing_year')) {
-            $query->whereHas('educationHistories', function ($q) use ($request) {
-                $q->where('passing_year', '<=', (int) $request->max_passing_year);
-            });
-        }
-
-        // ==========================================
-        // ACHIEVEMENTS FILTERS
-        // ==========================================
-
-        // Has achievements
-        if ($request->filled('has_achievements')) {
-            if ($request->has_achievements === 'yes') {
-                $query->whereHas('achievements');
-            } else {
-                $query->whereDoesntHave('achievements');
-            }
-        }
-
-        // Minimum achievements count
-        if ($request->filled('min_achievements')) {
-            $query->whereHas('achievements', function ($q) use ($request) {
-                $q->havingRaw('COUNT(*) >= ?', [(int) $request->min_achievements]);
-            });
-        }
-
-        // ==========================================
-        // USER ACCOUNT FILTERS
-        // ==========================================
-
-        // Email verification status
-        if ($request->filled('email_verified')) {
-            if ($request->email_verified === 'yes') {
-                $query->whereHas('user', function ($q) {
-                    $q->whereNotNull('email_verified_at');
-                });
-            } else {
-                $query->whereHas('user', function ($q) {
-                    $q->whereNull('email_verified_at');
-                });
-            }
-        }
-
-        // User status (if user soft deleted)
-        if ($request->filled('user_status')) {
-            switch ($request->user_status) {
-                case 'active':
-                    $query->whereHas('user', function ($q) {
-                        $q->whereNull('deleted_at');
-                    });
-                    break;
-                case 'deleted':
-                    $query->whereHas('user', function ($q) {
-                        $q->onlyTrashed();
-                    });
-                    break;
-            }
-        }
-
-        // ==========================================
-        // SORTING
-        // ==========================================
-
-        $sortField = $request->get('sort', 'created_at');
-        $sortDirection = $request->get('direction', 'desc');
-
-        $allowedSortFields = [
-            'created_at',
-            'updated_at',
-            'first_name',
-            'last_name',
-            'birth_date',
-            'experience_years',
-            'current_job_title',
-            'phone',
-        ];
-
-        if (in_array($sortField, $allowedSortFields)) {
-            $query->orderBy($sortField, $sortDirection);
-        } elseif ($sortField === 'full_name') {
-            $query->orderBy('first_name', $sortDirection)
-                ->orderBy('last_name', $sortDirection);
-        } elseif ($sortField === 'email') {
-            $query->whereHas('user', function ($q) use ($sortDirection) {
-                $q->orderBy('email', $sortDirection);
-            });
-        } elseif ($sortField === 'completion_percentage') {
-            // Special handling - will sort after query
-        } else {
-            $query->orderBy('created_at', 'desc');
-        }
-
-        // ==========================================
-        // PAGINATION
-        // ==========================================
-
-        $perPage = $request->get('per_page', 7);
+        // Pagination
+        $perPage = $request->input('per_page', 7);
         $profiles = $query->paginate($perPage)->withQueryString();
 
-        // Add computed attributes to collection
-        $profiles->getCollection()->transform(function ($profile) {
-            $profile->completion_percentage = $profile->completionPercentage();
-            $profile->full_name = $profile->full_name;
-            $profile->email = $profile->user?->email;
-            $profile->photo_url = $profile->photo_path
-                ? ($profile->photo_path ? route('profile.photo', ['path' => $profile->photo_path]) : null)
-                : null;
-            $profile->experience_level_label = $this->getExperienceLevelLabel($profile->experience_years);
-            $profile->applications_count = $profile->applications()->count();
-            $profile->active_cvs_count = $profile->cvs()->where('status', 'active')->count();
-            return $profile;
-        });
+        // Transform collection with computed attributes
+        $profiles->getCollection()->transform(fn($profile) => $this->transformProfile($profile));
 
         // Sort by completion percentage if requested
         if ($sortField === 'completion_percentage') {
             $profiles->getCollection()->sortBy([
-                ['completion_percentage', $sortDirection === 'desc' ? SORT_DESC : SORT_ASC]
+                ['completion_percentage', $sortDirection === 'desc' ? SORT_DESC : SORT_ASC],
             ]);
         }
 
-        // ==========================================
-        // STATISTICS FOR FILTER OPTIONS
-        // ==========================================
+        // Statistics
+        $stats = $this->getStatistics($request);
 
-        $statsQuery = ApplicantProfile::query();
-        $this->applyFiltersToQuery($statsQuery, $request);
-
-        $experienceStats = (clone $statsQuery)->selectRaw('
-            MIN(experience_years) as min_exp,
-            MAX(experience_years) as max_exp,
-            AVG(experience_years) as avg_exp')->first();
-
-        $ageStats = (clone $statsQuery)->selectRaw('
-            MIN(YEAR(birth_date)) as min_birth_year,
-            MAX(YEAR(birth_date)) as max_birth_year')->whereNotNull('birth_date')->first();
-
-        $statusCounts = [
-            'total' => (clone $statsQuery)->count(),
-            'complete' => (clone $statsQuery)->complete()->count(),
-            'incomplete' => (clone $statsQuery)->where(function ($q) {
-                foreach (ApplicantProfile::REQUIRED_FIELDS as $field) {
-                    $q->where(function ($subQ) use ($field) {
-                        $subQ->whereNull($field)->orWhere($field, '');
-                    });
-                }
-            })->count(),
-            'has_cv' => (clone $statsQuery)->whereHas('cvs', function ($q) {
-                $q->where('status', 'active');
-            })->count(),
-            'has_applied' => (clone $statsQuery)->whereHas('applications')->count(),
-            'deleted' => ApplicantProfile::onlyTrashed()->count(),
-        ];
-
-        $genderStats = (clone $statsQuery)
-            ->selectRaw('gender, COUNT(*) as count')
-            ->whereNotNull('gender')
-            ->groupBy('gender')
-            ->pluck('count', 'gender')
-            ->toArray();
-
-        $experienceLevels = ['fresher', 'entry', 'junior', 'mid', 'senior', 'expert'];
-        $experienceDistribution = [];
-        foreach ($experienceLevels as $level) {
-            $ranges = [
-                'fresher' => [0, 0],
-                'entry' => [0, 1],
-                'junior' => [1, 3],
-                'mid' => [3, 6],
-                'senior' => [6, 10],
-                'expert' => [10, 100],
-            ];
-            $range = $ranges[$level];
-            $experienceDistribution[$level] = (clone $statsQuery)
-                ->whereBetween('experience_years', [$range[0], $range[1]])
-                ->count();
-        }
-
-        return inertia('Backend/ApplicantProfile/Index', [
+        return Inertia::render('Backend/ApplicantProfile/Index', [
             'profiles' => $profiles,
             'filters' => $request->only([
                 'search',
@@ -700,225 +125,56 @@ class ApplicantProfileController extends Controller
                 'user_status',
                 'sort',
                 'direction',
-                'per_page'
+                'per_page',
             ]),
-            'filterOptions' => [
-                'genders' => ['male', 'female', 'other'],
-                'blood_types' => ApplicantProfile::$bloodTypes,
-                'experience' => [
-                    'min' => (int) ($experienceStats->min_exp ?? 0),
-                    'max' => (int) ($experienceStats->max_exp ?? 30),
-                    'avg' => round($experienceStats->avg_exp ?? 0, 1),
-                ],
-                'age' => [
-                    'min' => $ageStats->min_birth_year ? now()->year - (int) $ageStats->max_birth_year : 18,
-                    'max' => $ageStats->max_birth_year ? now()->year - (int) $ageStats->min_birth_year : 65,
-                ],
-                'completion_levels' => [
-                    'complete' => $statusCounts['complete'],
-                    'incomplete' => $statusCounts['incomplete'],
-                    'complete_with_cv' => (clone $statsQuery)->complete()->whereHas('cvs')->count(),
-                ],
-            ],
-            'statusCounts' => $statusCounts,
-            'genderDistribution' => $genderStats,
-            'experienceDistribution' => $experienceDistribution,
+            'filterOptions' => $stats['options'],
+            'statusCounts' => $stats['counts'],
+            'genderDistribution' => $stats['gender'],
+            'experienceDistribution' => $stats['experience'],
             'totalProfiles' => ApplicantProfile::count(),
         ]);
     }
 
     /**
-     * Apply filters to a query (helper method to avoid duplication)
+     * Display a specific applicant profile.
      */
-    private function applyFiltersToQuery(Builder $query, Request $request): void
+    public function show(?int $id = null): Response|\Illuminate\Http\RedirectResponse
     {
-        if ($request->filled('search')) {
-            $search = $request->search;
-            $query->where(function ($q) use ($search) {
-                $q->where('first_name', 'like', "%{$search}%")
-                    ->orWhere('last_name', 'like', "%{$search}%")
-                    ->orWhereRaw("CONCAT(first_name, ' ', last_name) LIKE ?", ["%{$search}%"]);
-            });
-        }
+        $user = $this->getAuthenticatedUser();
 
-        if ($request->filled('gender')) {
-            $query->where('gender', $request->gender);
-        }
-
-        if ($request->filled('min_experience')) {
-            $query->where('experience_years', '>=', (int) $request->min_experience);
-        }
-
-        if ($request->filled('max_experience')) {
-            $query->where('experience_years', '<=', (int) $request->max_experience);
-        }
-
-        if ($request->filled('date_range')) {
-            switch ($request->date_range) {
-                case 'today':
-                    $query->whereDate('created_at', today());
-                    break;
-                case 'this_month':
-                    $query->whereMonth('created_at', now()->month);
-                    break;
-            }
-        }
-
-        if ($request->filled('trashed')) {
-            switch ($request->trashed) {
-                case 'only':
-                    $query->onlyTrashed();
-                    break;
-                case 'with':
-                    $query->withTrashed();
-                    break;
-            }
-        }
-    }
-
-    /**
-     * Get experience level label from years
-     */
-    private function getExperienceLevelLabel(?int $years): string
-    {
-        if ($years === null || $years === 0) {
-            return 'Fresher';
-        }
-        if ($years <= 1) {
-            return 'Entry Level';
-        }
-        if ($years <= 3) {
-            return 'Junior';
-        }
-        if ($years <= 6) {
-            return 'Mid Level';
-        }
-        if ($years <= 10) {
-            return 'Senior';
-        }
-        return 'Expert';
-    }
-
-    /**
-     * Display the applicant's profile (show page)
-     */
-    public function show(?int $id = null)
-    {
-        $user = Auth::user();
-
-        // Check if user is logged in
-        if (!$user instanceof User) {
-            abort(401);
-        }
-
-        if (!$user) {
-            return redirect()->route('login')
-                ->with('error', 'Please login to view profiles.');
-        }
-
-        // If no ID provided, show the authenticated user's profile (owner view)
-        if (is_null($id)) {
-            $profile = ApplicantProfile::withTrashed()
-                ->with([
-                    'cvs' => function ($query) {
-                        $query->orderBy('order_position')->orderBy('created_at', 'desc');
-                    },
-                    'jobHistories' => function ($query) {
-                        $query->orderBy('starting_year', 'desc')->orderBy('created_at', 'desc');
-                    },
-                    'educationHistories' => function ($query) {
-                        $query->orderBy('passing_year', 'desc')->orderBy('created_at', 'desc');
-                    },
-                    'achievements' => function ($query) {
-                        $query->orderBy('created_at', 'desc');
-                    },
-                    'applications' => function ($query) {
-                        $query->with(['jobListing' => function ($q) {
-                            $q->with(['category', 'locations']);
-                        }])->orderBy('created_at', 'desc');
-                    },
-                    'user'
-                ])
-                ->where('user_id', $user->id)
-                ->first();
-        } else {
-            $profile = ApplicantProfile::withTrashed()
-                ->with([
-                    'cvs' => function ($query) {
-                        $query->orderBy('order_position')->orderBy('created_at', 'desc');
-                    },
-                    'jobHistories' => function ($query) {
-                        $query->orderBy('starting_year', 'desc')->orderBy('created_at', 'desc');
-                    },
-                    'educationHistories' => function ($query) {
-                        $query->orderBy('passing_year', 'desc')->orderBy('created_at', 'desc');
-                    },
-                    'achievements' => function ($query) {
-                        $query->orderBy('created_at', 'desc');
-                    },
-                    'applications' => function ($query) {
-                        $query->with(['jobListing' => function ($q) {
-                            $q->with(['category', 'locations']);
-                        }])->orderBy('created_at', 'desc');
-                    },
-                    'user'
-                ])
-                ->where('id', $id)
-                ->first();
-        }
+        $profile = $this->findProfile($id, $user);
 
         if (!$profile) {
             return redirect()->route('backend.dashboard')
                 ->with('error', 'Profile not found.');
         }
 
+        $this->enrichProfile($profile);
+
         $isOwner = ($user->id === $profile->user_id);
-        $canDelete = false;
-
-        if ($profile) {
-            if ($profile->photo_path) {
-                $profile->photo_url = asset('storage/' . $profile->photo_path);
-            } else {
-                $profile->photo_url = null;
-            }
-
-            foreach ($profile->cvs as $cv) {
-                $cv->cv_url = $cv->cv_path ? asset('storage/' . $cv->cv_path) : null;
-                $cv->file_size = $cv->cv_path && Storage::disk('public')->exists($cv->cv_path)
-                    ? Storage::disk('public')->size($cv->cv_path)
-                    : null;
-            }
-
-            $profile->completion_percentage = $profile->completionPercentage();
-            $profile->email = $profile->user?->email;
-        }
 
         return Inertia::render('Backend/ApplicantProfile/Show', [
             'profile' => $profile,
             'canEdit' => $isOwner,
-            'canDelete' => $canDelete,
+            'canDelete' => false,
         ]);
     }
 
     /**
-     * Serve profile photo from storage to avoid public symlink issues.
+     * Serve profile photo from storage.
      */
-    public function photo(string $path)
+    public function photo(string $path): \Symfony\Component\HttpFoundation\BinaryFileResponse|\Illuminate\Http\JsonResponse
     {
         if (Str::contains($path, '..')) {
             abort(404);
         }
 
-        // Check if file exists in public disk
         if (!Storage::disk('public')->exists($path)) {
             abort(404);
         }
 
-        // Get the file path
         $filePath = Storage::disk('public')->path($path);
-
-        // Get the mime type using the file extension
-        $extension = pathinfo($filePath, PATHINFO_EXTENSION);
+        $extension = strtolower(pathinfo($filePath, PATHINFO_EXTENSION));
         $mimeTypes = [
             'jpg' => 'image/jpeg',
             'jpeg' => 'image/jpeg',
@@ -927,34 +183,23 @@ class ApplicantProfileController extends Controller
             'webp' => 'image/webp',
             'svg' => 'image/svg+xml',
         ];
-        $mimeType = $mimeTypes[strtolower($extension)] ?? 'application/octet-stream';
 
-        // Return the file with correct headers
         return response()->file($filePath, [
-            'Content-Type' => $mimeType,
+            'Content-Type' => $mimeTypes[$extension] ?? 'application/octet-stream',
             'Cache-Control' => 'public, max-age=31536000',
         ]);
     }
 
     /**
-     * Update Basic Information only
+     * Update basic information.
      */
-    public function updateBasicInfo(Request $request, ApplicantProfile $applicantProfile)
+    public function updateBasicInfo(Request $request, ApplicantProfile $applicantProfile): \Illuminate\Http\JsonResponse
     {
-        $user = Auth::user();
-
-        // Check if user is logged in
-        if (!$user instanceof User) {
-            abort(401);
-        }
-
-        // Only profile owner can update basic info
-        if ($user->id !== $applicantProfile->user_id) {
-            return response()->json(['error' => 'Unauthorized.'], 403);
-        }
+        $user = $this->getAuthenticatedUser();
+        $this->authorizeProfileOwner($user, $applicantProfile);
 
         if ($applicantProfile->trashed()) {
-            return response()->json(['error' => 'Cannot update a deleted profile.'], 422);
+            return $this->jsonError('Cannot update a deleted profile.', 422);
         }
 
         $validated = $request->validate([
@@ -965,7 +210,7 @@ class ApplicantProfileController extends Controller
             'blood_type' => 'nullable|string|max:3',
             'phone' => 'nullable|string|max:20',
             'address' => 'nullable|string',
-            'photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'photo' => 'nullable|image|mimes:' . implode(',', $this->allowedPhotoExtensions) . '|max:' . $this->maxPhotoSize,
             'remove_photo' => 'nullable|boolean',
         ]);
 
@@ -979,57 +224,53 @@ class ApplicantProfileController extends Controller
             'address' => $validated['address'] ?? null,
         ];
 
+        // Handle photo removal
         if ($request->boolean('remove_photo') && $applicantProfile->photo_path) {
             Storage::disk('public')->delete($applicantProfile->photo_path);
             $profileData['photo_path'] = null;
         }
 
+        // Handle photo upload with rate limiting
         if ($request->hasFile('photo')) {
+            $this->checkRateLimit('photo_upload', $user->id, 5);
+
             if ($applicantProfile->photo_path) {
                 Storage::disk('public')->delete($applicantProfile->photo_path);
             }
-            $photoPath = $this->handlePhotoUpload($request->file('photo'), $applicantProfile->user_id);
-            $profileData['photo_path'] = $photoPath;
+            $profileData['photo_path'] = $this->handlePhotoUpload($request->file('photo'));
+            RateLimiter::clear($this->getThrottleKey('photo_upload', $user->id));
         }
 
         $applicantProfile->update($profileData);
 
-        // Log profile update
         SimpleLogger::users(
-            "✏️ Profile updated: " . Auth::user()->email,
+            "✏️ Profile updated: {$user->email}",
             [
-                'user_id' => Auth::id(),
+                'user_id' => $user->id,
                 'profile_id' => $applicantProfile->id,
                 'section' => 'basic_info',
-                'updated_fields' => array_keys($profileData)
+                'updated_fields' => array_keys($profileData),
+                'ip' => $request->ip(),
             ]
         );
 
         return response()->json([
             'success' => true,
             'message' => 'Basic information updated successfully!',
-            'profile' => $applicantProfile->fresh()
+            'profile' => $applicantProfile->fresh(),
         ]);
     }
 
     /**
-     * Update Professional Information only
+     * Update professional information.
      */
-    public function updateProfessionalInfo(Request $request, ApplicantProfile $applicantProfile)
+    public function updateProfessionalInfo(Request $request, ApplicantProfile $applicantProfile): \Illuminate\Http\JsonResponse
     {
-        $user = Auth::user();
-
-        // Check if user is logged in
-        if (!$user instanceof User) {
-            abort(401);
-        }
-
-        if ($user->id !== $applicantProfile->user_id) {
-            return response()->json(['error' => 'Unauthorized.'], 403);
-        }
+        $user = $this->getAuthenticatedUser();
+        $this->authorizeProfileOwner($user, $applicantProfile);
 
         if ($applicantProfile->trashed()) {
-            return response()->json(['error' => 'Cannot update a deleted profile.'], 422);
+            return $this->jsonError('Cannot update a deleted profile.', 422);
         }
 
         $validated = $request->validate([
@@ -1044,44 +285,36 @@ class ApplicantProfileController extends Controller
             'social_links' => $validated['social_links'] ?? [],
         ]);
 
-        // Log professional info update
         SimpleLogger::users(
-            "✏️ Professional info updated: " . Auth::user()->email,
+            "✏️ Professional info updated: {$user->email}",
             [
-                'user_id' => Auth::id(),
+                'user_id' => $user->id,
                 'profile_id' => $applicantProfile->id,
                 'section' => 'professional_info',
                 'experience_years' => $validated['experience_years'] ?? null,
                 'current_job_title' => $validated['current_job_title'] ?? null,
-                'has_social_links' => !empty($validated['social_links'])
+                'has_social_links' => !empty($validated['social_links']),
+                'ip' => $request->ip(),
             ]
         );
 
         return response()->json([
             'success' => true,
             'message' => 'Professional information updated successfully!',
-            'profile' => $applicantProfile->fresh()
+            'profile' => $applicantProfile->fresh(),
         ]);
     }
 
     /**
-     * Update Work Experience (Job Histories)
+     * Update work experiences.
      */
-    public function updateWorkExperiences(Request $request, ApplicantProfile $applicantProfile)
+    public function updateWorkExperiences(Request $request, ApplicantProfile $applicantProfile): \Illuminate\Http\JsonResponse
     {
-        $user = Auth::user();
-
-        // Check if user is logged in
-        if (!$user instanceof User) {
-            abort(401);
-        }
-
-        if ($user->id !== $applicantProfile->user_id) {
-            return response()->json(['error' => 'Unauthorized.'], 403);
-        }
+        $user = $this->getAuthenticatedUser();
+        $this->authorizeProfileOwner($user, $applicantProfile);
 
         if ($applicantProfile->trashed()) {
-            return response()->json(['error' => 'Cannot update a deleted profile.'], 422);
+            return $this->jsonError('Cannot update a deleted profile.', 422);
         }
 
         $validated = $request->validate([
@@ -1108,53 +341,52 @@ class ApplicantProfileController extends Controller
                     $jobData['ending_year'] = null;
                 }
 
+                $payload = [
+                    'company_name' => $jobData['company_name'],
+                    'position' => $jobData['position'],
+                    'starting_year' => $jobData['starting_year'],
+                    'ending_year' => $jobData['ending_year'] ?? null,
+                    'is_current' => $jobData['is_current'] ?? false,
+                ];
+
                 if (isset($jobData['id'])) {
                     JobHistory::where('id', $jobData['id'])
                         ->where('applicant_profile_id', $applicantProfile->id)
-                        ->update([
-                            'company_name' => $jobData['company_name'],
-                            'position' => $jobData['position'],
-                            'starting_year' => $jobData['starting_year'],
-                            'ending_year' => $jobData['ending_year'] ?? null,
-                            'is_current' => $jobData['is_current'] ?? false,
-                        ]);
+                        ->update($payload);
                 } else {
-                    $applicantProfile->jobHistories()->create([
-                        'company_name' => $jobData['company_name'],
-                        'position' => $jobData['position'],
-                        'starting_year' => $jobData['starting_year'],
-                        'ending_year' => $jobData['ending_year'] ?? null,
-                        'is_current' => $jobData['is_current'] ?? false,
-                    ]);
+                    $applicantProfile->jobHistories()->create($payload);
                 }
             }
         });
 
+        SimpleLogger::users(
+            "✏️ Work experiences updated: {$user->email}",
+            [
+                'user_id' => $user->id,
+                'profile_id' => $applicantProfile->id,
+                'section' => 'work_experiences',
+                'count' => count($validated['job_histories'] ?? []),
+                'ip' => $request->ip(),
+            ]
+        );
+
         return response()->json([
             'success' => true,
             'message' => 'Work experience updated successfully!',
-            'job_histories' => $applicantProfile->fresh()->jobHistories
+            'job_histories' => $applicantProfile->fresh()->jobHistories,
         ]);
     }
 
     /**
-     * Update Education
+     * Update education.
      */
-    public function updateEducations(Request $request, ApplicantProfile $applicantProfile)
+    public function updateEducations(Request $request, ApplicantProfile $applicantProfile): \Illuminate\Http\JsonResponse
     {
-        $user = Auth::user();
-
-        // Check if user is logged in
-        if (!$user instanceof User) {
-            abort(401);
-        }
-
-        if ($user->id !== $applicantProfile->user_id) {
-            return response()->json(['error' => 'Unauthorized.'], 403);
-        }
+        $user = $this->getAuthenticatedUser();
+        $this->authorizeProfileOwner($user, $applicantProfile);
 
         if ($applicantProfile->trashed()) {
-            return response()->json(['error' => 'Cannot update a deleted profile.'], 422);
+            return $this->jsonError('Cannot update a deleted profile.', 422);
         }
 
         $validated = $request->validate([
@@ -1175,49 +407,50 @@ class ApplicantProfileController extends Controller
                     continue;
                 }
 
+                $payload = [
+                    'institution_name' => $eduData['institution_name'],
+                    'degree' => $eduData['degree'],
+                    'passing_year' => $eduData['passing_year'],
+                ];
+
                 if (isset($eduData['id'])) {
                     EducationHistory::where('id', $eduData['id'])
                         ->where('applicant_profile_id', $applicantProfile->id)
-                        ->update([
-                            'institution_name' => $eduData['institution_name'],
-                            'degree' => $eduData['degree'],
-                            'passing_year' => $eduData['passing_year'],
-                        ]);
+                        ->update($payload);
                 } else {
-                    $applicantProfile->educationHistories()->create([
-                        'institution_name' => $eduData['institution_name'],
-                        'degree' => $eduData['degree'],
-                        'passing_year' => $eduData['passing_year'],
-                    ]);
+                    $applicantProfile->educationHistories()->create($payload);
                 }
             }
         });
 
+        SimpleLogger::users(
+            "✏️ Education updated: {$user->email}",
+            [
+                'user_id' => $user->id,
+                'profile_id' => $applicantProfile->id,
+                'section' => 'education',
+                'count' => count($validated['education_histories'] ?? []),
+                'ip' => $request->ip(),
+            ]
+        );
+
         return response()->json([
             'success' => true,
             'message' => 'Education updated successfully!',
-            'education_histories' => $applicantProfile->fresh()->educationHistories
+            'education_histories' => $applicantProfile->fresh()->educationHistories,
         ]);
     }
 
     /**
-     * Update Achievements
+     * Update achievements.
      */
-    public function updateAchievements(Request $request, ApplicantProfile $applicantProfile)
+    public function updateAchievements(Request $request, ApplicantProfile $applicantProfile): \Illuminate\Http\JsonResponse
     {
-        $user = Auth::user();
-
-        // Check if user is logged in
-        if (!$user instanceof User) {
-            abort(401);
-        }
-
-        if ($user->id !== $applicantProfile->user_id) {
-            return response()->json(['error' => 'Unauthorized.'], 403);
-        }
+        $user = $this->getAuthenticatedUser();
+        $this->authorizeProfileOwner($user, $applicantProfile);
 
         if ($applicantProfile->trashed()) {
-            return response()->json(['error' => 'Cannot update a deleted profile.'], 422);
+            return $this->jsonError('Cannot update a deleted profile.', 422);
         }
 
         $validated = $request->validate([
@@ -1237,40 +470,50 @@ class ApplicantProfileController extends Controller
                     continue;
                 }
 
+                $payload = [
+                    'achievement_name' => $achData['achievement_name'],
+                    'achievement_details' => $achData['achievement_details'] ?? null,
+                ];
+
                 if (isset($achData['id'])) {
                     Achievement::where('id', $achData['id'])
                         ->where('applicant_profile_id', $applicantProfile->id)
-                        ->update([
-                            'achievement_name' => $achData['achievement_name'],
-                            'achievement_details' => $achData['achievement_details'] ?? null,
-                        ]);
+                        ->update($payload);
                 } else {
-                    $applicantProfile->achievements()->create([
-                        'achievement_name' => $achData['achievement_name'],
-                        'achievement_details' => $achData['achievement_details'] ?? null,
-                    ]);
+                    $applicantProfile->achievements()->create($payload);
                 }
             }
         });
 
+        SimpleLogger::users(
+            "✏️ Achievements updated: {$user->email}",
+            [
+                'user_id' => $user->id,
+                'profile_id' => $applicantProfile->id,
+                'section' => 'achievements',
+                'count' => count($validated['achievements'] ?? []),
+                'ip' => $request->ip(),
+            ]
+        );
+
         return response()->json([
             'success' => true,
             'message' => 'Achievements updated successfully!',
-            'achievements' => $applicantProfile->fresh()->achievements
+            'achievements' => $applicantProfile->fresh()->achievements,
         ]);
     }
 
     /**
-     * Change Password
+     * Change password.
      */
-    public function changePassword(Request $request)
+    public function changePassword(Request $request): \Illuminate\Http\JsonResponse
     {
+        $user = $this->getAuthenticatedUser();
+
         $validated = $request->validate([
             'current_password' => 'required|string',
             'new_password' => 'required|string|min:8|confirmed',
         ]);
-
-        $user = User::query()->findOrFail(Auth::id());
 
         if (!Hash::check($validated['current_password'], $user->password)) {
             throw ValidationException::withMessages([
@@ -1279,95 +522,73 @@ class ApplicantProfileController extends Controller
         }
 
         $user->forceFill([
-            'password' => Hash::make($validated['new_password'])
+            'password' => Hash::make($validated['new_password']),
         ])->save();
 
-
-        // Log password change
         SimpleLogger::security(
-            "🔑 Password changed: " . Auth::user()->email,
+            "🔑 Password changed: {$user->email}",
             [
-                'user_id' => Auth::id(),
-                'email' => Auth::user()->email
+                'user_id' => $user->id,
+                'email' => $user->email,
+                'ip' => $request->ip(),
             ]
         );
 
-
         return response()->json([
             'success' => true,
-            'message' => 'Password changed successfully!'
+            'message' => 'Password changed successfully!',
         ]);
     }
 
     /**
-     * Remove the specified profile (soft delete)
+     * Soft delete profile.
      */
-    public function destroy(ApplicantProfile $applicantProfile)
+    public function destroy(ApplicantProfile $applicantProfile): \Illuminate\Http\JsonResponse
     {
-        $user = Auth::user();
-        if (!$user instanceof User) {
-            abort(401);
-        }
-        if ($user->id !== $applicantProfile->user_id) {
-            return response()->json(['error' => 'Unauthorized.'], 403);
-        }
+        $user = $this->getAuthenticatedUser();
+        $this->authorizeProfileOwner($user, $applicantProfile);
+
         if ($applicantProfile->trashed()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Profile is already deleted.'
-            ], 422);
+            return $this->jsonError('Profile is already deleted.', 422);
         }
 
         DB::transaction(function () use ($applicantProfile) {
-            // FIX: Soft‑delete child records (not force delete)
             $applicantProfile->cvs()->delete();
             $applicantProfile->jobHistories()->delete();
             $applicantProfile->educationHistories()->delete();
             $applicantProfile->achievements()->delete();
-
-            // Keep photo_path untouched (will be available on restore)
-            // If you want to delete the photo too, uncomment the lines below:
-            // if ($applicantProfile->photo_path && Storage::disk('public')->exists($applicantProfile->photo_path)) {
-            //     Storage::disk('public')->delete($applicantProfile->photo_path);
-            //     $applicantProfile->photo_path = null;
-            //     $applicantProfile->save();
-            // }
-
             $applicantProfile->delete();
         });
 
+        SimpleLogger::users(
+            "🗑️ Profile deleted: {$user->email}",
+            [
+                'user_id' => $user->id,
+                'profile_id' => $applicantProfile->id,
+            ]
+        );
+
         return response()->json([
             'success' => true,
-            'message' => 'Profile has been deleted. You can restore it if needed.'
+            'message' => 'Profile has been deleted. You can restore it if needed.',
         ]);
     }
 
     /**
-     * Restore a soft-deleted profile
+     * Restore a soft-deleted profile.
      */
-    public function restore(int $id)
+    public function restore(int $id): \Illuminate\Http\JsonResponse
     {
-        $user = Auth::user();
-
-        // Check if user is logged in
-        if (!$user instanceof User) {
-            abort(401);
-        }
+        $user = $this->getAuthenticatedUser();
 
         $profile = ApplicantProfile::withTrashed()->find($id);
 
         if (!$profile) {
-            return response()->json([
-                'success' => false,
-                'message' => 'No profile found to restore.'
-            ], 404);
+            return $this->jsonError('No profile found to restore.', 404);
         }
 
         if (!$profile->trashed()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Profile is not deleted.'
-            ], 422);
+            return $this->jsonError('Profile is not deleted.', 422);
         }
 
         DB::transaction(function () use ($profile) {
@@ -1382,55 +603,40 @@ class ApplicantProfileController extends Controller
             $profile->save();
         }
 
+        SimpleLogger::users(
+            "♻️ Profile restored: {$user->email}",
+            [
+                'user_id' => $user->id,
+                'profile_id' => $profile->id,
+            ]
+        );
+
         return response()->json([
             'success' => true,
             'message' => 'Profile restored successfully!',
-            'profile' => $profile->fresh()
+            'profile' => $profile->fresh(),
         ]);
     }
 
     /**
-     * Handle photo upload
+     * Download CV.
      */
-    private function handlePhotoUpload(UploadedFile $photo, ?int $userId = null): string
+    public function downloadCV(ApplicantProfile $applicantProfile): \Symfony\Component\HttpFoundation\BinaryFileResponse|\Illuminate\Http\RedirectResponse
     {
-        // Simplified filename: YYYYMMDD_UUID.extension
-        $datePrefix = date('Ymd');
-        $uuid = Str::uuid();
-        $extension = $photo->getClientOriginalExtension();
-        $filename = $datePrefix . '_' . $uuid . '.' . $extension;
-
-        $path = 'profile_photos/' . $filename;
-        Storage::disk('public')->put($path, file_get_contents($photo));
-
-        return $path;
-    }
-
-    /**
-     * Download the CV
-     */
-    public function downloadCV(ApplicantProfile $applicantProfile)
-    {
-        $user = Auth::user();
-
-        // Check if user is logged in
-        if (!$user instanceof User) {
-            abort(401);
-        }
-
-        if ($user->id !== $applicantProfile->user_id) {
-            abort(403);
-        }
+        $user = $this->getAuthenticatedUser();
+        $this->authorizeProfileOwner($user, $applicantProfile);
 
         if ($applicantProfile->trashed()) {
             return redirect()->back()->with('error', 'Cannot download CV from a deleted profile.');
         }
 
-        if (!$applicantProfile->cv_path) {
+        $cv = $applicantProfile->primaryCv;
+
+        if (!$cv || !$cv->cv_path) {
             return redirect()->back()->with('error', 'No CV found.');
         }
 
-        $filePath = storage_path('app/public/' . $applicantProfile->cv_path);
+        $filePath = storage_path('app/public/' . $cv->cv_path);
 
         if (!file_exists($filePath)) {
             return redirect()->back()->with('error', 'CV file not found.');
@@ -1440,40 +646,30 @@ class ApplicantProfileController extends Controller
     }
 
     /**
-     * Get profile data for editing (AJAX endpoint)
+     * Get profile data for editing (AJAX).
      */
-    public function getProfileData(ApplicantProfile $applicantProfile)
+    public function getProfileData(ApplicantProfile $applicantProfile): \Illuminate\Http\JsonResponse
     {
-        $user = Auth::user();
-
-        // Check if user is logged in
-        if (!$user instanceof User) {
-            abort(401);
-        }
-
-        if ($user->id !== $applicantProfile->user_id) {
-            abort(403);
-        }
+        $user = $this->getAuthenticatedUser();
+        $this->authorizeProfileOwner($user, $applicantProfile);
 
         return response()->json([
             'profile' => $applicantProfile->load([
                 'cvs',
                 'jobHistories',
                 'educationHistories',
-                'achievements'
-            ])
+                'achievements',
+            ]),
         ]);
     }
 
     /**
-     * Bulk delete applicant profiles (soft delete)
+     * Bulk delete profiles (soft delete).
      */
-    public function bulkDelete(Request $request)
+    public function bulkDelete(Request $request): \Illuminate\Http\RedirectResponse
     {
-        $user = Auth::user();
-        if (!$user instanceof User) {
-            abort(401);
-        }
+        $user = $this->getAuthenticatedUser();
+
         if (!$user->hasPermission('applicant-profiles.bulk_delete')) {
             return redirect()->back()->with('error', 'You do not have permission to bulk delete profiles.');
         }
@@ -1485,18 +681,26 @@ class ApplicantProfileController extends Controller
 
         $deleted = ApplicantProfile::whereIn('id', $request->profile_ids)->delete();
 
+        SimpleLogger::security(
+            "📦 Bulk delete profiles by {$user->email}",
+            [
+                'user_id' => $user->id,
+                'count' => $deleted,
+                'ids' => $request->profile_ids,
+                'ip' => $request->ip(),
+            ]
+        );
+
         return back()->with('success', $deleted . ' profile(s) deleted successfully.');
     }
 
     /**
-     * Bulk restore applicant profiles
+     * Bulk restore profiles.
      */
-    public function bulkRestore(Request $request)
+    public function bulkRestore(Request $request): \Illuminate\Http\RedirectResponse
     {
-        $user = Auth::user();
-        if (!$user instanceof User) {
-            abort(401);
-        }
+        $user = $this->getAuthenticatedUser();
+
         if (!$user->hasPermission('applicant-profiles.bulk_restore')) {
             return redirect()->back()->with('error', 'You do not have permission to bulk restore profiles.');
         }
@@ -1510,24 +714,33 @@ class ApplicantProfileController extends Controller
             ->whereIn('id', $request->profile_ids)
             ->restore();
 
+        SimpleLogger::security(
+            "📦 Bulk restore profiles by {$user->email}",
+            [
+                'user_id' => $user->id,
+                'count' => $restored,
+                'ids' => $request->profile_ids,
+                'ip' => $request->ip(),
+            ]
+        );
+
         return back()->with('success', $restored . ' profile(s) restored successfully.');
     }
 
     /**
-     * Force delete a profile permanently
+     * Force delete a profile permanently.
      */
-    public function forceDelete(int $id)
+    public function forceDelete(int $id): \Illuminate\Http\RedirectResponse
     {
-        $user = Auth::user();
-        if (!$user instanceof User) {
-            abort(401);
-        }
+        $user = $this->getAuthenticatedUser();
+
         if (!$user->hasPermission('applicant-profiles.force_delete')) {
             return redirect()->back()->with('error', 'You do not have permission to permanently delete profiles.');
         }
 
         $profile = ApplicantProfile::withTrashed()->findOrFail($id);
 
+        // Delete CV files
         foreach ($profile->cvs as $cv) {
             if ($cv->cv_path && Storage::disk('public')->exists($cv->cv_path)) {
                 Storage::disk('public')->delete($cv->cv_path);
@@ -1535,6 +748,7 @@ class ApplicantProfileController extends Controller
             $cv->forceDelete();
         }
 
+        // Delete photo
         if ($profile->photo_path && Storage::disk('public')->exists($profile->photo_path)) {
             Storage::disk('public')->delete($profile->photo_path);
         }
@@ -1544,27 +758,36 @@ class ApplicantProfileController extends Controller
         $profile->achievements()->forceDelete();
         $profile->forceDelete();
 
+        SimpleLogger::security(
+            "💥 Profile permanently deleted by {$user->email}",
+            [
+                'user_id' => $user->id,
+                'profile_id' => $id,
+                'ip' => request()->ip(),
+            ]
+        );
+
         return back()->with('success', 'Profile permanently deleted.');
     }
 
     /**
-     * Export applicant profiles
+     * Export applicant profiles as CSV.
+     * Return type changed to Symfony\Component\HttpFoundation\Response.
      */
-    public function export(Request $request)
+    public function export(Request $request): SymfonyResponse|\Illuminate\Http\RedirectResponse
     {
-        $user = Auth::user();
-        if (!$user instanceof User) {
-            abort(401);
-        }
+        $user = $this->getAuthenticatedUser();
+
         if (!$user->hasPermission('applicant-profiles.export')) {
             return redirect()->back()->with('error', 'You do not have permission to export profiles.');
         }
+
         $request->validate([
             'format' => 'required|in:csv,xlsx',
         ]);
 
         $query = ApplicantProfile::with(['user']);
-        $this->applyFiltersToQuery($query, $request);
+        $this->applyFilters($query, $request);
         $profiles = $query->get();
 
         if ($profiles->isEmpty()) {
@@ -1611,41 +834,31 @@ class ApplicantProfileController extends Controller
         $csvContent = stream_get_contents($output);
         fclose($output);
 
-        $extension = $request->format === 'xlsx' ? 'xlsx' : 'csv';
-        $contentType = $request->format === 'xlsx'
-            ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-            : 'text/csv';
-
+        // Return a proper Response object with CSV headers
         return response($csvContent, 200, [
-            'Content-Type' => $contentType,
-            'Content-Disposition' => "attachment; filename=\"{$filename}.{$extension}\"",
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => "attachment; filename=\"{$filename}.csv\"",
             'Cache-Control' => 'no-cache, no-store, must-revalidate',
-            'Pragma' => 'no-cache',
-            'Expires' => '0',
         ]);
     }
 
     /**
-     * Upload a new CV (for profile management page - active immediately)
+     * Upload a CV – with rate limiting.
      */
-    public function uploadCv(Request $request)
+    public function uploadCv(Request $request): \Illuminate\Http\JsonResponse
     {
-        $user = Auth::user();
+        $user = $this->getAuthenticatedUser();
 
-        // Check if user is logged in
-        if (!$user instanceof User) {
-            abort(401);
-        }
+        $this->checkRateLimit('cv_upload', $user->id, 3);
 
         $profile = ApplicantProfile::where('user_id', $user->id)->first();
+
         if (!$profile) {
-            return response()->json([
-                'message' => 'Please complete your profile first.'
-            ], 422);
+            return $this->jsonError('Please complete your profile first.', 422);
         }
 
         $validated = $request->validate([
-            'cv' => 'required|file|mimes:pdf,doc,docx|max:5120',
+            'cv' => 'required|file|mimes:' . implode(',', $this->allowedCvExtensions) . '|max:' . $this->maxCvSize,
         ]);
 
         $activeCount = ApplicantCv::where('applicant_profile_id', $profile->id)
@@ -1653,19 +866,13 @@ class ApplicantProfileController extends Controller
             ->count();
 
         if ($activeCount >= ApplicantCv::MAX_CVS_PER_PROFILE) {
-            return response()->json([
-                'message' => sprintf('Maximum %d CVs reached.', ApplicantCv::MAX_CVS_PER_PROFILE),
-            ], 422);
+            return $this->jsonError(
+                sprintf('Maximum %d CVs reached.', ApplicantCv::MAX_CVS_PER_PROFILE),
+                422
+            );
         }
 
-        // Simplified filename: YYYYMMDD_UUID.extension
-        $datePrefix = date('Ymd');
-        $uuid = Str::uuid();
-        $extension = $validated['cv']->getClientOriginalExtension();
-        $filename = $datePrefix . '_' . $uuid . '.' . $extension;
-
-        $path = 'cvs/' . $profile->id . '/' . $filename;
-        Storage::disk('public')->put($path, file_get_contents($validated['cv']));
+        $path = $this->storeCvFile($validated['cv'], $profile->id);
 
         $maxPosition = ApplicantCv::where('applicant_profile_id', $profile->id)
             ->max('order_position');
@@ -1679,6 +886,18 @@ class ApplicantProfileController extends Controller
             'is_primary' => $activeCount === 0,
             'status' => 'active',
         ]);
+
+        RateLimiter::clear($this->getThrottleKey('cv_upload', $user->id));
+
+        SimpleLogger::users(
+            "📄 CV uploaded: {$user->email}",
+            [
+                'user_id' => $user->id,
+                'cv_id' => $cv->id,
+                'original_name' => $cv->original_name,
+                'ip' => $request->ip(),
+            ]
+        );
 
         return response()->json([
             'id' => $cv->id,
@@ -1695,19 +914,14 @@ class ApplicantProfileController extends Controller
     }
 
     /**
-     * Delete a CV (for profile management page)
+     * Delete a CV.
      */
-    public function destroyCv(ApplicantCv $cv)
+    public function destroyCv(ApplicantCv $cv): \Illuminate\Http\JsonResponse
     {
-        $user = Auth::user();
-
-        // Check if user is logged in
-        if (!$user instanceof User) {
-            abort(401);
-        }
+        $user = $this->getAuthenticatedUser();
 
         if ($cv->applicantProfile->user_id !== $user->id) {
-            return response()->json(['message' => 'Unauthorized'], 403);
+            return $this->jsonError('Unauthorized.', 403);
         }
 
         if ($cv->cv_path && Storage::disk('public')->exists($cv->cv_path)) {
@@ -1717,33 +931,360 @@ class ApplicantProfileController extends Controller
         $cv->forceDelete();
         ApplicantCv::reorderCvs($cv->applicant_profile_id);
 
+        SimpleLogger::users(
+            "📄 CV deleted: {$user->email}",
+            [
+                'user_id' => $user->id,
+                'cv_id' => $cv->id,
+                'original_name' => $cv->original_name,
+            ]
+        );
+
         return response()->json([
             'success' => true,
-            'message' => 'CV deleted successfully.'
+            'message' => 'CV deleted successfully.',
         ]);
     }
 
     /**
-     * Set a CV as primary (for profile management page)
+     * Set a CV as primary.
      */
-    public function setPrimaryCv(ApplicantCv $cv)
+    public function setPrimaryCv(ApplicantCv $cv): \Illuminate\Http\JsonResponse
     {
-        $user = Auth::user();
-
-        // Check if user is logged in
-        if (!$user instanceof User) {
-            abort(401);
-        }
+        $user = $this->getAuthenticatedUser();
 
         if ($cv->applicantProfile->user_id !== $user->id) {
-            return response()->json(['message' => 'Unauthorized'], 403);
+            return $this->jsonError('Unauthorized.', 403);
         }
 
         $cv->setAsPrimary();
 
+        SimpleLogger::users(
+            "📌 CV set as primary: {$user->email}",
+            [
+                'user_id' => $user->id,
+                'cv_id' => $cv->id,
+                'original_name' => $cv->original_name,
+            ]
+        );
+
         return response()->json([
             'success' => true,
-            'message' => 'Primary CV updated successfully.'
+            'message' => 'Primary CV updated successfully.',
         ]);
+    }
+
+    // ==========================================
+    // PRIVATE HELPER METHODS
+    // ==========================================
+
+    private function getAuthenticatedUser(): User
+    {
+        $user = Auth::user();
+        if (!$user instanceof User) {
+            abort(401, 'Unauthenticated');
+        }
+        return $user;
+    }
+
+    private function authorizeProfileOwner(User $user, ApplicantProfile $profile): void
+    {
+        if ($user->id !== $profile->user_id) {
+            abort(403, 'Unauthorized.');
+        }
+    }
+
+    private function checkRateLimit(string $action, int $userId, int $maxAttempts = 5): void
+    {
+        $key = $this->getThrottleKey($action, $userId);
+        if (RateLimiter::tooManyAttempts($key, $maxAttempts)) {
+            \Illuminate\Support\Facades\Log::warning("Rate limit exceeded for {$action}", ['user_id' => $userId]);
+            throw ValidationException::withMessages([
+                'file' => 'Too many upload attempts. Please wait a moment.',
+            ]);
+        }
+        RateLimiter::hit($key, 60);
+    }
+
+    private function getThrottleKey(string $action, int $userId): string
+    {
+        return $action . '|' . $userId;
+    }
+
+    private function handlePhotoUpload(UploadedFile $photo): string
+    {
+        $filename = date('Ymd') . '_' . Str::uuid() . '.' . $photo->getClientOriginalExtension();
+        $path = 'profile_photos/' . $filename;
+        Storage::disk('public')->put($path, file_get_contents($photo));
+        return $path;
+    }
+
+    private function storeCvFile(UploadedFile $file, int $profileId): string
+    {
+        $filename = date('Ymd') . '_' . Str::uuid() . '.' . $file->getClientOriginalExtension();
+        $path = 'cvs/' . $profileId . '/' . $filename;
+        Storage::disk('public')->put($path, file_get_contents($file));
+        return $path;
+    }
+
+    private function findProfile(?int $id, User $user): ?ApplicantProfile
+    {
+        if (is_null($id)) {
+            return ApplicantProfile::withTrashed()
+                ->with(['cvs', 'jobHistories', 'educationHistories', 'achievements', 'applications', 'user'])
+                ->where('user_id', $user->id)
+                ->first();
+        }
+
+        return ApplicantProfile::withTrashed()
+            ->with(['cvs', 'jobHistories', 'educationHistories', 'achievements', 'applications', 'user'])
+            ->where('id', $id)
+            ->first();
+    }
+
+    private function enrichProfile(ApplicantProfile $profile): void
+    {
+        $profile->photo_url = $profile->photo_path
+            ? asset('storage/' . $profile->photo_path)
+            : null;
+
+        foreach ($profile->cvs as $cv) {
+            $cv->cv_url = $cv->cv_path ? asset('storage/' . $cv->cv_path) : null;
+            $cv->file_size = $cv->cv_path && Storage::disk('public')->exists($cv->cv_path)
+                ? Storage::disk('public')->size($cv->cv_path)
+                : null;
+        }
+
+        $profile->completion_percentage = $profile->completionPercentage();
+        $profile->email = $profile->user?->email;
+    }
+
+    private function transformProfile(ApplicantProfile $profile): ApplicantProfile
+    {
+        // Add computed attributes (full_name is an accessor, so we don't need to set it manually)
+        $profile->completion_percentage = $profile->completionPercentage();
+        $profile->email = $profile->user?->email;
+        $profile->photo_url = $profile->photo_path
+            ? route('profile.photo', ['path' => $profile->photo_path])
+            : null;
+        $profile->experience_level_label = $this->getExperienceLevelLabel($profile->experience_years);
+        $profile->applications_count = $profile->applications()->count();
+        $profile->active_cvs_count = $profile->cvs()->where('status', 'active')->count();
+        return $profile;
+    }
+
+    private function getExperienceLevelLabel(?int $years): string
+    {
+        if ($years === null || $years === 0) {
+            return 'Fresher';
+        }
+        if ($years <= 1) {
+            return 'Entry Level';
+        }
+        if ($years <= 3) {
+            return 'Junior';
+        }
+        if ($years <= 6) {
+            return 'Mid Level';
+        }
+        if ($years <= 10) {
+            return 'Senior';
+        }
+        return 'Expert';
+    }
+
+    private function applyFilters(Builder $query, Request $request): void
+    {
+        // Search by name
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('first_name', 'like', "%{$search}%")
+                    ->orWhere('last_name', 'like', "%{$search}%")
+                    ->orWhereRaw("CONCAT(first_name, ' ', last_name) LIKE ?", ["%{$search}%"])
+                    ->orWhereHas('user', fn($u) => $u->where('email', 'like', "%{$search}%"));
+            });
+        }
+
+        // Gender
+        if ($request->filled('gender')) {
+            $query->where('gender', $request->gender);
+        }
+
+        // Blood type
+        if ($request->filled('blood_type')) {
+            $query->where('blood_type', $request->blood_type);
+        }
+
+        // Experience
+        if ($request->filled('min_experience')) {
+            $query->where('experience_years', '>=', (int) $request->min_experience);
+        }
+        if ($request->filled('max_experience')) {
+            $query->where('experience_years', '<=', (int) $request->max_experience);
+        }
+
+        // Experience level
+        if ($request->filled('experience_level')) {
+            $ranges = [
+                'fresher' => [0, 0],
+                'entry' => [0, 1],
+                'junior' => [1, 3],
+                'mid' => [3, 6],
+                'senior' => [6, 10],
+                'expert' => [10, 100],
+            ];
+            if (isset($ranges[$request->experience_level])) {
+                $range = $ranges[$request->experience_level];
+                $query->whereBetween('experience_years', [$range[0], $range[1]]);
+            }
+        }
+
+        // Has CV
+        if ($request->filled('has_cv')) {
+            if ($request->has_cv === 'yes') {
+                $query->whereHas('cvs', fn($q) => $q->where('status', 'active'));
+            } else {
+                $query->whereDoesntHave('cvs', fn($q) => $q->where('status', 'active'));
+            }
+        }
+
+        // Trashed
+        if ($request->filled('trashed')) {
+            match ($request->trashed) {
+                'only' => $query->onlyTrashed(),
+                'with' => $query->withTrashed(),
+                default => null,
+            };
+        }
+
+        // Date range
+        if ($request->filled('date_range')) {
+            match ($request->date_range) {
+                'today' => $query->whereDate('created_at', today()),
+                'yesterday' => $query->whereDate('created_at', today()->subDay()),
+                'this_week' => $query->whereBetween('created_at', [now()->startOfWeek(), now()->endOfWeek()]),
+                'this_month' => $query->whereMonth('created_at', now()->month),
+                'last_month' => $query->whereMonth('created_at', now()->subMonth()->month),
+                'this_year' => $query->whereYear('created_at', now()->year),
+                default => null,
+            };
+        }
+
+        // Profile completion
+        if ($request->filled('completion_status')) {
+            match ($request->completion_status) {
+                'complete' => $query->complete(),
+                'incomplete' => $query->where(function ($q) {
+                    foreach (ApplicantProfile::REQUIRED_FIELDS as $field) {
+                        $q->where(function ($sub) use ($field) {
+                            $sub->whereNull($field)->orWhere($field, '');
+                        });
+                    }
+                }),
+                default => null,
+            };
+        }
+    }
+
+    private function applySorting(Builder $query, string $field, string $direction): void
+    {
+        $allowedSortFields = [
+            'created_at',
+            'updated_at',
+            'first_name',
+            'last_name',
+            'birth_date',
+            'experience_years',
+            'current_job_title',
+            'phone',
+        ];
+
+        if (in_array($field, $allowedSortFields)) {
+            $query->orderBy($field, $direction);
+        } elseif ($field === 'full_name') {
+            $query->orderBy('first_name', $direction)->orderBy('last_name', $direction);
+        } elseif ($field === 'email') {
+            $query->whereHas('user', fn($q) => $q->orderBy('email', $direction));
+        } else {
+            $query->orderBy('created_at', 'desc');
+        }
+    }
+
+    private function getStatistics(Request $request): array
+    {
+        $statsQuery = ApplicantProfile::query();
+        $this->applyFilters($statsQuery, $request);
+
+        $experienceStats = (clone $statsQuery)->selectRaw(
+            'MIN(experience_years) as min_exp, MAX(experience_years) as max_exp, AVG(experience_years) as avg_exp'
+        )->first();
+
+        $ageStats = (clone $statsQuery)
+            ->selectRaw('MIN(YEAR(birth_date)) as min_birth_year, MAX(YEAR(birth_date)) as max_birth_year')
+            ->whereNotNull('birth_date')
+            ->first();
+
+        $statusCounts = [
+            'total' => (clone $statsQuery)->count(),
+            'complete' => (clone $statsQuery)->complete()->count(),
+            'incomplete' => (clone $statsQuery)->where(function ($q) {
+                foreach (ApplicantProfile::REQUIRED_FIELDS as $field) {
+                    $q->where(function ($sub) use ($field) {
+                        $sub->whereNull($field)->orWhere($field, '');
+                    });
+                }
+            })->count(),
+            'has_cv' => (clone $statsQuery)->whereHas('cvs', fn($q) => $q->where('status', 'active'))->count(),
+            'has_applied' => (clone $statsQuery)->whereHas('applications')->count(),
+            'deleted' => ApplicantProfile::onlyTrashed()->count(),
+        ];
+
+        $genderStats = (clone $statsQuery)
+            ->selectRaw('gender, COUNT(*) as count')
+            ->whereNotNull('gender')
+            ->groupBy('gender')
+            ->pluck('count', 'gender')
+            ->toArray();
+
+        $experienceDistribution = [];
+        $levels = ['fresher' => [0, 0], 'entry' => [0, 1], 'junior' => [1, 3], 'mid' => [3, 6], 'senior' => [6, 10], 'expert' => [10, 100]];
+        foreach ($levels as $level => $range) {
+            $experienceDistribution[$level] = (clone $statsQuery)
+                ->whereBetween('experience_years', [$range[0], $range[1]])
+                ->count();
+        }
+
+        return [
+            'options' => [
+                'genders' => ['male', 'female', 'other'],
+                'blood_types' => ApplicantProfile::$bloodTypes,
+                'experience' => [
+                    'min' => (int) ($experienceStats->min_exp ?? 0),
+                    'max' => (int) ($experienceStats->max_exp ?? 30),
+                    'avg' => round($experienceStats->avg_exp ?? 0, 1),
+                ],
+                'age' => [
+                    'min' => $ageStats->min_birth_year ? now()->year - (int) $ageStats->max_birth_year : 18,
+                    'max' => $ageStats->max_birth_year ? now()->year - (int) $ageStats->min_birth_year : 65,
+                ],
+                'completion_levels' => [
+                    'complete' => $statusCounts['complete'],
+                    'incomplete' => $statusCounts['incomplete'],
+                    'complete_with_cv' => (clone $statsQuery)->complete()->whereHas('cvs')->count(),
+                ],
+            ],
+            'counts' => $statusCounts,
+            'gender' => $genderStats,
+            'experience' => $experienceDistribution,
+        ];
+    }
+
+    private function jsonError(string $message, int $status = 400): \Illuminate\Http\JsonResponse
+    {
+        return response()->json([
+            'success' => false,
+            'message' => $message,
+        ], $status);
     }
 }

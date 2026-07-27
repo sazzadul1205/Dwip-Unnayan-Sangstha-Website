@@ -1,35 +1,30 @@
 <?php
-// app/Http/Controllers/Auth/JobSeeker/ProfileCompletionController.php
 
 namespace App\Http\Controllers\Auth\JobSeeker;
 
-// inertia
-use Inertia\Inertia;
-use Inertia\Response;
-use Illuminate\Support\Str;
-use Illuminate\Http\Request;
-use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\Controller;
-use Illuminate\Http\RedirectResponse;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Validation\ValidationException;
-
-// models
-use App\Models\JobHistory;
 use App\Models\Achievement;
 use App\Models\ApplicantCv;
 use App\Models\ApplicantProfile;
 use App\Models\EducationHistory;
+use App\Models\JobHistory;
 use App\Models\User;
-
 use App\Services\SimpleLogger;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class ProfileCompletionController extends Controller
 {
-    // middleware
     public function __construct()
     {
         $this->middleware('profile.complete');
@@ -42,7 +37,6 @@ class ProfileCompletionController extends Controller
     {
         $user = Auth::user();
 
-        // Check if user is logged in
         if (!$user instanceof User) {
             abort(401);
         }
@@ -102,7 +96,7 @@ class ProfileCompletionController extends Controller
                 'id' => $profile->id,
                 'first_name' => $profile->first_name,
                 'last_name' => $profile->last_name,
-                'birth_date' => $profile->birth_date?->format('Y-m-d'),
+                'birth_date' => $profile->birth_date,
                 'gender' => $profile->gender,
                 'blood_type' => $profile->blood_type,
                 'phone' => $profile->phone,
@@ -162,12 +156,9 @@ class ProfileCompletionController extends Controller
     {
         $user = Auth::user();
 
-        // Check if user is logged in
         if (!$user instanceof User) {
             abort(401);
         }
-
-        //  permission check - anyone can complete their own profile
 
         $validated = $request->validate([
             // Basic Info
@@ -320,7 +311,7 @@ class ProfileCompletionController extends Controller
     }
 
     /**
-     * Upload profile photo (separate endpoint)
+     * Upload profile photo (separate endpoint) – with rate limiting
      */
     public function uploadPhoto(Request $request)
     {
@@ -328,6 +319,14 @@ class ProfileCompletionController extends Controller
 
         if (!$user instanceof User) {
             abort(401);
+        }
+
+        $throttleKey = $this->getThrottleKey('photo', $user->id);
+        if (RateLimiter::tooManyAttempts($throttleKey, 5)) {
+            Log::warning('Photo upload rate limit exceeded', ['user_id' => $user->id]);
+            return response()->json([
+                'message' => 'Too many upload attempts. Please wait a moment.'
+            ], 429);
         }
 
         $request->validate([
@@ -354,7 +353,8 @@ class ProfileCompletionController extends Controller
         $profile->photo_path = $path;
         $profile->save();
 
-        // Log photo upload
+        RateLimiter::clear($throttleKey);
+
         SimpleLogger::users(
             "📸 Profile photo uploaded: " . Auth::user()->email,
             [
@@ -391,7 +391,6 @@ class ProfileCompletionController extends Controller
             $profile->photo_path = null;
             $profile->save();
 
-            // Log photo deletion
             SimpleLogger::users(
                 "📸 Profile photo deleted: " . Auth::user()->email,
                 [
@@ -495,6 +494,7 @@ class ProfileCompletionController extends Controller
 
     /**
      * Upload a CV immediately and mark it as pending until profile completion.
+     * With rate limiting.
      */
     public function uploadCv(Request $request)
     {
@@ -502,6 +502,14 @@ class ProfileCompletionController extends Controller
 
         if (!$user instanceof User) {
             abort(401);
+        }
+
+        $throttleKey = $this->getThrottleKey('cv', $user->id);
+        if (RateLimiter::tooManyAttempts($throttleKey, 3)) {
+            Log::warning('CV upload rate limit exceeded', ['user_id' => $user->id]);
+            return response()->json([
+                'message' => 'Too many CV upload attempts. Please wait a moment.'
+            ], 429);
         }
 
         $validated = $request->validate([
@@ -540,7 +548,8 @@ class ProfileCompletionController extends Controller
             'status' => 'pending',
         ]);
 
-        // Log activity
+        RateLimiter::clear($throttleKey);
+
         SimpleLogger::users(
             "📄 CV uploaded: " . Auth::user()->email,
             [
@@ -575,7 +584,6 @@ class ProfileCompletionController extends Controller
             abort(401);
         }
 
-        // Only check ownership
         if ($cv->applicantProfile?->user_id !== $user->id) {
             abort(403);
         }
@@ -584,7 +592,6 @@ class ProfileCompletionController extends Controller
             Storage::disk('public')->delete($cv->cv_path);
         }
 
-        // Log CV deletion
         SimpleLogger::users(
             "📄 CV deleted: " . Auth::user()->email,
             [
@@ -611,8 +618,6 @@ class ProfileCompletionController extends Controller
             abort(401);
         }
 
-        // ✅ REMOVED permission check
-        // Only check ownership
         if ($cv->applicantProfile?->user_id !== $user->id) {
             abort(403);
         }
@@ -819,5 +824,13 @@ class ProfileCompletionController extends Controller
             Achievement::create($payload);
             $newCount++;
         }
+    }
+
+    /**
+     * Generate a throttle key for file uploads.
+     */
+    private function getThrottleKey(string $action, int $userId): string
+    {
+        return 'upload_' . $action . '|' . $userId;
     }
 }
