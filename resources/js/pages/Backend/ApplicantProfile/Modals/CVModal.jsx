@@ -418,7 +418,7 @@ const CVModal = ({ isOpen, onClose, profile }) => {
   /**
    * Handle save action (refreshes page)
    */
-  const handleSave = async () => {
+  const handleSave = () => {
     setSaving(true);
     closeModal();
     setSaving(false);

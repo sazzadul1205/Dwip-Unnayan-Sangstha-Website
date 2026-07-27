@@ -636,7 +636,7 @@ const CompleteProfile = ({ applicantProfile = null }) => {
                     }).then((result) => {
                       if (result.isConfirmed) {
                         localStorage.removeItem('profile_form_data');
-                        window.location.reload();
+                        router.reload();
                       }
                     });
                   }}

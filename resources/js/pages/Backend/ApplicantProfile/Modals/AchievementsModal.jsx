@@ -16,13 +16,13 @@ import {
   FaMedal,
   FaCertificate,
   FaRegStar,
-  FaSpinner
 } from 'react-icons/fa';
 import { MdEmojiEvents, MdVerified } from 'react-icons/md';
 import { GiAchievement, GiMedalSkull } from 'react-icons/gi';
 
 // Components
 import Modal from './Modal';
+import { router } from '@inertiajs/react';
 
 /**
  * AchievementsModal Component
@@ -131,8 +131,14 @@ const AchievementsModal = ({ isOpen, onClose, profile }) => {
           timer: 1500,
           showConfirmButton: false
         });
-        // Reload page to reflect changes
-        window.location.reload();
+        // Close modal first, then reload
+        onClose(); // Close the modal
+        router.reload();
+
+        // Small delay to allow modal to close before reload
+        setTimeout(() => {
+          router.reload();
+        }, 300);
       } else {
         throw new Error(responseData.message || 'Failed to update');
       }

@@ -13,7 +13,7 @@
 
 // Reacts
 import React, { useCallback } from 'react';
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 
 // Layout
 import AuthenticatedLayout from '../../../../layouts/AuthenticatedLayout';
@@ -49,7 +49,7 @@ const Trashed = ({ page, sections: initialSections }) => {
   // Refresh page after delete/restore
   const handleSectionDeleted = useCallback(() => {
     // Reload the page to reflect changes
-    window.location.reload();
+    router.reload();
   }, []);
 
   return (

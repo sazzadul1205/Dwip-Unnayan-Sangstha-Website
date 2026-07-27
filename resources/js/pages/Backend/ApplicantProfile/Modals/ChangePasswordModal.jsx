@@ -4,7 +4,7 @@
 import { useState } from 'react';
 
 // Icons
-import { FaLock, FaEye, FaEyeSlash, FaSpinner } from 'react-icons/fa';
+import { FaLock, FaEye, FaEyeSlash } from 'react-icons/fa';
 
 // Components
 import Modal from './Modal';
@@ -30,7 +30,7 @@ import Swal from 'sweetalert2';
  * @param {Function} props.onClose - Callback when modal closes
  * @param {Object} props.profile - User profile data (unused but kept for consistency)
  */
-const ChangePasswordModal = ({ isOpen, onClose, profile }) => {
+const ChangePasswordModal = ({ isOpen, onClose }) => {
   const [formData, setFormData] = useState({
     current_password: '',
     new_password: '',

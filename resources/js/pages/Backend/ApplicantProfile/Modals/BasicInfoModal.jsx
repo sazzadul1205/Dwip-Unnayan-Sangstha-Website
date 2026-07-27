@@ -24,43 +24,19 @@ import Swal from 'sweetalert2';
 
 // Components
 import Modal from './Modal';
+import { router } from '@inertiajs/react';
 
-/**
- * BasicInfoModal Component
- * 
- * Allows users to edit their personal information including:
- * - Name (first and last)
- * - Profile photo (upload, preview, delete)
- * - Phone number
- * - Birth date
- * - Gender
- * - Blood type
- * - Address
- * 
- * Features:
- * - Drag-and-drop photo upload
- * - Image preview before upload
- * - Photo deletion
- * - Form validation for required fields
- * 
- * @param {Object} props
- * @param {boolean} props.isOpen - Whether modal is open
- * @param {Function} props.onClose - Callback when modal closes
- * @param {Object} props.profile - User profile data
- */
 const BasicInfoModal = ({ isOpen, onClose, profile }) => {
   const [dragActive, setDragActive] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [photoPreview, setPhotoPreview] = useState(null);
+  const [photoFile, setPhotoFile] = useState(null);
+  const [removePhoto, setRemovePhoto] = useState(false);
   const fileInputRef = useRef(null);
 
   const bloodTypes = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
   const genders = ['Male', 'Female', 'Other'];
 
-  /**
-   * Normalize date string to YYYY-MM-DD format for date input
-   * @param {string|Date} value - Date value to normalize
-   * @returns {string} - Formatted date string
-   */
   const normalizeDate = (value) => {
     if (!value) return '';
     if (typeof value === 'string') {
@@ -80,15 +56,37 @@ const BasicInfoModal = ({ isOpen, onClose, profile }) => {
     blood_type: profile?.blood_type || '',
     phone: profile?.phone || '',
     address: profile?.address || '',
-    photo: null,
-    photoPreview: null,
-    remove_photo: false,
   });
 
-  /**
-   * Handle drag events for photo upload area
-   * @param {DragEvent} e - Drag event
-   */
+  // Reset modal data when opened
+  useEffect(() => {
+    if (!isOpen) return;
+
+    // Clean up any existing preview URL
+    if (photoPreview) {
+      URL.revokeObjectURL(photoPreview);
+    }
+
+    setModalData({
+      first_name: profile?.first_name || '',
+      last_name: profile?.last_name || '',
+      birth_date: normalizeDate(profile?.birth_date),
+      gender: profile?.gender || '',
+      blood_type: profile?.blood_type || '',
+      phone: profile?.phone || '',
+      address: profile?.address || '',
+    });
+
+    setPhotoPreview(null);
+    setPhotoFile(null);
+    setRemovePhoto(false);
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, profile]);
+
   const handleDrag = (e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -99,10 +97,6 @@ const BasicInfoModal = ({ isOpen, onClose, profile }) => {
     }
   };
 
-  /**
-   * Handle dropped file for photo upload
-   * @param {DragEvent} e - Drop event
-   */
   const handleDrop = (e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -113,24 +107,16 @@ const BasicInfoModal = ({ isOpen, onClose, profile }) => {
     }
   };
 
-  /**
-   * Handle file input change for photo upload
-   * @param {Event} e - Change event
-   */
   const handleFileChange = (e) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       validateAndSetPhoto(file);
     }
-    e.target.value = ''; // Allow re-selecting the same file next time
+    e.target.value = '';
   };
 
-  /**
-   * Validate uploaded photo and set it to state
-   * @param {File} file - Uploaded file
-   */
   const validateAndSetPhoto = (file) => {
-    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
+    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
     if (!validTypes.includes(file.type)) {
       Swal.fire({
         icon: 'error',
@@ -147,39 +133,34 @@ const BasicInfoModal = ({ isOpen, onClose, profile }) => {
       });
       return;
     }
-    // Revoke previous preview URL to avoid memory leaks
-    if (modalData.photoPreview) {
-      URL.revokeObjectURL(modalData.photoPreview);
+
+    // Revoke previous preview URL
+    if (photoPreview) {
+      URL.revokeObjectURL(photoPreview);
     }
+
     const newPreviewUrl = URL.createObjectURL(file);
-    setModalData({ ...modalData, photo: file, photoPreview: newPreviewUrl, remove_photo: false });
+    setPhotoPreview(newPreviewUrl);
+    setPhotoFile(file);
+    setRemovePhoto(false);
   };
 
-  /**
-   * Delete current profile photo
-   */
   const handleDeletePhoto = () => {
-    if (modalData.photoPreview) {
-      URL.revokeObjectURL(modalData.photoPreview);
+    if (photoPreview) {
+      URL.revokeObjectURL(photoPreview);
     }
-    setModalData({ ...modalData, photo: null, photoPreview: null, remove_photo: true });
+    setPhotoPreview(null);
+    setPhotoFile(null);
+    setRemovePhoto(true);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
   };
 
-  /**
-   * Handle input field changes
-   * @param {Event} e - Input change event
-   */
   const handleInputChange = (e) => {
     setModalData({ ...modalData, [e.target.name]: e.target.value });
   };
 
-  /**
-   * Save basic information to server
-   * Sends PATCH request with FormData (supports file upload)
-   */
   const handleSave = async () => {
     setSaving(true);
 
@@ -192,12 +173,12 @@ const BasicInfoModal = ({ isOpen, onClose, profile }) => {
     if (modalData.blood_type) formData.append('blood_type', modalData.blood_type);
     if (modalData.phone) formData.append('phone', modalData.phone);
     if (modalData.address) formData.append('address', modalData.address);
-    if (modalData.remove_photo) formData.append('remove_photo', '1');
-    if (modalData.photo) formData.append('photo', modalData.photo);
+    if (removePhoto) formData.append('remove_photo', '1');
+    if (photoFile) formData.append('photo', photoFile);
 
     try {
       const response = await fetch(route('backend.applicant.profile.update-basic-info', profile.id), {
-        method: 'POST', // Using POST with _method=PATCH for file upload support
+        method: 'POST',
         headers: {
           'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
           'X-Requested-With': 'XMLHttpRequest',
@@ -210,8 +191,8 @@ const BasicInfoModal = ({ isOpen, onClose, profile }) => {
 
       if (data.success) {
         // Clean up preview URL after successful save
-        if (modalData.photoPreview) {
-          URL.revokeObjectURL(modalData.photoPreview);
+        if (photoPreview) {
+          URL.revokeObjectURL(photoPreview);
         }
 
         Swal.fire({
@@ -222,7 +203,16 @@ const BasicInfoModal = ({ isOpen, onClose, profile }) => {
           showConfirmButton: false
         });
 
-        window.location.reload();
+        // Close modal first, then reload
+        onClose(); // Close the modal
+        router.reload();
+
+        // Small delay to allow modal to close before reload
+        setTimeout(() => {
+          router.reload();
+        }, 300);
+
+
       } else {
         throw new Error(data.message || 'Failed to update');
       }
@@ -237,29 +227,26 @@ const BasicInfoModal = ({ isOpen, onClose, profile }) => {
     }
   };
 
-  // Reset modal data when opened
+  // Clean up preview URL on unmount
   useEffect(() => {
-    if (!isOpen) return;
-
-    if (modalData.photoPreview) {
-      URL.revokeObjectURL(modalData.photoPreview);
-    }
-
-    setModalData({
-      first_name: profile?.first_name || '',
-      last_name: profile?.last_name || '',
-      birth_date: normalizeDate(profile?.birth_date),
-      gender: profile?.gender || '',
-      blood_type: profile?.blood_type || '',
-      phone: profile?.phone || '',
-      address: profile?.address || '',
-      photo: null,
-      photoPreview: null,
-      remove_photo: false,
-    });
-  }, [isOpen, profile?.id]);
+    return () => {
+      if (photoPreview) {
+        URL.revokeObjectURL(photoPreview);
+      }
+    };
+  }, [photoPreview]);
 
   if (!isOpen) return null;
+
+  // Determine which image to show
+  const getImageSrc = () => {
+    if (photoPreview) return photoPreview;
+    if (profile?.photo_url && !removePhoto) return profile.photo_url;
+    return null;
+  };
+
+  const imageSrc = getImageSrc();
+  const hasImage = imageSrc !== null;
 
   return (
     <Modal title="Edit Basic Information" onClose={onClose} onSave={handleSave} saving={saving}>
@@ -286,7 +273,7 @@ const BasicInfoModal = ({ isOpen, onClose, profile }) => {
                 <input
                   ref={fileInputRef}
                   type="file"
-                  accept="image/png,image/jpeg,image/jpg,image/gif"
+                  accept="image/png,image/jpeg,image/jpg,image/gif,image/webp"
                   onChange={handleFileChange}
                   onClick={(e) => e.stopPropagation()}
                   className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
@@ -294,15 +281,30 @@ const BasicInfoModal = ({ isOpen, onClose, profile }) => {
                 />
 
                 {/* Photo Preview or Placeholder */}
-                {modalData.photoPreview || profile?.photo_url ? (
+                {hasImage ? (
                   <img
-                    src={modalData.photoPreview || profile?.photo_url}
+                    src={imageSrc}
                     alt={profile?.full_name || 'Profile'}
                     className="w-full h-64 object-cover rounded-2xl shadow-lg"
                     onError={(e) => {
+                      // If image fails to load, show placeholder
                       e.target.onerror = null;
-                      e.target.src = '';
-                      setModalData({ ...modalData, photoPreview: null });
+                      e.target.style.display = 'none';
+                      // Show fallback
+                      const parent = e.target.parentElement;
+                      const fallback = document.createElement('div');
+                      fallback.className = 'w-full h-64 flex flex-col items-center justify-center text-center';
+                      fallback.innerHTML = `
+                        <div class="flex justify-center mb-4">
+                          <div class="p-4 bg-blue-100 rounded-full">
+                            <svg class="h-10 w-10 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                            </svg>
+                          </div>
+                        </div>
+                        <p class="text-gray-700 font-medium mb-2">No photo available</p>
+                      `;
+                      parent.appendChild(fallback);
                     }}
                   />
                 ) : (
@@ -322,7 +324,7 @@ const BasicInfoModal = ({ isOpen, onClose, profile }) => {
                 )}
 
                 {/* Photo Action Overlay (Change/Delete) */}
-                {(modalData.photoPreview || profile?.photo_url) && (
+                {hasImage && (
                   <div className="absolute inset-0 bg-black/30 opacity-0 hover:opacity-100 transition flex items-end justify-center pb-6 gap-3 rounded-2xl">
                     <button
                       type="button"

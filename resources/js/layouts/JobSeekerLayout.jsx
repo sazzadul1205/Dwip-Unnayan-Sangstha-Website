@@ -17,7 +17,7 @@ import {
 } from 'react-icons/fi';
 
 const JobSeekerLayout = ({ children }) => {
-  const { props } = usePage();
+  const { props, url } = usePage();
   const { auth } = props;
   const user = auth?.user;
   const userName = user?.name || 'User';
@@ -40,44 +40,47 @@ const JobSeekerLayout = ({ children }) => {
     }
   };
 
-  // Check if current route matches using Ziggy
+  // ✅ FIXED: Check if current route matches using Ziggy with better detection
   const isRouteActive = (routeName) => {
     try {
       if (typeof window !== 'undefined' && window.route) {
-        // Check if the current route matches exactly
-        if (window.route().current(routeName)) {
+        const currentRouteName = window.route().current();
+
+        // If route name matches exactly
+        if (currentRouteName === routeName) {
           return true;
         }
 
-        // For "My Applications" - check if route starts with 'backend.apply.'
-        if (routeName === 'backend.apply.index') {
-          const currentRouteName = window.route().current();
-          // Check if current route is any apply route (index, show, edit, create, etc.)
-          if (currentRouteName && currentRouteName.startsWith('backend.apply.')) {
+        // ✅ FIX: Check if current route starts with the route name pattern
+        // This handles child routes like backend.seeker.jobs.show
+        if (currentRouteName && currentRouteName.startsWith(`${routeName  }.`)) {
+          return true;
+        }
+
+        // Special cases for nested routes
+        const specialCases = {
+          'backend.applicant.profile.show': 'backend.applicant.profile.',
+          'backend.apply.index': 'backend.apply.',
+          'backend.notifications.index': 'backend.notifications.',
+          'public.jobs.index': 'public.jobs.',
+          'backend.seeker.jobs.index': 'backend.seeker.jobs.',
+        };
+
+        // Check if current route matches any special case prefix
+        for (const [key, prefix] of Object.entries(specialCases)) {
+          if (routeName === key && currentRouteName && currentRouteName.startsWith(prefix)) {
             return true;
           }
         }
 
-        // For "My Profile" - check if route starts with 'backend.applicant.profile.'
-        if (routeName === 'backend.applicant.profile.show') {
-          const currentRouteName = window.route().current();
-          if (currentRouteName && currentRouteName.startsWith('backend.applicant.profile.')) {
+        // ✅ FIX: For "Browse Jobs" - also check URL path directly
+        if (routeName === 'public.jobs.index' || routeName === 'backend.seeker.jobs.index') {
+          // Check if URL contains /backend/seeker/jobs
+          if (url.includes('/backend/seeker/jobs')) {
             return true;
           }
-        }
-
-        // For "Notifications" - check if route starts with 'backend.notifications.'
-        if (routeName === 'backend.notifications.index') {
-          const currentRouteName = window.route().current();
-          if (currentRouteName && currentRouteName.startsWith('backend.notifications.')) {
-            return true;
-          }
-        }
-
-        // For "Dashboard" - check if route is dashboard or similar
-        if (routeName === 'backend.dashboard') {
-          const currentRouteName = window.route().current();
-          if (currentRouteName && (currentRouteName === 'backend.dashboard' || currentRouteName === 'dashboard')) {
+          // Also check for /jobs (public routes)
+          if (url.includes('/jobs') && !url.includes('/backend/')) {
             return true;
           }
         }
@@ -95,32 +98,32 @@ const JobSeekerLayout = ({ children }) => {
   const menuItems = [
     {
       name: 'Dashboard',
-      routeName: 'backend.dashboard',           // URL: /dashboard
+      routeName: 'backend.dashboard',
       icon: FiHome,
       description: 'Overview & stats',
     },
     {
       name: 'Browse Jobs',
-      routeName: 'public.jobs.index',           // URL: /backend/seeker/jobs
+      routeName: 'public.jobs.index', // This should match your route
       icon: FiSearch,
       description: 'Find your next role',
     },
     {
       name: 'My Profile',
-      routeName: 'backend.applicant.profile.show', // URL: /backend/applicant/profile/{id?}
+      routeName: 'backend.applicant.profile.show',
       icon: FiUser,
       description: 'View & edit profile',
       routeParams: { id: user?.applicantProfile?.id || null },
     },
     {
       name: 'My Applications',
-      routeName: 'backend.apply.index',        // URL: /backend/apply
+      routeName: 'backend.apply.index',
       icon: FiFileText,
       description: 'Track applications',
     },
     {
       name: 'Notifications',
-      routeName: 'backend.notifications.index', // URL: /backend/notifications
+      routeName: 'backend.notifications.index',
       icon: FiBell,
       badgeCount: notificationMeta.unread_count,
       description: 'Updates & alerts',

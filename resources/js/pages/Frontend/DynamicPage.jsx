@@ -18,8 +18,12 @@ const DynamicPage = ({
   pageTitle,
   ...pageData
 }) => {
-  // Get enabled sections sorted by order
-  const sectionsToRender = (sectionConfig?.sections || [])
+
+  // console.log("pageData", pageData?.pageData);
+  // console.log("sectionConfig", sectionConfig);
+
+  // Render sections
+  const sectionsToRender = (sectionConfig || [])
     .filter(section => section.enabled === true)
     .sort((a, b) => a.order - b.order);
 

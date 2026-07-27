@@ -388,15 +388,33 @@ class ApplyController extends Controller
     {
         $user = $this->getAuthUser();
 
-        $application = Application::with(['jobListing', 'applicantProfile'])
-            ->where('user_id', Auth::id())
-            ->findOrFail($id);
+        // ✅ FIX 1: Use withTrashed() to include soft-deleted applications
+        // ✅ FIX 2: Use $user->id instead of Auth::id()
+        // ✅ FIX 3: Use find() instead of findOrFail() for better error handling
+        $application = Application::withTrashed()
+            ->with(['jobListing', 'applicantProfile'])
+            ->where('user_id', $user->id)
+            ->find($id);
 
+        // ✅ FIX 4: Check if application exists
+        if (!$application) {
+            return redirect()->route('backend.apply.index')
+                ->with('error', 'Application not found or you do not have permission to edit it.');
+        }
+
+        // ✅ FIX 5: Check if application is soft-deleted
+        if ($application->trashed()) {
+            return redirect()->route('backend.apply.show', $application->id)
+                ->with('error', 'This application has been withdrawn and cannot be edited.');
+        }
+
+        // ✅ FIX 6: Check if application is still pending
         if ($application->status !== Application::STATUS_PENDING) {
             return redirect()->route('backend.apply.show', $application->id)
                 ->with('error', 'You cannot edit this application as it has already been reviewed.');
         }
 
+        // ✅ FIX 7: Get applicant profile
         $applicantProfile = $application->applicantProfile ?? $user->applicantProfile;
         $cvs = collect();
         $currentCvId = null;
@@ -415,6 +433,7 @@ class ApplyController extends Controller
                     'order_position' => $cv->order_position,
                 ]);
 
+            // Find the CV used in this application
             foreach ($cvs as $cv) {
                 $cvPath = $cv['url'] ? str_replace(asset('storage/'), '', $cv['url']) : '';
                 if ($cvPath === $application->resume_path) {
@@ -422,6 +441,8 @@ class ApplyController extends Controller
                     break;
                 }
             }
+
+            // If no match, use primary CV or first one
             if (!$currentCvId && $cvs->isNotEmpty()) {
                 $primaryCv = $cvs->firstWhere('is_primary', true);
                 $currentCvId = $primaryCv ? $primaryCv['id'] : $cvs->first()['id'];
@@ -433,6 +454,8 @@ class ApplyController extends Controller
         return Inertia::render('Backend/Apply/Edit', [
             'application' => [
                 'id' => $application->id,
+                'user_id' => $application->user_id, // ✅ FIX 8: Add user_id for frontend permission check
+                'status' => $application->status, // ✅ FIX 9: Add status for frontend checks
                 'name' => $application->name,
                 'email' => $application->email,
                 'phone' => $application->phone,
@@ -443,6 +466,8 @@ class ApplyController extends Controller
                 'ats_calculation_status' => $application->ats_calculation_status,
                 'ats_score' => $atsPercentage,
                 'created_at' => $application->created_at,
+                'updated_at' => $application->updated_at, // ✅ FIX 10: Add updated_at
+                'deleted_at' => $application->deleted_at, // ✅ FIX 11: Add deleted_at
             ],
             'jobListing' => [
                 'id' => $application->jobListing->id,
@@ -459,6 +484,7 @@ class ApplyController extends Controller
                 'application_deadline' => $application->jobListing->application_deadline,
                 'employer' => $application->jobListing->employer ? [
                     'name' => $application->jobListing->employer->name,
+                    'id' => $application->jobListing->employer->id, // ✅ FIX 12: Add employer id
                 ] : null,
             ],
             'cvs' => $cvs,

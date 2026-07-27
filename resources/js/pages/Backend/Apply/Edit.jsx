@@ -26,7 +26,6 @@ import {
   FaBriefcase,
   FaClock,
   FaStar,
-  FaMapMarkerAlt,
   FaSave,
   FaSpinner,
   FaCheckCircle,
@@ -35,7 +34,13 @@ import {
   FaTimesCircle,
   FaLightbulb,
   FaShieldAlt,
+  FaCalendarAlt,
+  FaPen,
+  FaRegFileAlt,
+  FaUpload,
+  FaEye,
 } from 'react-icons/fa';
+import { MdOutlineLocationOn } from 'react-icons/md';
 
 // SweetAlert
 import Swal from 'sweetalert2';
@@ -49,7 +54,6 @@ export default function ApplyEdit({ application, jobListing, cvs, currentCvId })
     isAuthenticated,
     hasAnyPermission,
   } = useAuth();
-
 
   // Show flash messages
   useEffect(() => {
@@ -97,7 +101,7 @@ export default function ApplyEdit({ application, jobListing, cvs, currentCvId })
   const [isLoadingAts, setIsLoadingAts] = useState(false);
   const [showAtsPreview, setShowAtsPreview] = useState(false);
 
-  // Cv state
+  // CV state
   const originalCvId = currentCvId;
 
   // If user is not authenticated, show access denied
@@ -105,16 +109,16 @@ export default function ApplyEdit({ application, jobListing, cvs, currentCvId })
     return (
       <AuthenticatedLayout>
         <Head title="Access Denied" />
-        <div className="min-h-screen flex items-center justify-center">
-          <div className="text-center">
-            <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <FaShieldAlt className="w-10 h-10 text-red-500" />
+        <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+          <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8 text-center">
+            <div className="w-24 h-24 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <FaShieldAlt className="text-red-500 text-4xl" />
             </div>
-            <h2 className="text-xl font-semibold text-gray-900">Login Required</h2>
-            <p className="text-gray-500 mt-2">Please login to edit your application.</p>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">Login Required</h2>
+            <p className="text-gray-600 mb-6">Please login to edit your application.</p>
             <button
               onClick={() => router.visit(route('login', { redirect: route('backend.apply.edit', application.id) }))}
-              className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+              className="w-full px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all duration-200 font-medium"
             >
               Login Now
             </button>
@@ -129,18 +133,16 @@ export default function ApplyEdit({ application, jobListing, cvs, currentCvId })
     return (
       <AuthenticatedLayout>
         <Head title="Access Denied" />
-        <div className="min-h-screen flex items-center justify-center">
-          <div className="text-center">
-            <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <FaShieldAlt className="w-10 h-10 text-red-500" />
+        <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+          <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8 text-center">
+            <div className="w-24 h-24 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <FaShieldAlt className="text-red-500 text-4xl" />
             </div>
-            <h2 className="text-xl font-semibold text-gray-900">Access Denied</h2>
-            <p className="text-gray-500 mt-2">
-              You don't have permission to edit this application.
-            </p>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">Access Denied</h2>
+            <p className="text-gray-600 mb-6">You don't have permission to edit this application.</p>
             <button
               onClick={() => router.visit(route('backend.apply.show', application.id))}
-              className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+              className="w-full px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all duration-200 font-medium"
             >
               Back to Application
             </button>
@@ -155,21 +157,23 @@ export default function ApplyEdit({ application, jobListing, cvs, currentCvId })
     return (
       <AuthenticatedLayout>
         <Head title="Cannot Edit Application" />
-        <div className="min-h-screen bg-linear-to-br from-gray-50 to-gray-100 py-8 px-4">
+        <div className="min-h-screen bg-gray-50 py-12 px-4">
           <div className="max-w-2xl mx-auto">
-            <div className="bg-white rounded-xl shadow-lg overflow-hidden animate-fade-in">
-              <div className="bg-linear-to-r from-orange-600 to-red-600 px-6 py-5">
-                <h1 className="text-xl font-bold text-white">Application Cannot Be Edited</h1>
+            <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
+              <div className="bg-linear-to-r from-orange-500 to-red-500 px-8 py-6">
+                <h1 className="text-2xl font-bold text-white">Application Cannot Be Edited</h1>
               </div>
               <div className="p-8 text-center">
-                <FaExclamationTriangle className="text-orange-500 text-5xl mx-auto mb-4" />
+                <div className="w-20 h-20 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <FaExclamationTriangle className="text-orange-500 text-3xl" />
+                </div>
                 <p className="text-gray-600 mb-6">
-                  Your application has already been {application.status}.
+                  Your application has already been <span className="font-semibold capitalize">{application.status}</span>.
                   You cannot edit it after it has been reviewed by the employer.
                 </p>
                 <button
                   onClick={() => router.visit(route('backend.apply.show', application.id))}
-                  className="px-6 py-2 bg-linear-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all duration-200"
+                  className="px-8 py-3 bg-linear-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 font-medium"
                 >
                   Back to Application
                 </button>
@@ -180,7 +184,6 @@ export default function ApplyEdit({ application, jobListing, cvs, currentCvId })
       </AuthenticatedLayout>
     );
   }
-
 
   // Check if salary input should be shown
   const showSalaryInput = () => {
@@ -468,55 +471,84 @@ export default function ApplyEdit({ application, jobListing, cvs, currentCvId })
 
   // Show ATS preview
   const AtsPreviewCard = () => (
-    <div className="bg-white rounded-xl shadow-md overflow-hidden mb-6 transition-all duration-300 animate-fade-in">
+    <div className="bg-white rounded-2xl shadow-xl overflow-hidden transition-all duration-300 animate-fade-in border border-purple-100">
       <div className="px-6 py-4 bg-linear-to-r from-purple-600 to-indigo-600">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <FaChartLine className="text-white" size={18} />
-            <h3 className="font-semibold text-white">ATS Score Preview (New CV)</h3>
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-white/20 rounded-xl">
+              <FaChartLine className="text-white" size={18} />
+            </div>
+            <div>
+              <h3 className="font-semibold text-white">ATS Score Preview</h3>
+              <p className="text-purple-200 text-xs">New CV analysis</p>
+            </div>
           </div>
           <button
             onClick={() => setShowAtsPreview(false)}
-            className="text-white/80 hover:text-white transition"
+            className="text-white/80 hover:text-white transition p-2 hover:bg-white/10 rounded-lg"
           >
-            <FaTimesCircle size={16} />
+            <FaTimesCircle size={18} />
           </button>
         </div>
       </div>
       <div className="p-6">
         {isLoadingAts ? (
-          <div className="text-center py-8">
-            <FaSpinner className="animate-spin text-purple-600 text-3xl mx-auto mb-3" />
-            <p className="text-gray-600">Analyzing your CV against job requirements...</p>
+          <div className="text-center py-12">
+            <div className="relative inline-block">
+              <div className="w-16 h-16 border-4 border-purple-200 border-t-purple-600 rounded-full animate-spin" />
+            </div>
+            <p className="text-gray-600 mt-4 font-medium">Analyzing your CV...</p>
+            <p className="text-gray-400 text-sm">Comparing against job requirements</p>
           </div>
         ) : atsPreview?.error ? (
-          <div className="text-center py-6">
-            <div className="text-red-500 mb-2">
-              <FaExclamationTriangle size={32} className="mx-auto" />
+          <div className="text-center py-8">
+            <div className="text-red-500 mb-3">
+              <FaExclamationTriangle size={40} className="mx-auto" />
             </div>
-            <p className="text-gray-700">{atsPreview.error}</p>
+            <p className="text-gray-700 font-medium">{atsPreview.error}</p>
             <button
               onClick={handlePreviewAts}
-              className="mt-3 text-sm text-blue-600 hover:text-blue-800 transition"
+              className="mt-4 text-sm text-blue-600 hover:text-blue-800 font-medium transition"
             >
-              Try Again
+              Try Again →
             </button>
           </div>
         ) : atsPreview ? (
-          <div className="space-y-4">
+          <div className="space-y-5">
             <div className="text-center">
-              <div className="inline-flex items-center justify-center w-28 h-28 rounded-full mb-3" style={{
-                background: `conic-gradient(${atsPreview.percentage >= 80 ? '#10b981' : atsPreview.percentage >= 60 ? '#3b82f6' : atsPreview.percentage >= 40 ? '#f59e0b' : '#ef4444'} ${atsPreview.percentage * 3.6}deg, #e5e7eb ${atsPreview.percentage * 3.6}deg)`
-              }}>
-                <div className="w-24 h-24 rounded-full bg-white flex items-center justify-center">
-                  <span className={`text-2xl font-bold ${getAtsScoreColor(atsPreview.percentage)}`}>
-                    {atsPreview.percentage}%
-                  </span>
+              <div className="relative inline-flex items-center justify-center w-32 h-32">
+                <svg className="w-32 h-32 transform -rotate-90">
+                  <circle
+                    cx="64"
+                    cy="64"
+                    r="56"
+                    fill="none"
+                    stroke="#e5e7eb"
+                    strokeWidth="8"
+                  />
+                  <circle
+                    cx="64"
+                    cy="64"
+                    r="56"
+                    fill="none"
+                    stroke={atsPreview.percentage >= 80 ? '#10b981' : atsPreview.percentage >= 60 ? '#3b82f6' : atsPreview.percentage >= 40 ? '#f59e0b' : '#ef4444'}
+                    strokeWidth="8"
+                    strokeDasharray={`${atsPreview.percentage * 3.52} 352`}
+                    strokeLinecap="round"
+                    className="transition-all duration-1000"
+                  />
+                </svg>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="bg-white rounded-full w-24 h-24 flex items-center justify-center shadow-lg">
+                    <span className={`text-3xl font-bold ${getAtsScoreColor(atsPreview.percentage)}`}>
+                      {atsPreview.percentage}%
+                    </span>
+                  </div>
                 </div>
               </div>
-              <p className="text-sm text-gray-600">Compatibility Score</p>
+              <p className="text-sm text-gray-500 mt-2">Compatibility Score</p>
               {atsPreview.analysis && (
-                <p className={`text-xs mt-1 ${atsPreview.analysis.color === 'green' ? 'text-green-600' :
+                <p className={`text-sm font-medium mt-1 ${atsPreview.analysis.color === 'green' ? 'text-green-600' :
                   atsPreview.analysis.color === 'blue' ? 'text-blue-600' :
                     atsPreview.analysis.color === 'yellow' ? 'text-yellow-600' : 'text-red-600'
                   }`}>
@@ -525,13 +557,15 @@ export default function ApplyEdit({ application, jobListing, cvs, currentCvId })
               )}
             </div>
 
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div className="text-center p-3 bg-green-50 rounded-lg">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="text-center p-4 bg-linear-to-br from-green-50 to-emerald-50 rounded-xl border border-green-100">
+                <FaCheckCircle className="text-green-500 mx-auto mb-2" size={20} />
                 <p className="text-green-600 font-medium">Matched</p>
                 <p className="text-2xl font-bold text-green-700">{atsPreview.matched_count || 0}</p>
                 <p className="text-xs text-gray-500">keywords</p>
               </div>
-              <div className="text-center p-3 bg-red-50 rounded-lg">
+              <div className="text-center p-4 bg-linear-to-br from-red-50 to-rose-50 rounded-xl border border-red-100">
+                <FaTimesCircle className="text-red-500 mx-auto mb-2" size={20} />
                 <p className="text-red-600 font-medium">Missing</p>
                 <p className="text-2xl font-bold text-red-700">{atsPreview.missing_count || 0}</p>
                 <p className="text-xs text-gray-500">keywords</p>
@@ -540,10 +574,12 @@ export default function ApplyEdit({ application, jobListing, cvs, currentCvId })
 
             {atsPreview.top_matched?.length > 0 && (
               <div>
-                <p className="text-xs font-medium text-green-600 mb-2">✓ Top Matched Keywords</p>
-                <div className="flex flex-wrap gap-1">
-                  {atsPreview.top_matched.slice(0, 5).map((keyword, idx) => (
-                    <span key={idx} className="px-2 py-0.5 text-xs bg-green-100 text-green-700 rounded-full">
+                <p className="text-xs font-semibold text-green-600 mb-2 flex items-center gap-1">
+                  <FaCheckCircle size={12} /> Top Matched Keywords
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {atsPreview.top_matched.slice(0, 6).map((keyword, idx) => (
+                    <span key={idx} className="px-3 py-1 text-xs bg-green-100 text-green-700 rounded-full font-medium">
                       {keyword}
                     </span>
                   ))}
@@ -553,10 +589,12 @@ export default function ApplyEdit({ application, jobListing, cvs, currentCvId })
 
             {atsPreview.top_missing?.length > 0 && (
               <div>
-                <p className="text-xs font-medium text-red-600 mb-2">⚠ Missing Keywords to Add</p>
-                <div className="flex flex-wrap gap-1">
-                  {atsPreview.top_missing.slice(0, 5).map((keyword, idx) => (
-                    <span key={idx} className="px-2 py-0.5 text-xs bg-red-100 text-red-700 rounded-full">
+                <p className="text-xs font-semibold text-red-600 mb-2 flex items-center gap-1">
+                  <FaTimesCircle size={12} /> Missing Keywords to Add
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {atsPreview.top_missing.slice(0, 6).map((keyword, idx) => (
+                    <span key={idx} className="px-3 py-1 text-xs bg-red-100 text-red-700 rounded-full font-medium">
                       {keyword}
                     </span>
                   ))}
@@ -565,20 +603,23 @@ export default function ApplyEdit({ application, jobListing, cvs, currentCvId })
             )}
 
             {atsPreview.analysis?.suggestions?.length > 0 && (
-              <div className="mt-3 p-3 bg-blue-50 rounded-lg">
+              <div className="mt-4 p-4 bg-linear-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-100">
                 <div className="flex items-center gap-2 mb-2">
-                  <FaLightbulb className="text-blue-600" size={14} />
-                  <p className="text-xs font-medium text-blue-800">Suggestions to Improve</p>
+                  <FaLightbulb className="text-blue-600" size={16} />
+                  <p className="text-sm font-semibold text-blue-800">Suggestions to Improve</p>
                 </div>
-                <ul className="text-xs text-blue-700 space-y-1 list-disc list-inside">
-                  {atsPreview.analysis.suggestions.slice(0, 2).map((suggestion, idx) => (
-                    <li key={idx}>{suggestion}</li>
+                <ul className="space-y-1.5">
+                  {atsPreview.analysis.suggestions.slice(0, 3).map((suggestion, idx) => (
+                    <li key={idx} className="text-sm text-blue-700 flex items-start gap-2">
+                      <span className="text-blue-400">•</span>
+                      {suggestion}
+                    </li>
                   ))}
                 </ul>
               </div>
             )}
 
-            <p className="text-xs text-gray-400 text-center mt-2">
+            <p className="text-xs text-gray-400 text-center">
               * Preview based on selected CV. Final score will be calculated after saving.
             </p>
           </div>
@@ -592,20 +633,22 @@ export default function ApplyEdit({ application, jobListing, cvs, currentCvId })
     return (
       <AuthenticatedLayout>
         <Head title="Application Deadline Passed" />
-        <div className="min-h-screen bg-linear-to-br from-gray-50 to-gray-100 py-8 px-4">
+        <div className="min-h-screen bg-gray-50 py-12 px-4">
           <div className="max-w-2xl mx-auto">
-            <div className="bg-white rounded-xl shadow-lg overflow-hidden animate-fade-in">
-              <div className="bg-linear-to-r from-red-600 to-orange-600 px-6 py-5">
-                <h1 className="text-xl font-bold text-white">Application Deadline Passed</h1>
+            <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
+              <div className="bg-linear-to-r from-red-500 to-orange-500 px-8 py-6">
+                <h1 className="text-2xl font-bold text-white">Application Deadline Passed</h1>
               </div>
               <div className="p-8 text-center">
-                <FaExclamationTriangle className="text-red-500 text-5xl mx-auto mb-4" />
+                <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <FaExclamationTriangle className="text-red-500 text-3xl" />
+                </div>
                 <p className="text-gray-600 mb-6">
                   The deadline for this position has passed. You cannot edit this application anymore.
                 </p>
                 <button
                   onClick={() => router.visit(route('backend.apply.show', application.id))}
-                  className="px-6 py-2 bg-linear-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all duration-200"
+                  className="px-8 py-3 bg-linear-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 font-medium"
                 >
                   Back to Application
                 </button>
@@ -621,67 +664,86 @@ export default function ApplyEdit({ application, jobListing, cvs, currentCvId })
     <AuthenticatedLayout>
       <Head title={`Edit Application for ${jobListing.title}`} />
 
-      <div className="min-h-screen bg-linear-to-br from-gray-50 to-gray-100 py-8 px-4 sm:px-6 lg:px-8">
+      <div className="min-h-screen bg-linear-to-br from-gray-50 to-gray-100 py-6 px-4 sm:px-6 lg:px-8">
         <div className=" mx-auto">
           {/* Back Button */}
           <button
             onClick={() => window.history.back()}
-            className="group flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-6 transition-all duration-200"
+            className="group inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-6 px-4 py-2 rounded-xl hover:bg-white/60 transition-all duration-200"
           >
             <FaArrowLeft className="group-hover:-translate-x-1 transition-transform duration-200" size={14} />
-            <span className="text-sm font-medium">Go Back</span>
+            <span className="text-sm font-medium">Back</span>
           </button>
 
           {/* Header */}
-          <div className="bg-white rounded-xl shadow-lg overflow-hidden mb-6 animate-fade-in">
-            <div className="bg-linear-to-r from-blue-600 to-indigo-700 px-6 py-5">
-              <h1 className="text-xl font-bold text-white">Edit Application</h1>
-              <p className="text-blue-100 text-sm mt-1">Update your application for {jobListing.title}</p>
-              {!isOwner && canEditApplications && (
-                <p className="text-blue-200 text-xs mt-2">
-                  ⚡ Admin mode: Editing application for {application.name}
-                </p>
-              )}
+          <div className="bg-white rounded-2xl shadow-lg overflow-hidden mb-8 animate-fade-in border border-gray-100">
+            <div className="relative overflow-hidden">
+              <div className="absolute inset-0 bg-linear-to-r from-blue-600 via-indigo-600 to-purple-600 opacity-95" />
+              <div className="relative px-8 py-6">
+                <div className="flex items-start justify-between flex-wrap gap-4">
+                  <div>
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className="p-2 bg-white/20 rounded-xl">
+                        <FaPen className="text-white" size={18} />
+                      </div>
+                      <h1 className="text-2xl font-bold text-white">Edit Application</h1>
+                    </div>
+                    <p className="text-blue-100 text-sm">
+                      Update your application for <span className="font-semibold text-white">{jobListing.title}</span>
+                    </p>
+                    {!isOwner && canEditApplications && (
+                      <p className="text-blue-200 text-xs mt-2 flex items-center gap-1">
+                        <FaShieldAlt size={12} />
+                        Admin mode: Editing application for {application.name}
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="px-4 py-2 bg-white/20 rounded-xl backdrop-blur-sm border border-white/30">
+                      <span className="text-white text-sm font-medium">Pending</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Main Form - Left Column */}
             <div className="lg:col-span-2 space-y-6">
               {/* Job Summary Card */}
-              <div className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-all duration-300">
-                <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
-                  <h2 className="font-semibold text-gray-900 flex items-center gap-2">
-                    <FaBriefcase className="text-blue-600" />
-                    Job Summary
-                  </h2>
+              <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100 hover:shadow-xl transition-shadow duration-300">
+                <div className="px-6 py-4 border-b border-gray-100 bg-linear-to-r from-gray-50 to-gray-100">
+                  <div className="flex items-center gap-2">
+                    <div className="p-2 bg-blue-100 rounded-xl">
+                      <FaBriefcase className="text-blue-600" size={16} />
+                    </div>
+                    <h2 className="font-semibold text-gray-900">Job Summary</h2>
+                  </div>
                 </div>
                 <div className="p-6">
                   <h3 className="text-lg font-bold text-gray-900 mb-3">{jobListing.title}</h3>
                   <div className="grid grid-cols-2 gap-3 text-sm mb-4">
-                    <div className="flex items-center gap-2 text-gray-600">
-                      <FaMapMarkerAlt size={14} />
+                    <div className="flex items-center gap-2 text-gray-600 bg-gray-50 px-3 py-2 rounded-xl">
+                      <MdOutlineLocationOn className="text-blue-500" size={16} />
                       <span>Multiple Locations</span>
                     </div>
-                    <div className="flex items-center gap-2 text-gray-600">
-                      <FaClock size={14} />
+                    <div className="flex items-center gap-2 text-gray-600 bg-gray-50 px-3 py-2 rounded-xl">
+                      <FaClock className="text-blue-500" size={14} />
                       <span>{getJobTypeLabel(jobListing.job_type)}</span>
                     </div>
-                    <div className="flex items-center gap-2 text-gray-600">
-                      <FaStar size={14} />
+                    <div className="flex items-center gap-2 text-gray-600 bg-gray-50 px-3 py-2 rounded-xl">
+                      <FaStar className="text-yellow-500" size={14} />
                       <span className="capitalize">{jobListing.experience_level}</span>
                     </div>
-                  </div>
-
-                  <div className="mb-4">
-                    <div className="flex items-center gap-2 text-sm text-gray-600">
-                      <FaDollarSign size={14} />
-                      <span>Salary: <span className="font-medium">{getSalaryDisplay()}</span></span>
+                    <div className="flex items-center gap-2 text-gray-600 bg-gray-50 px-3 py-2 rounded-xl">
+                      <FaDollarSign className="text-green-500" size={14} />
+                      <span className="font-medium">{getSalaryDisplay()}</span>
                     </div>
                   </div>
 
-                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
-                    <FaClock size={12} />
+                  <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium bg-blue-50 text-blue-700 border border-blue-100">
+                    <FaCalendarAlt size={14} />
                     <span>Deadline: {formatDate(jobListing.application_deadline)}</span>
                   </div>
                 </div>
@@ -691,30 +753,44 @@ export default function ApplyEdit({ application, jobListing, cvs, currentCvId })
               {showAtsPreview && <AtsPreviewCard />}
 
               {/* Edit Form */}
-              <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-md overflow-hidden">
-                <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
-                  <h2 className="font-semibold text-gray-900">Edit Application Information</h2>
-                  <p className="text-sm text-gray-500 mt-1">Update your application details below</p>
+              <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100">
+                <div className="px-6 py-4 border-b border-gray-100 bg-linear-to-r from-gray-50 to-gray-100">
+                  <div className="flex items-center gap-2">
+                    <div className="p-2 bg-indigo-100 rounded-xl">
+                      <FaRegFileAlt className="text-indigo-600" size={16} />
+                    </div>
+                    <div>
+                      <h2 className="font-semibold text-gray-900">Application Information</h2>
+                      <p className="text-xs text-gray-500">Update your application details below</p>
+                    </div>
+                  </div>
                 </div>
 
-                <div className="p-6 space-y-5">
+                <div className="p-6 space-y-6">
                   {/* CV Selection */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Select CV / Resume <span className="text-red-500">*</span>
+                    <label className="block text-sm font-medium text-gray-700 mb-3">
+                      <div className="flex items-center gap-2">
+                        <FaFilePdf className="text-red-500" size={16} />
+                        Select CV / Resume
+                        <span className="text-red-500">*</span>
+                      </div>
                     </label>
                     {cvs.length === 0 ? (
-                      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-center">
-                        <p className="text-yellow-800 text-sm mb-2">No CV found in your profile</p>
-                        <a
-                          href={route('profile.index')}
-                          className="text-blue-600 hover:text-blue-700 text-sm font-medium"
-                        >
-                          Upload a CV first →
-                        </a>
+                      <div className="bg-yellow-50 border-2 border-yellow-200 rounded-2xl p-6 text-center">
+                        <div className="flex flex-col items-center">
+                          <FaUpload className="text-yellow-600 text-3xl mb-3" />
+                          <p className="text-yellow-800 font-medium mb-2">No CV found in your profile</p>
+                          <a
+                            href={route('profile.index')}
+                            className="text-blue-600 hover:text-blue-700 font-medium text-sm flex items-center gap-1"
+                          >
+                            Upload a CV first →
+                          </a>
+                        </div>
                       </div>
                     ) : (
-                      <div className="space-y-2">
+                      <div className="space-y-3">
                         {cvs.map((cv) => {
                           const isCurrentCv = parseInt(originalCvId) === cv.id;
                           const isSelected = parseInt(formData.cv_id) === cv.id;
@@ -723,14 +799,14 @@ export default function ApplyEdit({ application, jobListing, cvs, currentCvId })
                           return (
                             <label
                               key={cv.id}
-                              className={`flex items-center justify-between p-3 border rounded-lg cursor-pointer transition-all duration-200 ${isSelected
+                              className={`group flex items-center justify-between p-4 border-2 rounded-xl cursor-pointer transition-all duration-300 hover:shadow-md ${isSelected
                                 ? willChangeCv
-                                  ? 'border-orange-500 bg-orange-50'
-                                  : 'border-blue-500 bg-blue-50'
+                                  ? 'border-orange-400 bg-orange-50 shadow-orange-100'
+                                  : 'border-blue-400 bg-blue-50 shadow-blue-100'
                                 : 'border-gray-200 hover:border-blue-300 hover:bg-gray-50'
                                 }`}
                             >
-                              <div className="flex items-center gap-3">
+                              <div className="flex items-center gap-4 flex-1">
                                 <input
                                   type="radio"
                                   name="cv_id"
@@ -739,20 +815,24 @@ export default function ApplyEdit({ application, jobListing, cvs, currentCvId })
                                   onChange={() => handleCvSelect(cv.id)}
                                   className="w-4 h-4 text-blue-600 focus:ring-blue-500"
                                 />
-                                <FaFilePdf className="text-red-500" size={20} />
+                                <div className="p-3 bg-white rounded-xl shadow-sm">
+                                  <FaFilePdf className="text-red-500" size={24} />
+                                </div>
                                 <div>
-                                  <p className="text-sm font-medium text-gray-900">{cv.original_name}</p>
-                                  <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                                  <p className="text-sm font-semibold text-gray-900">{cv.original_name}</p>
+                                  <div className="flex items-center gap-3 mt-1 flex-wrap">
                                     {cv.is_primary && (
-                                      <span className="text-xs text-green-600 flex items-center gap-1">
+                                      <span className="inline-flex items-center gap-1 text-xs text-green-600 bg-green-50 px-2 py-0.5 rounded-full">
                                         <FaCheckCircle size={10} /> Primary
                                       </span>
                                     )}
                                     {isCurrentCv && (
-                                      <span className="text-xs text-blue-600">(Currently used)</span>
+                                      <span className="inline-flex items-center gap-1 text-xs text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">
+                                        <FaCheckCircle size={10} /> Current
+                                      </span>
                                     )}
                                     {willChangeCv && (
-                                      <span className="text-xs text-orange-600 flex items-center gap-1">
+                                      <span className="inline-flex items-center gap-1 text-xs text-orange-600 bg-orange-50 px-2 py-0.5 rounded-full animate-pulse">
                                         <FaExclamationTriangle size={10} /> Will recalculate ATS
                                       </span>
                                     )}
@@ -763,24 +843,28 @@ export default function ApplyEdit({ application, jobListing, cvs, currentCvId })
                                 href={cv.url}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="text-blue-600 hover:text-blue-800 text-sm"
+                                className="text-blue-600 hover:text-blue-800 text-sm font-medium px-3 py-1.5 rounded-lg hover:bg-blue-50 transition-colors"
                                 onClick={(e) => e.stopPropagation()}
                               >
-                                View
+                                <FaEye size={14} />
                               </a>
                             </label>
                           );
                         })}
                       </div>
                     )}
-                    {errors.cv_id && <p className="text-red-500 text-xs mt-1">{errors.cv_id}</p>}
+                    {errors.cv_id && (
+                      <p className="text-red-500 text-sm mt-2 flex items-center gap-1">
+                        <FaExclamationTriangle size={12} /> {errors.cv_id}
+                      </p>
+                    )}
 
                     {cvs.length > 0 && formData.cv_id && parseInt(formData.cv_id) !== parseInt(originalCvId) && !showAtsPreview && (
-                      <div className="mt-3">
+                      <div className="mt-4">
                         <button
                           type="button"
                           onClick={handlePreviewAts}
-                          className="flex items-center gap-2 text-sm text-purple-600 hover:text-purple-700 font-medium transition-colors"
+                          className="inline-flex items-center gap-2 text-sm text-purple-600 hover:text-purple-700 font-medium px-4 py-2 bg-purple-50 hover:bg-purple-100 rounded-xl transition-all duration-200 border border-purple-200"
                         >
                           <FaChartLine size={14} />
                           Preview ATS Score for New CV
@@ -790,83 +874,97 @@ export default function ApplyEdit({ application, jobListing, cvs, currentCvId })
                   </div>
 
                   {/* Personal Information */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Full Name <span className="text-red-500">*</span>
+                        <div className="flex items-center gap-1">
+                          <FaUser size={14} className="text-gray-400" />
+                          Full Name <span className="text-red-500">*</span>
+                        </div>
                       </label>
-                      <div className="relative">
-                        <FaUser className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={14} />
-                        <input
-                          type="text"
-                          name="name"
-                          value={formData.name}
-                          onChange={handleChange}
-                          className={`w-full pl-10 pr-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all ${errors.name ? 'border-red-500' : 'border-gray-300'
-                            }`}
-                          placeholder="John Doe"
-                        />
-                      </div>
-                      {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name}</p>}
+                      <input
+                        type="text"
+                        name="name"
+                        value={formData.name}
+                        onChange={handleChange}
+                        className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 ${errors.name ? 'border-red-400 bg-red-50' : 'border-gray-200 hover:border-blue-300'
+                          }`}
+                        placeholder="John Doe"
+                      />
+                      {errors.name && (
+                        <p className="text-red-500 text-xs mt-1 flex items-center gap-1">
+                          <FaExclamationTriangle size={10} /> {errors.name}
+                        </p>
+                      )}
                     </div>
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Email Address <span className="text-red-500">*</span>
+                        <div className="flex items-center gap-1">
+                          <FaEnvelope size={14} className="text-gray-400" />
+                          Email Address <span className="text-red-500">*</span>
+                        </div>
                       </label>
-                      <div className="relative">
-                        <FaEnvelope className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={14} />
-                        <input
-                          type="email"
-                          name="email"
-                          value={formData.email}
-                          onChange={handleChange}
-                          className={`w-full pl-10 pr-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all ${errors.email ? 'border-red-500' : 'border-gray-300'
-                            }`}
-                          placeholder="john@example.com"
-                        />
-                      </div>
-                      {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
+                      <input
+                        type="email"
+                        name="email"
+                        value={formData.email}
+                        onChange={handleChange}
+                        className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 ${errors.email ? 'border-red-400 bg-red-50' : 'border-gray-200 hover:border-blue-300'
+                          }`}
+                        placeholder="john@example.com"
+                      />
+                      {errors.email && (
+                        <p className="text-red-500 text-xs mt-1 flex items-center gap-1">
+                          <FaExclamationTriangle size={10} /> {errors.email}
+                        </p>
+                      )}
                     </div>
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Phone Number
+                        <div className="flex items-center gap-1">
+                          <FaPhone size={14} className="text-gray-400" />
+                          Phone Number
+                        </div>
                       </label>
-                      <div className="relative">
-                        <FaPhone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={14} />
-                        <input
-                          type="tel"
-                          name="phone"
-                          value={formData.phone}
-                          onChange={handleChange}
-                          className={`w-full pl-10 pr-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all ${errors.phone ? 'border-red-500' : 'border-gray-300'
-                            }`}
-                          placeholder="+880 1234 567890"
-                        />
-                      </div>
-                      {errors.phone && <p className="text-red-500 text-xs mt-1">{errors.phone}</p>}
+                      <input
+                        type="tel"
+                        name="phone"
+                        value={formData.phone}
+                        onChange={handleChange}
+                        className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 ${errors.phone ? 'border-red-400 bg-red-50' : 'border-gray-200 hover:border-blue-300'
+                          }`}
+                        placeholder="+880 1234 567890"
+                      />
+                      {errors.phone && (
+                        <p className="text-red-500 text-xs mt-1 flex items-center gap-1">
+                          <FaExclamationTriangle size={10} /> {errors.phone}
+                        </p>
+                      )}
                     </div>
 
                     {showSalaryInput() && (
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Expected Salary (BDT)
+                          <div className="flex items-center gap-1">
+                            <FaDollarSign size={14} className="text-gray-400" />
+                            Expected Salary (BDT)
+                          </div>
                         </label>
-                        <div className="relative">
-                          <FaDollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={14} />
-                          <input
-                            type="number"
-                            name="expected_salary"
-                            value={formData.expected_salary}
-                            onChange={handleChange}
-                            className={`w-full pl-10 pr-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all ${errors.expected_salary ? 'border-red-500' : 'border-gray-300'
-                              }`}
-                            placeholder={getSalaryPlaceholder()}
-                          />
-                        </div>
+                        <input
+                          type="number"
+                          name="expected_salary"
+                          value={formData.expected_salary}
+                          onChange={handleChange}
+                          className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 ${errors.expected_salary ? 'border-red-400 bg-red-50' : 'border-gray-200 hover:border-blue-300'
+                            }`}
+                          placeholder={getSalaryPlaceholder()}
+                        />
                         {errors.expected_salary && (
-                          <p className="text-red-500 text-xs mt-1">{errors.expected_salary}</p>
+                          <p className="text-red-500 text-xs mt-1 flex items-center gap-1">
+                            <FaExclamationTriangle size={10} /> {errors.expected_salary}
+                          </p>
                         )}
                         {application.expected_salary && (
                           <p className="text-xs text-gray-400 mt-1">
@@ -879,72 +977,89 @@ export default function ApplyEdit({ application, jobListing, cvs, currentCvId })
 
                   {/* Social Links */}
                   {(jobListing.required_linkedin_link || jobListing.required_facebook_link) && (
-                    <div className="space-y-4">
+                    <div className="space-y-4 p-4 bg-gray-50 rounded-2xl border border-gray-200">
+                      <p className="text-sm font-medium text-gray-700">Social Media Profiles</p>
                       {jobListing.required_linkedin_link && (
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-2">
-                            LinkedIn Profile <span className="text-red-500">*</span>
+                            <div className="flex items-center gap-1">
+                              <FaLinkedin className="text-blue-700" size={16} />
+                              LinkedIn Profile <span className="text-red-500">*</span>
+                            </div>
                           </label>
-                          <div className="relative">
-                            <FaLinkedin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-blue-700" size={16} />
-                            <input
-                              type="url"
-                              name="linkedin_link"
-                              value={formData.linkedin_link}
-                              onChange={handleChange}
-                              className={`w-full pl-10 pr-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all ${errors.linkedin_link ? 'border-red-500' : 'border-gray-300'
-                                }`}
-                              placeholder="https://linkedin.com/in/username"
-                            />
-                          </div>
-                          {errors.linkedin_link && <p className="text-red-500 text-xs mt-1">{errors.linkedin_link}</p>}
+                          <input
+                            type="url"
+                            name="linkedin_link"
+                            value={formData.linkedin_link}
+                            onChange={handleChange}
+                            className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 ${errors.linkedin_link ? 'border-red-400 bg-red-50' : 'border-gray-200 hover:border-blue-300'
+                              }`}
+                            placeholder="https://linkedin.com/in/username"
+                          />
+                          {errors.linkedin_link && (
+                            <p className="text-red-500 text-xs mt-1 flex items-center gap-1">
+                              <FaExclamationTriangle size={10} /> {errors.linkedin_link}
+                            </p>
+                          )}
                         </div>
                       )}
 
                       {jobListing.required_facebook_link && (
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Facebook Profile <span className="text-red-500">*</span>
+                            <div className="flex items-center gap-1">
+                              <FaFacebook className="text-blue-600" size={16} />
+                              Facebook Profile <span className="text-red-500">*</span>
+                            </div>
                           </label>
-                          <div className="relative">
-                            <FaFacebook className="absolute left-3 top-1/2 transform -translate-y-1/2 text-blue-600" size={16} />
-                            <input
-                              type="url"
-                              name="facebook_link"
-                              value={formData.facebook_link}
-                              onChange={handleChange}
-                              className={`w-full pl-10 pr-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all ${errors.facebook_link ? 'border-red-500' : 'border-gray-300'
-                                }`}
-                              placeholder="https://facebook.com/username"
-                            />
-                          </div>
-                          {errors.facebook_link && <p className="text-red-500 text-xs mt-1">{errors.facebook_link}</p>}
+                          <input
+                            type="url"
+                            name="facebook_link"
+                            value={formData.facebook_link}
+                            onChange={handleChange}
+                            className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 ${errors.facebook_link ? 'border-red-400 bg-red-50' : 'border-gray-200 hover:border-blue-300'
+                              }`}
+                            placeholder="https://facebook.com/username"
+                          />
+                          {errors.facebook_link && (
+                            <p className="text-red-500 text-xs mt-1 flex items-center gap-1">
+                              <FaExclamationTriangle size={10} /> {errors.facebook_link}
+                            </p>
+                          )}
                         </div>
                       )}
                     </div>
                   )}
 
                   {/* Current ATS Score Info */}
-                  {application.ats_score && application.ats_calculation_status === 'completed' && (
-                    <div className={`rounded-lg p-4 flex items-start gap-3 ${getAtsScoreBg(application.ats_score)}`}>
-                      <FaStar className={`mt-0.5 shrink-0 ${getAtsScoreColor(application.ats_score)}`} size={16} />
+                  {application.ats_score !== null && application.ats_calculation_status === 'completed' && (
+                    <div className={`rounded-2xl p-4 flex items-start gap-3 border ${getAtsScoreBg(application.ats_score).replace('bg-', 'border-').replace('100', '200')}`}>
+                      <div className={`p-2 rounded-xl ${getAtsScoreBg(application.ats_score)}`}>
+                        <FaStar className={getAtsScoreColor(application.ats_score)} size={16} />
+                      </div>
                       <div className="text-sm">
-                        <p className="font-medium mb-1">Current ATS Score: <span className={`font-bold ${getAtsScoreColor(application.ats_score)}`}>{Math.round(application.ats_score)}%</span></p>
+                        <p className="font-medium mb-1">
+                          Current ATS Score: <span className={`font-bold ${getAtsScoreColor(application.ats_score)}`}>
+                            {Math.round(application.ats_score)}%
+                          </span>
+                        </p>
                         <p className="text-xs text-gray-600">
-                          {application.ats_score >= 80 ? 'Excellent match! Your resume aligns very well with this job.' :
-                            application.ats_score >= 70 ? 'Great match! Your resume aligns well with this job.' :
-                              application.ats_score >= 60 ? 'Good match. Consider optimizing your resume for better results.' :
-                                application.ats_score >= 50 ? 'Average match. We recommend updating your resume with relevant keywords.' :
-                                  application.ats_score >= 40 ? 'Below average. Your resume needs more relevant keywords.' :
-                                    'Low match. Consider tailoring your resume to this job description.'}
+                          {application.ats_score >= 80 ? '🌟 Excellent match! Your resume aligns very well with this job.' :
+                            application.ats_score >= 70 ? '👏 Great match! Your resume aligns well with this job.' :
+                              application.ats_score >= 60 ? '📈 Good match. Consider optimizing your resume for better results.' :
+                                application.ats_score >= 50 ? '📊 Average match. We recommend updating your resume with relevant keywords.' :
+                                  application.ats_score >= 40 ? '📉 Below average. Your resume needs more relevant keywords.' :
+                                    '🔴 Low match. Consider tailoring your resume to this job description.'}
                         </p>
                       </div>
                     </div>
                   )}
 
                   {application.ats_calculation_status === 'processing' && (
-                    <div className="bg-yellow-50 rounded-lg p-4 flex items-start gap-3">
-                      <FaSpinner className="animate-spin text-yellow-600 mt-0.5 shrink-0" size={16} />
+                    <div className="bg-yellow-50 rounded-2xl p-4 flex items-start gap-3 border border-yellow-200">
+                      <div className="p-2 bg-yellow-100 rounded-xl">
+                        <FaSpinner className="animate-spin text-yellow-600" size={16} />
+                      </div>
                       <div className="text-sm text-yellow-800">
                         <p className="font-medium mb-1">ATS Score is being calculated</p>
                         <p className="text-xs">Please check back in a few moments.</p>
@@ -953,8 +1068,10 @@ export default function ApplyEdit({ application, jobListing, cvs, currentCvId })
                   )}
 
                   {application.ats_calculation_status === 'failed' && (
-                    <div className="bg-red-50 rounded-lg p-4 flex items-start gap-3">
-                      <FaExclamationTriangle className="text-red-600 mt-0.5 shrink-0" size={16} />
+                    <div className="bg-red-50 rounded-2xl p-4 flex items-start gap-3 border border-red-200">
+                      <div className="p-2 bg-red-100 rounded-xl">
+                        <FaExclamationTriangle className="text-red-600" size={16} />
+                      </div>
                       <div className="text-sm text-red-800">
                         <p className="font-medium mb-1">ATS Score calculation failed</p>
                         <p className="text-xs">Saving changes will trigger a recalculation.</p>
@@ -962,34 +1079,50 @@ export default function ApplyEdit({ application, jobListing, cvs, currentCvId })
                     </div>
                   )}
 
-                  {/* Info Note */}
-                  <div className="bg-blue-50 rounded-lg p-4 flex items-start gap-3">
-                    <FaInfoCircle className="text-blue-600 mt-0.5 shrink-0" size={16} />
-                    <div className="text-sm text-blue-800">
-                      <p className="font-medium mb-1">Important Notes</p>
-                      <ul className="list-disc list-inside space-y-1 text-xs">
-                        <li>Changing your CV will trigger an ATS score recalculation</li>
-                        <li>Your application status will remain as "Pending"</li>
-                        <li>Employer will see the updated information</li>
-                        <li>You cannot edit after the application is reviewed</li>
-                      </ul>
+                  {/* Info Note - NO STRAY ZERO BEFORE THIS */}
+                  <div className="bg-linear-to-r from-blue-50 to-indigo-50 rounded-2xl p-5 border border-blue-100">
+                    <div className="flex items-start gap-3">
+                      <div className="p-2 bg-blue-100 rounded-xl">
+                        <FaInfoCircle className="text-blue-600" size={16} />
+                      </div>
+                      <div className="text-sm text-blue-800 flex-1">
+                        <p className="font-semibold mb-2">Important Notes</p>
+                        <ul className="space-y-1.5 text-xs">
+                          <li className="flex items-start gap-2">
+                            <span className="text-blue-400">•</span>
+                            Changing your CV will trigger an ATS score recalculation
+                          </li>
+                          <li className="flex items-start gap-2">
+                            <span className="text-blue-400">•</span>
+                            Your application status will remain as "Pending"
+                          </li>
+                          <li className="flex items-start gap-2">
+                            <span className="text-blue-400">•</span>
+                            Employer will see the updated information
+                          </li>
+                          <li className="flex items-start gap-2">
+                            <span className="text-blue-400">•</span>
+                            You cannot edit after the application is reviewed
+                          </li>
+                        </ul>
+                      </div>
                     </div>
                   </div>
                 </div>
 
                 {/* Form Actions */}
-                <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-end gap-3">
+                <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex flex-wrap justify-end gap-3">
                   <button
                     type="button"
                     onClick={() => router.visit(route('backend.apply.show', application.id))}
-                    className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-all duration-200"
+                    className="px-6 py-2.5 text-gray-700 bg-white border-2 border-gray-200 rounded-xl hover:bg-gray-50 hover:border-gray-300 transition-all duration-200 font-medium"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={isSubmitting || cvs.length === 0}
-                    className="px-6 py-2 bg-linear-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 flex items-center gap-2 shadow-md hover:shadow-lg"
+                    className="px-8 py-2.5 bg-linear-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-lg hover:shadow-xl font-medium"
                   >
                     {isSubmitting ? (
                       <>
@@ -1010,14 +1143,17 @@ export default function ApplyEdit({ application, jobListing, cvs, currentCvId })
             {/* Right Column - Tips */}
             <div className="space-y-6">
               {/* Current Application Info */}
-              <div className="bg-white rounded-xl shadow-md overflow-hidden sticky top-24 hover:shadow-lg transition-all duration-300">
+              <div className="bg-white rounded-2xl shadow-lg overflow-hidden sticky top-24 border border-gray-100">
                 <div className="px-6 py-4 bg-linear-to-r from-blue-600 to-indigo-600">
-                  <h3 className="font-semibold text-white">Current Application Info</h3>
+                  <h3 className="font-semibold text-white flex items-center gap-2">
+                    <FaInfoCircle size={16} />
+                    Application Info
+                  </h3>
                 </div>
-                <div className="p-6 space-y-3">
+                <div className="p-5 space-y-3">
                   <div className="flex justify-between items-center py-2 border-b border-gray-100">
                     <span className="text-sm text-gray-500">Application ID</span>
-                    <span className="text-sm font-medium text-gray-900">#{application.id}</span>
+                    <span className="text-sm font-semibold text-gray-900">#{application.id}</span>
                   </div>
                   <div className="flex justify-between items-center py-2 border-b border-gray-100">
                     <span className="text-sm text-gray-500">Submitted On</span>
@@ -1025,7 +1161,7 @@ export default function ApplyEdit({ application, jobListing, cvs, currentCvId })
                   </div>
                   <div className="flex justify-between items-center py-2 border-b border-gray-100">
                     <span className="text-sm text-gray-500">Status</span>
-                    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
                       <FaClock size={10} />
                       Pending
                     </span>
@@ -1042,51 +1178,61 @@ export default function ApplyEdit({ application, jobListing, cvs, currentCvId })
               </div>
 
               {/* Edit Tips */}
-              <div className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-all duration-300">
+              <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100">
                 <div className="px-6 py-4 bg-linear-to-r from-purple-600 to-indigo-600">
                   <h3 className="font-semibold text-white flex items-center gap-2">
-                    <FaLightbulb size={14} />
+                    <FaLightbulb size={16} />
                     Edit Tips
                   </h3>
                 </div>
-                <div className="p-6 space-y-4">
-                  <div className="flex items-start gap-3">
-                    <div className="w-6 h-6 rounded-full bg-green-100 text-green-600 flex items-center justify-center shrink-0 text-xs font-bold">1</div>
-                    <div>
-                      <p className="font-medium text-gray-900 text-sm">Update your CV if needed</p>
-                      <p className="text-xs text-gray-500">Choose a more relevant CV for better ATS score</p>
+                <div className="p-5 space-y-4">
+                  {[
+                    {
+                      num: '1',
+                      title: 'Update your CV if needed',
+                      desc: 'Choose a more relevant CV for better ATS score',
+                      color: 'green'
+                    },
+                    {
+                      num: '2',
+                      title: 'Preview ATS score first',
+                      desc: 'See how your new CV matches before saving',
+                      color: 'blue'
+                    },
+                    {
+                      num: '3',
+                      title: 'Double-check information',
+                      desc: 'Ensure all details are correct before saving',
+                      color: 'purple'
+                    },
+                    {
+                      num: '4',
+                      title: 'ATS score will recalculate',
+                      desc: 'If you change your CV, ATS score will update automatically',
+                      color: 'orange'
+                    }
+                  ].map((tip) => (
+                    <div key={tip.num} className="flex items-start gap-3">
+                      <div className={`w-7 h-7 rounded-full bg-${tip.color}-100 text-${tip.color}-600 flex items-center justify-center shrink-0 text-xs font-bold`}>
+                        {tip.num}
+                      </div>
+                      <div>
+                        <p className="font-medium text-gray-900 text-sm">{tip.title}</p>
+                        <p className="text-xs text-gray-500">{tip.desc}</p>
+                      </div>
                     </div>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <div className="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center shrink-0 text-xs font-bold">2</div>
-                    <div>
-                      <p className="font-medium text-gray-900 text-sm">Preview ATS score first</p>
-                      <p className="text-xs text-gray-500">See how your new CV matches before saving</p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <div className="w-6 h-6 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center shrink-0 text-xs font-bold">3</div>
-                    <div>
-                      <p className="font-medium text-gray-900 text-sm">Double-check information</p>
-                      <p className="text-xs text-gray-500">Ensure all details are correct before saving</p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <div className="w-6 h-6 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center shrink-0 text-xs font-bold">4</div>
-                    <div>
-                      <p className="font-medium text-gray-900 text-sm">ATS score will recalculate</p>
-                      <p className="text-xs text-gray-500">If you change your CV, ATS score will update automatically</p>
-                    </div>
-                  </div>
+                  ))}
                 </div>
               </div>
 
               {/* Warning Card */}
-              <div className="bg-yellow-50 rounded-xl p-4 border border-yellow-200">
-                <div className="flex items-start gap-2">
-                  <FaInfoCircle className="text-yellow-600 mt-0.5 shrink-0" size={16} />
+              <div className="bg-linear-to-r from-yellow-50 to-orange-50 rounded-2xl p-5 border border-yellow-200">
+                <div className="flex items-start gap-3">
+                  <div className="p-2 bg-yellow-100 rounded-xl">
+                    <FaInfoCircle className="text-yellow-600" size={16} />
+                  </div>
                   <div className="text-sm text-yellow-800">
-                    <p className="font-medium mb-1">Important</p>
+                    <p className="font-semibold mb-1">Important</p>
                     <p className="text-xs">
                       Once your application is reviewed by the employer, you will no longer be able to edit it.
                       Make sure all information is accurate before saving.
@@ -1103,7 +1249,7 @@ export default function ApplyEdit({ application, jobListing, cvs, currentCvId })
         @keyframes fade-in {
           from {
             opacity: 0;
-            transform: translateY(10px);
+            transform: translateY(15px);
           }
           to {
             opacity: 1;
@@ -1112,7 +1258,7 @@ export default function ApplyEdit({ application, jobListing, cvs, currentCvId })
         }
         
         .animate-fade-in {
-          animation: fade-in 0.3s ease-out;
+          animation: fade-in 0.4s ease-out;
         }
       `}</style>
     </AuthenticatedLayout>

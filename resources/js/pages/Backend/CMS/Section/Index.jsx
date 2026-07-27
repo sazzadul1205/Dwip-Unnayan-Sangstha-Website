@@ -2,7 +2,7 @@
 // resources/js/pages/Backend/CMS/Section/Index.jsx
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Head, Link, usePage } from '@inertiajs/react';
+import { Head, Link, router, usePage } from '@inertiajs/react';
 import AuthenticatedLayout from '../../../../layouts/AuthenticatedLayout';
 
 // Hooks
@@ -99,7 +99,7 @@ const Index = ({ page, sections: initialSections }) => {
   // Handle section deleted/restored
   const handleSectionDeleted = useCallback(() => {
     fetchTrashedCount();
-    window.location.reload();
+    router.reload();
   }, [fetchTrashedCount]);
 
   // Check if page exists - this is a conditional render, not a hook

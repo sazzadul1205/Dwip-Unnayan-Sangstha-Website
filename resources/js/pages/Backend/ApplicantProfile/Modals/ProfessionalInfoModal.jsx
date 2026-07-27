@@ -19,8 +19,8 @@ import {
   FaStackOverflow,
   FaTrash,
   FaPlus,
-  FaSpinner
 } from 'react-icons/fa';
+import { router } from '@inertiajs/react';
 
 /**
  * ProfessionalInfoModal Component
@@ -157,7 +157,14 @@ const ProfessionalInfoModal = ({ isOpen, onClose, profile }) => {
           timer: 1500,
           showConfirmButton: false
         });
-        window.location.reload();
+        // Close modal first, then reload
+        onClose(); // Close the modal
+        router.reload();
+
+        // Small delay to allow modal to close before reload
+        setTimeout(() => {
+          router.reload();
+        }, 300);
       } else {
         throw new Error(responseData.message || 'Failed to update');
       }

@@ -11,11 +11,11 @@ import {
   FaUniversity,
   FaCalendarAlt,
   FaGraduationCap,
-  FaSpinner
 } from 'react-icons/fa';
 import { MdSchool } from 'react-icons/md';
 import { GiBookshelf } from 'react-icons/gi';
 import Modal from './Modal';
+import { router } from '@inertiajs/react';
 
 /**
  * EducationModal Component
@@ -125,7 +125,14 @@ const EducationModal = ({ isOpen, onClose, profile }) => {
           timer: 1500,
           showConfirmButton: false
         });
-        window.location.reload();
+        // Close modal first, then reload
+        onClose(); // Close the modal
+        router.reload();
+
+        // Small delay to allow modal to close before reload
+        setTimeout(() => {
+          router.reload();
+        }, 300);
       } else {
         throw new Error(responseData.message || 'Failed to update');
       }

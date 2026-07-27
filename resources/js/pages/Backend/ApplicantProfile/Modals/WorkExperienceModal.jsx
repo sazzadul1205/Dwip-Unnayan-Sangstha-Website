@@ -9,11 +9,11 @@ import {
   FaCalendarAlt,
   FaTrashAlt,
   FaCheckCircle,
-  FaSpinner
 } from 'react-icons/fa';
 import { GiSuitcase } from 'react-icons/gi';
 import { MdWork, MdBusinessCenter } from 'react-icons/md';
 import Modal from './Modal';
+import { router } from '@inertiajs/react';
 
 /**
  * WorkExperienceModal Component
@@ -132,7 +132,14 @@ const WorkExperienceModal = ({ isOpen, onClose, profile }) => {
           timer: 1500,
           showConfirmButton: false
         });
-        window.location.reload();
+        // Close modal first, then reload
+        onClose(); // Close the modal
+        router.reload();
+
+        // Small delay to allow modal to close before reload
+        setTimeout(() => {
+          router.reload();
+        }, 300);
       } else {
         throw new Error(responseData.message || 'Failed to update');
       }
