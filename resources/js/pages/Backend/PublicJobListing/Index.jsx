@@ -1,4 +1,3 @@
-
 // resources/js/Pages/Public/JobListings/Index.jsx
 
 // React
@@ -39,6 +38,67 @@ import {
 // SweetAlert
 import Swal from 'sweetalert2';
 
+// ============================================
+// SKELETON LOADING COMPONENTS
+// ============================================
+
+const JobSkeletonCard = () => (
+  <div className="bg-white p-5 sm:p-6 md:p-8 lg:p-10 rounded-2xl animate-pulse">
+    <div className="flex flex-col md:flex-row items-start justify-between gap-5">
+      <div className="flex-1 w-full">
+        {/* Tags skeleton */}
+        <div className="flex items-center gap-2 sm:gap-3 mb-3 flex-wrap">
+          <div className="h-6 w-24 bg-gray-200 rounded-full" />
+          <div className="h-6 w-20 bg-gray-200 rounded-full" />
+          <div className="h-6 w-16 bg-gray-200 rounded-full" />
+        </div>
+        {/* Title skeleton */}
+        <div className="h-8 bg-gray-200 rounded-lg mb-3 w-3/4" />
+        {/* Meta skeleton */}
+        <div className="flex flex-wrap gap-3 mb-3">
+          <div className="h-5 w-32 bg-gray-200 rounded" />
+          <div className="h-5 w-40 bg-gray-200 rounded" />
+          <div className="h-5 w-28 bg-gray-200 rounded" />
+        </div>
+        {/* Description skeleton */}
+        <div className="space-y-2">
+          <div className="h-4 bg-gray-200 rounded w-full" />
+          <div className="h-4 bg-gray-200 rounded w-5/6" />
+        </div>
+        {/* Deadline skeleton */}
+        <div className="mt-3 h-6 w-32 bg-gray-200 rounded-full" />
+      </div>
+      <div className="flex flex-col items-end gap-3 w-full md:w-auto">
+        {/* Stats skeleton */}
+        <div className="flex gap-4">
+          <div className="text-center">
+            <div className="h-5 w-12 bg-gray-200 rounded" />
+            <div className="h-3 w-8 bg-gray-200 rounded mt-1" />
+          </div>
+          <div className="text-center">
+            <div className="h-5 w-12 bg-gray-200 rounded" />
+            <div className="h-3 w-8 bg-gray-200 rounded mt-1" />
+          </div>
+        </div>
+        {/* Buttons skeleton */}
+        <div className="flex gap-2">
+          <div className="h-10 w-10 bg-gray-200 rounded-lg" />
+          <div className="h-10 w-10 bg-gray-200 rounded-lg" />
+          <div className="h-10 w-28 bg-gray-200 rounded-lg" />
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
+const JobSkeleton = ({ count = 3 }) => (
+  <>
+    {Array.from({ length: count }).map((_, index) => (
+      <JobSkeletonCard key={`skeleton-${index}`} />
+    ))}
+  </>
+);
+
 export default function PublicJobListingsIndex({
   jobListings: initialJobListings,
   categories,
@@ -51,14 +111,12 @@ export default function PublicJobListingsIndex({
 }) {
   const { flash } = usePage().props;
 
-  // Use centralized auth hook
   const {
     user: currentUser,
     isAuthenticated,
     hasRole,
   } = useAuth();
 
-  // Check user roles/permissions
   const isEmployer = hasRole('employer') || hasRole('employer-admin');
 
   // States
@@ -81,16 +139,14 @@ export default function PublicJobListingsIndex({
     sort: initialFilters.sort || 'latest',
   });
 
-  // Refs to prevent double rendering
+  // Refs
   const isInitialMount = useRef(true);
   const isApplyingFilters = useRef(false);
   const debounceTimer = useRef(null);
   const initialFiltersApplied = useRef(false);
 
-  // Get job listings array from paginated response
   const jobListingItems = jobListings?.data || [];
 
-  // Pagination info
   const pagination = jobListings && {
     currentPage: jobListings.current_page,
     lastPage: jobListings.last_page,
@@ -100,14 +156,11 @@ export default function PublicJobListingsIndex({
     to: jobListings.to,
   };
 
-  // Apply filters - memoized with useCallback
   const applyFilters = useCallback((filterParams = null, page = 1) => {
-    // Prevent multiple simultaneous requests
     if (isApplyingFilters.current) return;
 
     const paramsToUse = filterParams || filters;
 
-    // Don't apply if no filters changed (except on initial load)
     if (!filterParams && !initialFiltersApplied.current) {
       initialFiltersApplied.current = true;
       return;
@@ -135,20 +188,16 @@ export default function PublicJobListingsIndex({
     });
   }, [filters]);
 
-  // Debounced search - only runs when search changes
   useEffect(() => {
-    // Skip on initial mount
     if (isInitialMount.current) {
       isInitialMount.current = false;
       return;
     }
 
-    // Clear previous timer
     if (debounceTimer.current) {
       clearTimeout(debounceTimer.current);
     }
 
-    // Only run if search changed and not initial load
     if (filters.search !== initialFilters.search) {
       debounceTimer.current = setTimeout(() => {
         applyFilters();
@@ -162,30 +211,24 @@ export default function PublicJobListingsIndex({
     };
   }, [filters.search, initialFilters.search, applyFilters]);
 
-  // Handle filter change - immediate for dropdowns, debounced for search
   const handleFilterChange = (key, value) => {
     setFilters(prev => ({ ...prev, [key]: value }));
 
-    // For non-search filters, apply immediately
     if (key !== 'search') {
-      // Clear any pending search timer
       if (debounceTimer.current) {
         clearTimeout(debounceTimer.current);
       }
-      // Apply with a small delay to batch updates
       setTimeout(() => {
         applyFilters({ ...filters, [key]: value });
       }, 100);
     }
   };
 
-  // Apply all filters
   const handleApplyFilters = () => {
     setShowMobileFilters(false);
     applyFilters();
   };
 
-  // Reset all filters
   const resetFilters = () => {
     const resetValues = {
       search: '',
@@ -198,26 +241,22 @@ export default function PublicJobListingsIndex({
       sort: 'latest',
     };
     setFilters(resetValues);
-    // Clear any pending timers
     if (debounceTimer.current) {
       clearTimeout(debounceTimer.current);
     }
     applyFilters(resetValues);
   };
 
-  // Handle sort change
   const handleSortChange = (sortValue) => {
     const updatedFilters = { ...filters, sort: sortValue };
     setFilters(updatedFilters);
     setShowSortMenu(false);
-    // Clear any pending timers
     if (debounceTimer.current) {
       clearTimeout(debounceTimer.current);
     }
     applyFilters(updatedFilters);
   };
 
-  // Handle page change
   const handlePageChange = (page) => {
     if (page === pagination?.currentPage) return;
     if (page < 1 || page > pagination?.lastPage) return;
@@ -238,7 +277,6 @@ export default function PublicJobListingsIndex({
     });
   };
 
-  // Save/Unsave job
   const handleSaveJob = (jobId) => {
     if (!isAuthenticated) {
       Swal.fire({
@@ -260,7 +298,6 @@ export default function PublicJobListingsIndex({
     const isSaved = savedJobs.includes(jobId);
     setSavingJobId(jobId);
 
-    // Optimistically update UI
     if (isSaved) {
       setSavedJobs(prev => prev.filter(id => id !== jobId));
     } else {
@@ -283,7 +320,6 @@ export default function PublicJobListingsIndex({
         setSavingJobId(null);
       },
       onError: (error) => {
-        // Revert optimistic update
         if (isSaved) {
           setSavedJobs(prev => [...prev, jobId]);
         } else {
@@ -299,7 +335,6 @@ export default function PublicJobListingsIndex({
     });
   };
 
-  // Share job
   const handleShareJob = (job) => {
     const url = window.location.origin + route('public.jobs.show', job.slug);
 
@@ -321,24 +356,20 @@ export default function PublicJobListingsIndex({
     }
   };
 
-  // Check if any filter is active
   const hasActiveFilters = () => {
     return filters.category || filters.location || filters.job_type ||
       filters.experience_level || filters.salary_min || filters.salary_max;
   };
 
-  // Clear single filter
   const clearFilter = (key) => {
     const updatedFilters = { ...filters, [key]: '' };
     setFilters(updatedFilters);
-    // Clear any pending timers
     if (debounceTimer.current) {
       clearTimeout(debounceTimer.current);
     }
     applyFilters(updatedFilters);
   };
 
-  // Format date
   const formatDate = (date) => {
     if (!date) return 'N/A';
     const daysLeft = Math.ceil((new Date(date) - new Date()) / (1000 * 60 * 60 * 24));
@@ -348,7 +379,6 @@ export default function PublicJobListingsIndex({
     return `${daysLeft} days left`;
   };
 
-  // Get deadline color
   const getDeadlineColor = (date) => {
     const daysLeft = Math.ceil((new Date(date) - new Date()) / (1000 * 60 * 60 * 24));
     if (daysLeft <= 3) return 'text-red-600 bg-red-50';
@@ -356,7 +386,6 @@ export default function PublicJobListingsIndex({
     return 'text-green-600 bg-green-50';
   };
 
-  // Format salary
   const formatSalary = (job) => {
     if (job.as_per_companies_policy) return 'As per policy';
     if (job.is_salary_negotiable) return 'Negotiable';
@@ -367,7 +396,6 @@ export default function PublicJobListingsIndex({
     return 'Not specified';
   };
 
-  // Get job type badge color
   const getJobTypeColor = (type) => {
     const colors = {
       'full-time': 'bg-green-100 text-green-800',
@@ -380,7 +408,6 @@ export default function PublicJobListingsIndex({
     return colors[type] || 'bg-gray-100 text-gray-800';
   };
 
-  // Get sort label
   const getSortLabel = () => {
     const sorts = {
       latest: 'Latest Jobs',
@@ -395,7 +422,6 @@ export default function PublicJobListingsIndex({
     return sorts[filters.sort] || 'Latest Jobs';
   };
 
-  // Show flash messages
   useEffect(() => {
     if (flash?.success) {
       Swal.fire({
@@ -415,6 +441,9 @@ export default function PublicJobListingsIndex({
       });
     }
   }, [flash]);
+
+  // Check if loading
+  const isLoading = loading && jobListingItems.length === 0;
 
   return (
     <AuthenticatedLayout>
@@ -450,7 +479,7 @@ export default function PublicJobListingsIndex({
         </div>
 
         {/* Main Content */}
-        <div className="mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="mx-auto pt-5">
           <div className="flex flex-col lg:flex-row gap-6">
             {/* Sidebar Filters - Desktop */}
             <div className="hidden lg:block w-80 shrink-0">
@@ -572,7 +601,6 @@ export default function PublicJobListingsIndex({
                     </div>
                   </div>
 
-                  {/* Apply Button */}
                   <button
                     onClick={handleApplyFilters}
                     className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition font-medium"
@@ -656,7 +684,6 @@ export default function PublicJobListingsIndex({
                   <span className="font-semibold">{pagination?.total || 0}</span> jobs
                 </div>
 
-                {/* Welcome Message for Authenticated Users */}
                 {isAuthenticated && (
                   <div className="flex items-center gap-2 text-sm text-green-600 bg-green-50 px-3 py-1 rounded-full">
                     <FaUserCheck size={14} />
@@ -740,14 +767,14 @@ export default function PublicJobListingsIndex({
                 </div>
               )}
 
-              {/* Loading State */}
-              {loading && (
-                <div className="flex items-center justify-center py-12">
-                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600" />
+              {/* Skeleton Loading - Initial Load */}
+              {isLoading && (
+                <div className="space-y-4">
+                  <JobSkeleton count={3} />
                 </div>
               )}
 
-              {/* Job Cards */}
+              {/* No Jobs */}
               {!loading && jobListingItems.length === 0 && (
                 <div className="bg-white rounded-xl shadow-md p-12 text-center">
                   <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -767,7 +794,7 @@ export default function PublicJobListingsIndex({
               )}
 
               {/* Job Cards Grid */}
-              {!loading && (
+              {!loading && jobListingItems.length > 0 && (
                 <div className="space-y-4">
                   {jobListingItems.map((job, index) => {
                     const isSaved = savedJobs.includes(job.id);
@@ -779,7 +806,7 @@ export default function PublicJobListingsIndex({
                         className="bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden animate-fade-in"
                         style={{ animationDelay: `${index * 50}ms` }}
                       >
-                        <div className="p-5">
+                        <div className="p-5 sm:p-6 md:p-8 lg:p-10">
                           <div className="flex flex-wrap items-start justify-between gap-3">
                             {/* Job Info */}
                             <div className="flex-1 min-w-0">
@@ -858,7 +885,6 @@ export default function PublicJobListingsIndex({
                               </div>
 
                               <div className="flex gap-2">
-                                {/* Save Job Button */}
                                 <button
                                   onClick={() => handleSaveJob(job.id)}
                                   disabled={savingJobId === job.id}
@@ -877,7 +903,6 @@ export default function PublicJobListingsIndex({
                                   )}
                                 </button>
 
-                                {/* Share Button */}
                                 <button
                                   onClick={() => handleShareJob(job)}
                                   className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all duration-200"
@@ -886,7 +911,6 @@ export default function PublicJobListingsIndex({
                                   <FaShareAlt size={16} />
                                 </button>
 
-                                {/* Apply Button */}
                                 <a
                                   href={route('public.jobs.show', job.slug)}
                                   className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm font-medium"
@@ -905,7 +929,7 @@ export default function PublicJobListingsIndex({
               )}
 
               {/* Pagination */}
-              {pagination && pagination.lastPage > 1 && !loading && (
+              {pagination && pagination.lastPage > 1 && !loading && jobListingItems.length > 0 && (
                 <div className="mt-6 flex items-center justify-between flex-wrap gap-3">
                   <div className="text-sm text-gray-500">
                     Showing {pagination.from || 0} to {pagination.to || 0} of {pagination.total} jobs

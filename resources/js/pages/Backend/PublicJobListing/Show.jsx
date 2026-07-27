@@ -1,4 +1,3 @@
- 
 // resources/js/Pages/Public/JobListings/Show.jsx
 
 // React
@@ -21,11 +20,8 @@ import {
   FaEye,
   FaUsers,
   FaShare,
-  FaBookmark,
-  FaPrint,
   FaFacebook,
   FaLinkedin,
-  FaEnvelope,
   FaExternalLinkAlt,
   FaStar,
   FaChartLine,
@@ -44,14 +40,122 @@ import AuthenticatedLayout from '../../../layouts/AuthenticatedLayout';
 // Auth
 import { useAuth } from '../../../hooks/useAuth';
 
+// ============================================
+// SKELETON LOADING COMPONENTS
+// ============================================
+
+const SkeletonBadge = () => (
+  <div className="h-6 w-20 bg-gray-200 rounded-full animate-pulse" />
+);
+
+const SkeletonInfoCard = () => (
+  <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+    <div className="flex items-center gap-2 px-6 py-4 bg-gray-50/50 border-b border-gray-100">
+      <div className="w-8 h-8 bg-gray-200 rounded-lg animate-pulse" />
+      <div className="h-5 w-32 bg-gray-200 rounded animate-pulse" />
+    </div>
+    <div className="p-6 space-y-4">
+      <div className="space-y-2">
+        <div className="h-3 w-20 bg-gray-200 rounded animate-pulse" />
+        <div className="h-4 w-3/4 bg-gray-200 rounded animate-pulse" />
+      </div>
+      <div className="space-y-2">
+        <div className="h-3 w-20 bg-gray-200 rounded animate-pulse" />
+        <div className="h-4 w-2/3 bg-gray-200 rounded animate-pulse" />
+      </div>
+    </div>
+  </div>
+);
+
+const SkeletonStatCard = () => (
+  <div className="bg-gray-50 rounded-xl p-4 text-center animate-pulse">
+    <div className="w-10 h-10 bg-gray-200 rounded-full mx-auto mb-2.5" />
+    <div className="h-6 w-16 bg-gray-200 rounded mx-auto mb-1" />
+    <div className="h-3 w-20 bg-gray-200 rounded mx-auto" />
+  </div>
+);
+
+const SkeletonJobDetail = () => {
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Hero Skeleton */}
+      <div className="bg-gray-800 py-8 lg:py-10">
+        <div className="mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center gap-2 mb-6">
+            <div className="w-8 h-8 bg-gray-600 rounded animate-pulse" />
+            <div className="h-4 w-24 bg-gray-600 rounded animate-pulse" />
+          </div>
+
+          <div className="flex flex-wrap items-start justify-between gap-6">
+            <div className="flex-1 min-w-0 space-y-4">
+              <div className="flex items-center gap-3 flex-wrap">
+                <div className="h-8 w-64 bg-gray-600 rounded animate-pulse" />
+                <SkeletonBadge />
+                <SkeletonBadge />
+              </div>
+              <div className="flex flex-wrap gap-x-6 gap-y-2">
+                <div className="h-4 w-32 bg-gray-600 rounded animate-pulse" />
+                <div className="h-4 w-40 bg-gray-600 rounded animate-pulse" />
+                <div className="h-4 w-28 bg-gray-600 rounded animate-pulse" />
+              </div>
+            </div>
+            <div className="flex gap-2 shrink-0">
+              <div className="w-10 h-10 bg-gray-600 rounded-xl animate-pulse" />
+              <div className="w-10 h-10 bg-gray-600 rounded-xl animate-pulse" />
+              <div className="w-10 h-10 bg-gray-600 rounded-xl animate-pulse" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Content Skeleton */}
+      <div className="mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-10">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="lg:col-span-2 space-y-6">
+            {/* Deadline Alert Skeleton */}
+            <div className="bg-gray-100 rounded-2xl p-5 animate-pulse">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-gray-200 rounded-xl" />
+                  <div>
+                    <div className="h-4 w-40 bg-gray-200 rounded" />
+                    <div className="h-3 w-32 bg-gray-200 rounded mt-1" />
+                  </div>
+                </div>
+                <div className="h-6 w-24 bg-gray-200 rounded" />
+              </div>
+            </div>
+
+            {/* Info Cards Skeleton */}
+            <SkeletonInfoCard />
+            <SkeletonInfoCard />
+            <SkeletonInfoCard />
+          </div>
+
+          {/* Sidebar Skeleton */}
+          <div className="space-y-6">
+            <div className="grid grid-cols-2 gap-3">
+              <SkeletonStatCard />
+              <SkeletonStatCard />
+              <SkeletonStatCard />
+              <SkeletonStatCard />
+            </div>
+            <SkeletonInfoCard />
+            <SkeletonInfoCard />
+            <SkeletonInfoCard />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export default function PublicJobListingShow({
   jobListing,
   hasApplied,
   relatedJobs,
   applicationStats,
   averageAtsScore,
-  isBookmarked: initialIsBookmarked = false,
-  bookmarkId: initialBookmarkId = null,
 }) {
   // Use centralized auth hook
   const {
@@ -72,9 +176,16 @@ export default function PublicJobListingShow({
   // States
   const [isApplying, setIsApplying] = useState(false);
   const [showShareMenu, setShowShareMenu] = useState(false);
-  const [isSavingBookmark, setIsSavingBookmark] = useState(false);
-  const [bookmarkId, setBookmarkId] = useState(initialBookmarkId);
-  const [isBookmarked, setIsBookmarked] = useState(initialIsBookmarked);
+
+  // If jobListing is not loaded yet, show skeleton
+  if (!jobListing) {
+    return (
+      <AuthenticatedLayout>
+        <Head title="Loading Job..." />
+        <SkeletonJobDetail />
+      </AuthenticatedLayout>
+    );
+  }
 
   // Format currency in BDT
   const formatCurrency = (amount) => {
@@ -193,7 +304,7 @@ export default function PublicJobListingShow({
     return 'Not specified';
   };
 
-  // Apply Handler - UPDATED: Use consolidated public route
+  // Apply Handler
   const handleApply = () => {
     if (!isAuthenticated) {
       Swal.fire({
@@ -219,81 +330,6 @@ export default function PublicJobListingShow({
     });
   };
 
-  // Bookmark Handler
-  const handleBookmark = () => {
-    if (!isAuthenticated) {
-      Swal.fire({
-        title: 'Login Required',
-        text: 'Please login to save jobs to your bookmarks.',
-        icon: 'info',
-        showCancelButton: true,
-        confirmButtonColor: '#2563eb',
-        cancelButtonColor: '#d33',
-        confirmButtonText: 'Login Now',
-        cancelButtonText: 'Cancel',
-      }).then((result) => {
-        if (result.isConfirmed) {
-          router.visit(route('login', { redirect: route('public.jobs.show', jobListing.slug) }));
-        }
-      });
-      return;
-    }
-
-    setIsSavingBookmark(true);
-
-    if (isBookmarked) {
-      // Remove bookmark
-      router.delete(route('bookmarks.destroy', bookmarkId), {
-        preserveScroll: true,
-        onSuccess: () => {
-          setIsBookmarked(false);
-          setBookmarkId(null);
-          Swal.fire({
-            icon: 'success',
-            title: 'Removed',
-            text: 'Job removed from your bookmarks.',
-            timer: 1500,
-            showConfirmButton: false,
-          });
-        },
-        onError: (error) => {
-          Swal.fire({
-            icon: 'error',
-            title: 'Error',
-            text: error?.message || 'Failed to remove bookmark.',
-          });
-        },
-        onFinish: () => setIsSavingBookmark(false),
-      });
-    } else {
-      // Add bookmark
-      router.post(route('bookmarks.store'), {
-        job_listing_id: jobListing.id,
-      }, {
-        preserveScroll: true,
-        onSuccess: (response) => {
-          setIsBookmarked(true);
-          setBookmarkId(response.props.bookmarkId);
-          Swal.fire({
-            icon: 'success',
-            title: 'Saved!',
-            text: 'Job saved to your bookmarks.',
-            timer: 1500,
-            showConfirmButton: false,
-          });
-        },
-        onError: (error) => {
-          Swal.fire({
-            icon: 'error',
-            title: 'Error',
-            text: error?.message || 'Failed to save bookmark.',
-          });
-        },
-        onFinish: () => setIsSavingBookmark(false),
-      });
-    }
-  };
-
   // Share Handler
   const handleShare = () => {
     const url = window.location.href;
@@ -306,11 +342,6 @@ export default function PublicJobListingShow({
       showConfirmButton: false,
     });
     setShowShareMenu(false);
-  };
-
-  // Print Handler
-  const handlePrint = () => {
-    window.print();
   };
 
   // Edit Job Handler (for employers)
@@ -463,21 +494,6 @@ export default function PublicJobListingShow({
 
               {/* Action Buttons */}
               <div className="flex gap-2 shrink-0">
-                <button
-                  onClick={handleBookmark}
-                  disabled={isSavingBookmark}
-                  className={`p-2.5 rounded-xl transition-all duration-200 backdrop-blur-sm hover:scale-105 ${isSavingBookmark
-                    ? 'bg-white/10 opacity-50 cursor-not-allowed'
-                    : 'bg-white/10 hover:bg-white/20'
-                    }`}
-                  title="Bookmark"
-                >
-                  {isSavingBookmark ? (
-                    <FaSpinner className="animate-spin text-white/80" size={16} />
-                  ) : (
-                    <FaBookmark className={isBookmarked ? 'text-amber-400' : 'text-white/80'} size={16} />
-                  )}
-                </button>
                 <div className="relative">
                   <button
                     onClick={() => setShowShareMenu(!showShareMenu)}
@@ -512,20 +528,13 @@ export default function PublicJobListingShow({
                     </div>
                   )}
                 </div>
-                <button
-                  onClick={handlePrint}
-                  className="p-2.5 bg-white/10 rounded-xl hover:bg-white/20 transition-all duration-200 backdrop-blur-sm hover:scale-105"
-                  title="Print"
-                >
-                  <FaPrint size={16} className="text-white/80" />
-                </button>
               </div>
             </div>
           </div>
         </div>
 
         {/* Main Content */}
-        <div className="mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-10">
+        <div className="mx-auto py-2">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Left Column - Main Content */}
             <div className="lg:col-span-2 space-y-6">
@@ -735,32 +744,10 @@ export default function PublicJobListingShow({
                   )}
                 </InfoSection>
               )}
-
-              {/* Employer Info Card */}
-              {jobListing.employer && (
-                <InfoSection title="About the Employer" icon={FaBuilding}>
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 bg-gray-100 rounded-lg">
-                        <FaBuilding className="text-gray-500" size={14} />
-                      </div>
-                      <span className="text-gray-900 font-medium">{jobListing.employer.name}</span>
-                    </div>
-                    {jobListing.employer.email && (
-                      <div className="flex items-center gap-3">
-                        <FaEnvelope className="text-gray-400" size={14} />
-                        <a href={`mailto:${jobListing.employer.email}`} className="text-blue-600 hover:text-blue-700 hover:underline text-sm">
-                          {jobListing.employer.email}
-                        </a>
-                      </div>
-                    )}
-                  </div>
-                </InfoSection>
-              )}
             </div>
           </div>
 
-          {/* Related Jobs Section - UPDATED: Use consolidated public route */}
+          {/* Related Jobs Section */}
           {relatedJobs && relatedJobs.length > 0 && (
             <div className="mt-10">
               <div className="flex items-center gap-3 mb-5">
@@ -777,7 +764,6 @@ export default function PublicJobListingShow({
                 {relatedJobs.map((job) => (
                   <a
                     key={job.id}
-                    // UPDATED: Use consolidated public route
                     href={route('public.jobs.show', job.slug)}
                     className="group bg-white rounded-2xl shadow-sm hover:shadow-lg transition-all duration-300 p-5 border border-gray-100 hover:border-blue-200 block"
                   >
