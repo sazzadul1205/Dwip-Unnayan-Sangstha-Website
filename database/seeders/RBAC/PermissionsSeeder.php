@@ -11,7 +11,7 @@ class PermissionsSeeder extends Seeder
   public function run(): void
   {
     $permissions = [
-      // Dashboard Module
+      // ==================== DASHBOARD ====================
       ['name' => 'View Dashboard', 'slug' => 'dashboard.view', 'module' => 'dashboard', 'action' => 'view'],
       ['name' => 'View Dashboard Stats', 'slug' => 'dashboard.stats.view', 'module' => 'dashboard', 'action' => 'stats_view'],
       ['name' => 'View Dashboard Quick Actions', 'slug' => 'dashboard.quick_actions.view', 'module' => 'dashboard', 'action' => 'quick_actions_view'],
@@ -20,196 +20,28 @@ class PermissionsSeeder extends Seeder
       ['name' => 'Employer Dashboard', 'slug' => 'dashboard.employer', 'module' => 'dashboard', 'action' => 'employer'],
       ['name' => 'Admin Dashboard', 'slug' => 'dashboard.admin', 'module' => 'dashboard', 'action' => 'admin'],
 
-      // CMS Module - Dashboard & Management
-      ['name' => 'CMS Dashboard', 'slug' => 'cms.dashboard', 'module' => 'cms', 'action' => 'dashboard'],
-      ['name' => 'CMS Pages', 'slug' => 'cms.pages', 'module' => 'cms', 'action' => 'pages'],
-      ['name' => 'CMS About Content', 'slug' => 'cms.about', 'module' => 'cms', 'action' => 'about'],
-      ['name' => 'CMS Blogs', 'slug' => 'cms.blogs', 'module' => 'cms', 'action' => 'blogs'],
-      ['name' => 'CMS Programs', 'slug' => 'cms.programs', 'module' => 'cms', 'action' => 'programs'],
-      ['name' => 'CMS Custom Sections', 'slug' => 'cms.custom-sections', 'module' => 'cms', 'action' => 'custom_sections'],
-      ['name' => 'CMS Shared Data', 'slug' => 'cms.shared-data', 'module' => 'cms', 'action' => 'shared_data'],
-      ['name' => 'CMS Pages View', 'slug' => 'cms.pages.view', 'module' => 'cms', 'action' => 'pages_view'],
-      ['name' => 'CMS Pages Manage', 'slug' => 'cms.pages.manage', 'module' => 'cms', 'action' => 'pages_manage'],
-      ['name' => 'CMS About View', 'slug' => 'cms.about.view', 'module' => 'cms', 'action' => 'about_view'],
-      ['name' => 'CMS About Manage', 'slug' => 'cms.about.manage', 'module' => 'cms', 'action' => 'about_manage'],
-      ['name' => 'CMS Blogs View', 'slug' => 'cms.blogs.view', 'module' => 'cms', 'action' => 'blogs_view'],
-      ['name' => 'CMS Blogs Manage', 'slug' => 'cms.blogs.manage', 'module' => 'cms', 'action' => 'blogs_manage'],
-      ['name' => 'CMS Programs View', 'slug' => 'cms.programs.view', 'module' => 'cms', 'action' => 'programs_view'],
-      ['name' => 'CMS Programs Manage', 'slug' => 'cms.programs.manage', 'module' => 'cms', 'action' => 'programs_manage'],
-      ['name' => 'CMS Custom Sections View', 'slug' => 'cms.custom-sections.view', 'module' => 'cms', 'action' => 'custom_sections_view'],
-      ['name' => 'CMS Custom Sections Manage', 'slug' => 'cms.custom-sections.manage', 'module' => 'cms', 'action' => 'custom_sections_manage'],
-      ['name' => 'CMS Shared Data View', 'slug' => 'cms.shared-data.view', 'module' => 'cms', 'action' => 'shared_data_view'],
-      ['name' => 'CMS Shared Data Manage', 'slug' => 'cms.shared-data.manage', 'module' => 'cms', 'action' => 'shared_data_manage'],
-      ['name' => 'CMS Publications', 'slug' => 'cms.publications', 'module' => 'cms', 'action' => 'publications'],
-      ['name' => 'CMS Publications View', 'slug' => 'cms.publications.view', 'module' => 'cms', 'action' => 'publications_view'],
-      ['name' => 'CMS Publications Manage', 'slug' => 'cms.publications.manage', 'module' => 'cms', 'action' => 'publications_manage'],
-
-      // CMS Page CRUD Permissions
-      ['name' => 'View Pages', 'slug' => 'pages.view', 'module' => 'pages', 'action' => 'view'],
-      ['name' => 'Create Page', 'slug' => 'pages.create', 'module' => 'pages', 'action' => 'create'],
-      ['name' => 'Update Page', 'slug' => 'pages.update', 'module' => 'pages', 'action' => 'update'],
-      ['name' => 'Delete Page', 'slug' => 'pages.destroy', 'module' => 'pages', 'action' => 'destroy'],
-      ['name' => 'Manage Pages', 'slug' => 'pages.manage', 'module' => 'pages', 'action' => 'manage'],
-
-      // CMS About CRUD Permissions
+      // ==================== ABOUT CONTENT ====================
       ['name' => 'View About Content', 'slug' => 'about.view', 'module' => 'about', 'action' => 'view'],
       ['name' => 'Create About Content', 'slug' => 'about.create', 'module' => 'about', 'action' => 'create'],
       ['name' => 'Update About Content', 'slug' => 'about.update', 'module' => 'about', 'action' => 'update'],
       ['name' => 'Delete About Content', 'slug' => 'about.destroy', 'module' => 'about', 'action' => 'destroy'],
-      ['name' => 'Manage About Content', 'slug' => 'about.manage', 'module' => 'about', 'action' => 'manage'],
+      ['name' => 'Restore About Content', 'slug' => 'about.restore', 'module' => 'about', 'action' => 'restore'],
+      ['name' => 'Force Delete About Content', 'slug' => 'about.force-delete', 'module' => 'about', 'action' => 'force_delete'],
+      ['name' => 'Toggle About Status', 'slug' => 'about.toggle-status', 'module' => 'about', 'action' => 'toggle_status'],
+      ['name' => 'Toggle About Featured', 'slug' => 'about.toggle-featured', 'module' => 'about', 'action' => 'toggle_featured'],
 
-      // CMS Blog CRUD Permissions
-      ['name' => 'View Blogs', 'slug' => 'blogs.view', 'module' => 'blogs', 'action' => 'view'],
-      ['name' => 'Create Blog', 'slug' => 'blogs.create', 'module' => 'blogs', 'action' => 'create'],
-      ['name' => 'Update Blog', 'slug' => 'blogs.update', 'module' => 'blogs', 'action' => 'update'],
-      ['name' => 'Delete Blog', 'slug' => 'blogs.destroy', 'module' => 'blogs', 'action' => 'destroy'],
-      ['name' => 'Manage Blogs', 'slug' => 'blogs.manage', 'module' => 'blogs', 'action' => 'manage'],
+      // ==================== ADMIN PROFILE ====================
+      ['name' => 'View Admin', 'slug' => 'admin.view', 'module' => 'admin', 'action' => 'view'],
+      ['name' => 'Manage Admin', 'slug' => 'admin.manage', 'module' => 'admin', 'action' => 'manage'],
+      ['name' => 'Create Admin', 'slug' => 'admin.create', 'module' => 'admin', 'action' => 'create'],
+      ['name' => 'Update Admin', 'slug' => 'admin.update', 'module' => 'admin', 'action' => 'update'],
+      ['name' => 'Delete Admin', 'slug' => 'admin.destroy', 'module' => 'admin', 'action' => 'destroy'],
+      ['name' => 'View Admin Profile', 'slug' => 'admin_profile.view', 'module' => 'admin_profile', 'action' => 'view'],
+      ['name' => 'Edit Admin Profile', 'slug' => 'admin_profile.edit', 'module' => 'admin_profile', 'action' => 'edit'],
+      ['name' => 'Update Admin Profile', 'slug' => 'admin_profile.update', 'module' => 'admin_profile', 'action' => 'update'],
+      ['name' => 'Update Admin Password', 'slug' => 'admin_profile.update_password', 'module' => 'admin_profile', 'action' => 'update_password'],
 
-      // CMS Program CRUD Permissions
-      ['name' => 'View Programs', 'slug' => 'programs.view', 'module' => 'programs', 'action' => 'view'],
-      ['name' => 'Create Program', 'slug' => 'programs.create', 'module' => 'programs', 'action' => 'create'],
-      ['name' => 'Update Program', 'slug' => 'programs.update', 'module' => 'programs', 'action' => 'update'],
-      ['name' => 'Delete Program', 'slug' => 'programs.destroy', 'module' => 'programs', 'action' => 'destroy'],
-      ['name' => 'Manage Programs', 'slug' => 'programs.manage', 'module' => 'programs', 'action' => 'manage'],
-
-      // CMS Publication CRUD Permissions
-      ['name' => 'View Publications', 'slug' => 'publications.view', 'module' => 'publications', 'action' => 'view'],
-      ['name' => 'Create Publication', 'slug' => 'publications.create', 'module' => 'publications', 'action' => 'create'],
-      ['name' => 'Update Publication', 'slug' => 'publications.update', 'module' => 'publications', 'action' => 'update'],
-      ['name' => 'Delete Publication', 'slug' => 'publications.destroy', 'module' => 'publications', 'action' => 'destroy'],
-      ['name' => 'Manage Publications', 'slug' => 'publications.manage', 'module' => 'publications', 'action' => 'manage'],
-
-      // CMS Custom Sections CRUD Permissions
-      ['name' => 'View Custom Sections', 'slug' => 'custom-sections.view', 'module' => 'custom_sections', 'action' => 'view'],
-      ['name' => 'Create Custom Section', 'slug' => 'custom-sections.create', 'module' => 'custom_sections', 'action' => 'create'],
-      ['name' => 'Update Custom Section', 'slug' => 'custom-sections.update', 'module' => 'custom_sections', 'action' => 'update'],
-      ['name' => 'Delete Custom Section', 'slug' => 'custom-sections.destroy', 'module' => 'custom_sections', 'action' => 'destroy'],
-      ['name' => 'Manage Custom Sections', 'slug' => 'custom-sections.manage', 'module' => 'custom_sections', 'action' => 'manage'],
-
-      // CMS Shared Data CRUD Permissions
-      ['name' => 'View Shared Data', 'slug' => 'shared-data.view', 'module' => 'shared_data', 'action' => 'view'],
-      ['name' => 'Create Shared Data', 'slug' => 'shared-data.create', 'module' => 'shared_data', 'action' => 'create'],
-      ['name' => 'Update Shared Data', 'slug' => 'shared-data.update', 'module' => 'shared_data', 'action' => 'update'],
-      ['name' => 'Delete Shared Data', 'slug' => 'shared-data.destroy', 'module' => 'shared_data', 'action' => 'destroy'],
-      ['name' => 'Manage Shared Data', 'slug' => 'shared-data.manage', 'module' => 'shared_data', 'action' => 'manage'],
-
-      // CMS Section Config Permissions
-      ['name' => 'View Sections', 'slug' => 'sections.view', 'module' => 'sections', 'action' => 'view'],
-      ['name' => 'Create Section', 'slug' => 'sections.create', 'module' => 'sections', 'action' => 'create'],
-      ['name' => 'Update Section', 'slug' => 'sections.update', 'module' => 'sections', 'action' => 'update'],
-      ['name' => 'Delete Section', 'slug' => 'sections.destroy', 'module' => 'sections', 'action' => 'destroy'],
-      ['name' => 'Manage Sections', 'slug' => 'sections.manage', 'module' => 'sections', 'action' => 'manage'],
-
-      // Job Listings Module - Core CRUD
-      ['name' => 'View Job Listings', 'slug' => 'job_listings.view', 'module' => 'job_listings', 'action' => 'view'],
-      ['name' => 'Create Job Listing', 'slug' => 'job_listings.create', 'module' => 'job_listings', 'action' => 'create'],
-      ['name' => 'Edit Job Listing', 'slug' => 'job_listings.edit', 'module' => 'job_listings', 'action' => 'edit'],
-      ['name' => 'Update Job Listing', 'slug' => 'job_listings.update', 'module' => 'job_listings', 'action' => 'update'],
-      ['name' => 'Delete Job Listing', 'slug' => 'job_listings.destroy', 'module' => 'job_listings', 'action' => 'destroy'],
-      ['name' => 'Restore Job Listing', 'slug' => 'job_listings.restore', 'module' => 'job_listings', 'action' => 'restore'],
-      ['name' => 'Force Delete Job Listing', 'slug' => 'job_listings.force_delete', 'module' => 'job_listings', 'action' => 'force_delete'],
-      ['name' => 'Show Job Listing', 'slug' => 'job_listings.show', 'module' => 'job_listings', 'action' => 'show'],
-      ['name' => 'Store Job Listing', 'slug' => 'job_listings.store', 'module' => 'job_listings', 'action' => 'store'],
-      ['name' => 'Toggle Job Active', 'slug' => 'job_listings.toggle_active', 'module' => 'job_listings', 'action' => 'toggle_active'],
-      ['name' => 'Bulk Activate Jobs', 'slug' => 'job_listings.bulk_activate', 'module' => 'job_listings', 'action' => 'bulk_activate'],
-      ['name' => 'Bulk Deactivate Jobs', 'slug' => 'job_listings.bulk_deactivate', 'module' => 'job_listings', 'action' => 'bulk_deactivate'],
-      ['name' => 'Bulk Delete Jobs', 'slug' => 'job_listings.bulk_delete', 'module' => 'job_listings', 'action' => 'bulk_delete'],
-      ['name' => 'View Job Applications', 'slug' => 'job_listings.applications', 'module' => 'job_listings', 'action' => 'applications'],
-      ['name' => 'Job Statistics', 'slug' => 'job_listings.statistics', 'module' => 'job_listings', 'action' => 'statistics'],
-      ['name' => 'Update Job Statuses', 'slug' => 'job_listings.update_statuses', 'module' => 'job_listings', 'action' => 'update_statuses'],
-      ['name' => 'Manage Jobs', 'slug' => 'jobs.manage', 'module' => 'job_listings', 'action' => 'manage'],
-
-      // Job View Permissions
-      ['name' => 'View Any Job', 'slug' => 'job.view.any', 'module' => 'job_listings', 'action' => 'view_any'],
-      ['name' => 'View Own Job', 'slug' => 'job.view.own', 'module' => 'job_listings', 'action' => 'view_own'],
-      ['name' => 'Edit Own Job', 'slug' => 'job.edit.own', 'module' => 'job_listings', 'action' => 'edit_own'],
-
-      // Public Job Listings Module
-      ['name' => 'View Public Jobs', 'slug' => 'public_jobs.view', 'module' => 'public_jobs', 'action' => 'view'],
-      ['name' => 'Show Public Job', 'slug' => 'public_jobs.show', 'module' => 'public_jobs', 'action' => 'show'],
-      ['name' => 'View Popular Jobs', 'slug' => 'public_jobs.popular', 'module' => 'public_jobs', 'action' => 'popular'],
-      ['name' => 'View Trending Jobs', 'slug' => 'public_jobs.trending', 'module' => 'public_jobs', 'action' => 'trending'],
-      ['name' => 'Bookmark Job', 'slug' => 'public_jobs.bookmark', 'module' => 'public_jobs', 'action' => 'bookmark'],
-      ['name' => 'Share Job', 'slug' => 'public_jobs.share', 'module' => 'public_jobs', 'action' => 'share'],
-      ['name' => 'Print Job Details', 'slug' => 'public_jobs.print', 'module' => 'public_jobs', 'action' => 'print'],
-
-      // Applications Module - Core
-      ['name' => 'View Applications', 'slug' => 'applications.view', 'module' => 'applications', 'action' => 'view'],
-      ['name' => 'View Own Job Applications', 'slug' => 'applications.view.for_own_jobs', 'module' => 'applications', 'action' => 'view_for_own_jobs'],
-      ['name' => 'Show Application', 'slug' => 'applications.show', 'module' => 'applications', 'action' => 'show'],
-      ['name' => 'Update Application Status', 'slug' => 'applications.status.update', 'module' => 'applications', 'action' => 'status_update'],
-      ['name' => 'Bulk Update Status', 'slug' => 'applications.bulk_status.update', 'module' => 'applications', 'action' => 'bulk_status_update'],
-      ['name' => 'Delete Application', 'slug' => 'applications.destroy', 'module' => 'applications', 'action' => 'destroy'],
-      ['name' => 'Bulk Delete Applications', 'slug' => 'applications.bulk_delete', 'module' => 'applications', 'action' => 'bulk_delete'],
-      ['name' => 'Restore Application', 'slug' => 'applications.restore', 'module' => 'applications', 'action' => 'restore'],
-      ['name' => 'Bulk Restore Applications', 'slug' => 'applications.bulk_restore', 'module' => 'applications', 'action' => 'bulk_restore'],
-      ['name' => 'Force Delete Application', 'slug' => 'applications.force_delete', 'module' => 'applications', 'action' => 'force_delete'],
-      ['name' => 'Download Resume', 'slug' => 'applications.download_resume', 'module' => 'applications', 'action' => 'download_resume'],
-      ['name' => 'Bulk Download Resumes', 'slug' => 'applications.bulk_download_resumes', 'module' => 'applications', 'action' => 'bulk_download_resumes'],
-      ['name' => 'Send Application Email', 'slug' => 'applications.email.send', 'module' => 'applications', 'action' => 'email_send'],
-      ['name' => 'Bulk Send Email', 'slug' => 'applications.bulk_email.send', 'module' => 'applications', 'action' => 'bulk_email_send'],
-      ['name' => 'Export Applications', 'slug' => 'applications.export', 'module' => 'applications', 'action' => 'export'],
-      ['name' => 'Export Single Application', 'slug' => 'applications.export_single', 'module' => 'applications', 'action' => 'export_single'],
-      ['name' => 'Recalculate ATS', 'slug' => 'applications.recalculate_ats', 'module' => 'applications', 'action' => 'recalculate_ats'],
-      ['name' => 'Manage All Applications', 'slug' => 'applications.manage', 'module' => 'applications', 'action' => 'manage'],
-      ['name' => 'Job Applications View', 'slug' => 'applications.job_applications', 'module' => 'applications', 'action' => 'job_applications'],
-
-      // Application View Permissions
-      ['name' => 'View Own Applications', 'slug' => 'application.view.own', 'module' => 'applications', 'action' => 'view_own'],
-      ['name' => 'View Any Application', 'slug' => 'application.view.any', 'module' => 'applications', 'action' => 'view_any'],
-      ['name' => 'Shortlist Application', 'slug' => 'application.shortlist', 'module' => 'applications', 'action' => 'shortlist'],
-      ['name' => 'Reject Application', 'slug' => 'application.reject', 'module' => 'applications', 'action' => 'reject'],
-
-      // Apply Module (Job Seekers)
-      ['name' => 'View My Applications', 'slug' => 'apply.view', 'module' => 'apply', 'action' => 'view'],
-      ['name' => 'View My Own Applications', 'slug' => 'apply.view.own', 'module' => 'apply', 'action' => 'view_own'],
-      ['name' => 'Create New Application', 'slug' => 'apply.create', 'module' => 'apply', 'action' => 'create'],
-      ['name' => 'Store New Application', 'slug' => 'apply.store', 'module' => 'apply', 'action' => 'store'],
-      ['name' => 'Show My Application Details', 'slug' => 'apply.show', 'module' => 'apply', 'action' => 'show'],
-      ['name' => 'Edit My Application', 'slug' => 'apply.edit', 'module' => 'apply', 'action' => 'edit'],
-      ['name' => 'Update My Application', 'slug' => 'apply.update', 'module' => 'apply', 'action' => 'update'],
-      ['name' => 'Withdraw My Application', 'slug' => 'apply.destroy', 'module' => 'apply', 'action' => 'destroy'],
-      ['name' => 'Restore My Application', 'slug' => 'apply.restore', 'module' => 'apply', 'action' => 'restore'],
-      ['name' => 'Force Delete My Application', 'slug' => 'apply.force_delete', 'module' => 'apply', 'action' => 'force_delete'],
-      ['name' => 'View My Trashed Applications', 'slug' => 'apply.trashed', 'module' => 'apply', 'action' => 'trashed'],
-      ['name' => 'Recalculate My ATS Score', 'slug' => 'apply.recalculate_ats', 'module' => 'apply', 'action' => 'recalculate_ats'],
-      ['name' => 'Get My ATS Status', 'slug' => 'apply.ats_status', 'module' => 'apply', 'action' => 'ats_status'],
-
-      // Job Categories Module
-      ['name' => 'View Categories', 'slug' => 'categories.view', 'module' => 'categories', 'action' => 'view'],
-      ['name' => 'Create Category', 'slug' => 'categories.create', 'module' => 'categories', 'action' => 'create'],
-      ['name' => 'Edit Category', 'slug' => 'categories.edit', 'module' => 'categories', 'action' => 'edit'],
-      ['name' => 'Delete Category', 'slug' => 'categories.delete', 'module' => 'categories', 'action' => 'delete'],
-      ['name' => 'Restore Category', 'slug' => 'categories.restore', 'module' => 'categories', 'action' => 'restore'],
-      ['name' => 'Force Delete Category', 'slug' => 'categories.force_delete', 'module' => 'categories', 'action' => 'force_delete'],
-      ['name' => 'Toggle Category Active', 'slug' => 'categories.toggle_active', 'module' => 'categories', 'action' => 'toggle_active'],
-      ['name' => 'Bulk Delete Categories', 'slug' => 'categories.bulk_delete', 'module' => 'categories', 'action' => 'bulk_delete'],
-      ['name' => 'Bulk Restore Categories', 'slug' => 'categories.bulk_restore', 'module' => 'categories', 'action' => 'bulk_restore'],
-      ['name' => 'Bulk Activate Categories', 'slug' => 'categories.bulk_activate', 'module' => 'categories', 'action' => 'bulk_activate'],
-      ['name' => 'Bulk Deactivate Categories', 'slug' => 'categories.bulk_deactivate', 'module' => 'categories', 'action' => 'bulk_deactivate'],
-      ['name' => 'Bulk Force Delete Categories', 'slug' => 'categories.bulk_force_delete', 'module' => 'categories', 'action' => 'bulk_force_delete'],
-      ['name' => 'Get Active Categories', 'slug' => 'categories.get_active', 'module' => 'categories', 'action' => 'get_active'],
-      ['name' => 'Manage Categories', 'slug' => 'categories.manage', 'module' => 'categories', 'action' => 'manage'],
-      ['name' => 'View Category', 'slug' => 'category.view', 'module' => 'categories', 'action' => 'category_view'],
-
-      // Locations Module
-      ['name' => 'View Locations', 'slug' => 'locations.view', 'module' => 'locations', 'action' => 'view'],
-      ['name' => 'Create Location', 'slug' => 'locations.create', 'module' => 'locations', 'action' => 'create'],
-      ['name' => 'Edit Location', 'slug' => 'locations.edit', 'module' => 'locations', 'action' => 'edit'],
-      ['name' => 'Delete Location', 'slug' => 'locations.delete', 'module' => 'locations', 'action' => 'delete'],
-      ['name' => 'Restore Location', 'slug' => 'locations.restore', 'module' => 'locations', 'action' => 'restore'],
-      ['name' => 'Force Delete Location', 'slug' => 'locations.force_delete', 'module' => 'locations', 'action' => 'force_delete'],
-      ['name' => 'Toggle Location Active', 'slug' => 'locations.toggle_active', 'module' => 'locations', 'action' => 'toggle_active'],
-      ['name' => 'Bulk Delete Locations', 'slug' => 'locations.bulk_delete', 'module' => 'locations', 'action' => 'bulk_delete'],
-      ['name' => 'Bulk Restore Locations', 'slug' => 'locations.bulk_restore', 'module' => 'locations', 'action' => 'bulk_restore'],
-      ['name' => 'Bulk Activate Locations', 'slug' => 'locations.bulk_activate', 'module' => 'locations', 'action' => 'bulk_activate'],
-      ['name' => 'Bulk Deactivate Locations', 'slug' => 'locations.bulk_deactivate', 'module' => 'locations', 'action' => 'bulk_deactivate'],
-      ['name' => 'Bulk Force Delete Locations', 'slug' => 'locations.bulk_force_delete', 'module' => 'locations', 'action' => 'bulk_force_delete'],
-      ['name' => 'Get Active Locations', 'slug' => 'locations.get_active', 'module' => 'locations', 'action' => 'get_active'],
-      ['name' => 'Manage Locations', 'slug' => 'locations.manage', 'module' => 'locations', 'action' => 'manage'],
-      ['name' => 'View Location', 'slug' => 'location.view', 'module' => 'locations', 'action' => 'location_view'],
-
-      // APPLICANT PROFILES MODULE
+      // ==================== APPLICANT PROFILES ====================
       ['name' => 'View Applicant Profiles', 'slug' => 'applicant-profiles.view', 'module' => 'applicant_profiles', 'action' => 'view'],
       ['name' => 'View Any Applicant Profile', 'slug' => 'applicant-profiles.view.any', 'module' => 'applicant_profiles', 'action' => 'view_any'],
       ['name' => 'View Own Applicant Profile', 'slug' => 'applicant-profiles.view.own', 'module' => 'applicant_profiles', 'action' => 'view_own'],
@@ -247,7 +79,245 @@ class PermissionsSeeder extends Seeder
       ['name' => 'Manage All Applicant Profiles', 'slug' => 'applicant-profiles.manage', 'module' => 'applicant_profiles', 'action' => 'manage'],
       ['name' => 'Assign Applicant Profile Roles', 'slug' => 'applicant-profiles.assign_roles', 'module' => 'applicant_profiles', 'action' => 'assign_roles'],
 
-      // Profiles Module (Legacy)
+      // ==================== APPLICATIONS (Admin/Employer) ====================
+      ['name' => 'View Applications', 'slug' => 'applications.view', 'module' => 'applications', 'action' => 'view'],
+      ['name' => 'View Applications for Own Jobs', 'slug' => 'applications.view.for_own_jobs', 'module' => 'applications', 'action' => 'view_for_own_jobs'],
+      ['name' => 'Show Application', 'slug' => 'applications.show', 'module' => 'applications', 'action' => 'show'],
+      ['name' => 'Update Application Status', 'slug' => 'applications.status.update', 'module' => 'applications', 'action' => 'status_update'],
+      ['name' => 'Bulk Update Status', 'slug' => 'applications.bulk_status.update', 'module' => 'applications', 'action' => 'bulk_status_update'],
+      ['name' => 'Delete Application', 'slug' => 'applications.destroy', 'module' => 'applications', 'action' => 'destroy'],
+      ['name' => 'Bulk Delete Applications', 'slug' => 'applications.bulk_delete', 'module' => 'applications', 'action' => 'bulk_delete'],
+      ['name' => 'Restore Application', 'slug' => 'applications.restore', 'module' => 'applications', 'action' => 'restore'],
+      ['name' => 'Bulk Restore Applications', 'slug' => 'applications.bulk_restore', 'module' => 'applications', 'action' => 'bulk_restore'],
+      ['name' => 'Force Delete Application', 'slug' => 'applications.force_delete', 'module' => 'applications', 'action' => 'force_delete'],
+      ['name' => 'Download Resume', 'slug' => 'applications.download_resume', 'module' => 'applications', 'action' => 'download_resume'],
+      ['name' => 'Bulk Download Resumes', 'slug' => 'applications.bulk_download_resumes', 'module' => 'applications', 'action' => 'bulk_download_resumes'],
+      ['name' => 'Send Application Email', 'slug' => 'applications.email.send', 'module' => 'applications', 'action' => 'email_send'],
+      ['name' => 'Bulk Send Email', 'slug' => 'applications.bulk_email.send', 'module' => 'applications', 'action' => 'bulk_email_send'],
+      ['name' => 'Export Applications', 'slug' => 'applications.export', 'module' => 'applications', 'action' => 'export'],
+      ['name' => 'Export Single Application', 'slug' => 'applications.export_single', 'module' => 'applications', 'action' => 'export_single'],
+      ['name' => 'Recalculate ATS', 'slug' => 'applications.recalculate_ats', 'module' => 'applications', 'action' => 'recalculate_ats'],
+      ['name' => 'Manage All Applications', 'slug' => 'applications.manage', 'module' => 'applications', 'action' => 'manage'],
+      ['name' => 'Job Applications View', 'slug' => 'applications.job_applications', 'module' => 'applications', 'action' => 'job_applications'],
+      ['name' => 'View Own Applications (Job Seeker)', 'slug' => 'application.view.own', 'module' => 'applications', 'action' => 'view_own'],
+      ['name' => 'View Any Application', 'slug' => 'application.view.any', 'module' => 'applications', 'action' => 'view_any'],
+      ['name' => 'Shortlist Application', 'slug' => 'application.shortlist', 'module' => 'applications', 'action' => 'shortlist'],
+      ['name' => 'Reject Application', 'slug' => 'application.reject', 'module' => 'applications', 'action' => 'reject'],
+
+      // ==================== APPLY (Job Seeker) ====================
+      ['name' => 'View My Applications', 'slug' => 'apply.view', 'module' => 'apply', 'action' => 'view'],
+      ['name' => 'View My Own Applications', 'slug' => 'apply.view.own', 'module' => 'apply', 'action' => 'view_own'],
+      ['name' => 'Create New Application', 'slug' => 'apply.create', 'module' => 'apply', 'action' => 'create'],
+      ['name' => 'Store New Application', 'slug' => 'apply.store', 'module' => 'apply', 'action' => 'store'],
+      ['name' => 'Show My Application Details', 'slug' => 'apply.show', 'module' => 'apply', 'action' => 'show'],
+      ['name' => 'Edit My Application', 'slug' => 'apply.edit', 'module' => 'apply', 'action' => 'edit'],
+      ['name' => 'Update My Application', 'slug' => 'apply.update', 'module' => 'apply', 'action' => 'update'],
+      ['name' => 'Withdraw My Application', 'slug' => 'apply.destroy', 'module' => 'apply', 'action' => 'destroy'],
+      ['name' => 'Restore My Application', 'slug' => 'apply.restore', 'module' => 'apply', 'action' => 'restore'],
+      ['name' => 'Force Delete My Application', 'slug' => 'apply.force_delete', 'module' => 'apply', 'action' => 'force_delete'],
+      ['name' => 'View My Trashed Applications', 'slug' => 'apply.trashed', 'module' => 'apply', 'action' => 'trashed'],
+      ['name' => 'Recalculate My ATS Score', 'slug' => 'apply.recalculate_ats', 'module' => 'apply', 'action' => 'recalculate_ats'],
+      ['name' => 'Get My ATS Status', 'slug' => 'apply.ats_status', 'module' => 'apply', 'action' => 'ats_status'],
+
+      // ==================== BACKUP ====================
+      ['name' => 'View Backups', 'slug' => 'backup.view', 'module' => 'backup', 'action' => 'view'],
+      ['name' => 'Create Backup', 'slug' => 'backup.create', 'module' => 'backup', 'action' => 'create'],
+      ['name' => 'Download Backup', 'slug' => 'backup.download', 'module' => 'backup', 'action' => 'download'],
+      ['name' => 'Delete Backup', 'slug' => 'backup.delete', 'module' => 'backup', 'action' => 'delete'],
+      ['name' => 'Restore Backup', 'slug' => 'backup.restore', 'module' => 'backup', 'action' => 'restore'],
+
+      // ==================== BLOGS ====================
+      ['name' => 'View Blogs', 'slug' => 'blogs.view', 'module' => 'blogs', 'action' => 'view'],
+      ['name' => 'Create Blog', 'slug' => 'blogs.create', 'module' => 'blogs', 'action' => 'create'],
+      ['name' => 'Update Blog', 'slug' => 'blogs.update', 'module' => 'blogs', 'action' => 'update'],
+      ['name' => 'Delete Blog', 'slug' => 'blogs.destroy', 'module' => 'blogs', 'action' => 'destroy'],
+      ['name' => 'Restore Blog', 'slug' => 'blogs.restore', 'module' => 'blogs', 'action' => 'restore'],
+      // CMS Blog aliases (frontend uses cms.blogs.*)
+      ['name' => 'CMS View Blogs', 'slug' => 'cms.blogs.view', 'module' => 'cms', 'action' => 'blogs_view'],
+      ['name' => 'CMS Create Blog', 'slug' => 'cms.blogs.create', 'module' => 'cms', 'action' => 'blogs_create'],
+      ['name' => 'CMS Edit Blog', 'slug' => 'cms.blogs.edit', 'module' => 'cms', 'action' => 'blogs_edit'],
+      ['name' => 'CMS Delete Blog', 'slug' => 'cms.blogs.delete', 'module' => 'cms', 'action' => 'blogs_delete'],
+      ['name' => 'CMS Restore Blog', 'slug' => 'cms.blogs.restore', 'module' => 'cms', 'action' => 'blogs_restore'],
+      ['name' => 'CMS Force Delete Blog', 'slug' => 'cms.blogs.force-delete', 'module' => 'cms', 'action' => 'blogs_force_delete'],
+      ['name' => 'CMS Toggle Blog Status', 'slug' => 'cms.blogs.toggle-status', 'module' => 'cms', 'action' => 'blogs_toggle_status'],
+      ['name' => 'CMS Toggle Blog Featured', 'slug' => 'cms.blogs.toggle-featured', 'module' => 'cms', 'action' => 'blogs_toggle_featured'],
+
+      // ==================== CACHE ====================
+      ['name' => 'Manage Cache', 'slug' => 'cache.manage', 'module' => 'cache', 'action' => 'manage'],
+      ['name' => 'Clear Cache', 'slug' => 'cache.clear', 'module' => 'cache', 'action' => 'clear'],
+      ['name' => 'View Cache Status', 'slug' => 'cache.status', 'module' => 'cache', 'action' => 'status'],
+
+      // ==================== CATEGORIES ====================
+      ['name' => 'View Categories', 'slug' => 'categories.view', 'module' => 'categories', 'action' => 'view'],
+      ['name' => 'Create Category', 'slug' => 'categories.create', 'module' => 'categories', 'action' => 'create'],
+      ['name' => 'Edit Category', 'slug' => 'categories.edit', 'module' => 'categories', 'action' => 'edit'],
+      ['name' => 'Update Category', 'slug' => 'categories.update', 'module' => 'categories', 'action' => 'update'],
+      ['name' => 'Delete Category', 'slug' => 'categories.destroy', 'module' => 'categories', 'action' => 'destroy'],
+      ['name' => 'Restore Category', 'slug' => 'categories.restore', 'module' => 'categories', 'action' => 'restore'],
+      ['name' => 'Force Delete Category', 'slug' => 'categories.force_delete', 'module' => 'categories', 'action' => 'force_delete'],
+      ['name' => 'Toggle Category Active', 'slug' => 'categories.toggle_active', 'module' => 'categories', 'action' => 'toggle_active'],
+      ['name' => 'Bulk Delete Categories', 'slug' => 'categories.bulk_delete', 'module' => 'categories', 'action' => 'bulk_delete'],
+      ['name' => 'Bulk Restore Categories', 'slug' => 'categories.bulk_restore', 'module' => 'categories', 'action' => 'bulk_restore'],
+      ['name' => 'Bulk Activate Categories', 'slug' => 'categories.bulk_activate', 'module' => 'categories', 'action' => 'bulk_activate'],
+      ['name' => 'Bulk Deactivate Categories', 'slug' => 'categories.bulk_deactivate', 'module' => 'categories', 'action' => 'bulk_deactivate'],
+      ['name' => 'Bulk Force Delete Categories', 'slug' => 'categories.bulk_force_delete', 'module' => 'categories', 'action' => 'bulk_force_delete'],
+      ['name' => 'Get Active Categories', 'slug' => 'categories.get_active', 'module' => 'categories', 'action' => 'get_active'],
+      ['name' => 'Manage Categories', 'slug' => 'categories.manage', 'module' => 'categories', 'action' => 'manage'],
+
+      // ==================== CMS DASHBOARD ====================
+      ['name' => 'CMS Dashboard', 'slug' => 'cms.dashboard', 'module' => 'cms', 'action' => 'dashboard'],
+
+      // ==================== CMS PAGES ====================
+      ['name' => 'View Pages', 'slug' => 'pages.view', 'module' => 'pages', 'action' => 'view'],
+      ['name' => 'Create Page', 'slug' => 'pages.create', 'module' => 'pages', 'action' => 'create'],
+      ['name' => 'Update Page', 'slug' => 'pages.update', 'module' => 'pages', 'action' => 'update'],
+      ['name' => 'Delete Page', 'slug' => 'pages.destroy', 'module' => 'pages', 'action' => 'destroy'],
+      ['name' => 'Restore Page', 'slug' => 'pages.restore', 'module' => 'pages', 'action' => 'restore'],
+      ['name' => 'Manage Pages', 'slug' => 'pages.manage', 'module' => 'pages', 'action' => 'manage'],
+      // CMS Pages aliases
+      ['name' => 'CMS View Pages', 'slug' => 'cms.pages.view', 'module' => 'cms', 'action' => 'pages_view'],
+      ['name' => 'CMS Create Page', 'slug' => 'cms.pages.create', 'module' => 'cms', 'action' => 'pages_create'],
+      ['name' => 'CMS Edit Page', 'slug' => 'cms.pages.edit', 'module' => 'cms', 'action' => 'pages_edit'],
+      ['name' => 'CMS Delete Page', 'slug' => 'cms.pages.delete', 'module' => 'cms', 'action' => 'pages_delete'],
+      ['name' => 'CMS Restore Page', 'slug' => 'cms.pages.restore', 'module' => 'cms', 'action' => 'pages_restore'],
+      ['name' => 'CMS Force Delete Page', 'slug' => 'cms.pages.force-delete', 'module' => 'cms', 'action' => 'pages_force_delete'],
+      ['name' => 'CMS Toggle Page Status', 'slug' => 'cms.pages.toggle-status', 'module' => 'cms', 'action' => 'pages_toggle_status'],
+
+      // ==================== CMS PROGRAMS ====================
+      ['name' => 'View Programs', 'slug' => 'programs.view', 'module' => 'programs', 'action' => 'view'],
+      ['name' => 'Create Program', 'slug' => 'programs.create', 'module' => 'programs', 'action' => 'create'],
+      ['name' => 'Update Program', 'slug' => 'programs.update', 'module' => 'programs', 'action' => 'update'],
+      ['name' => 'Delete Program', 'slug' => 'programs.destroy', 'module' => 'programs', 'action' => 'destroy'],
+      ['name' => 'Restore Program', 'slug' => 'programs.restore', 'module' => 'programs', 'action' => 'restore'],
+      // CMS Program aliases
+      ['name' => 'CMS View Programs', 'slug' => 'cms.programs.view', 'module' => 'cms', 'action' => 'programs_view'],
+      ['name' => 'CMS Create Program', 'slug' => 'cms.programs.create', 'module' => 'cms', 'action' => 'programs_create'],
+      ['name' => 'CMS Edit Program', 'slug' => 'cms.programs.edit', 'module' => 'cms', 'action' => 'programs_edit'],
+      ['name' => 'CMS Delete Program', 'slug' => 'cms.programs.delete', 'module' => 'cms', 'action' => 'programs_delete'],
+      ['name' => 'CMS Restore Program', 'slug' => 'cms.programs.restore', 'module' => 'cms', 'action' => 'programs_restore'],
+      ['name' => 'CMS Force Delete Program', 'slug' => 'cms.programs.force-delete', 'module' => 'cms', 'action' => 'programs_force_delete'],
+      ['name' => 'CMS Toggle Program Status', 'slug' => 'cms.programs.toggle-status', 'module' => 'cms', 'action' => 'programs_toggle_status'],
+      ['name' => 'CMS Toggle Program Featured', 'slug' => 'cms.programs.toggle-featured', 'module' => 'cms', 'action' => 'programs_toggle_featured'],
+
+      // ==================== CMS PUBLICATIONS ====================
+      ['name' => 'View Publications', 'slug' => 'publications.view', 'module' => 'publications', 'action' => 'view'],
+      ['name' => 'Create Publication', 'slug' => 'publications.create', 'module' => 'publications', 'action' => 'create'],
+      ['name' => 'Update Publication', 'slug' => 'publications.update', 'module' => 'publications', 'action' => 'update'],
+      ['name' => 'Delete Publication', 'slug' => 'publications.destroy', 'module' => 'publications', 'action' => 'destroy'],
+      ['name' => 'Restore Publication', 'slug' => 'publications.restore', 'module' => 'publications', 'action' => 'restore'],
+      // CMS Publication aliases
+      ['name' => 'CMS View Publications', 'slug' => 'cms.publications.view', 'module' => 'cms', 'action' => 'publications_view'],
+      ['name' => 'CMS Create Publication', 'slug' => 'cms.publications.create', 'module' => 'cms', 'action' => 'publications_create'],
+      ['name' => 'CMS Edit Publication', 'slug' => 'cms.publications.edit', 'module' => 'cms', 'action' => 'publications_edit'],
+      ['name' => 'CMS Delete Publication', 'slug' => 'cms.publications.delete', 'module' => 'cms', 'action' => 'publications_delete'],
+      ['name' => 'CMS Restore Publication', 'slug' => 'cms.publications.restore', 'module' => 'cms', 'action' => 'publications_restore'],
+      ['name' => 'CMS Force Delete Publication', 'slug' => 'cms.publications.force-delete', 'module' => 'cms', 'action' => 'publications_force_delete'],
+      ['name' => 'CMS Toggle Publication Status', 'slug' => 'cms.publications.toggle-status', 'module' => 'cms', 'action' => 'publications_toggle_status'],
+      ['name' => 'CMS Toggle Publication Featured', 'slug' => 'cms.publications.toggle-featured', 'module' => 'cms', 'action' => 'publications_toggle_featured'],
+
+      // ==================== CMS SECTIONS ====================
+      ['name' => 'View Sections', 'slug' => 'sections.view', 'module' => 'sections', 'action' => 'view'],
+      ['name' => 'Create Section', 'slug' => 'sections.create', 'module' => 'sections', 'action' => 'create'],
+      ['name' => 'Update Section', 'slug' => 'sections.update', 'module' => 'sections', 'action' => 'update'],
+      ['name' => 'Delete Section', 'slug' => 'sections.destroy', 'module' => 'sections', 'action' => 'destroy'],
+      ['name' => 'Restore Section', 'slug' => 'sections.restore', 'module' => 'sections', 'action' => 'restore'],
+      // CMS Section aliases
+      ['name' => 'CMS View Sections', 'slug' => 'cms.sections.view', 'module' => 'cms', 'action' => 'sections_view'],
+      ['name' => 'CMS Create Section', 'slug' => 'cms.sections.create', 'module' => 'cms', 'action' => 'sections_create'],
+      ['name' => 'CMS Edit Section', 'slug' => 'cms.sections.edit', 'module' => 'cms', 'action' => 'sections_edit'],
+      ['name' => 'CMS Delete Section', 'slug' => 'cms.sections.delete', 'module' => 'cms', 'action' => 'sections_delete'],
+      ['name' => 'CMS Restore Section', 'slug' => 'cms.sections.restore', 'module' => 'cms', 'action' => 'sections_restore'],
+      ['name' => 'CMS Force Delete Section', 'slug' => 'cms.sections.force-delete', 'module' => 'cms', 'action' => 'sections_force_delete'],
+      ['name' => 'CMS Reorder Sections', 'slug' => 'cms.sections.reorder', 'module' => 'cms', 'action' => 'sections_reorder'],
+      ['name' => 'CMS Toggle Section Status', 'slug' => 'cms.sections.toggle-status', 'module' => 'cms', 'action' => 'sections_toggle_status'],
+      ['name' => 'CMS Manage Sections', 'slug' => 'cms.sections.manage', 'module' => 'cms', 'action' => 'sections_manage'],
+
+      // ==================== CMS SHARED DATA ====================
+      ['name' => 'View Shared Data', 'slug' => 'shared_data.view', 'module' => 'shared_data', 'action' => 'view'],
+      ['name' => 'Update Shared Data', 'slug' => 'shared_data.update', 'module' => 'shared_data', 'action' => 'update'],
+      ['name' => 'CMS View Shared Data', 'slug' => 'cms.shared.view', 'module' => 'cms', 'action' => 'shared_view'],
+      ['name' => 'CMS Edit Shared Data', 'slug' => 'cms.shared.edit', 'module' => 'cms', 'action' => 'shared_edit'],
+      ['name' => 'CMS Update Shared Data', 'slug' => 'cms.shared.update', 'module' => 'cms', 'action' => 'shared_update'],
+
+      // ==================== EMPLOYER PROFILE ====================
+      ['name' => 'View Employer', 'slug' => 'employer.view', 'module' => 'employer', 'action' => 'view'],
+      ['name' => 'Manage Employer', 'slug' => 'employer.manage', 'module' => 'employer', 'action' => 'manage'],
+      ['name' => 'Update Employer', 'slug' => 'employer.update', 'module' => 'employer', 'action' => 'update'],
+      ['name' => 'Delete Employer', 'slug' => 'employer.destroy', 'module' => 'employer', 'action' => 'destroy'],
+      ['name' => 'View Employer Profile', 'slug' => 'employer_profile.view', 'module' => 'employer_profile', 'action' => 'view'],
+      ['name' => 'Edit Employer Profile', 'slug' => 'employer_profile.edit', 'module' => 'employer_profile', 'action' => 'edit'],
+      ['name' => 'Update Employer Profile', 'slug' => 'employer_profile.update', 'module' => 'employer_profile', 'action' => 'update'],
+      ['name' => 'Update Employer Password', 'slug' => 'employer_profile.update_password', 'module' => 'employer_profile', 'action' => 'update_password'],
+
+      // ==================== JOB LISTINGS ====================
+      ['name' => 'View Job Listings', 'slug' => 'job_listings.view', 'module' => 'job_listings', 'action' => 'view'],
+      ['name' => 'Create Job Listing', 'slug' => 'job_listings.create', 'module' => 'job_listings', 'action' => 'create'],
+      ['name' => 'Store Job Listing', 'slug' => 'job_listings.store', 'module' => 'job_listings', 'action' => 'store'],
+      ['name' => 'Show Job Listing', 'slug' => 'job_listings.show', 'module' => 'job_listings', 'action' => 'show'],
+      ['name' => 'Edit Job Listing', 'slug' => 'job_listings.edit', 'module' => 'job_listings', 'action' => 'edit'],
+      ['name' => 'Update Job Listing', 'slug' => 'job_listings.update', 'module' => 'job_listings', 'action' => 'update'],
+      ['name' => 'Delete Job Listing', 'slug' => 'job_listings.destroy', 'module' => 'job_listings', 'action' => 'destroy'],
+      ['name' => 'Toggle Job Active', 'slug' => 'job_listings.toggle_active', 'module' => 'job_listings', 'action' => 'toggle_active'],
+      ['name' => 'View Job Applications', 'slug' => 'job_listings.applications', 'module' => 'job_listings', 'action' => 'applications'],
+      ['name' => 'Update Job Statuses', 'slug' => 'job_listings.update_statuses', 'module' => 'job_listings', 'action' => 'update_statuses'],
+      ['name' => 'Restore Job Listing', 'slug' => 'job_listings.restore', 'module' => 'job_listings', 'action' => 'restore'],
+      ['name' => 'Force Delete Job Listing', 'slug' => 'job_listings.force_delete', 'module' => 'job_listings', 'action' => 'force_delete'],
+      ['name' => 'Bulk Activate Jobs', 'slug' => 'job_listings.bulk_activate', 'module' => 'job_listings', 'action' => 'bulk_activate'],
+      ['name' => 'Bulk Deactivate Jobs', 'slug' => 'job_listings.bulk_deactivate', 'module' => 'job_listings', 'action' => 'bulk_deactivate'],
+      ['name' => 'Bulk Delete Jobs', 'slug' => 'job_listings.bulk_delete', 'module' => 'job_listings', 'action' => 'bulk_delete'],
+      ['name' => 'Job Statistics', 'slug' => 'job_listings.statistics', 'module' => 'job_listings', 'action' => 'statistics'],
+      ['name' => 'Manage Jobs', 'slug' => 'jobs.manage', 'module' => 'job_listings', 'action' => 'manage'],
+
+      // Additional job view permissions (frontend)
+      ['name' => 'View Any Job', 'slug' => 'job.view.any', 'module' => 'job_listings', 'action' => 'view_any'],
+      ['name' => 'View Own Job', 'slug' => 'job.view.own', 'module' => 'job_listings', 'action' => 'view_own'],
+      ['name' => 'Edit Own Job', 'slug' => 'job.edit.own', 'module' => 'job_listings', 'action' => 'edit_own'],
+
+      // ==================== PUBLIC JOBS ====================
+      ['name' => 'View Public Jobs', 'slug' => 'public_jobs.view', 'module' => 'public_jobs', 'action' => 'view'],
+      ['name' => 'Show Public Job', 'slug' => 'public_jobs.show', 'module' => 'public_jobs', 'action' => 'show'],
+      ['name' => 'View Popular Jobs', 'slug' => 'public_jobs.popular', 'module' => 'public_jobs', 'action' => 'popular'],
+      ['name' => 'View Trending Jobs', 'slug' => 'public_jobs.trending', 'module' => 'public_jobs', 'action' => 'trending'],
+      ['name' => 'Bookmark Job', 'slug' => 'public_jobs.bookmark', 'module' => 'public_jobs', 'action' => 'bookmark'],
+      ['name' => 'Share Job', 'slug' => 'public_jobs.share', 'module' => 'public_jobs', 'action' => 'share'],
+      ['name' => 'Print Job Details', 'slug' => 'public_jobs.print', 'module' => 'public_jobs', 'action' => 'print'],
+
+      // ==================== LOCATIONS ====================
+      ['name' => 'View Locations', 'slug' => 'locations.view', 'module' => 'locations', 'action' => 'view'],
+      ['name' => 'Create Location', 'slug' => 'locations.create', 'module' => 'locations', 'action' => 'create'],
+      ['name' => 'Edit Location', 'slug' => 'locations.edit', 'module' => 'locations', 'action' => 'edit'],
+      ['name' => 'Update Location', 'slug' => 'locations.update', 'module' => 'locations', 'action' => 'update'],
+      ['name' => 'Delete Location', 'slug' => 'locations.destroy', 'module' => 'locations', 'action' => 'destroy'],
+      ['name' => 'Restore Location', 'slug' => 'locations.restore', 'module' => 'locations', 'action' => 'restore'],
+      ['name' => 'Force Delete Location', 'slug' => 'locations.force_delete', 'module' => 'locations', 'action' => 'force_delete'],
+      ['name' => 'Toggle Location Active', 'slug' => 'locations.toggle_active', 'module' => 'locations', 'action' => 'toggle_active'],
+      ['name' => 'Bulk Delete Locations', 'slug' => 'locations.bulk_delete', 'module' => 'locations', 'action' => 'bulk_delete'],
+      ['name' => 'Bulk Restore Locations', 'slug' => 'locations.bulk_restore', 'module' => 'locations', 'action' => 'bulk_restore'],
+      ['name' => 'Bulk Activate Locations', 'slug' => 'locations.bulk_activate', 'module' => 'locations', 'action' => 'bulk_activate'],
+      ['name' => 'Bulk Deactivate Locations', 'slug' => 'locations.bulk_deactivate', 'module' => 'locations', 'action' => 'bulk_deactivate'],
+      ['name' => 'Bulk Force Delete Locations', 'slug' => 'locations.bulk_force_delete', 'module' => 'locations', 'action' => 'bulk_force_delete'],
+      ['name' => 'Get Active Locations', 'slug' => 'locations.get_active', 'module' => 'locations', 'action' => 'get_active'],
+      ['name' => 'Manage Locations', 'slug' => 'locations.manage', 'module' => 'locations', 'action' => 'manage'],
+
+      // ==================== LOGS ====================
+      ['name' => 'View Logs', 'slug' => 'logs.view', 'module' => 'logs', 'action' => 'view'],
+      ['name' => 'Export Logs', 'slug' => 'logs.export', 'module' => 'logs', 'action' => 'export'],
+      ['name' => 'Clear Logs', 'slug' => 'logs.clear', 'module' => 'logs', 'action' => 'clear'],
+      ['name' => 'Manage Logs', 'slug' => 'logs.manage', 'module' => 'logs', 'action' => 'manage'],
+
+      // ==================== NEWSLETTER ====================
+      ['name' => 'View Newsletter Subscribers', 'slug' => 'newsletter.view', 'module' => 'newsletter', 'action' => 'view'],
+      ['name' => 'Export Newsletter Subscribers', 'slug' => 'newsletter.export', 'module' => 'newsletter', 'action' => 'export'],
+      ['name' => 'Delete Newsletter Subscriber', 'slug' => 'newsletter.delete', 'module' => 'newsletter', 'action' => 'delete'],
+      ['name' => 'Send Newsletter Email', 'slug' => 'newsletter.send', 'module' => 'newsletter', 'action' => 'send'],
+      ['name' => 'Update Newsletter Subscriber', 'slug' => 'newsletter.update', 'module' => 'newsletter', 'action' => 'update'],
+
+      // ==================== NOTIFICATIONS ====================
+      ['name' => 'View Notifications', 'slug' => 'notifications.view', 'module' => 'notifications', 'action' => 'view'],
+      ['name' => 'Mark Notification Read', 'slug' => 'notifications.mark_read', 'module' => 'notifications', 'action' => 'mark_read'],
+      ['name' => 'Mark All Notifications Read', 'slug' => 'notifications.mark_all_read', 'module' => 'notifications', 'action' => 'mark_all_read'],
+
+      // ==================== PROFILES (Legacy) ====================
       ['name' => 'View Profile', 'slug' => 'profiles.view', 'module' => 'profiles', 'action' => 'view'],
       ['name' => 'View Any Profile', 'slug' => 'profiles.view.any', 'module' => 'profiles', 'action' => 'view_any'],
       ['name' => 'View My Own Profile', 'slug' => 'profiles.view.own', 'module' => 'profiles', 'action' => 'view_own'],
@@ -277,9 +347,8 @@ class PermissionsSeeder extends Seeder
       ['name' => 'View Profile Photo', 'slug' => 'profiles.photo', 'module' => 'profiles', 'action' => 'photo'],
       ['name' => 'Get Profile Data', 'slug' => 'profiles.get_data', 'module' => 'profiles', 'action' => 'get_data'],
       ['name' => 'Manage Profiles', 'slug' => 'profiles.manage', 'module' => 'profiles', 'action' => 'manage'],
-      ['name' => 'Delete Any Profile', 'slug' => 'profiles.delete.any', 'module' => 'profiles', 'action' => 'delete_any'],
 
-      // Profile Completion Module
+      // ==================== PROFILE COMPLETION ====================
       ['name' => 'Show Profile Completion', 'slug' => 'profile_completion.show', 'module' => 'profile_completion', 'action' => 'show'],
       ['name' => 'Store Profile Completion', 'slug' => 'profile_completion.store', 'module' => 'profile_completion', 'action' => 'store'],
       ['name' => 'Upload Profile Photo', 'slug' => 'profile_completion.upload_photo', 'module' => 'profile_completion', 'action' => 'upload_photo'],
@@ -288,27 +357,12 @@ class PermissionsSeeder extends Seeder
       ['name' => 'Delete Pending CV', 'slug' => 'profile_completion.destroy_cv', 'module' => 'profile_completion', 'action' => 'destroy_cv'],
       ['name' => 'Set Primary Pending CV', 'slug' => 'profile_completion.set_primary_cv', 'module' => 'profile_completion', 'action' => 'set_primary_cv'],
 
-      // Admin Profile Module
-      ['name' => 'Edit Admin Profile', 'slug' => 'admin_profile.edit', 'module' => 'admin_profile', 'action' => 'edit'],
-      ['name' => 'Update Admin Profile', 'slug' => 'admin_profile.update', 'module' => 'admin_profile', 'action' => 'update'],
-      ['name' => 'Update Admin Password', 'slug' => 'admin_profile.update_password', 'module' => 'admin_profile', 'action' => 'update_password'],
+      // ==================== REPORTS ====================
+      ['name' => 'View Job Reports', 'slug' => 'report.jobs', 'module' => 'reports', 'action' => 'jobs'],
+      ['name' => 'View Application Reports', 'slug' => 'report.applications', 'module' => 'reports', 'action' => 'applications'],
+      ['name' => 'Export Reports', 'slug' => 'report.export', 'module' => 'reports', 'action' => 'export'],
 
-      // Employer Profile Module
-      ['name' => 'View Employer Profile', 'slug' => 'employer_profile.view', 'module' => 'employer_profile', 'action' => 'view'],
-      ['name' => 'Edit Employer Profile', 'slug' => 'employer_profile.edit', 'module' => 'employer_profile', 'action' => 'edit'],
-      ['name' => 'Update Employer Profile', 'slug' => 'employer_profile.update', 'module' => 'employer_profile', 'action' => 'update'],
-      ['name' => 'Update Employer Password', 'slug' => 'employer_profile.update_password', 'module' => 'employer_profile', 'action' => 'update_password'],
-
-      // Notifications Module
-      ['name' => 'View Notifications', 'slug' => 'notifications.view', 'module' => 'notifications', 'action' => 'view'],
-      ['name' => 'Mark Notification Read', 'slug' => 'notifications.mark_read', 'module' => 'notifications', 'action' => 'mark_read'],
-      ['name' => 'Mark All Notifications Read', 'slug' => 'notifications.mark_all_read', 'module' => 'notifications', 'action' => 'mark_all_read'],
-      ['name' => 'View Notification', 'slug' => 'notification.view', 'module' => 'notifications', 'action' => 'notification_view'],
-      ['name' => 'View Notifications List', 'slug' => 'notification.view.list', 'module' => 'notifications', 'action' => 'view_list'],
-      ['name' => 'Mark Notification as Read', 'slug' => 'notification.mark_read', 'module' => 'notifications', 'action' => 'mark_read_single'],
-      ['name' => 'Mark All Notifications as Read', 'slug' => 'notification.mark_all_read', 'module' => 'notifications', 'action' => 'mark_all_read_bulk'],
-
-      // Roles Module
+      // ==================== ROLES ====================
       ['name' => 'View Roles', 'slug' => 'roles.view', 'module' => 'roles', 'action' => 'view'],
       ['name' => 'Create Role', 'slug' => 'roles.create', 'module' => 'roles', 'action' => 'create'],
       ['name' => 'Store Role', 'slug' => 'roles.store', 'module' => 'roles', 'action' => 'store'],
@@ -326,12 +380,18 @@ class PermissionsSeeder extends Seeder
       ['name' => 'Clone Role', 'slug' => 'roles.clone', 'module' => 'roles', 'action' => 'clone'],
       ['name' => 'Export Roles', 'slug' => 'roles.export', 'module' => 'roles', 'action' => 'export'],
       ['name' => 'Assign All Permissions', 'slug' => 'roles.assign_all_permissions', 'module' => 'roles', 'action' => 'assign_all_permissions'],
-      ['name' => 'View Role', 'slug' => 'role.view', 'module' => 'roles', 'action' => 'role_view'],
-      ['name' => 'Create Role Action', 'slug' => 'role.create', 'module' => 'roles', 'action' => 'role_create'],
-      ['name' => 'Edit Role Action', 'slug' => 'role.edit', 'module' => 'roles', 'action' => 'role_edit'],
-      ['name' => 'Delete Role Action', 'slug' => 'role.delete', 'module' => 'roles', 'action' => 'role_delete'],
 
-      // Users Module
+      // ==================== STATISTICS ====================
+      ['name' => 'View Statistics', 'slug' => 'statistics.view', 'module' => 'statistics', 'action' => 'view'],
+      ['name' => 'Export Statistics', 'slug' => 'statistics.export', 'module' => 'statistics', 'action' => 'export'],
+      ['name' => 'ATS Stats', 'slug' => 'statistics.ats', 'module' => 'statistics', 'action' => 'ats'],
+      ['name' => 'Employer Stats', 'slug' => 'statistics.employers', 'module' => 'statistics', 'action' => 'employers'],
+      ['name' => 'Job Stats', 'slug' => 'statistics.jobs', 'module' => 'statistics', 'action' => 'jobs'],
+      ['name' => 'Application Stats', 'slug' => 'statistics.applications', 'module' => 'statistics', 'action' => 'applications'],
+      ['name' => 'Manage Statistics', 'slug' => 'statistics.manage', 'module' => 'statistics', 'action' => 'manage'],
+      ['name' => 'View Statistics Dashboard', 'slug' => 'statistics.dashboard', 'module' => 'statistics', 'action' => 'dashboard'],
+
+      // ==================== USERS ====================
       ['name' => 'View Users', 'slug' => 'users.view', 'module' => 'users', 'action' => 'view'],
       ['name' => 'Create User', 'slug' => 'users.create', 'module' => 'users', 'action' => 'create'],
       ['name' => 'Update User', 'slug' => 'users.update', 'module' => 'users', 'action' => 'update'],
@@ -342,84 +402,13 @@ class PermissionsSeeder extends Seeder
       ['name' => 'Bulk Restore Users', 'slug' => 'users.bulk_restore', 'module' => 'users', 'action' => 'bulk_restore'],
       ['name' => 'Verify User Email', 'slug' => 'users.verify', 'module' => 'users', 'action' => 'verify'],
       ['name' => 'Manage Users', 'slug' => 'users.manage', 'module' => 'users', 'action' => 'manage'],
-      ['name' => 'View User', 'slug' => 'user.view', 'module' => 'users', 'action' => 'user_view'],
-      ['name' => 'Create User Action', 'slug' => 'user.create', 'module' => 'users', 'action' => 'user_create'],
-      ['name' => 'Edit User Action', 'slug' => 'user.edit', 'module' => 'users', 'action' => 'user_edit'],
 
-      // Permissions Module
+      // ==================== PERMISSIONS (direct) ====================
       ['name' => 'View Permissions', 'slug' => 'permissions.view', 'module' => 'permissions', 'action' => 'view'],
       ['name' => 'Create Permission', 'slug' => 'permissions.create', 'module' => 'permissions', 'action' => 'create'],
       ['name' => 'Edit Permission', 'slug' => 'permissions.edit', 'module' => 'permissions', 'action' => 'edit'],
       ['name' => 'Delete Permission', 'slug' => 'permissions.delete', 'module' => 'permissions', 'action' => 'delete'],
       ['name' => 'Bulk Assign Permissions', 'slug' => 'permissions.bulk_assign', 'module' => 'permissions', 'action' => 'bulk_assign'],
-
-      // Statistics Module
-      ['name' => 'View Statistics', 'slug' => 'statistics.view', 'module' => 'statistics', 'action' => 'view'],
-      ['name' => 'Export Statistics', 'slug' => 'statistics.export', 'module' => 'statistics', 'action' => 'export'],
-      ['name' => 'ATS Stats', 'slug' => 'statistics.ats', 'module' => 'statistics', 'action' => 'ats'],
-      ['name' => 'Employer Stats', 'slug' => 'statistics.employers', 'module' => 'statistics', 'action' => 'employers'],
-      ['name' => 'Job Stats', 'slug' => 'statistics.jobs', 'module' => 'statistics', 'action' => 'jobs'],
-      ['name' => 'Application Stats', 'slug' => 'statistics.applications', 'module' => 'statistics', 'action' => 'applications'],
-      ['name' => 'Manage Statistics', 'slug' => 'statistics.manage', 'module' => 'statistics', 'action' => 'manage'],
-      ['name' => 'View Statistics Dashboard', 'slug' => 'statistics.dashboard', 'module' => 'statistics', 'action' => 'dashboard'],
-      ['name' => 'View ATS Analytics', 'slug' => 'statistics.ats_analytics', 'module' => 'statistics', 'action' => 'ats_analytics'],
-      ['name' => 'View Employer Analytics', 'slug' => 'statistics.employer_analytics', 'module' => 'statistics', 'action' => 'employer_analytics'],
-      ['name' => 'View Job Analytics', 'slug' => 'statistics.job_analytics', 'module' => 'statistics', 'action' => 'job_analytics'],
-      ['name' => 'View Application Analytics', 'slug' => 'statistics.application_analytics', 'module' => 'statistics', 'action' => 'application_analytics'],
-
-      // Reports Module
-      ['name' => 'View Job Reports', 'slug' => 'report.jobs', 'module' => 'reports', 'action' => 'jobs'],
-      ['name' => 'View Application Reports', 'slug' => 'report.applications', 'module' => 'reports', 'action' => 'applications'],
-      ['name' => 'Export Reports', 'slug' => 'report.export', 'module' => 'reports', 'action' => 'export'],
-
-      // Admin Management
-      ['name' => 'Manage Admins', 'slug' => 'admin.manage', 'module' => 'admin', 'action' => 'manage'],
-      ['name' => 'View Admins', 'slug' => 'admin.view', 'module' => 'admin', 'action' => 'view'],
-      ['name' => 'Create Admin', 'slug' => 'admin.create', 'module' => 'admin', 'action' => 'create'],
-      ['name' => 'Update Admin', 'slug' => 'admin.update', 'module' => 'admin', 'action' => 'update'],
-      ['name' => 'Delete Admin', 'slug' => 'admin.destroy', 'module' => 'admin', 'action' => 'destroy'],
-
-      // Employer Management
-      ['name' => 'Manage Employers', 'slug' => 'employer.manage', 'module' => 'employer', 'action' => 'manage'],
-      ['name' => 'View Employers', 'slug' => 'employer.view', 'module' => 'employer', 'action' => 'view'],
-      ['name' => 'Update Employer', 'slug' => 'employer.update', 'module' => 'employer', 'action' => 'update'],
-      ['name' => 'Delete Employer', 'slug' => 'employer.destroy', 'module' => 'employer', 'action' => 'destroy'],
-
-      // ==========================================
-      // NEW: LOGS MODULE
-      // ==========================================
-      ['name' => 'View Logs', 'slug' => 'logs.view', 'module' => 'logs', 'action' => 'view'],
-      ['name' => 'Export Logs', 'slug' => 'logs.export', 'module' => 'logs', 'action' => 'export'],
-      ['name' => 'Clear Logs', 'slug' => 'logs.clear', 'module' => 'logs', 'action' => 'clear'],
-
-      // ==========================================
-      // NEW: CACHE MODULE
-      // ==========================================
-      ['name' => 'Manage Cache', 'slug' => 'cache.manage', 'module' => 'cache', 'action' => 'manage'],
-      ['name' => 'Clear Cache', 'slug' => 'cache.clear', 'module' => 'cache', 'action' => 'clear'],
-      ['name' => 'View Cache Status', 'slug' => 'cache.status', 'module' => 'cache', 'action' => 'status'],
-
-      // ==========================================
-      // NEW: NEWSLETTER MODULE
-      // ==========================================
-      ['name' => 'View Newsletter Subscribers', 'slug' => 'newsletter.view', 'module' => 'newsletter', 'action' => 'view'],
-      ['name' => 'Export Newsletter Subscribers', 'slug' => 'newsletter.export', 'module' => 'newsletter', 'action' => 'export'],
-      ['name' => 'Delete Newsletter Subscriber', 'slug' => 'newsletter.delete', 'module' => 'newsletter', 'action' => 'delete'],
-      ['name' => 'Send Newsletter Email', 'slug' => 'newsletter.send', 'module' => 'newsletter', 'action' => 'send'],
-
-      // ==========================================
-      // NEW: NEWSLETTER UPDATE PERMISSION
-      // ==========================================
-      ['name' => 'Update Newsletter Subscriber', 'slug' => 'newsletter.update', 'module' => 'newsletter', 'action' => 'update'],
-
-      // ==========================================
-      // NEW: BACKUP MODULE
-      // ==========================================
-      ['name' => 'View Backups', 'slug' => 'backup.view', 'module' => 'backup', 'action' => 'view'],
-      ['name' => 'Create Backup', 'slug' => 'backup.create', 'module' => 'backup', 'action' => 'create'],
-      ['name' => 'Download Backup', 'slug' => 'backup.download', 'module' => 'backup', 'action' => 'download'],
-      ['name' => 'Delete Backup', 'slug' => 'backup.delete', 'module' => 'backup', 'action' => 'delete'],
-      ['name' => 'Restore Backup', 'slug' => 'backup.restore', 'module' => 'backup', 'action' => 'restore'],
     ];
 
     // Disable foreign key checks
@@ -427,7 +416,6 @@ class PermissionsSeeder extends Seeder
     DB::table('permissions')->truncate();
     DB::statement('SET FOREIGN_KEY_CHECKS=1');
 
-    // Insert permissions
     foreach ($permissions as $permission) {
       DB::table('permissions')->updateOrInsert(
         ['slug' => $permission['slug']],

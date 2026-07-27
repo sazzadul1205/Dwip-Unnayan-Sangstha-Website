@@ -1,0 +1,368 @@
+================================================================================
+                     PERMISSIONS LIST (FULL)
+           (Based on Frontend, Controller, and Layout Checks)
+================================================================================
+
+This document consolidates every permission string explicitly referenced in
+the React frontend components, backend controllers, and the AdminLayout.
+Permissions are grouped by module for easier reference.
+
+Total unique permissions: 248
+
+--------------------------------------------------------------------------------
+📁 ABOUT CONTENT
+--------------------------------------------------------------------------------
+about.view
+about.create
+about.update
+about.destroy
+about.restore
+about.force-delete
+about.toggle-status
+about.toggle-featured
+
+--------------------------------------------------------------------------------
+👤 ADMIN PROFILE
+--------------------------------------------------------------------------------
+admin.view
+admin.manage
+admin.create
+admin.update
+admin.destroy
+admin_profile.view
+admin_profile.edit
+admin_profile.update
+admin_profile.update_password
+
+--------------------------------------------------------------------------------
+👥 APPLICANT PROFILES
+--------------------------------------------------------------------------------
+applicant-profiles.view
+applicant-profiles.delete
+applicant-profiles.bulk-delete
+applicant-profiles.restore
+applicant-profiles.bulk-restore
+applicant-profiles.filter
+applicant-profiles.stats
+applicant-profiles.export
+applicant-profiles.manage
+applicant-profiles.update
+applicant-profiles.destroy
+applicant-profiles.force_delete
+profiles.view.any
+
+--------------------------------------------------------------------------------
+📄 APPLICATIONS
+--------------------------------------------------------------------------------
+applications.view
+applications.manage
+applications.email
+applications.email.send
+applications.download
+applications.download_resume
+applications.update
+applications.status.update
+applications.destroy
+applications.bulk-delete
+applications.restore
+applications.bulk-restore
+applications.export
+applications.recalculate_ats
+applications.job_applications
+applications.show
+applications.bulk_status.update
+applications.force_delete
+applications.bulk_download_resumes
+applications.bulk_email.send
+applications.export_single
+application.view.any
+application.shortlist
+application.reject
+
+--------------------------------------------------------------------------------
+🗂️ BACKUP
+--------------------------------------------------------------------------------
+backup.view
+backup.create
+backup.download
+backup.restore
+backup.delete
+backup.manage
+
+--------------------------------------------------------------------------------
+📝 BLOGS
+--------------------------------------------------------------------------------
+blogs.view
+blogs.create
+blogs.update
+blogs.destroy
+blogs.restore
+cms.blogs.view
+cms.blogs.create
+cms.blogs.edit
+cms.blogs.delete
+cms.blogs.restore
+cms.blogs.force-delete
+cms.blogs.toggle-status
+cms.blogs.toggle-featured
+
+--------------------------------------------------------------------------------
+🧹 CACHE
+--------------------------------------------------------------------------------
+cache.manage
+cache.status
+
+--------------------------------------------------------------------------------
+📂 CATEGORIES
+--------------------------------------------------------------------------------
+categories.view
+categories.manage
+categories.create
+categories.update
+categories.destroy
+categories.restore
+categories.force_delete
+categories.bulk_delete
+categories.bulk_restore
+categories.bulk_activate
+categories.bulk_deactivate
+categories.bulk_force_delete
+categories.edit
+categories.toggle_active
+categories.get_active
+
+--------------------------------------------------------------------------------
+🏢 CMS DASHBOARD
+--------------------------------------------------------------------------------
+cms.dashboard
+
+--------------------------------------------------------------------------------
+📄 CMS PAGES
+--------------------------------------------------------------------------------
+pages.view
+pages.create
+pages.update
+pages.destroy
+pages.restore
+cms.pages.view
+cms.pages.create
+cms.pages.edit
+cms.pages.delete
+cms.pages.restore
+cms.pages.force-delete
+cms.pages.toggle-status
+
+--------------------------------------------------------------------------------
+📚 CMS PROGRAMS
+--------------------------------------------------------------------------------
+programs.view
+programs.create
+programs.update
+programs.destroy
+programs.restore
+cms.programs.view
+cms.programs.create
+cms.programs.edit
+cms.programs.delete
+cms.programs.restore
+cms.programs.force-delete
+cms.programs.toggle-status
+cms.programs.toggle-featured
+
+--------------------------------------------------------------------------------
+📖 CMS PUBLICATIONS
+--------------------------------------------------------------------------------
+publications.view
+publications.create
+publications.update
+publications.destroy
+publications.restore
+cms.publications.view
+cms.publications.create
+cms.publications.edit
+cms.publications.delete
+cms.publications.restore
+cms.publications.force-delete
+cms.publications.toggle-status
+cms.publications.toggle-featured
+
+--------------------------------------------------------------------------------
+🧩 CMS SECTIONS
+--------------------------------------------------------------------------------
+sections.view
+sections.create
+sections.update
+sections.destroy
+sections.restore
+cms.sections.view
+cms.sections.create
+cms.sections.edit
+cms.sections.delete
+cms.sections.restore
+cms.sections.force-delete
+cms.sections.reorder
+cms.sections.toggle-status
+cms.sections.manage
+
+--------------------------------------------------------------------------------
+🗃️ CMS SHARED DATA
+--------------------------------------------------------------------------------
+shared_data.view
+shared_data.update
+cms.shared.view
+cms.shared.edit
+cms.shared.update
+
+--------------------------------------------------------------------------------
+💼 EMPLOYER PROFILE
+--------------------------------------------------------------------------------
+employer.view
+employer.manage
+employer.update
+employer.destroy
+employer_profile.view
+employer_profile.edit
+employer_profile.update
+employer_profile.update_password
+
+--------------------------------------------------------------------------------
+📋 JOB LISTINGS
+--------------------------------------------------------------------------------
+jobs.view
+jobs.manage
+jobs.create
+jobs.update
+jobs.destroy
+jobs.restore
+jobs.bulk_delete
+jobs.bulk_activate
+jobs.bulk_deactivate
+job_listings.view
+job_listings.create
+job_listings.store
+job_listings.show
+job_listings.edit
+job_listings.update
+job_listings.destroy
+job_listings.toggle_active
+job_listings.applications
+job_listings.update_statuses
+job_listings.restore
+job_listings.force_delete
+job_listings.bulk_activate
+job_listings.bulk_deactivate
+job_listings.bulk_delete
+job_listings.statistics
+job.view.any
+
+--------------------------------------------------------------------------------
+📍 LOCATIONS
+--------------------------------------------------------------------------------
+locations.view
+locations.manage
+locations.create
+locations.update
+locations.destroy
+locations.restore
+locations.force_delete
+locations.bulk_delete
+locations.bulk_restore
+locations.bulk_activate
+locations.bulk_deactivate
+locations.bulk_force_delete
+locations.edit
+locations.toggle_active
+locations.get_active
+
+--------------------------------------------------------------------------------
+📜 LOGS
+--------------------------------------------------------------------------------
+logs.view
+logs.manage
+logs.export
+logs.clear
+
+--------------------------------------------------------------------------------
+📧 NEWSLETTER
+--------------------------------------------------------------------------------
+newsletter.view
+newsletter.manage
+newsletter.export
+newsletter.send-email
+newsletter.delete
+newsletter.update
+newsletter.send
+
+--------------------------------------------------------------------------------
+🔔 NOTIFICATIONS
+--------------------------------------------------------------------------------
+notifications.view
+notifications.read
+notifications.read-all
+
+--------------------------------------------------------------------------------
+🔑 ROLES
+--------------------------------------------------------------------------------
+roles.view
+roles.manage
+roles.create
+roles.update
+roles.destroy
+roles.restore
+roles.force_delete
+roles.export
+roles.bulk_delete
+roles.bulk_restore
+roles.bulk_force_delete
+roles.assign_all_permissions
+roles.store
+roles.show
+roles.edit
+roles.trashed
+roles.toggle_status
+roles.clone
+
+--------------------------------------------------------------------------------
+📊 STATISTICS & DASHBOARD
+--------------------------------------------------------------------------------
+statistics.view
+statistics.manage
+statistics.jobs
+statistics.applications
+statistics.ats
+statistics.employers
+dashboard.view
+dashboard.admin
+dashboard.employer
+
+--------------------------------------------------------------------------------
+👤 USERS
+--------------------------------------------------------------------------------
+users.view
+users.manage
+users.create
+users.update
+users.verify
+users.destroy
+users.restore
+users.force_delete
+users.bulk_delete
+users.bulk_restore
+
+================================================================================
+NOTES
+================================================================================
+- This list is a comprehensive merge of permissions from:
+  • Frontend React components (via hasAnyPermission, <Can />)
+  • Backend controllers (via hasPermission, policies)
+  • AdminLayout menu‑based permission checks
+- Permissions with "bulk_", "force_", or "toggle" are used for batch or state‑change operations.
+- The "*.manage" permissions are often catch‑all for full administrative access.
+- Some modules use different prefixes (e.g., jobs vs job_listings, pages vs cms.pages)
+  to separate frontend and backend contexts; both are included.
+- Permissions like "get_active" are used for AJAX dropdown endpoints.
+- Total count: 248 unique permission strings.
+
+================================================================================
+END OF LIST
+================================================================================

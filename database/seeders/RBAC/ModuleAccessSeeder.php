@@ -10,13 +10,11 @@ class ModuleAccessSeeder extends Seeder
 {
   public function run(): void
   {
-    // Get role IDs
     $superAdminRoleId = DB::table('roles')->where('slug', 'super-admin')->value('id');
     $adminRoleId = DB::table('roles')->where('slug', 'admin')->value('id');
     $employerRoleId = DB::table('roles')->where('slug', 'employer')->value('id');
     $jobSeekerRoleId = DB::table('roles')->where('slug', 'job-seeker')->value('id');
 
-    // Clear existing module access
     DB::table('role_module_access')->whereIn('role_id', [
       $superAdminRoleId,
       $adminRoleId,
@@ -25,13 +23,14 @@ class ModuleAccessSeeder extends Seeder
     ])->delete();
 
     $moduleAccess = [
-      // Super Admin - Full Access
+      // ==================== SUPER ADMIN ====================
       ['role_id' => $superAdminRoleId, 'module' => 'dashboard', 'access_level' => 'manage'],
       ['role_id' => $superAdminRoleId, 'module' => 'cms', 'access_level' => 'manage'],
       ['role_id' => $superAdminRoleId, 'module' => 'pages', 'access_level' => 'manage'],
       ['role_id' => $superAdminRoleId, 'module' => 'about', 'access_level' => 'manage'],
       ['role_id' => $superAdminRoleId, 'module' => 'blogs', 'access_level' => 'manage'],
       ['role_id' => $superAdminRoleId, 'module' => 'programs', 'access_level' => 'manage'],
+      ['role_id' => $superAdminRoleId, 'module' => 'publications', 'access_level' => 'manage'],
       ['role_id' => $superAdminRoleId, 'module' => 'custom_sections', 'access_level' => 'manage'],
       ['role_id' => $superAdminRoleId, 'module' => 'shared_data', 'access_level' => 'manage'],
       ['role_id' => $superAdminRoleId, 'module' => 'sections', 'access_level' => 'manage'],
@@ -48,23 +47,20 @@ class ModuleAccessSeeder extends Seeder
       ['role_id' => $superAdminRoleId, 'module' => 'roles', 'access_level' => 'manage'],
       ['role_id' => $superAdminRoleId, 'module' => 'users', 'access_level' => 'manage'],
       ['role_id' => $superAdminRoleId, 'module' => 'statistics', 'access_level' => 'manage'],
-      ['role_id' => $superAdminRoleId, 'module' => 'publications', 'access_level' => 'manage'],
-
-      // NEW modules for Super Admin
       ['role_id' => $superAdminRoleId, 'module' => 'logs', 'access_level' => 'manage'],
       ['role_id' => $superAdminRoleId, 'module' => 'cache', 'access_level' => 'manage'],
       ['role_id' => $superAdminRoleId, 'module' => 'newsletter', 'access_level' => 'manage'],
-
-      // ADDED: Backup module for Super Admin
       ['role_id' => $superAdminRoleId, 'module' => 'backup', 'access_level' => 'manage'],
+      ['role_id' => $superAdminRoleId, 'module' => 'apply', 'access_level' => 'manage'],
 
-      // Admin - Full Access
+      // ==================== ADMIN ====================
       ['role_id' => $adminRoleId, 'module' => 'dashboard', 'access_level' => 'manage'],
       ['role_id' => $adminRoleId, 'module' => 'cms', 'access_level' => 'manage'],
       ['role_id' => $adminRoleId, 'module' => 'pages', 'access_level' => 'manage'],
       ['role_id' => $adminRoleId, 'module' => 'about', 'access_level' => 'manage'],
       ['role_id' => $adminRoleId, 'module' => 'blogs', 'access_level' => 'manage'],
       ['role_id' => $adminRoleId, 'module' => 'programs', 'access_level' => 'manage'],
+      ['role_id' => $adminRoleId, 'module' => 'publications', 'access_level' => 'manage'],
       ['role_id' => $adminRoleId, 'module' => 'custom_sections', 'access_level' => 'manage'],
       ['role_id' => $adminRoleId, 'module' => 'shared_data', 'access_level' => 'manage'],
       ['role_id' => $adminRoleId, 'module' => 'sections', 'access_level' => 'manage'],
@@ -81,17 +77,13 @@ class ModuleAccessSeeder extends Seeder
       ['role_id' => $adminRoleId, 'module' => 'roles', 'access_level' => 'manage'],
       ['role_id' => $adminRoleId, 'module' => 'users', 'access_level' => 'manage'],
       ['role_id' => $adminRoleId, 'module' => 'statistics', 'access_level' => 'manage'],
-      ['role_id' => $adminRoleId, 'module' => 'publications', 'access_level' => 'manage'],
-
-      // NEW modules for Admin
       ['role_id' => $adminRoleId, 'module' => 'logs', 'access_level' => 'manage'],
       ['role_id' => $adminRoleId, 'module' => 'cache', 'access_level' => 'manage'],
       ['role_id' => $adminRoleId, 'module' => 'newsletter', 'access_level' => 'manage'],
-
-      // ADDED: Backup module for Admin
       ['role_id' => $adminRoleId, 'module' => 'backup', 'access_level' => 'manage'],
+      ['role_id' => $adminRoleId, 'module' => 'apply', 'access_level' => 'manage'],
 
-      // Employer - Employment Related (NO CMS, NO logs/cache, NO backup)
+      // ==================== EMPLOYER ====================
       ['role_id' => $employerRoleId, 'module' => 'dashboard', 'access_level' => 'write'],
       ['role_id' => $employerRoleId, 'module' => 'job_listings', 'access_level' => 'write'],
       ['role_id' => $employerRoleId, 'module' => 'applications', 'access_level' => 'write'],
@@ -101,8 +93,10 @@ class ModuleAccessSeeder extends Seeder
       ['role_id' => $employerRoleId, 'module' => 'notifications', 'access_level' => 'write'],
       ['role_id' => $employerRoleId, 'module' => 'statistics', 'access_level' => 'read'],
       ['role_id' => $employerRoleId, 'module' => 'applicant_profiles', 'access_level' => 'read'],
+      ['role_id' => $employerRoleId, 'module' => 'profiles', 'access_level' => 'read'],
+      ['role_id' => $employerRoleId, 'module' => 'public_jobs', 'access_level' => 'read'],
 
-      // Job Seeker - NO ACCESS
+      // ==================== JOB SEEKER ====================
       ['role_id' => $jobSeekerRoleId, 'module' => 'dashboard', 'access_level' => 'no_access'],
       ['role_id' => $jobSeekerRoleId, 'module' => 'public_jobs', 'access_level' => 'no_access'],
       ['role_id' => $jobSeekerRoleId, 'module' => 'apply', 'access_level' => 'no_access'],

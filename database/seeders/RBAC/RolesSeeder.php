@@ -10,7 +10,6 @@ class RolesSeeder extends Seeder
 {
   public function run(): void
   {
-    // Get creator user
     $superAdmin = DB::table('users')->where('email', 'superadmin@jobportal.com')->first();
     $adminUser = DB::table('users')->where('email', 'admin@jobportal.com')->first();
     $createdBy = $superAdmin?->id ?? $adminUser?->id ?? 1;
@@ -58,7 +57,6 @@ class RolesSeeder extends Seeder
       ],
     ];
 
-    // Disable foreign key checks
     DB::statement('SET FOREIGN_KEY_CHECKS=0');
     DB::table('roles')->truncate();
     DB::statement('SET FOREIGN_KEY_CHECKS=1');
