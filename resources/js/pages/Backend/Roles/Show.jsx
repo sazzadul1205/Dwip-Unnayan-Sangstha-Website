@@ -1,13 +1,13 @@
 // resources/js/pages/Backend/Roles/Show.jsx
 
-import { Head, Link, router } from '@inertiajs/react';
 import { useState } from 'react';
+import { Head, Link, router } from '@inertiajs/react';
 import Swal from 'sweetalert2';
 import AuthenticatedLayout from '../../../layouts/AuthenticatedLayout';
 import { useAuth } from '../../../hooks/useAuth';
 import { Can } from '../../../components/Auth/Can';
 import {
-  FaArrowLeft, FaShieldAlt, FaKey, FaUsers, FaEdit, FaTrash, FaTrashRestore,
+  FaArrowLeft, FaKey, FaUsers, FaEdit, FaTrash, FaTrashRestore,
   FaSpinner, FaCheckCircle, FaTimesCircle, FaToggleOn, FaToggleOff, FaCopy,
   FaUser, FaEnvelope, FaCalendarAlt, FaClock, FaDatabase, FaEye, FaLock,
   FaTag, FaIdCard, FaUserTag, FaStar, FaSyncAlt, FaSearch, FaTimes,
@@ -30,47 +30,25 @@ export default function Show({ role, users, permissions, moduleAccess, isDeleted
   const [togglingStatus, setTogglingStatus] = useState(false);
   const [permSearch, setPermSearch] = useState('');
 
-  const canEditSpecificRole = () => {
-    if (!canEditRoles) return false;
-    if (isSuperAdmin) return true;
-    if (role.level >= (currentUser?.highest_role_level || 100)) return false;
-    return !role.is_default;
-  };
-
-  const canDeleteSpecificRole = () => {
-    if (!canDeleteRoles) return false;
-    if (isDeleted) return false;
-    if (isSuperAdmin) return true;
-    if (role.level >= (currentUser?.highest_role_level || 100)) return false;
-    return !role.is_default && role.user_count === 0;
-  };
-
-  const canToggleSpecificRole = () => {
-    if (!canToggleStatus) return false;
-    if (isSuperAdmin) return true;
-    if (role.level >= (currentUser?.highest_role_level || 100)) return false;
-    return !role.is_default;
-  };
-
-  const canCloneSpecificRole = () => {
-    if (!canCloneRoles) return false;
-    return !isDeleted;
-  };
-
+  // Check view permission – if not, show modal and redirect
   if (!canViewRoles) {
+    Swal.fire({
+      icon: 'error',
+      title: 'Access Denied',
+      text: 'You do not have permission to view role details.',
+      confirmButtonColor: '#2563eb',
+      confirmButtonText: 'Go Back',
+      allowOutsideClick: false,
+    }).then(() => {
+      router.visit(route('backend.roles.index'));
+    });
     return (
       <AuthenticatedLayout>
         <Head title="Access Denied" />
         <div className="min-h-screen flex items-center justify-center">
           <div className="text-center">
-            <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <FaShieldAlt className="w-10 h-10 text-red-500" />
-            </div>
-            <h2 className="text-xl font-semibold text-gray-900">Access Denied</h2>
-            <p className="text-gray-500 mt-2">You don't have permission to view roles.</p>
-            <Link href={route('backend.roles.index')} className="inline-flex items-center gap-2 mt-6 text-blue-600 hover:text-blue-800 font-medium">
-              <FaArrowLeft size={14} /> Back to roles
-            </Link>
+            <FaSpinner className="animate-spin text-4xl text-gray-400" />
+            <p className="mt-4 text-gray-500">Redirecting...</p>
           </div>
         </div>
       </AuthenticatedLayout>
@@ -94,6 +72,42 @@ export default function Show({ role, users, permissions, moduleAccess, isDeleted
     );
   }
 
+  // Determine edit/delete/toggle permissions
+  const NON_EDITABLE_ROLE_SLUGS = ['super-admin', 'admin', 'employer-admin', 'job-seeker', 'employer', 'job_seeker'];
+  const isRoleProtected = (role) => {
+    if (!role) return false;
+    if (role.is_default) return true;
+    return NON_EDITABLE_ROLE_SLUGS.includes(role.slug);
+  };
+
+  const canEditSpecificRole = () => {
+    if (!canEditRoles) return false;
+    if (isSuperAdmin) return true;
+    if (role.level >= (currentUser?.highest_role_level || 100)) return false;
+    return !isRoleProtected(role);
+  };
+
+  const canDeleteSpecificRole = () => {
+    if (!canDeleteRoles) return false;
+    if (isDeleted) return false;
+    if (isSuperAdmin) return true;
+    if (role.level >= (currentUser?.highest_role_level || 100)) return false;
+    return !isRoleProtected(role) && role.user_count === 0;
+  };
+
+  const canToggleSpecificRole = () => {
+    if (!canToggleStatus) return false;
+    if (isSuperAdmin) return true;
+    if (role.level >= (currentUser?.highest_role_level || 100)) return false;
+    return !role.is_default;
+  };
+
+  const canCloneSpecificRole = () => {
+    if (!canCloneRoles) return false;
+    return !isDeleted;
+  };
+
+  // Helpers
   const formatDateTime = (date) => {
     if (!date) return 'N/A';
     return new Date(date).toLocaleDateString('en-US', {
@@ -121,9 +135,14 @@ export default function Show({ role, users, permissions, moduleAccess, isDeleted
     return labels[level] || level;
   };
 
+  // Action handlers (with modals for permission errors)
   const handleToggleStatus = () => {
     if (!canToggleSpecificRole()) {
-      Swal.fire({ icon: 'warning', title: 'Permission Denied', text: role.is_default ? 'Default roles cannot be deactivated.' : 'You do not have permission to change this role\'s status.' });
+      let reason = '';
+      if (role.is_default) reason = 'Default roles cannot be toggled.';
+      else if (role.level >= (currentUser?.highest_role_level || 100)) reason = `You cannot toggle a role with equal or higher level.`;
+      else reason = 'You do not have permission to change this role\'s status.';
+      Swal.fire({ icon: 'warning', title: 'Cannot Toggle Status', text: reason });
       return;
     }
     Swal.fire({
@@ -153,13 +172,12 @@ export default function Show({ role, users, permissions, moduleAccess, isDeleted
 
   const handleDelete = () => {
     if (!canDeleteSpecificRole()) {
-      let msg = '';
-      if (!canDeleteRoles) msg = 'You do not have permission to delete roles.';
-      else if (role.is_default) msg = 'Default roles cannot be deleted.';
-      else if (role.user_count > 0) msg = `This role has ${role.user_count} user(s) assigned. Please reassign users first.`;
-      else if (role.level >= (currentUser?.highest_role_level || 100)) msg = 'You cannot delete a role with equal or higher level than your own.';
-      else msg = 'You do not have permission to delete this role.';
-      Swal.fire({ icon: 'warning', title: 'Cannot Delete', text: msg });
+      let reason = '';
+      if (role.is_default) reason = 'Default roles cannot be deleted.';
+      else if (role.user_count > 0) reason = `This role has ${role.user_count} user(s) assigned. Please reassign users first.`;
+      else if (role.level >= (currentUser?.highest_role_level || 100)) reason = `You cannot delete a role with equal or higher level.`;
+      else reason = 'You do not have permission to delete this role.';
+      Swal.fire({ icon: 'warning', title: 'Cannot Delete', text: reason });
       return;
     }
     Swal.fire({
@@ -244,6 +262,7 @@ export default function Show({ role, users, permissions, moduleAccess, isDeleted
     });
   };
 
+  // Sub-components for layout
   const StatCard = ({ icon: Icon, label, value, subtext, colorClass }) => (
     <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-5 hover:shadow-xl transition-shadow">
       <div className="flex items-start justify-between">
@@ -267,12 +286,6 @@ export default function Show({ role, users, permissions, moduleAccess, isDeleted
     </div>
   );
 
-  const canEdit = canEditSpecificRole();
-  const canClone = canCloneSpecificRole();
-  const canDelete = canDeleteSpecificRole();
-  const canToggle = canToggleSpecificRole();
-  const isHighLevelRestricted = !isSuperAdmin && role.level >= (currentUser?.highest_role_level || 100);
-
   // Filter permissions by search
   const filteredPermissions = permissions
     .map(module => ({
@@ -285,10 +298,16 @@ export default function Show({ role, users, permissions, moduleAccess, isDeleted
     }))
     .filter(m => m.permissions.length > 0);
 
+  const canEdit = canEditSpecificRole();
+  const canClone = canCloneSpecificRole();
+  const canDelete = canDeleteSpecificRole();
+  const canToggle = canToggleSpecificRole();
+  const isHighLevelRestricted = !isSuperAdmin && role.level >= (currentUser?.highest_role_level || 100);
+
   return (
     <AuthenticatedLayout>
       <Head title={`${role.name} - Role Details`} />
-      <div className="min-h-screen bg-linear-to-br from-gray-50 via-white to-gray-50">
+      <div className="min-h-screen bg-gray-50">
         <div className="mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {/* Header */}
           <div className="mb-6">
@@ -320,14 +339,12 @@ export default function Show({ role, users, permissions, moduleAccess, isDeleted
                   <div className="flex items-center gap-3 flex-wrap">
                     {!isDeleted && (
                       <>
-                        <Can permission="roles.update" fallback={null}>
-                          <button onClick={handleToggleStatus} disabled={togglingStatus || !canToggle}
-                            className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-medium transition-all duration-200 ${role.is_active ? 'bg-amber-50 border border-amber-200 text-amber-700 hover:bg-amber-100' : 'bg-emerald-50 border border-emerald-200 text-emerald-700 hover:bg-emerald-100'} ${(togglingStatus || !canToggle) ? 'opacity-50 cursor-not-allowed' : ''}`}
-                            title={!canToggle ? (role.is_default ? 'Default roles cannot be toggled' : 'Insufficient permission') : ''}>
-                            {togglingStatus ? <FaSpinner className="animate-spin" size={16} /> : role.is_active ? <FaToggleOff size={16} /> : <FaToggleOn size={16} />}
-                            {role.is_active ? 'Deactivate' : 'Activate'}
-                          </button>
-                        </Can>
+                        <button onClick={handleToggleStatus} disabled={togglingStatus || !canToggle}
+                          className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-medium transition-all duration-200 ${role.is_active ? 'bg-amber-50 border border-amber-200 text-amber-700 hover:bg-amber-100' : 'bg-emerald-50 border border-emerald-200 text-emerald-700 hover:bg-emerald-100'} ${(togglingStatus || !canToggle) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                          title={!canToggle ? (role.is_default ? 'Default roles cannot be toggled' : 'Insufficient permission') : ''}>
+                          {togglingStatus ? <FaSpinner className="animate-spin" size={16} /> : role.is_active ? <FaToggleOff size={16} /> : <FaToggleOn size={16} />}
+                          {role.is_active ? 'Deactivate' : 'Activate'}
+                        </button>
                         <Can permission="roles.update" fallback={null}>
                           <Link href={route('backend.roles.edit', role.id)} className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-medium transition-all duration-200 shadow-md hover:shadow-lg ${canEdit ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-gray-200 text-gray-500 cursor-not-allowed pointer-events-none'}`}
                             title={!canEdit ? 'You do not have permission to edit this role' : ''}>
