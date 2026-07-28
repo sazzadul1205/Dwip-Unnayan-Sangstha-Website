@@ -32,6 +32,7 @@ export default function Create({ permissions, existingLevels, accessLevels }) {
     { id: 4, title: 'Review', component: ReviewStep },
   ];
 
+  // ✅ Initialize state with proper default values
   const [formData, setFormData] = useState({
     name: '',
     slug: '',
@@ -43,9 +44,13 @@ export default function Create({ permissions, existingLevels, accessLevels }) {
     module_access: [],
   });
 
+  // ✅ Simple update function
   const updateForm = (updates) => {
-    setFormData(prev => ({ ...prev, ...updates }));
-    setIsDirty(true);
+    setFormData(prev => {
+      const newData = { ...prev, ...updates };
+      setIsDirty(true);
+      return newData;
+    });
   };
 
   if (!canCreateRoles) {
@@ -213,6 +218,33 @@ export default function Create({ permissions, existingLevels, accessLevels }) {
   const isReviewStep = currentStep === steps.length;
   const progress = Math.round(((currentStep - 1) / (steps.length - 1)) * 100);
 
+  // ✅ Pass props directly to the component
+  const getStepProps = () => {
+    const baseProps = {
+      formData,
+      errors,
+      setFormData: updateForm,
+      permissions: filteredPermissions,
+      existingLevels,
+      accessLevels,
+      onNavigateToStep: navigateToStep,
+      canAssignAllPermissions,
+    };
+
+    // For BasicInfoStep, explicitly set isDefaultRole and isEdit
+    if (currentStep === 1) {
+      return {
+        ...baseProps,
+        isDefaultRole: false,
+        isEdit: false,
+      };
+    }
+
+    return baseProps;
+  };
+
+  const stepProps = getStepProps();
+
   return (
     <AuthenticatedLayout>
       <Head title="Create Role" />
@@ -259,16 +291,7 @@ export default function Create({ permissions, existingLevels, accessLevels }) {
             </div>
 
             <div className="px-8 py-8">
-              <CurrentStepComponent
-                formData={formData}
-                errors={errors}
-                setFormData={updateForm}
-                permissions={filteredPermissions}
-                existingLevels={existingLevels}
-                accessLevels={accessLevels}
-                onNavigateToStep={navigateToStep}
-                canAssignAllPermissions={canAssignAllPermissions}
-              />
+              <CurrentStepComponent {...stepProps} />
             </div>
 
             <div className="border-t border-gray-100 bg-gray-50/50 px-8 py-6">

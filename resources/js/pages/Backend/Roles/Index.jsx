@@ -13,11 +13,12 @@ import {
 } from 'react-icons/fa';
 import Swal from 'sweetalert2';
 
-// ============================================================
-// Reusable Filter Tags Component
-// ============================================================
+// Filter Tags Component
 const FilterTags = ({ filters, onClear }) => {
-  const entries = Object.entries(filters).filter(([ value]) => value && value !== 'all' && value !== '');
+  const entries = Object.entries(filters).filter(([key, value]) => {
+    if (key === 'perPage') return false;
+    return value && value !== 'all' && value !== '';
+  });
   if (entries.length === 0) return null;
   return (
     <div className="flex flex-wrap gap-2 mb-4">
@@ -57,10 +58,10 @@ export default function RolesIndex({ roles: initialRoles, filters: initialFilter
   const [showFilters, setShowFilters] = useState(false);
   const [selectedRoles, setSelectedRoles] = useState([]);
   const [isBulkProcessing, setIsBulkProcessing] = useState(false);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
+
+  // ✅ FIX: Use roles directly, not users
   const [roles, setRoles] = useState(initialRoles);
-  const [stats, setStats] = useState(initialStats);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [isLoading, setIsLoading] = useState(false);
 
   // Filters
   const [filters, setFilters] = useState({
@@ -108,30 +109,31 @@ export default function RolesIndex({ roles: initialRoles, filters: initialFilter
 
   // Fetch data
   const fetchData = useCallback((page = 1) => {
-    setIsLoading(true);
     router.get(route('backend.roles.index'), buildQuery(page), {
       preserveState: true,
       preserveScroll: true,
       replace: true,
       onSuccess: (page) => {
         setRoles(page.props.roles);
-        setStats(page.props.stats);
-        setIsLoading(false);
       },
-      onError: () => setIsLoading(false),
     });
   }, [buildQuery]);
 
-  // Apply filters (debounced)
+  // Apply filters (debounced) - ✅ FIX: Only run when filters change
   useEffect(() => {
+    // Skip the initial render since we already have initialRoles
+    if (isInitialLoad) {
+      setIsInitialLoad(false);
+      return;
+    }
+
     const timer = setTimeout(() => fetchData(1), 400);
     return () => clearTimeout(timer);
-  }, [filters, fetchData]);
+  }, [filters.search, filters.status, filters.minLevel, filters.maxLevel, filters.perPage, fetchData, isInitialLoad]);
 
   // Keep in sync
   useEffect(() => {
     setRoles(initialRoles);
-    setStats(initialStats);
   }, [initialRoles, initialStats]);
 
   // Flash messages
@@ -144,14 +146,14 @@ export default function RolesIndex({ roles: initialRoles, filters: initialFilter
     }
   }, [flash]);
 
-  
-  // Pagination & roles
+  // ✅ FIX: Get role items from roles.data or roles array
   const roleItems = useMemo(() => {
     if (Array.isArray(roles)) return roles;
     if (roles?.data) return roles.data;
     return [];
   }, [roles]);
 
+  // Pagination info
   const pagination = useMemo(() => {
     if (roles && typeof roles === 'object' && 'current_page' in roles) {
       return {
@@ -169,8 +171,10 @@ export default function RolesIndex({ roles: initialRoles, filters: initialFilter
 
   const sortedRoles = useMemo(() => {
     return [...roleItems].sort((a, b) => {
+      // Show active roles first, then inactive, then deleted
       if (a.deleted_at && !b.deleted_at) return 1;
       if (!a.deleted_at && b.deleted_at) return -1;
+      // Then sort by level (highest first)
       return (b.level ?? 0) - (a.level ?? 0);
     });
   }, [roleItems]);
@@ -473,7 +477,13 @@ export default function RolesIndex({ roles: initialRoles, filters: initialFilter
     return 'bg-green-100 text-green-700';
   };
 
-  // Pagination component (unchanged)
+  // ✅ FIX: Calculate stats from actual data
+  const activeCount = roleItems.filter(r => r.is_active && !r.deleted_at).length;
+  const inactiveCount = roleItems.filter(r => !r.is_active && !r.deleted_at).length;
+  const deletedCount = roleItems.filter(r => r.deleted_at).length;
+  const defaultCount = roleItems.filter(r => r.is_default && !r.deleted_at).length;
+
+  // Pagination component
   const Pagination = () => {
     if (!pagination || pagination.lastPage <= 1) return null;
     const pages = [];
@@ -524,12 +534,6 @@ export default function RolesIndex({ roles: initialRoles, filters: initialFilter
     );
   };
 
-  const activeCount = stats?.active || 0;
-  const defaultCount = stats?.default || 0;
-  const inactiveCount = stats?.inactive || 0;
-  const deletedCount = stats?.total_deleted || 0;
-  const totalCount = stats?.total || roleItems.length;
-
   // Main render
   return (
     <AuthenticatedLayout>
@@ -552,7 +556,7 @@ export default function RolesIndex({ roles: initialRoles, filters: initialFilter
                   <span className="inline-flex items-center gap-1 text-xs text-blue-600"><span className="w-2 h-2 rounded-full bg-blue-500" /> Filtered</span>
                 )}
                 {pagination && (
-                  <span className="inline-flex items-center gap-1 text-xs text-gray-500"><span className="w-2 h-2 rounded-full bg-gray-400" /> Total: {totalCount}</span>
+                  <span className="inline-flex items-center gap-1 text-xs text-gray-500"><span className="w-2 h-2 rounded-full bg-gray-400" /> Total: {pagination.total}</span>
                 )}
               </div>
             </div>
@@ -698,7 +702,6 @@ export default function RolesIndex({ roles: initialRoles, filters: initialFilter
                     </tr>
                   )}
                   {sortedRoles.map((role, index) => {
-                    const trashed = role.deleted_at !== null;
                     const isDefault = role.is_default;
                     const canEdit = canEditSpecificRole(role);
                     const canDelete = canDeleteSpecificRole(role);
@@ -707,29 +710,32 @@ export default function RolesIndex({ roles: initialRoles, filters: initialFilter
                     const isPermanentRole = ['super-admin', 'admin', 'employer', 'employer-admin'].includes(role.slug);
                     const isHighLevel = role.level >= (currentUser?.highest_role_level || 100) && !isSuperAdmin;
 
+                    // ✅ FIX: Don't show deleted roles with strikethrough if they shouldn't be
+                    // Check if the role is actually soft-deleted (has deleted_at)
+                    const isActuallyDeleted = role.deleted_at !== null && role.deleted_at !== undefined;
                     return (
-                      <tr key={role.id} className={`hover:bg-gray-50 transition-all duration-200 animate-fade-in ${trashed ? 'bg-gray-50 opacity-75' : ''} ${selectedRoles.includes(role.id) ? 'bg-blue-50' : ''}`}
+                      <tr key={role.id} className={`hover:bg-gray-50 transition-all duration-200 animate-fade-in ${isActuallyDeleted ? 'bg-gray-50 opacity-75' : ''} ${selectedRoles.includes(role.id) ? 'bg-blue-50' : ''}`}
                         style={{ animationDelay: `${index * 50}ms` }}>
                         <td className="px-4 py-4">
-                          {!trashed && canDelete && (
+                          {!isActuallyDeleted && canDelete && (
                             <input type="checkbox" checked={selectedRoles.includes(role.id)} onChange={() => handleSelectRole(role.id)}
                               className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" />
                           )}
                         </td>
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-3">
-                            <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${trashed ? 'bg-gray-300' : showDefaultBadge ? 'bg-purple-100' : isPermanentRole ? 'bg-red-100' : role.is_active ? 'bg-green-100' : 'bg-yellow-100'}`}>
-                              <FaShieldAlt className={trashed ? 'text-gray-500' : showDefaultBadge ? 'text-purple-600' : isPermanentRole ? 'text-red-600' : role.is_active ? 'text-green-600' : 'text-yellow-600'} size={18} />
+                            <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${isActuallyDeleted ? 'bg-gray-300' : showDefaultBadge ? 'bg-purple-100' : isPermanentRole ? 'bg-red-100' : role.is_active ? 'bg-green-100' : 'bg-yellow-100'}`}>
+                              <FaShieldAlt className={isActuallyDeleted ? 'text-gray-500' : showDefaultBadge ? 'text-purple-600' : isPermanentRole ? 'text-red-600' : role.is_active ? 'text-green-600' : 'text-yellow-600'} size={18} />
                             </div>
                             <div>
-                              <div className={`font-semibold ${trashed ? 'line-through text-gray-400' : 'text-gray-900'}`}>
+                              <div className={`font-semibold ${isActuallyDeleted ? 'line-through text-gray-400' : 'text-gray-900'}`}>
                                 {role.name}
-                                {showDefaultBadge && <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-700">Default</span>}
-                                {isPermanentRole && <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-700">Permanent</span>}
-                                {isHighLevel && !trashed && <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-700"><FaLock size={10} className="mr-1" /> Restricted</span>}
+                                {showDefaultBadge && !isActuallyDeleted && <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-700">Default</span>}
+                                {isPermanentRole && !isActuallyDeleted && <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-700">Permanent</span>}
+                                {isHighLevel && !isActuallyDeleted && <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-700"><FaLock size={10} className="mr-1" /> Restricted</span>}
                               </div>
-                              <div className={`text-sm mt-0.5 ${trashed ? 'text-gray-400' : 'text-gray-500'}`}>Slug: {role.slug}</div>
-                              {role.description && <div className={`text-xs mt-1 ${trashed ? 'text-gray-400' : 'text-gray-400'}`}>{role.description.length > 60 ? `${role.description.substring(0, 60)}...` : role.description}</div>}
+                              <div className={`text-sm mt-0.5 ${isActuallyDeleted ? 'text-gray-400' : 'text-gray-500'}`}>Slug: {role.slug}</div>
+                              {role.description && <div className={`text-xs mt-1 ${isActuallyDeleted ? 'text-gray-400' : 'text-gray-400'}`}>{role.description.length > 60 ? `${role.description.substring(0, 60)}...` : role.description}</div>}
                             </div>
                           </div>
                         </td>
@@ -738,17 +744,17 @@ export default function RolesIndex({ roles: initialRoles, filters: initialFilter
                         </td>
                         <td className="px-6 py-4">
                           <div className="space-y-1">
-                            <div className="flex items-center gap-2"><FaUsers className="text-gray-400" size={14} /><span className={`text-sm font-medium ${trashed ? 'text-gray-400' : 'text-gray-700'}`}>{role.user_count || 0} user(s)</span></div>
-                            <div className="flex items-center gap-2"><FaKey className="text-gray-400" size={14} /><span className={`text-sm ${trashed ? 'text-gray-400' : 'text-gray-500'}`}>{role.permission_count || 0} permission(s)</span></div>
+                            <div className="flex items-center gap-2"><FaUsers className="text-gray-400" size={14} /><span className={`text-sm font-medium ${isActuallyDeleted ? 'text-gray-400' : 'text-gray-700'}`}>{role.user_count || 0} user(s)</span></div>
+                            <div className="flex items-center gap-2"><FaKey className="text-gray-400" size={14} /><span className={`text-sm ${isActuallyDeleted ? 'text-gray-400' : 'text-gray-500'}`}>{role.permission_count || 0} permission(s)</span></div>
                           </div>
                         </td>
                         <td className="px-6 py-4">
                           <div className="text-sm text-gray-900">{formatDate(role.created_at)}</div>
                           {role.creator && <div className="text-xs text-gray-500 mt-1">by {role.creator.name}</div>}
-                          {trashed && <div className="text-xs text-red-500 mt-1">Deleted: {formatDate(role.deleted_at)}</div>}
+                          {isActuallyDeleted && <div className="text-xs text-red-500 mt-1">Deleted: {formatDate(role.deleted_at)}</div>}
                         </td>
                         <td className="px-6 py-4">
-                          {!trashed ? (
+                          {!isActuallyDeleted ? (
                             <button onClick={() => handleToggleStatus(role)} disabled={togglingId === role.id || !canToggle}
                               className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 transform hover:scale-105 flex items-center gap-2 ${role.is_active ? 'bg-green-100 text-green-800 hover:bg-green-200' : 'bg-red-100 text-red-800 hover:bg-red-200'} ${(togglingId === role.id || !canToggle) ? 'opacity-50 cursor-not-allowed' : ''}`}
                               title={!canToggle ? (isDefault ? 'Default roles cannot be toggled' : 'Insufficient permission') : ''}>
@@ -759,11 +765,38 @@ export default function RolesIndex({ roles: initialRoles, filters: initialFilter
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right">
                           <div className="flex justify-end gap-2">
-                            <a href={route('backend.roles.show', role.id)} className={`p-2 rounded-lg transition-all duration-200 ${trashed ? 'text-gray-400 hover:text-gray-600 hover:bg-gray-100' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'}`} title="View Details"><FaEye size={18} /></a>
-                            {!trashed && canEdit && <a href={route('backend.roles.edit', role.id)} className="p-2 text-blue-600 hover:text-blue-900 hover:bg-blue-50 rounded-lg transition-all duration-200" title="Edit"><FaEdit size={18} /></a>}
-                            {!trashed && canCloneRoles && <button onClick={() => handleClone(role.id, role.name)} disabled={cloningId === role.id} className={`p-2 text-teal-600 hover:text-teal-900 hover:bg-teal-50 rounded-lg transition-all duration-200 ${cloningId === role.id ? 'opacity-50 cursor-not-allowed' : ''}`} title="Clone">{cloningId === role.id ? <FaSpinner className="animate-spin" size={18} /> : <FaCopy size={18} />}</button>}
-                            {trashed && canRestoreRoles && <button onClick={() => handleRestore(role.id, role.name)} disabled={restoringId === role.id} className={`p-2 text-green-600 hover:text-green-900 hover:bg-green-50 rounded-lg transition-all duration-200 ${restoringId === role.id ? 'opacity-50 cursor-not-allowed' : ''}`} title="Restore">{restoringId === role.id ? <FaSpinner className="animate-spin" size={18} /> : <FaTrashRestore size={18} />}</button>}
-                            {!trashed && canDelete && <button onClick={() => handleDelete(role.id, role.name)} disabled={deletingId === role.id} className={`p-2 text-red-600 hover:text-red-900 hover:bg-red-50 rounded-lg transition-all duration-200 ${deletingId === role.id ? 'opacity-50 cursor-not-allowed' : ''}`} title="Delete">{deletingId === role.id ? <FaSpinner className="animate-spin" size={18} /> : <FaTrash size={18} />}</button>}
+                            {/* View - Always visible */}
+                            <a href={route('backend.roles.show', role.id)} className={`p-2 rounded-lg transition-all duration-200 ${isActuallyDeleted ? 'text-gray-400 hover:text-gray-600 hover:bg-gray-100' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'}`} title="View Details">
+                              <FaEye size={18} />
+                            </a>
+
+                            {/* Edit - Only if NOT deleted AND NOT permanent/default */}
+                            {!isActuallyDeleted && !isPermanentRole && !isDefault && canEdit && (
+                              <a href={route('backend.roles.edit', role.id)} className="p-2 text-blue-600 hover:text-blue-900 hover:bg-blue-50 rounded-lg transition-all duration-200" title="Edit">
+                                <FaEdit size={18} />
+                              </a>
+                            )}
+
+                            {/* Clone - Only if NOT deleted */}
+                            {!isActuallyDeleted && canCloneRoles && (
+                              <button onClick={() => handleClone(role.id, role.name)} disabled={cloningId === role.id} className={`p-2 text-teal-600 hover:text-teal-900 hover:bg-teal-50 rounded-lg transition-all duration-200 ${cloningId === role.id ? 'opacity-50 cursor-not-allowed' : ''}`} title="Clone">
+                                {cloningId === role.id ? <FaSpinner className="animate-spin" size={18} /> : <FaCopy size={18} />}
+                              </button>
+                            )}
+
+                            {/* Restore - Only if deleted */}
+                            {isActuallyDeleted && canRestoreRoles && (
+                              <button onClick={() => handleRestore(role.id, role.name)} disabled={restoringId === role.id} className={`p-2 text-green-600 hover:text-green-900 hover:bg-green-50 rounded-lg transition-all duration-200 ${restoringId === role.id ? 'opacity-50 cursor-not-allowed' : ''}`} title="Restore">
+                                {restoringId === role.id ? <FaSpinner className="animate-spin" size={18} /> : <FaTrashRestore size={18} />}
+                              </button>
+                            )}
+
+                            {/* Delete - Only if NOT deleted AND NOT permanent/default */}
+                            {!isActuallyDeleted && !isPermanentRole && !isDefault && canDelete && (
+                              <button onClick={() => handleDelete(role.id, role.name)} disabled={deletingId === role.id} className={`p-2 text-red-600 hover:text-red-900 hover:bg-red-50 rounded-lg transition-all duration-200 ${deletingId === role.id ? 'opacity-50 cursor-not-allowed' : ''}`} title="Delete">
+                                {deletingId === role.id ? <FaSpinner className="animate-spin" size={18} /> : <FaTrash size={18} />}
+                              </button>
+                            )}
                           </div>
                         </td>
                       </tr>

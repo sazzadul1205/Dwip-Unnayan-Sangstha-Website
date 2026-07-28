@@ -264,9 +264,9 @@ export default function Edit({
   const filteredFormDataPermissions = canAssignAllPermissions
     ? formData.permissions
     : formData.permissions.filter(permId => {
-        const p = permissions.find(pp => pp.id === permId);
-        return p && hasAnyPermission([p.slug]);
-      });
+      const p = permissions.find(pp => pp.id === permId);
+      return p && hasAnyPermission([p.slug]);
+    });
 
   const basicInfoProps = {
     formData: { ...formData, permissions: filteredFormDataPermissions },
@@ -274,7 +274,7 @@ export default function Edit({
     setFormData,
     existingLevels,
     isEdit: true,
-    isDefaultRole,
+    isDefaultRole: initialRole.is_default, // ✅ This is the key fix
     originalName: initialRole.name,
     canEditSlug: !isDefaultRole || isSuperAdmin,
     canEditName: !isDefaultRole || isSuperAdmin,
