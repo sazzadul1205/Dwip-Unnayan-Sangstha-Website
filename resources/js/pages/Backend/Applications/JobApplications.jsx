@@ -1,3 +1,4 @@
+/* eslint-disable no-useless-escape */
 // resources/js/pages/Backend/Applications/JobApplications.jsx
 
 // React
@@ -50,6 +51,7 @@ import {
   FaSortDown,
   FaSearch,
   FaShieldAlt,
+  FaExclamationTriangle,
 } from 'react-icons/fa';
 
 import Swal from 'sweetalert2';
@@ -63,7 +65,7 @@ export default function JobApplications({
   // Auth
   const { flash } = usePage().props;
 
-   const safeInitialFilters = (initialFilters && !Array.isArray(initialFilters)) ? initialFilters : {};
+  const safeInitialFilters = (initialFilters && !Array.isArray(initialFilters)) ? initialFilters : {};
 
   // States
   const [isDeleting, setIsDeleting] = useState(false);
@@ -110,6 +112,9 @@ export default function JobApplications({
     hasAnyPermission,
     hasRole,
   } = useAuth();
+
+  // ---- Check if job is deleted ----
+  const isJobDeleted = job?.deleted_at !== null;
 
   // Show flash messages
   useEffect(() => {
@@ -309,8 +314,9 @@ export default function JobApplications({
     });
   };
 
-  // Handle select all applications (only if user has update permission)
+  // Handle select all applications (only if user has update permission and job is not deleted)
   const handleSelectAll = () => {
+    if (isJobDeleted) return;
     const selectableApps = applicationItems.filter(app => !pendingDeletes[app.id] && canUpdateApplications);
     if (selectedApps.length === selectableApps.length) {
       setSelectedApps([]);
@@ -321,6 +327,7 @@ export default function JobApplications({
 
   // Handle select single application
   const handleSelectApp = (appId) => {
+    if (isJobDeleted) return;
     setSelectedApps(prev =>
       prev.includes(appId)
         ? prev.filter(id => id !== appId)
@@ -330,6 +337,15 @@ export default function JobApplications({
 
   // Open email modal for bulk
   const handleOpenBulkEmail = () => {
+    if (isJobDeleted) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Job Deleted',
+        text: 'This job has been deleted. You cannot send emails.',
+        confirmButtonColor: '#3b82f6',
+      });
+      return;
+    }
     if (!canEmailApplicants) {
       Swal.fire({
         icon: 'error',
@@ -356,6 +372,15 @@ export default function JobApplications({
 
   // Open email modal for single applicant
   const handleOpenSingleEmail = (applicant) => {
+    if (isJobDeleted) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Job Deleted',
+        text: 'This job has been deleted. You cannot send emails.',
+        confirmButtonColor: '#3b82f6',
+      });
+      return;
+    }
     if (!canEmailApplicants) {
       Swal.fire({
         icon: 'error',
@@ -375,15 +400,12 @@ export default function JobApplications({
     const filenameStarMatch = contentDisposition.match(/filename\*\s*=\s*UTF-8''([^;]+)/i);
     if (filenameStarMatch?.[1]) {
       try {
-        // eslint-disable-next-line no-useless-escape
         return decodeURIComponent(filenameStarMatch[1].replace(/(^\"|\"$)/g, ''));
       } catch {
-        // eslint-disable-next-line no-useless-escape
         return filenameStarMatch[1].replace(/(^\"|\"$)/g, '');
       }
     }
 
-    // eslint-disable-next-line no-useless-escape
     const filenameMatch = contentDisposition.match(/filename\s*=\s*\"?([^\";]+)\"?/i);
     return filenameMatch?.[1] ?? null;
   };
@@ -401,6 +423,15 @@ export default function JobApplications({
 
   // Handle bulk export
   const handleExport = (format) => {
+    if (isJobDeleted) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Job Deleted',
+        text: 'This job has been deleted. You cannot export applications.',
+        confirmButtonColor: '#3b82f6',
+      });
+      return;
+    }
     if (!canExportApplications) {
       Swal.fire({
         icon: 'error',
@@ -483,6 +514,15 @@ export default function JobApplications({
 
   // Handle bulk delete with optimistic update
   const handleBulkDelete = () => {
+    if (isJobDeleted) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Job Deleted',
+        text: 'This job has been deleted. You cannot delete applications.',
+        confirmButtonColor: '#3b82f6',
+      });
+      return;
+    }
     if (!canDeleteApplications) {
       Swal.fire({
         icon: 'error',
@@ -572,6 +612,15 @@ export default function JobApplications({
 
   // Handle single delete with optimistic update
   const handleDeleteSingle = (appId, applicantName) => {
+    if (isJobDeleted) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Job Deleted',
+        text: 'This job has been deleted. You cannot delete applications.',
+        confirmButtonColor: '#3b82f6',
+      });
+      return;
+    }
     if (!canDeleteApplications) {
       Swal.fire({
         icon: 'error',
@@ -643,6 +692,15 @@ export default function JobApplications({
 
   // Handle bulk status update with optimistic update
   const handleBulkStatusUpdate = (newStatus) => {
+    if (isJobDeleted) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Job Deleted',
+        text: 'This job has been deleted. You cannot update statuses.',
+        confirmButtonColor: '#3b82f6',
+      });
+      return;
+    }
     if (!canUpdateApplications) {
       Swal.fire({
         icon: 'error',
@@ -736,6 +794,15 @@ export default function JobApplications({
 
   // Handle bulk download resumes (MERGED PDF)
   const handleBulkDownload = async () => {
+    if (isJobDeleted) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Job Deleted',
+        text: 'This job has been deleted. You cannot download resumes.',
+        confirmButtonColor: '#3b82f6',
+      });
+      return;
+    }
     if (!canDownloadResumes) {
       Swal.fire({
         icon: 'error',
@@ -839,6 +906,15 @@ export default function JobApplications({
 
   // Handle single resume download
   const handleDownloadResume = async (app) => {
+    if (isJobDeleted) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Job Deleted',
+        text: 'This job has been deleted. You cannot download resumes.',
+        confirmButtonColor: '#3b82f6',
+      });
+      return;
+    }
     if (!canDownloadResumes) {
       Swal.fire({
         icon: 'error',
@@ -888,8 +964,17 @@ export default function JobApplications({
     }
   };
 
-  // Handle single status update with optimistic update
+  // Handle single status update with optimistic update (✅ FIXED ROUTE NAME)
   const handleStatusUpdate = (appId, newStatus) => {
+    if (isJobDeleted) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Job Deleted',
+        text: 'This job has been deleted. You cannot update statuses.',
+        confirmButtonColor: '#3b82f6',
+      });
+      return;
+    }
     if (!canUpdateApplications) {
       Swal.fire({
         icon: 'error',
@@ -912,7 +997,8 @@ export default function JobApplications({
     };
     setApplications(updatedApplications);
 
-    router.put(route('backend.applications.status.update-status', appId), {
+    // ✅ CORRECT ROUTE NAME
+    router.put(route('backend.applications.update-status', appId), {
       status: newStatus,
       notes: `Status updated to ${newStatus}`,
     }, {
@@ -1057,11 +1143,11 @@ export default function JobApplications({
   const hiredCount = visibleApplications.filter(app => app.status === 'hired').length;
   const totalCount = visibleApplications.length;
 
-  // Check if user can perform bulk actions
-  const canBulkEmail = canEmailApplicants && selectedApps.length > 0;
-  const canBulkStatusUpdate = canUpdateApplications && selectedApps.length > 0;
-  const canBulkDownload = canDownloadResumes && selectedApps.length > 0;
-  const canBulkDelete = canDeleteApplications && selectedApps.length > 0;
+  // Check if user can perform bulk actions (and job is not deleted)
+  const canBulkEmail = !isJobDeleted && canEmailApplicants && selectedApps.length > 0;
+  const canBulkStatusUpdate = !isJobDeleted && canUpdateApplications && selectedApps.length > 0;
+  const canBulkDownload = !isJobDeleted && canDownloadResumes && selectedApps.length > 0;
+  const canBulkDelete = !isJobDeleted && canDeleteApplications && selectedApps.length > 0;
 
   // Pagination component
   const Pagination = () => {
@@ -1191,6 +1277,11 @@ export default function JobApplications({
                       Your Job
                     </span>
                   )}
+                  {isJobDeleted && (
+                    <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full">
+                      Deleted
+                    </span>
+                  )}
                 </div>
                 <div className="flex gap-3 mt-2 flex-wrap">
                   <span className="inline-flex items-center gap-1 text-xs">
@@ -1230,7 +1321,7 @@ export default function JobApplications({
 
               <div className="flex gap-2">
                 {/* Export Dropdown Button */}
-                {canExportApplications && (
+                {canExportApplications && !isJobDeleted && (
                   <div className="relative">
                     <button
                       onClick={() => setShowExportMenu(!showExportMenu)}
@@ -1292,6 +1383,21 @@ export default function JobApplications({
               </div>
             </div>
           </div>
+
+          {/* --- JOB DELETED WARNING BANNER --- */}
+          {isJobDeleted && (
+            <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3 animate-fade-in">
+              <FaExclamationTriangle className="text-red-600 mt-0.5" size={20} />
+              <div>
+                <p className="text-sm font-medium text-red-800">
+                  ⚠️ This job listing has been deleted.
+                </p>
+                <p className="text-xs text-red-600 mt-1">
+                  These applications are for reference only. All actions (status updates, emails, downloads, deletions) are disabled because the job is no longer active.
+                </p>
+              </div>
+            </div>
+          )}
 
           {/* FILTERS PANEL */}
           {showFilters && (
@@ -1482,7 +1588,7 @@ export default function JobApplications({
           )}
 
           {/* BULK ACTIONS BAR */}
-          {selectedApps.length > 0 && (
+          {selectedApps.length > 0 && !isJobDeleted && (
             <div className="bg-linear-to-r from-blue-50 to-indigo-50 rounded-xl shadow-lg p-4 mb-6 animate-fade-in border border-blue-200">
               <div className="flex items-center justify-between flex-wrap gap-3">
                 <div className="flex items-center gap-3">
@@ -1569,7 +1675,7 @@ export default function JobApplications({
                 <thead className="bg-linear-to-r from-gray-50 to-gray-100">
                   <tr>
                     <th className="px-4 py-4 text-left">
-                      {canUpdateApplications && (
+                      {!isJobDeleted && canUpdateApplications && (
                         <input
                           type="checkbox"
                           checked={visibleApplications.length > 0 && selectedApps.length === visibleApplications.length}
@@ -1680,7 +1786,7 @@ export default function JobApplications({
                         style={{ animationDelay: `${index * 50}ms` }}
                       >
                         <td className="px-4 py-4">
-                          {canUpdateApplications && (
+                          {!isJobDeleted && canUpdateApplications && (
                             <input
                               type="checkbox"
                               checked={selectedApps.includes(app.id)}
@@ -1791,7 +1897,7 @@ export default function JobApplications({
                         {/* ACTIONS */}
                         <td className="px-6 py-4 whitespace-nowrap text-right">
                           <div className="flex justify-end gap-2">
-                            {canUpdateApplications && (
+                            {!isJobDeleted && canUpdateApplications && (
                               <select
                                 value={displayStatus}
                                 onChange={(e) => handleStatusUpdate(app.id, e.target.value)}
@@ -1806,7 +1912,7 @@ export default function JobApplications({
                               </select>
                             )}
 
-                            {canEmailApplicants && (
+                            {!isJobDeleted && canEmailApplicants && (
                               <button
                                 onClick={() => handleOpenSingleEmail(app)}
                                 disabled={isPending}
@@ -1825,7 +1931,7 @@ export default function JobApplications({
                               <FaEye size={16} />
                             </Link>
 
-                            {canDownloadResumes && (
+                            {!isJobDeleted && canDownloadResumes && (
                               <button
                                 onClick={() => handleDownloadResume(app)}
                                 disabled={isPending}
@@ -1836,7 +1942,7 @@ export default function JobApplications({
                               </button>
                             )}
 
-                            {canDeleteApplications && (
+                            {!isJobDeleted && canDeleteApplications && (
                               <button
                                 onClick={() => handleDeleteSingle(app.id, app.name)}
                                 disabled={isPending}

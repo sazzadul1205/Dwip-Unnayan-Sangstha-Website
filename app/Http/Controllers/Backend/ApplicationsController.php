@@ -15,7 +15,6 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
@@ -30,10 +29,6 @@ use ZipArchive;
 
 class ApplicationsController extends Controller
 {
-    /**
-     * Cache duration in seconds (2 minutes).
-     */
-    protected int $cacheDuration = 120;
 
     /**
      * Rate limit max attempts per hour.
@@ -160,11 +155,19 @@ class ApplicationsController extends Controller
                 ->with('error', 'You do not have permission to view job applications.');
         }
 
-        // ✅ Disable caching for job applications too
         $job = JobListing::withTrashed()->with('employer', 'category')->findOrFail($jobId);
 
-        $query = Application::withTrashed()
-            ->with(['applicantProfile.user', 'statusTimelines'])
+        // ✅ If job is soft-deleted, redirect with error
+        if ($job->trashed()) {
+            return redirect()->route('backend.listing.index')
+                ->with('error', "This job listing has been deleted. You cannot view its applications.");
+        }
+
+        // ✅ Remove withTrashed() – only show non-deleted applications
+        $query = Application::with([
+            'applicantProfile.user',
+            'statusTimelines',
+        ])
             ->where('job_listing_id', $jobId);
 
         $this->applyJobFilters($query, $request);
@@ -185,19 +188,19 @@ class ApplicationsController extends Controller
             'hired' => (clone $statusCountsQuery)->where('status', 'hired')->count(),
         ];
 
-        $filterOptionsQuery = Application::withTrashed()->where('job_listing_id', $jobId);
+        $filterOptionsQuery = Application::where('job_listing_id', $jobId);
         $atsStats = (clone $filterOptionsQuery)->selectRaw('
-            MIN(CAST(JSON_EXTRACT(ats_score, "$.percentage") AS UNSIGNED)) as min_ats,
-            MAX(CAST(JSON_EXTRACT(ats_score, "$.percentage") AS UNSIGNED)) as max_ats
-        ')->first();
+        MIN(CAST(JSON_EXTRACT(ats_score, "$.percentage") AS UNSIGNED)) as min_ats,
+        MAX(CAST(JSON_EXTRACT(ats_score, "$.percentage") AS UNSIGNED)) as max_ats
+    ')->first();
 
         $salaryStats = (clone $filterOptionsQuery)->selectRaw('
-            MIN(expected_salary) as min_salary, MAX(expected_salary) as max_salary
-        ')->first();
+        MIN(expected_salary) as min_salary, MAX(expected_salary) as max_salary
+    ')->first();
 
         $expStats = (clone $filterOptionsQuery)->selectRaw('
-            MIN(years_of_experience) as min_exp, MAX(years_of_experience) as max_exp
-        ')->first();
+        MIN(years_of_experience) as min_exp, MAX(years_of_experience) as max_exp
+    ')->first();
 
         $data = [
             'job' => $job,
@@ -289,7 +292,7 @@ class ApplicationsController extends Controller
         $application->updateStatus($validated['status'], $validated['notes']);
 
         RateLimiter::clear($this->getThrottleKey('application_status_update', $user->id));
-        $this->clearCache();
+
 
         SimpleLogger::applications(
             "Application #{$application->id} status changed: {$oldStatus} → {$validated['status']}",
@@ -338,7 +341,7 @@ class ApplicationsController extends Controller
         });
 
         RateLimiter::clear($this->getThrottleKey('application_bulk_status_update', $user->id));
-        $this->clearCache();
+
 
         SimpleLogger::applications(
             "Bulk status update: {$applications->count()} applications → {$validated['status']}",
@@ -386,7 +389,7 @@ class ApplicationsController extends Controller
         $application->delete();
 
         RateLimiter::clear($this->getThrottleKey('application_delete', $user->id));
-        $this->clearCache();
+
 
         return back()->with('success', 'Application deleted successfully.');
     }
@@ -412,7 +415,7 @@ class ApplicationsController extends Controller
         $deleted = Application::whereIn('id', $validated['application_ids'])->delete();
 
         RateLimiter::clear($this->getThrottleKey('application_bulk_delete', $user->id));
-        $this->clearCache();
+
 
         SimpleLogger::applications(
             "Bulk deleted {$deleted} applications",
@@ -457,7 +460,7 @@ class ApplicationsController extends Controller
         $application->restore();
 
         RateLimiter::clear($this->getThrottleKey('application_restore', $user->id));
-        $this->clearCache();
+
 
         return back()->with('success', 'Application restored successfully.');
     }
@@ -485,7 +488,7 @@ class ApplicationsController extends Controller
             ->restore();
 
         RateLimiter::clear($this->getThrottleKey('application_bulk_restore', $user->id));
-        $this->clearCache();
+
 
         return back()->with('success', $restored . ' applications restored successfully.');
     }
@@ -526,7 +529,7 @@ class ApplicationsController extends Controller
         $application->forceDelete();
 
         RateLimiter::clear($this->getThrottleKey('application_force_delete', $user->id));
-        $this->clearCache();
+
 
         return back()->with('success', 'Application permanently deleted.');
     }
@@ -1002,7 +1005,7 @@ class ApplicationsController extends Controller
             $newScore = $application->ats_score['percentage'] ?? 'N/A';
 
             RateLimiter::clear($this->getThrottleKey('application_recalculate_ats', $user->id));
-            $this->clearCache();
+
 
             SimpleLogger::ats(
                 "ATS recalculated for application #{$application->id}",
@@ -1084,19 +1087,6 @@ class ApplicationsController extends Controller
     {
         return "applications_{$action}|{$userId}";
     }
-
-    /**
-     * ✅ Clear application cache keys - flush all cache to remove large data.
-     */
-    private function clearCache(): void
-    {
-        // Clear any remaining cache keys
-        Cache::forget('applications_index_*');
-        Cache::forget('applications_job_*');
-        // ✅ Flush all cache to ensure no large data remains
-        Cache::flush();
-    }
-
     /**
      * Apply filters to index query.
      */

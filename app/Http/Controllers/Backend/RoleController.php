@@ -118,77 +118,74 @@ class RoleController extends Controller
                 ->with('error', 'You do not have permission to view roles.');
         }
 
-        $cacheKey = 'roles_index_' . md5(json_encode($request->query()));
+        $query = Role::with(['creator', 'updater']);
 
-        $data = Cache::remember($cacheKey, $this->cacheDuration, function () use ($request) {
-            $query = Role::with(['creator', 'updater']);
+        $status = $request->input('status');
+        if ($status !== null && $status !== '') {
+            $query->where('is_active', $status === 'active');
+        }
 
-            $status = $request->input('status');
-            if ($status !== null && $status !== '') {
-                $query->where('is_active', $status === 'active');
-            }
-
-            if ($request->filled('search')) {
-                $search = $request->search;
-                $query->where(function ($q) use ($search) {
-                    $q->where('name', 'like', "%{$search}%")
-                        ->orWhere('slug', 'like', "%{$search}%")
-                        ->orWhere('description', 'like', "%{$search}%");
-                });
-            }
-
-            if ($request->filled('min_level')) {
-                $query->where('level', '>=', (int) $request->min_level);
-            }
-            if ($request->filled('max_level')) {
-                $query->where('level', '<=', (int) $request->max_level);
-            }
-
-            $sortField = $request->input('sort', 'level');
-            $sortDirection = $request->input('direction', 'asc');
-            $allowedSortFields = ['name', 'slug', 'level', 'is_active', 'created_at', 'updated_at'];
-            if (in_array($sortField, $allowedSortFields)) {
-                $query->orderBy($sortField, $sortDirection);
-            } else {
-                $query->orderBy('level', 'asc');
-            }
-
-            $roles = $query->paginate(20)->withQueryString();
-
-            $roles->getCollection()->transform(function ($role) {
-                return [
-                    'id' => $role->id,
-                    'name' => $role->name,
-                    'slug' => $role->slug,
-                    'description' => $role->description,
-                    'level' => $role->level,
-                    'is_default' => $role->is_default,
-                    'is_active' => $role->is_active,
-                    'user_count' => $role->users()->count(),
-                    'permission_count' => $role->grantedPermissions()->count(),
-                    'created_at' => $role->created_at,
-                    'updated_at' => $role->updated_at,
-                    'creator' => $role->creator ? [
-                        'id' => $role->creator->id,
-                        'name' => $role->creator->name,
-                    ] : null,
-                ];
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                    ->orWhere('slug', 'like', "%{$search}%")
+                    ->orWhere('description', 'like', "%{$search}%");
             });
+        }
 
-            $stats = [
-                'total' => Role::count(),
-                'active' => Role::where('is_active', true)->count(),
-                'inactive' => Role::where('is_active', false)->count(),
-                'default' => Role::where('is_default', true)->count(),
-                'total_deleted' => Role::onlyTrashed()->count(),
-            ];
+        if ($request->filled('min_level')) {
+            $query->where('level', '>=', (int) $request->min_level);
+        }
+        if ($request->filled('max_level')) {
+            $query->where('level', '<=', (int) $request->max_level);
+        }
 
+        $sortField = $request->input('sort', 'level');
+        $sortDirection = $request->input('direction', 'asc');
+        $allowedSortFields = ['name', 'slug', 'level', 'is_active', 'created_at', 'updated_at'];
+        if (in_array($sortField, $allowedSortFields)) {
+            $query->orderBy($sortField, $sortDirection);
+        } else {
+            $query->orderBy('level', 'asc');
+        }
+
+        $roles = $query->paginate(20)->withQueryString();
+
+        $roles->getCollection()->transform(function ($role) {
             return [
-                'roles' => $roles,
-                'stats' => $stats,
-                'filters' => $request->only(['status', 'search', 'min_level', 'max_level', 'sort', 'direction']),
+                'id' => $role->id,
+                'name' => $role->name,
+                'slug' => $role->slug,
+                'description' => $role->description,
+                'level' => $role->level,
+                'is_default' => $role->is_default,
+                'is_active' => $role->is_active,
+                'deleted_at' => $role->deleted_at,    // ✅ ADD THIS LINE
+                'user_count' => $role->users()->count(),
+                'permission_count' => $role->grantedPermissions()->count(),
+                'created_at' => $role->created_at,
+                'updated_at' => $role->updated_at,
+                'creator' => $role->creator ? [
+                    'id' => $role->creator->id,
+                    'name' => $role->creator->name,
+                ] : null,
             ];
         });
+
+        $stats = [
+            'total' => Role::count(),
+            'active' => Role::where('is_active', true)->count(),
+            'inactive' => Role::where('is_active', false)->count(),
+            'default' => Role::where('is_default', true)->count(),
+            'total_deleted' => Role::onlyTrashed()->count(),
+        ];
+
+        $data = [
+            'roles' => $roles,
+            'stats' => $stats,
+            'filters' => $request->only(['status', 'search', 'min_level', 'max_level', 'sort', 'direction']),
+        ];
 
         return Inertia::render('Backend/Roles/Index', $data);
     }
@@ -325,75 +322,72 @@ class RoleController extends Controller
                 ->with('error', 'You do not have permission to view role details.');
         }
 
-        $cacheKey = 'role_show_' . $id;
+        // No caching – always fresh
+        $role = Role::with(['creator', 'updater'])->withTrashed()->findOrFail($id);
 
-        $data = Cache::remember($cacheKey, $this->cacheDuration, function () use ($id) {
-            $role = Role::with(['creator', 'updater'])->withTrashed()->findOrFail($id);
-
-            $users = $role->users()
-                ->with('applicantProfile')
-                ->limit(10)
-                ->get()
-                ->map(fn($user) => [
-                    'id' => $user->id,
-                    'name' => $user->name,
-                    'email' => $user->email,
-                    'role' => $user->role,
-                    'profile_completed' => $user->applicantProfile ? true : false,
-                ]);
-
-            $userCount = $role->users()->count();
-
-            $permissions = $role->grantedPermissions()
-                ->orderBy('module')
-                ->orderBy('name')
-                ->get()
-                ->groupBy('module')
-                ->map(fn($perms, $module) => [
-                    'module' => $module,
-                    'permissions' => $perms->map(fn($p) => [
-                        'id' => $p->id,
-                        'name' => $p->name,
-                        'slug' => $p->slug,
-                        'action' => $p->action,
-                        'description' => $p->description,
-                    ]),
-                ])->values();
-
-            $moduleAccess = $role->moduleAccess()->get()->map(fn($access) => [
-                'module' => $access->module,
-                'access_level' => $access->access_level,
+        $users = $role->users()
+            ->with('applicantProfile')
+            ->limit(10)
+            ->get()
+            ->map(fn($user) => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'role' => $user->role,
+                'profile_completed' => $user->applicantProfile ? true : false,
             ]);
 
-            return [
-                'role' => [
-                    'id' => $role->id,
-                    'name' => $role->name,
-                    'slug' => $role->slug,
-                    'description' => $role->description,
-                    'level' => $role->level,
-                    'is_default' => $role->is_default,
-                    'is_active' => $role->is_active,
-                    'user_count' => $userCount,
-                    'permission_count' => $permissions->count(),
-                    'created_at' => $role->created_at,
-                    'updated_at' => $role->updated_at,
-                    'deleted_at' => $role->deleted_at,
-                    'creator' => $role->creator ? [
-                        'id' => $role->creator->id,
-                        'name' => $role->creator->name,
-                    ] : null,
-                    'updater' => $role->updater ? [
-                        'id' => $role->updater->id,
-                        'name' => $role->updater->name,
-                    ] : null,
-                ],
-                'users' => $users,
-                'permissions' => $permissions,
-                'moduleAccess' => $moduleAccess,
-                'isDeleted' => $role->trashed(),
-            ];
-        });
+        $userCount = $role->users()->count();
+
+        $permissions = $role->grantedPermissions()
+            ->orderBy('module')
+            ->orderBy('name')
+            ->get()
+            ->groupBy('module')
+            ->map(fn($perms, $module) => [
+                'module' => $module,
+                'permissions' => $perms->map(fn($p) => [
+                    'id' => $p->id,
+                    'name' => $p->name,
+                    'slug' => $p->slug,
+                    'action' => $p->action,
+                    'description' => $p->description,
+                ]),
+            ])->values();
+
+        $moduleAccess = $role->moduleAccess()->get()->map(fn($access) => [
+            'module' => $access->module,
+            'access_level' => $access->access_level,
+        ]);
+
+        $data = [
+            'role' => [
+                'id' => $role->id,
+                'name' => $role->name,
+                'slug' => $role->slug,
+                'description' => $role->description,
+                'level' => $role->level,
+                'is_default' => $role->is_default,
+                'is_active' => $role->is_active,
+                'user_count' => $userCount,
+                'permission_count' => $permissions->count(),
+                'created_at' => $role->created_at,
+                'updated_at' => $role->updated_at,
+                'deleted_at' => $role->deleted_at,
+                'creator' => $role->creator ? [
+                    'id' => $role->creator->id,
+                    'name' => $role->creator->name,
+                ] : null,
+                'updater' => $role->updater ? [
+                    'id' => $role->updater->id,
+                    'name' => $role->updater->name,
+                ] : null,
+            ],
+            'users' => $users,
+            'permissions' => $permissions,
+            'moduleAccess' => $moduleAccess,
+            'isDeleted' => $role->trashed(),
+        ];
 
         return Inertia::render('Backend/Roles/Show', $data);
     }
@@ -417,43 +411,40 @@ class RoleController extends Controller
                 ->with('error', "The '{$role->name}' role cannot be edited.");
         }
 
-        $cacheKey = 'role_edit_' . $id;
+        // No caching – always fresh
+        $allPermissions = $this->getPermissionsGroupedByModule();
+        $grantedPermissionIds = $role->grantedPermissions()->pluck('permissions.id')->toArray();
+        $moduleAccess = $role->moduleAccess()->get()->map(fn($access) => [
+            'module' => $access->module,
+            'access_level' => $access->access_level,
+        ]);
+        $existingLevels = Role::where('id', '!=', $role->id)
+            ->select('level', 'name')
+            ->orderBy('level')
+            ->get();
+        $availableModules = Permission::select('module')->distinct()->pluck('module')->toArray();
+        $currentUserLevel = $user->role?->level ?? 100;
 
-        $data = Cache::remember($cacheKey, $this->cacheDuration, function () use ($role, $user) {
-            $allPermissions = $this->getPermissionsGroupedByModule();
-            $grantedPermissionIds = $role->grantedPermissions()->pluck('permissions.id')->toArray();
-            $moduleAccess = $role->moduleAccess()->get()->map(fn($access) => [
-                'module' => $access->module,
-                'access_level' => $access->access_level,
-            ]);
-            $existingLevels = Role::where('id', '!=', $role->id)
-                ->select('level', 'name')
-                ->orderBy('level')
-                ->get();
-            $availableModules = Permission::select('module')->distinct()->pluck('module')->toArray();
-            $currentUserLevel = $user->role?->level ?? 100;
-
-            return [
-                'role' => [
-                    'id' => $role->id,
-                    'name' => $role->name,
-                    'slug' => $role->slug,
-                    'description' => $role->description,
-                    'level' => $role->level,
-                    'is_default' => $role->is_default,
-                    'is_active' => $role->is_active,
-                ],
-                'permissions' => $allPermissions,
-                'grantedPermissionIds' => $grantedPermissionIds,
-                'moduleAccess' => $moduleAccess,
-                'availableModules' => $availableModules,
-                'existingLevels' => $existingLevels,
-                'accessLevels' => $this->getAccessLevels(),
-                'maxAllowedLevel' => 100,
-                'currentUserLevel' => $currentUserLevel,
-                'minAllowedLevel' => $currentUserLevel + 1,
-            ];
-        });
+        $data = [
+            'role' => [
+                'id' => $role->id,
+                'name' => $role->name,
+                'slug' => $role->slug,
+                'description' => $role->description,
+                'level' => $role->level,
+                'is_default' => $role->is_default,
+                'is_active' => $role->is_active,
+            ],
+            'permissions' => $allPermissions,
+            'grantedPermissionIds' => $grantedPermissionIds,
+            'moduleAccess' => $moduleAccess,
+            'availableModules' => $availableModules,
+            'existingLevels' => $existingLevels,
+            'accessLevels' => $this->getAccessLevels(),
+            'maxAllowedLevel' => 100,
+            'currentUserLevel' => $currentUserLevel,
+            'minAllowedLevel' => $currentUserLevel + 1,
+        ];
 
         return Inertia::render('Backend/Roles/Edit', $data);
     }
@@ -569,17 +560,15 @@ class RoleController extends Controller
 
         $role = Role::findOrFail($id);
 
+        // Protect system roles
         if ($this->roleIsNonDeletable($role)) {
             $message = "The '{$role->name}' role cannot be deleted.";
-            if (request()->header('X-Inertia')) {
-                return back()->with('error', $message);
-            }
-            return response()->json(['success' => false, 'message' => $message], 403);
+            return back()->with('error', $message);
         }
 
         $userCount = $role->users()->count();
         if ($userCount > 0) {
-            return back()->with('error', "Cannot delete role '{$role->name}' because it has {$userCount} user(s) assigned. Please reassign users first.");
+            return back()->with('error', "Cannot delete role '{$role->name}' because it has {$userCount} user(s) assigned.");
         }
 
         try {
@@ -594,12 +583,7 @@ class RoleController extends Controller
 
             SimpleLogger::security(
                 "Role soft deleted: {$role->name}",
-                [
-                    'role_id' => $role->id,
-                    'role_name' => $role->name,
-                    'deleted_by' => $user->email,
-                    'ip' => request()->ip(),
-                ]
+                ['role_id' => $role->id, 'role_name' => $role->name, 'deleted_by' => $user->email, 'ip' => request()->ip()]
             );
 
             return redirect()->route('backend.roles.index')
@@ -709,10 +693,7 @@ class RoleController extends Controller
 
         if ($this->roleIsNonDeletable($role)) {
             $message = "The '{$role->name}' role cannot be permanently deleted.";
-            if (request()->header('X-Inertia')) {
-                return back()->with('error', $message);
-            }
-            return response()->json(['success' => false, 'message' => $message], 403);
+            return back()->with('error', $message);
         }
 
         try {
@@ -726,12 +707,7 @@ class RoleController extends Controller
 
             SimpleLogger::security(
                 "Role force deleted: {$roleName}",
-                [
-                    'role_id' => $id,
-                    'role_name' => $roleName,
-                    'deleted_by' => $user->email,
-                    'ip' => request()->ip(),
-                ]
+                ['role_id' => $id, 'role_name' => $roleName, 'deleted_by' => $user->email, 'ip' => request()->ip()]
             );
 
             return redirect()->route('backend.roles.index')
@@ -761,6 +737,15 @@ class RoleController extends Controller
             'role_ids.*' => 'exists:roles,id',
         ]);
 
+        // Check for protected roles first
+        foreach ($validated['role_ids'] as $roleId) {
+            $role = Role::find($roleId);
+            if ($role && $this->roleIsNonDeletable($role)) {
+                $message = "The '{$role->name}' role is protected and cannot be deleted.";
+                return back()->with('error', $message);
+            }
+        }
+
         $deletedCount = 0;
         $failed = [];
 
@@ -771,8 +756,8 @@ class RoleController extends Controller
                 continue;
             }
 
-            if ($this->roleIsNonDeletable($role) || $role->users()->count() > 0) {
-                $failed[] = $role->name . ($role->users()->count() > 0 ? ' (has users)' : ' (protected)');
+            if ($role->users()->count() > 0) {
+                $failed[] = $role->name . ' (has users)';
                 continue;
             }
 
@@ -797,12 +782,7 @@ class RoleController extends Controller
 
         SimpleLogger::security(
             "Bulk delete roles",
-            [
-                'deleted_count' => $deletedCount,
-                'failed' => $failed,
-                'performed_by' => $user->email,
-                'ip' => $request->ip(),
-            ]
+            ['deleted_count' => $deletedCount, 'failed' => $failed, 'performed_by' => $user->email, 'ip' => $request->ip()]
         );
 
         return back()->with('success', $message);
