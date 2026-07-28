@@ -71,8 +71,10 @@ export default function JobCategoriesIndex({ categories: initialCategories, filt
   const [forceDeletingId, setForceDeletingId] = useState(null);
   const [selectedCategories, setSelectedCategories] = useState([]);
   const [isBulkProcessing, setIsBulkProcessing] = useState(false);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
+
+  // Pagination state
   const [categories, setCategories] = useState(initialCategories);
-  const [currentPage, setCurrentPage] = useState(initialCategories?.current_page || 1);
 
   // Filter states
   const [filters, setFilters] = useState({
@@ -86,23 +88,12 @@ export default function JobCategoriesIndex({ categories: initialCategories, filt
     is_active: true,
   });
 
-  // If user doesn't have permission to view categories, show access denied
-  if (!canViewCategories) {
-    return (
-      <AuthenticatedLayout>
-        <Head title="Access Denied" />
-        <div className="min-h-screen flex items-center justify-center">
-          <div className="text-center">
-            <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <FaShieldAlt className="w-10 h-10 text-red-500" />
-            </div>
-            <h2 className="text-xl font-semibold text-gray-900">Access Denied</h2>
-            <p className="text-gray-500 mt-2">You don't have permission to view job categories.</p>
-          </div>
-        </div>
-      </AuthenticatedLayout>
-    );
-  }
+  // ✅ Prevent browser caching of this page
+  useEffect(() => {
+    document.querySelector('meta[name="cache-control"]')?.setAttribute('content', 'no-cache, no-store, must-revalidate');
+    document.querySelector('meta[name="pragma"]')?.setAttribute('content', 'no-cache');
+    document.querySelector('meta[name="expires"]')?.setAttribute('content', '0');
+  }, []);
 
   // Get categories array from paginated response
   const categoryItems = useMemo(() => {
@@ -127,51 +118,36 @@ export default function JobCategoriesIndex({ categories: initialCategories, filt
     return null;
   }, [categories]);
 
-  // Apply filters
+  // ✅ FIX: Apply filters only when they change, not on every render
   useEffect(() => {
+    // Skip the initial render since we already have initialCategories
+    if (isInitialLoad) {
+      setIsInitialLoad(false);
+      return;
+    }
+
     const timeoutId = setTimeout(() => {
       router.get(route('backend.categories.index'), {
         ...filters,
         page: 1,
+        _t: Date.now(), // Cache busting
       }, {
         preserveState: true,
         preserveScroll: true,
         replace: true,
         onSuccess: (page) => {
           setCategories(page.props.categories);
-          setCurrentPage(1);
         },
       });
     }, 300);
 
     return () => clearTimeout(timeoutId);
-  }, [filters]);
+  }, [filters, filters.search, filters.status, isInitialLoad]);
 
-  // Keep local categories in sync
+  // Keep local categories in sync when initialCategories changes
   useEffect(() => {
     setCategories(initialCategories);
-    setCurrentPage(initialCategories?.current_page || 1);
   }, [initialCategories]);
-
-  // Handle page change
-  const handlePageChange = (page) => {
-    if (page === pagination?.currentPage) return;
-    if (page < 1 || page > pagination?.lastPage) return;
-
-    router.get(route('backend.categories.index'), {
-      ...filters,
-      page,
-    }, {
-      preserveState: true,
-      preserveScroll: true,
-      replace: true,
-      onSuccess: (page) => {
-        setCategories(page.props.categories);
-        setCurrentPage(page);
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      },
-    });
-  };
 
   // Filtered categories (client-side filtering)
   const filteredCategories = useMemo(() => {
@@ -195,7 +171,46 @@ export default function JobCategoriesIndex({ categories: initialCategories, filt
     }
 
     return filtered;
-  }, [categoryItems, filters]);
+  }, [categoryItems, filters.search, filters.status]);
+
+  // Show flash messages
+  useEffect(() => {
+    if (flash?.success) {
+      Swal.fire({
+        icon: 'success',
+        title: 'Success!',
+        text: flash.success,
+        timer: 2000,
+        showConfirmButton: false,
+      });
+    }
+    if (flash?.error) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Error!',
+        text: flash.error,
+        confirmButtonColor: '#2563eb',
+      });
+    }
+  }, [flash]);
+
+  // If user doesn't have permission to view categories, show access denied
+  if (!canViewCategories) {
+    return (
+      <AuthenticatedLayout>
+        <Head title="Access Denied" />
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="text-center">
+            <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <FaShieldAlt className="w-10 h-10 text-red-500" />
+            </div>
+            <h2 className="text-xl font-semibold text-gray-900">Access Denied</h2>
+            <p className="text-gray-500 mt-2">You don't have permission to view job categories.</p>
+          </div>
+        </div>
+      </AuthenticatedLayout>
+    );
+  }
 
   // Stats
   // Use safe fallbacks with optional chaining
@@ -222,95 +237,24 @@ export default function JobCategoriesIndex({ categories: initialCategories, filt
     return filters.search !== '' || filters.status !== 'all';
   };
 
-  // Pagination component
-  const Pagination = () => {
-    if (!pagination || pagination.lastPage <= 1) return null;
+  // Handle page change
+  const handlePageChange = (page) => {
+    if (page === pagination?.currentPage) return;
+    if (page < 1 || page > pagination?.lastPage) return;
 
-    const pages = [];
-    const maxVisible = 5;
-    let startPage = Math.max(1, pagination.currentPage - Math.floor(maxVisible / 2));
-    const endPage = Math.min(pagination.lastPage, startPage + maxVisible - 1);
-
-    if (endPage - startPage + 1 < maxVisible) {
-      startPage = Math.max(1, endPage - maxVisible + 1);
-    }
-
-    for (let i = startPage; i <= endPage; i++) {
-      pages.push(i);
-    }
-
-    return (
-      <div className="flex items-center justify-between px-6 py-4 border-t border-gray-200 bg-gray-50">
-        <div className="text-sm text-gray-500">
-          Showing <span className="font-medium">{pagination.from || 0}</span> to{' '}
-          <span className="font-medium">{pagination.to || 0}</span> of{' '}
-          <span className="font-medium">{pagination.total}</span> results
-        </div>
-
-        <div className="flex items-center gap-1">
-          <button
-            onClick={() => handlePageChange(pagination.currentPage - 1)}
-            disabled={pagination.currentPage === 1}
-            className={`px-3 py-1.5 rounded-lg text-sm flex items-center gap-1 transition ${pagination.currentPage === 1
-              ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-              : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-300'
-              }`}
-          >
-            <FaChevronLeft size={12} />
-            Previous
-          </button>
-
-          {startPage > 1 && (
-            <>
-              <button
-                onClick={() => handlePageChange(1)}
-                className="px-3 py-1.5 rounded-lg text-sm bg-white text-gray-700 hover:bg-gray-100 border border-gray-300 transition"
-              >
-                1
-              </button>
-              {startPage > 2 && <span className="px-2 text-gray-400">...</span>}
-            </>
-          )}
-
-          {pages.map(page => (
-            <button
-              key={page}
-              onClick={() => handlePageChange(page)}
-              className={`px-3 py-1.5 rounded-lg text-sm transition ${page === pagination.currentPage
-                ? 'bg-blue-600 text-white'
-                : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-300'
-                }`}
-            >
-              {page}
-            </button>
-          ))}
-
-          {endPage < pagination.lastPage && (
-            <>
-              {endPage < pagination.lastPage - 1 && <span className="px-2 text-gray-400">...</span>}
-              <button
-                onClick={() => handlePageChange(pagination.lastPage)}
-                className="px-3 py-1.5 rounded-lg text-sm bg-white text-gray-700 hover:bg-gray-100 border border-gray-300 transition"
-              >
-                {pagination.lastPage}
-              </button>
-            </>
-          )}
-
-          <button
-            onClick={() => handlePageChange(pagination.currentPage + 1)}
-            disabled={pagination.currentPage === pagination.lastPage}
-            className={`px-3 py-1.5 rounded-lg text-sm flex items-center gap-1 transition ${pagination.currentPage === pagination.lastPage
-              ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-              : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-300'
-              }`}
-          >
-            Next
-            <FaChevronRight size={12} />
-          </button>
-        </div>
-      </div>
-    );
+    router.get(route('backend.categories.index'), {
+      ...filters,
+      page,
+      _t: Date.now(),
+    }, {
+      preserveState: true,
+      preserveScroll: true,
+      replace: true,
+      onSuccess: (page) => {
+        setCategories(page.props.categories);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      },
+    });
   };
 
   // Bulk selection handlers
@@ -924,27 +868,96 @@ export default function JobCategoriesIndex({ categories: initialCategories, filt
     });
   };
 
-  // Show flash messages
-  useEffect(() => {
-    if (flash?.success) {
-      Swal.fire({
-        icon: 'success',
-        title: 'Success!',
-        text: flash.success,
-        timer: 2000,
-        showConfirmButton: false,
-      });
-    }
-    if (flash?.error) {
-      Swal.fire({
-        icon: 'error',
-        title: 'Error!',
-        text: flash.error,
-        confirmButtonColor: '#2563eb',
-      });
-    }
-  }, [flash]);
+  // Pagination component
+  const Pagination = () => {
+    if (!pagination || pagination.lastPage <= 1) return null;
 
+    const pages = [];
+    const maxVisible = 5;
+    let startPage = Math.max(1, pagination.currentPage - Math.floor(maxVisible / 2));
+    const endPage = Math.min(pagination.lastPage, startPage + maxVisible - 1);
+
+    if (endPage - startPage + 1 < maxVisible) {
+      startPage = Math.max(1, endPage - maxVisible + 1);
+    }
+
+    for (let i = startPage; i <= endPage; i++) {
+      pages.push(i);
+    }
+
+    return (
+      <div className="flex items-center justify-between px-6 py-4 border-t border-gray-200 bg-gray-50">
+        <div className="text-sm text-gray-500">
+          Showing <span className="font-medium">{pagination.from || 0}</span> to{' '}
+          <span className="font-medium">{pagination.to || 0}</span> of{' '}
+          <span className="font-medium">{pagination.total}</span> results
+        </div>
+
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => handlePageChange(pagination.currentPage - 1)}
+            disabled={pagination.currentPage === 1}
+            className={`px-3 py-1.5 rounded-lg text-sm flex items-center gap-1 transition ${pagination.currentPage === 1
+              ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+              : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-300'
+              }`}
+          >
+            <FaChevronLeft size={12} />
+            Previous
+          </button>
+
+          {startPage > 1 && (
+            <>
+              <button
+                onClick={() => handlePageChange(1)}
+                className="px-3 py-1.5 rounded-lg text-sm bg-white text-gray-700 hover:bg-gray-100 border border-gray-300 transition"
+              >
+                1
+              </button>
+              {startPage > 2 && <span className="px-2 text-gray-400">...</span>}
+            </>
+          )}
+
+          {pages.map(page => (
+            <button
+              key={page}
+              onClick={() => handlePageChange(page)}
+              className={`px-3 py-1.5 rounded-lg text-sm transition ${page === pagination.currentPage
+                ? 'bg-blue-600 text-white'
+                : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-300'
+                }`}
+            >
+              {page}
+            </button>
+          ))}
+
+          {endPage < pagination.lastPage && (
+            <>
+              {endPage < pagination.lastPage - 1 && <span className="px-2 text-gray-400">...</span>}
+              <button
+                onClick={() => handlePageChange(pagination.lastPage)}
+                className="px-3 py-1.5 rounded-lg text-sm bg-white text-gray-700 hover:bg-gray-100 border border-gray-300 transition"
+              >
+                {pagination.lastPage}
+              </button>
+            </>
+          )}
+
+          <button
+            onClick={() => handlePageChange(pagination.currentPage + 1)}
+            disabled={pagination.currentPage === pagination.lastPage}
+            className={`px-3 py-1.5 rounded-lg text-sm flex items-center gap-1 transition ${pagination.currentPage === pagination.lastPage
+              ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+              : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-300'
+              }`}
+          >
+            Next
+            <FaChevronRight size={12} />
+          </button>
+        </div>
+      </div>
+    );
+  };
 
   // Permissions
   const canBulkActivate = canBulkActivateCategories && selectedCategories.length > 0;

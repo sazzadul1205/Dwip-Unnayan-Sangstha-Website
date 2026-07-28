@@ -1,7 +1,7 @@
 // resources/js/pages/Backend/Users/Index.jsx
 
 import { useState, useMemo, useEffect } from 'react';
-import { Head, router } from '@inertiajs/react';
+import { Head, router, usePage } from '@inertiajs/react';
 
 // Icons
 import {
@@ -41,6 +41,9 @@ import { Can } from '../../../components/Auth/Can';
 import Swal from 'sweetalert2';
 
 export default function UsersIndex({ users: initialUsers, filters: initialFilters = {}, roles }) {
+  // Check if there are any users with flash messages
+  const { flash } = usePage().props;
+
   // Use centralized auth hook
   const {
     user: currentUser,
@@ -68,6 +71,7 @@ export default function UsersIndex({ users: initialUsers, filters: initialFilter
   const [selectedUsers, setSelectedUsers] = useState([]);
   const [forceDeletingId, setForceDeletingId] = useState(null);
   const [isBulkProcessing, setIsBulkProcessing] = useState(false);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
 
   // Pagination state
   const [users, setUsers] = useState(initialUsers);
@@ -79,6 +83,13 @@ export default function UsersIndex({ users: initialUsers, filters: initialFilter
     email_verified: initialFilters.email_verified || 'all',
     role: initialFilters.role || '',
   });
+
+  // ✅ Prevent browser caching of this page
+  useEffect(() => {
+    document.querySelector('meta[name="cache-control"]')?.setAttribute('content', 'no-cache, no-store, must-revalidate');
+    document.querySelector('meta[name="pragma"]')?.setAttribute('content', 'no-cache');
+    document.querySelector('meta[name="expires"]')?.setAttribute('content', '0');
+  }, []);
 
   // Get users array from paginated response
   const userItems = useMemo(() => {
@@ -103,12 +114,19 @@ export default function UsersIndex({ users: initialUsers, filters: initialFilter
     return null;
   }, [users]);
 
-  // Apply filters
+  // ✅ FIX: Apply filters only when they change, not on every render
   useEffect(() => {
+    // Skip the initial render since we already have initialUsers
+    if (isInitialLoad) {
+      setIsInitialLoad(false);
+      return;
+    }
+
     const timeoutId = setTimeout(() => {
       router.get(route('backend.users.index'), {
         ...filters,
         page: 1,
+        _t: Date.now(), // Cache busting
       }, {
         preserveState: true,
         preserveScroll: true,
@@ -119,12 +137,33 @@ export default function UsersIndex({ users: initialUsers, filters: initialFilter
       });
     }, 300);
     return () => clearTimeout(timeoutId);
-  }, [filters]);
+  }, [filters.search, filters.status, filters.email_verified, filters.role, isInitialLoad, filters]);
 
-  // Keep local users in sync
+  // Keep local users in sync when initialUsers changes
   useEffect(() => {
     setUsers(initialUsers);
   }, [initialUsers]);
+
+  // Show flash messages
+  useEffect(() => {
+    if (flash?.success) {
+      Swal.fire({
+        icon: 'success',
+        title: 'Success!',
+        text: flash.success,
+        timer: 2000,
+        showConfirmButton: false,
+      });
+    }
+    if (flash?.error) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Error!',
+        text: flash.error,
+        confirmButtonColor: '#2563eb',
+      });
+    }
+  }, [flash]);
 
   // If user doesn't have permission to view users, show access denied
   if (!canViewUsers) {
@@ -152,6 +191,7 @@ export default function UsersIndex({ users: initialUsers, filters: initialFilter
     router.get(route('backend.users.index'), {
       ...filters,
       page,
+      _t: Date.now(),
     }, {
       preserveState: true,
       preserveScroll: true,
@@ -581,6 +621,8 @@ export default function UsersIndex({ users: initialUsers, filters: initialFilter
     return role?.name || roleSlug || 'User';
   };
 
+
+
   // Pagination component
   const Pagination = () => {
     if (!pagination || pagination.lastPage <= 1) return null;
@@ -671,7 +713,6 @@ export default function UsersIndex({ users: initialUsers, filters: initialFilter
       </div>
     );
   };
-
 
   return (
     <AuthenticatedLayout>

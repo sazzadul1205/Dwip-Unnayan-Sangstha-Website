@@ -20,9 +20,9 @@ use Inertia\Response;
 class UserController extends Controller
 {
     /**
-     * Cache duration in seconds (5 minutes).
+     * Cache duration in seconds (2 minutes - reduced from 5).
      */
-    protected int $cacheDuration = 300;
+    protected int $cacheDuration = 120;
 
     /**
      * Rate limit max attempts per hour.
@@ -31,6 +31,7 @@ class UserController extends Controller
 
     /**
      * Display a listing of users with pagination and filters.
+     * ✅ DISABLED CACHING - Data can be large and frequently changes
      */
     public function index(Request $request): Response|RedirectResponse
     {
@@ -41,100 +42,97 @@ class UserController extends Controller
                 ->with('error', 'You do not have permission to view users.');
         }
 
-        $cacheKey = 'users_index_' . md5(json_encode($request->query()));
+        // ✅ Disable caching - remove Cache::remember entirely
+        $query = User::withTrashed()->with('roles');
 
-        $data = Cache::remember($cacheKey, $this->cacheDuration, function () use ($request) {
-            $query = User::withTrashed()->with('roles');
-
-            // Filter by status (active/deleted)
-            $status = $request->input('status', 'all');
-            if ($status !== 'all') {
-                if ($status === 'active') {
-                    $query->whereNull('deleted_at');
-                } elseif ($status === 'deleted') {
-                    $query->onlyTrashed();
-                }
+        // Filter by status (active/deleted)
+        $status = $request->input('status', 'all');
+        if ($status !== 'all') {
+            if ($status === 'active') {
+                $query->whereNull('deleted_at');
+            } elseif ($status === 'deleted') {
+                $query->onlyTrashed();
             }
+        }
 
-            // Filter by verification status
-            if ($request->filled('email_verified')) {
-                if ($request->email_verified === 'verified') {
-                    $query->whereNotNull('email_verified_at');
-                } elseif ($request->email_verified === 'unverified') {
-                    $query->whereNull('email_verified_at');
-                }
+        // Filter by verification status
+        if ($request->filled('email_verified')) {
+            if ($request->email_verified === 'verified') {
+                $query->whereNotNull('email_verified_at');
+            } elseif ($request->email_verified === 'unverified') {
+                $query->whereNull('email_verified_at');
             }
+        }
 
-            // Filter by role
-            if ($request->filled('role')) {
-                $query->whereHas('roles', function ($q) use ($request) {
-                    $q->where('slug', $request->role);
-                });
-            }
-
-            // Search by name or email
-            if ($request->filled('search')) {
-                $search = $request->search;
-                $query->where(function ($q) use ($search) {
-                    $q->where('name', 'like', "%{$search}%")
-                        ->orWhere('email', 'like', "%{$search}%");
-                });
-            }
-
-            // Sort
-            $sortField = $request->input('sort', 'created_at');
-            $sortDirection = $request->input('direction', 'desc');
-            $allowedSortFields = ['id', 'name', 'email', 'created_at', 'updated_at', 'email_verified_at'];
-
-            if (in_array($sortField, $allowedSortFields)) {
-                $query->orderBy($sortField, $sortDirection);
-            } else {
-                $query->orderBy('created_at', 'desc');
-            }
-
-            $users = $query->paginate(7)->withQueryString();
-
-            $users->through(function ($user) {
-                return [
-                    'id' => $user->id,
-                    'name' => $user->name,
-                    'email' => $user->email,
-                    'roles' => $user->roles->map(function ($role) {
-                        return [
-                            'id' => $role->id,
-                            'name' => $role->name,
-                            'slug' => $role->slug,
-                            'level' => $role->level,
-                        ];
-                    }),
-                    'email_verified_at' => $user->email_verified_at,
-                    'is_verified' => !is_null($user->email_verified_at),
-                    'created_at' => $user->created_at,
-                    'updated_at' => $user->updated_at,
-                    'deleted_at' => $user->deleted_at,
-                ];
+        // Filter by role
+        if ($request->filled('role')) {
+            $query->whereHas('roles', function ($q) use ($request) {
+                $q->where('slug', $request->role);
             });
+        }
 
-            $stats = [
-                'total' => User::count(),
-                'active' => User::whereNull('deleted_at')->count(),
-                'deleted' => User::onlyTrashed()->count(),
-                'verified' => User::whereNotNull('email_verified_at')->count(),
-                'unverified' => User::whereNull('email_verified_at')->whereNull('deleted_at')->count(),
-            ];
+        // Search by name or email
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                    ->orWhere('email', 'like', "%{$search}%");
+            });
+        }
 
-            $roles = Role::active()
-                ->orderBy('level', 'asc')
-                ->orderBy('name', 'asc')
-                ->get(['id', 'name', 'slug', 'description', 'level']);
+        // Sort
+        $sortField = $request->input('sort', 'created_at');
+        $sortDirection = $request->input('direction', 'desc');
+        $allowedSortFields = ['id', 'name', 'email', 'created_at', 'updated_at', 'email_verified_at'];
 
+        if (in_array($sortField, $allowedSortFields)) {
+            $query->orderBy($sortField, $sortDirection);
+        } else {
+            $query->orderBy('created_at', 'desc');
+        }
+
+        $users = $query->paginate(7)->withQueryString();
+
+        $users->through(function ($user) {
             return [
-                'users' => $users,
-                'filters' => $request->only(['search', 'status', 'role', 'email_verified', 'sort', 'direction']),
-                'stats' => $stats,
-                'roles' => $roles,
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'roles' => $user->roles->map(function ($role) {
+                    return [
+                        'id' => $role->id,
+                        'name' => $role->name,
+                        'slug' => $role->slug,
+                        'level' => $role->level,
+                    ];
+                }),
+                'email_verified_at' => $user->email_verified_at,
+                'is_verified' => !is_null($user->email_verified_at),
+                'created_at' => $user->created_at,
+                'updated_at' => $user->updated_at,
+                'deleted_at' => $user->deleted_at,
             ];
         });
+
+        $stats = [
+            'total' => User::count(),
+            'active' => User::whereNull('deleted_at')->count(),
+            'deleted' => User::onlyTrashed()->count(),
+            'verified' => User::whereNotNull('email_verified_at')->count(),
+            'unverified' => User::whereNull('email_verified_at')->whereNull('deleted_at')->count(),
+        ];
+
+        $roles = Role::active()
+            ->orderBy('level', 'asc')
+            ->orderBy('name', 'asc')
+            ->get(['id', 'name', 'slug', 'description', 'level']);
+
+        $data = [
+            'users' => $users,
+            'filters' => $request->only(['search', 'status', 'role', 'email_verified', 'sort', 'direction']),
+            'stats' => $stats,
+            'roles' => $roles,
+        ];
 
         return Inertia::render('Backend/Users/Index', $data);
     }
@@ -171,7 +169,9 @@ class UserController extends Controller
 
             $newUser->assignRole($validated['role_slug'], $user->id);
 
-            $this->clearCache();
+            // ✅ Clear ALL cache keys
+            $this->clearAllCache();
+
             RateLimiter::clear($this->getThrottleKey('user_store', $user->id));
 
             SimpleLogger::users(
@@ -246,7 +246,9 @@ class UserController extends Controller
             $user->update($updateData);
             $user->syncRoles([$validated['role_slug']]);
 
-            $this->clearCache();
+            // ✅ Clear ALL cache keys
+            $this->clearAllCache();
+
             RateLimiter::clear($this->getThrottleKey('user_update', $authUser->id));
 
             $changes = [];
@@ -312,7 +314,9 @@ class UserController extends Controller
 
         $user->update(['email_verified_at' => now()]);
 
-        $this->clearCache();
+        // ✅ Clear ALL cache keys
+        $this->clearAllCache();
+
         RateLimiter::clear($this->getThrottleKey('user_verify', $authUser->id));
 
         SimpleLogger::users(
@@ -366,7 +370,9 @@ class UserController extends Controller
             $userEmail = $user->email;
             $user->delete();
 
-            $this->clearCache();
+            // ✅ Clear ALL cache keys
+            $this->clearAllCache();
+
             RateLimiter::clear($this->getThrottleKey('user_destroy', $authUser->id));
 
             SimpleLogger::users(
@@ -414,7 +420,9 @@ class UserController extends Controller
         try {
             $user->restore();
 
-            $this->clearCache();
+            // ✅ Clear ALL cache keys
+            $this->clearAllCache();
+
             RateLimiter::clear($this->getThrottleKey('user_restore', $authUser->id));
 
             SimpleLogger::users(
@@ -464,7 +472,9 @@ class UserController extends Controller
             $userEmail = $user->email;
             $user->forceDelete();
 
-            $this->clearCache();
+            // ✅ Clear ALL cache keys
+            $this->clearAllCache();
+
             RateLimiter::clear($this->getThrottleKey('user_force_delete', $authUser->id));
 
             SimpleLogger::users(
@@ -549,7 +559,9 @@ class UserController extends Controller
             }
         }
 
-        $this->clearCache();
+        // ✅ Clear ALL cache keys
+        $this->clearAllCache();
+
         RateLimiter::clear($this->getThrottleKey('user_bulk_delete', $authUser->id));
 
         $message = "{$deletedCount} user(s) moved to trash successfully.";
@@ -589,7 +601,9 @@ class UserController extends Controller
             ->whereIn('id', $validated['user_ids'])
             ->restore();
 
-        $this->clearCache();
+        // ✅ Clear ALL cache keys
+        $this->clearAllCache();
+
         RateLimiter::clear($this->getThrottleKey('user_bulk_restore', $authUser->id));
 
         SimpleLogger::users(
@@ -653,10 +667,26 @@ class UserController extends Controller
     }
 
     /**
-     * Clear user cache keys.
+     * ✅ Clear ALL user cache keys.
+     */
+    private function clearAllCache(): void
+    {
+        // Clear specific cache keys
+        Cache::forget('users_index_*');
+
+        // ✅ Use Cache::flush() to clear ALL cache (more aggressive)
+        // This ensures no stale data remains
+        Cache::flush();
+
+        // Log cache clearing
+        Log::info('User cache cleared', ['action' => 'all']);
+    }
+
+    /**
+     * Clear user cache keys (legacy method - kept for compatibility).
      */
     private function clearCache(): void
     {
-        Cache::forget('users_index_*');
+        $this->clearAllCache();
     }
 }

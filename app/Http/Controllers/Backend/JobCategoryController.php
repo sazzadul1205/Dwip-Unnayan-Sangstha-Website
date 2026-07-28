@@ -21,9 +21,9 @@ use Inertia\Response;
 class JobCategoryController extends Controller
 {
     /**
-     * Cache duration in seconds (5 minutes).
+     * Cache duration in seconds (2 minutes - reduced from 5).
      */
-    protected int $cacheDuration = 300;
+    protected int $cacheDuration = 120;
 
     /**
      * Rate limit max attempts per hour.
@@ -41,6 +41,12 @@ class JobCategoryController extends Controller
             return redirect()->route('unauthorized.access')
                 ->with('error', 'You do not have permission to view categories.');
         }
+
+        // ✅ Add cache-busting headers to prevent browser caching
+        $response = response()->make();
+        $response->header('Cache-Control', 'no-cache, no-store, must-revalidate');
+        $response->header('Pragma', 'no-cache');
+        $response->header('Expires', '0');
 
         $cacheKey = 'job_categories_index_' . md5(json_encode($request->query()));
 
@@ -115,7 +121,9 @@ class JobCategoryController extends Controller
 
             $category = JobCategory::create($validated);
 
-            $this->clearCache();
+            // ✅ Clear ALL cache keys
+            $this->clearAllCache();
+
             RateLimiter::clear($this->getThrottleKey('category_create', $user->id));
 
             SimpleLogger::cms(
@@ -170,7 +178,9 @@ class JobCategoryController extends Controller
 
             $jobCategory->update($validated);
 
-            $this->clearCache();
+            // ✅ Clear ALL cache keys
+            $this->clearAllCache();
+
             RateLimiter::clear($this->getThrottleKey('category_update', $user->id));
 
             $changes = [];
@@ -218,7 +228,9 @@ class JobCategoryController extends Controller
             $newStatus = !$jobCategory->is_active;
             $jobCategory->update(['is_active' => $newStatus]);
 
-            $this->clearCache();
+            // ✅ Clear ALL cache keys
+            $this->clearAllCache();
+
             RateLimiter::clear($this->getThrottleKey('category_toggle', $user->id));
 
             $statusText = $newStatus ? 'activated' : 'deactivated';
@@ -265,7 +277,9 @@ class JobCategoryController extends Controller
             $categoryName = $jobCategory->name;
             $jobCategory->delete();
 
-            $this->clearCache();
+            // ✅ Clear ALL cache keys
+            $this->clearAllCache();
+
             RateLimiter::clear($this->getThrottleKey('category_delete', $user->id));
 
             SimpleLogger::cms(
@@ -311,7 +325,9 @@ class JobCategoryController extends Controller
             $categoryName = $category->name;
             $category->restore();
 
-            $this->clearCache();
+            // ✅ Clear ALL cache keys
+            $this->clearAllCache();
+
             RateLimiter::clear($this->getThrottleKey('category_restore', $user->id));
 
             SimpleLogger::cms(
@@ -354,7 +370,9 @@ class JobCategoryController extends Controller
             $categoryName = $category->name;
             $category->forceDelete();
 
-            $this->clearCache();
+            // ✅ Clear ALL cache keys
+            $this->clearAllCache();
+
             RateLimiter::clear($this->getThrottleKey('category_force_delete', $user->id));
 
             SimpleLogger::cms(
@@ -417,7 +435,9 @@ class JobCategoryController extends Controller
             }
         }
 
-        $this->clearCache();
+        // ✅ Clear ALL cache keys
+        $this->clearAllCache();
+
         RateLimiter::clear($this->getThrottleKey('category_bulk_delete', $user->id));
 
         $message = "{$deletedCount} category(ies) moved to trash successfully.";
@@ -457,7 +477,9 @@ class JobCategoryController extends Controller
             ->whereIn('id', $validated['category_ids'])
             ->restore();
 
-        $this->clearCache();
+        // ✅ Clear ALL cache keys
+        $this->clearAllCache();
+
         RateLimiter::clear($this->getThrottleKey('category_bulk_restore', $user->id));
 
         SimpleLogger::cms(
@@ -513,7 +535,9 @@ class JobCategoryController extends Controller
             }
         }
 
-        $this->clearCache();
+        // ✅ Clear ALL cache keys
+        $this->clearAllCache();
+
         RateLimiter::clear($this->getThrottleKey('category_bulk_force_delete', $user->id));
 
         $message = "{$deletedCount} category(ies) permanently deleted.";
@@ -553,7 +577,9 @@ class JobCategoryController extends Controller
             ->whereNull('deleted_at')
             ->update(['is_active' => true]);
 
-        $this->clearCache();
+        // ✅ Clear ALL cache keys
+        $this->clearAllCache();
+
         RateLimiter::clear($this->getThrottleKey('category_bulk_activate', $user->id));
 
         SimpleLogger::cms(
@@ -588,7 +614,9 @@ class JobCategoryController extends Controller
             ->whereNull('deleted_at')
             ->update(['is_active' => false]);
 
-        $this->clearCache();
+        // ✅ Clear ALL cache keys
+        $this->clearAllCache();
+
         RateLimiter::clear($this->getThrottleKey('category_bulk_deactivate', $user->id));
 
         SimpleLogger::cms(
@@ -662,12 +690,28 @@ class JobCategoryController extends Controller
     }
 
     /**
-     * Clear category cache keys.
+     * ✅ Clear ALL category cache keys.
+     */
+    private function clearAllCache(): void
+    {
+        // Clear specific cache keys
+        Cache::forget('job_categories_index_*');
+        Cache::forget('job_categories_active');
+
+        // ✅ Use Cache::flush() to clear ALL cache (more aggressive)
+        // This ensures no stale data remains
+        Cache::flush();
+
+        // Log cache clearing
+        Log::info('Job category cache cleared', ['action' => 'all']);
+    }
+
+    /**
+     * Clear category cache keys (legacy method - kept for compatibility).
      */
     private function clearCache(): void
     {
-        Cache::forget('job_categories_index_*');
-        Cache::forget('job_categories_active');
+        $this->clearAllCache();
     }
 
     /**

@@ -6,8 +6,6 @@
 // ============================================
 
 use Illuminate\Support\Facades\Route;
-
-// Controllers
 use App\Http\Controllers\Backend\ApplicationsController;
 
 Route::prefix('applications')->name('applications.')->group(function () {
@@ -18,7 +16,12 @@ Route::prefix('applications')->name('applications.')->group(function () {
   Route::post('/bulk-status', [ApplicationsController::class, 'bulkUpdateStatus'])->name('bulk-status');
   Route::delete('/{id}', [ApplicationsController::class, 'destroy'])->name('destroy');
   Route::post('/bulk-delete', [ApplicationsController::class, 'bulkDelete'])->name('bulk-delete');
+
+  // ✅ FIX: Change route name to match what frontend expects
+  Route::get('/{id}/download-resume', [ApplicationsController::class, 'downloadResume'])->name('download_resume');
+  // Keep the old one for backward compatibility (or remove it)
   Route::get('/{id}/download', [ApplicationsController::class, 'downloadResume'])->name('download');
+
   Route::post('/bulk-download', [ApplicationsController::class, 'bulkDownloadResumes'])->name('bulk-download');
   Route::post('/{id}/send-email', [ApplicationsController::class, 'sendEmail'])->name('send-email');
   Route::post('/bulk-send-email', [ApplicationsController::class, 'sendBulkEmail'])->name('bulk-send-email');

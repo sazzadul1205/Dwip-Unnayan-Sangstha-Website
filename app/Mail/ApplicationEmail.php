@@ -13,14 +13,9 @@ class ApplicationEmail extends Mailable
   use Queueable, SerializesModels;
 
   /**
-   * Email subject.
-   */
-  public string $subject;
-
-  /**
    * Email content/body.
    */
-  public string $content;
+  public string $emailContent;
 
   /**
    * Applicant full name.
@@ -53,8 +48,11 @@ class ApplicationEmail extends Mailable
     ?string $companyName = null,
     int|string|null $applicationId = null
   ) {
+    // ✅ Set the subject using the parent's property
     $this->subject = $subject;
-    $this->content = $content;
+
+    // Store content in a different property name
+    $this->emailContent = $content;
     $this->applicantName = $applicantName;
     $this->jobTitle = $jobTitle;
     $this->companyName = $companyName ?? config('app.name');
@@ -80,7 +78,7 @@ class ApplicationEmail extends Mailable
       view: 'emails.application',
       with: [
         'subject' => $this->subject,
-        'content' => $this->content,
+        'content' => $this->emailContent,
         'applicantName' => $this->applicantName,
         'jobTitle' => $this->jobTitle,
         'companyName' => $this->companyName,

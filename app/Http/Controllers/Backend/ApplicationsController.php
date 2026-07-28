@@ -42,6 +42,7 @@ class ApplicationsController extends Controller
 
     /**
      * Display all applications from all jobs with comprehensive filtering.
+     * ✅ DISABLED CACHING - Data is too large for MySQL max_allowed_packet
      */
     public function index(Request $request): Response|RedirectResponse
     {
@@ -52,100 +53,98 @@ class ApplicationsController extends Controller
                 ->with('error', 'You do not have permission to view applications.');
         }
 
-        $cacheKey = 'applications_index_' . md5(json_encode($request->query()));
+        // ✅ Disable caching - remove Cache::remember entirely
+        $query = Application::with([
+            'jobListing' => fn($q) => $q->with(['category', 'locations']),
+            'applicantProfile.user',
+            'statusTimelines',
+        ]);
 
-        $data = Cache::remember($cacheKey, $this->cacheDuration, function () use ($request) {
-            $query = Application::with([
-                'jobListing' => fn($q) => $q->with(['category', 'locations']),
-                'applicantProfile.user',
-                'statusTimelines',
-            ]);
+        $this->applyFilters($query, $request);
+        $this->applySorting($query, $request);
 
-            $this->applyFilters($query, $request);
-            $this->applySorting($query, $request);
+        $perPage = $request->input('per_page', 7);
+        $applications = $query->paginate($perPage)->withQueryString();
 
-            $perPage = $request->input('per_page', 7);
-            $applications = $query->paginate($perPage)->withQueryString();
-
-            // Transform ATS scores
-            $applications->getCollection()->transform(function ($application) {
-                return $this->transformAtsScore($application);
-            });
-
-            // Related filter data
-            $jobs = JobListing::where('is_active', true)->get(['id', 'title']);
-            $categories = JobCategory::where('is_active', true)->get(['id', 'name']);
-            $locations = Location::where('is_active', true)->get(['id', 'name']);
-            $jobTypes = JobListing::$jobTypes;
-
-            $educationLevels = [
-                'high_school' => 'High School',
-                'associate' => 'Associate Degree',
-                'bachelor' => "Bachelor's Degree",
-                'master' => "Master's Degree",
-                'phd' => 'PhD',
-                'other' => 'Other',
-            ];
-
-            // Status counts (respecting filters)
-            $statusCountsQuery = clone $query;
-            $statusCounts = [
-                'pending' => (clone $statusCountsQuery)->where('status', 'pending')->count(),
-                'shortlisted' => (clone $statusCountsQuery)->where('status', 'shortlisted')->count(),
-                'rejected' => (clone $statusCountsQuery)->where('status', 'rejected')->count(),
-                'hired' => (clone $statusCountsQuery)->where('status', 'hired')->count(),
-                'total' => (clone $statusCountsQuery)->count(),
-            ];
-            $statusCounts['deleted'] = Application::onlyTrashed()->count();
-
-            // Stats
-            $atsStats = Application::selectRaw('
-                MIN(CAST(JSON_EXTRACT(ats_score, "$.percentage") AS UNSIGNED)) as min_ats,
-                MAX(CAST(JSON_EXTRACT(ats_score, "$.percentage") AS UNSIGNED)) as max_ats
-            ')->first();
-
-            $salaryStats = Application::selectRaw('MIN(expected_salary) as min_salary, MAX(expected_salary) as max_salary')->first();
-            $expStats = Application::selectRaw('MIN(years_of_experience) as min_exp, MAX(years_of_experience) as max_exp')->first();
-
-            return [
-                'applications' => $applications,
-                'jobs' => $jobs,
-                'categories' => $categories,
-                'locations' => $locations,
-                'jobTypes' => $jobTypes,
-                'educationLevels' => $educationLevels,
-                'filters' => $request->only([
-                    'status',
-                    'job_id',
-                    'category_id',
-                    'search',
-                    'date_from',
-                    'date_to',
-                    'date_range',
-                    'min_ats_score',
-                    'max_ats_score',
-                    'min_experience',
-                    'max_experience',
-                    'min_salary',
-                    'max_salary',
-                    'education_level',
-                    'job_type',
-                    'location_id',
-                    'trashed',
-                    'sort',
-                    'direction',
-                    'per_page',
-                ]),
-                'statusCounts' => $statusCounts,
-                'totalApplications' => Application::count(),
-                'filterOptions' => [
-                    'ats' => ['min' => $atsStats->min_ats ?? 0, 'max' => $atsStats->max_ats ?? 100],
-                    'salary' => ['min' => $salaryStats->min_salary ?? 0, 'max' => $salaryStats->max_salary ?? 500000],
-                    'experience' => ['min' => $expStats->min_exp ?? 0, 'max' => $expStats->max_exp ?? 30],
-                ],
-            ];
+        // Transform ATS scores
+        $applications->getCollection()->transform(function ($application) {
+            return $this->transformAtsScore($application);
         });
 
+        // Related filter data
+        $jobs = JobListing::where('is_active', true)->get(['id', 'title']);
+        $categories = JobCategory::where('is_active', true)->get(['id', 'name']);
+        $locations = Location::where('is_active', true)->get(['id', 'name']);
+        $jobTypes = JobListing::$jobTypes;
+
+        $educationLevels = [
+            'high_school' => 'High School',
+            'associate' => 'Associate Degree',
+            'bachelor' => "Bachelor's Degree",
+            'master' => "Master's Degree",
+            'phd' => 'PhD',
+            'other' => 'Other',
+        ];
+
+        // Status counts (respecting filters)
+        $statusCountsQuery = clone $query;
+        $statusCounts = [
+            'pending' => (clone $statusCountsQuery)->where('status', 'pending')->count(),
+            'shortlisted' => (clone $statusCountsQuery)->where('status', 'shortlisted')->count(),
+            'rejected' => (clone $statusCountsQuery)->where('status', 'rejected')->count(),
+            'hired' => (clone $statusCountsQuery)->where('status', 'hired')->count(),
+            'total' => (clone $statusCountsQuery)->count(),
+        ];
+        $statusCounts['deleted'] = Application::onlyTrashed()->count();
+
+        // Stats
+        $atsStats = Application::selectRaw('
+            MIN(CAST(JSON_EXTRACT(ats_score, "$.percentage") AS UNSIGNED)) as min_ats,
+            MAX(CAST(JSON_EXTRACT(ats_score, "$.percentage") AS UNSIGNED)) as max_ats
+        ')->first();
+
+        $salaryStats = Application::selectRaw('MIN(expected_salary) as min_salary, MAX(expected_salary) as max_salary')->first();
+        $expStats = Application::selectRaw('MIN(years_of_experience) as min_exp, MAX(years_of_experience) as max_exp')->first();
+
+        $data = [
+            'applications' => $applications,
+            'jobs' => $jobs,
+            'categories' => $categories,
+            'locations' => $locations,
+            'jobTypes' => $jobTypes,
+            'educationLevels' => $educationLevels,
+            'filters' => $request->only([
+                'status',
+                'job_id',
+                'category_id',
+                'search',
+                'date_from',
+                'date_to',
+                'date_range',
+                'min_ats_score',
+                'max_ats_score',
+                'min_experience',
+                'max_experience',
+                'min_salary',
+                'max_salary',
+                'education_level',
+                'job_type',
+                'location_id',
+                'trashed',
+                'sort',
+                'direction',
+                'per_page',
+            ]),
+            'statusCounts' => $statusCounts,
+            'totalApplications' => Application::count(),
+            'filterOptions' => [
+                'ats' => ['min' => $atsStats->min_ats ?? 0, 'max' => $atsStats->max_ats ?? 100],
+                'salary' => ['min' => $salaryStats->min_salary ?? 0, 'max' => $salaryStats->max_salary ?? 500000],
+                'experience' => ['min' => $expStats->min_exp ?? 0, 'max' => $expStats->max_exp ?? 30],
+            ],
+        ];
+
+        // ✅ Return without withHeaders - Inertia doesn't support it directly
         return Inertia::render('Backend/Applications/Index', $data);
     }
 
@@ -161,75 +160,72 @@ class ApplicationsController extends Controller
                 ->with('error', 'You do not have permission to view job applications.');
         }
 
-        $cacheKey = 'applications_job_' . $jobId . '_' . md5(json_encode($request->query()));
+        // ✅ Disable caching for job applications too
+        $job = JobListing::withTrashed()->with('employer', 'category')->findOrFail($jobId);
 
-        $data = Cache::remember($cacheKey, $this->cacheDuration, function () use ($request, $jobId) {
-            $job = JobListing::withTrashed()->with('employer', 'category')->findOrFail($jobId);
+        $query = Application::withTrashed()
+            ->with(['applicantProfile.user', 'statusTimelines'])
+            ->where('job_listing_id', $jobId);
 
-            $query = Application::withTrashed()
-                ->with(['applicantProfile.user', 'statusTimelines'])
-                ->where('job_listing_id', $jobId);
+        $this->applyJobFilters($query, $request);
+        $this->applySorting($query, $request);
 
-            $this->applyJobFilters($query, $request);
-            $this->applySorting($query, $request);
+        $perPage = $request->input('per_page', 20);
+        $applications = $query->paginate($perPage)->withQueryString();
 
-            $perPage = $request->input('per_page', 20);
-            $applications = $query->paginate($perPage)->withQueryString();
-
-            $applications->getCollection()->transform(function ($application) {
-                return $this->transformAtsScore($application);
-            });
-
-            $statusCountsQuery = clone $query;
-            $statusCounts = [
-                'pending' => (clone $statusCountsQuery)->where('status', 'pending')->count(),
-                'shortlisted' => (clone $statusCountsQuery)->where('status', 'shortlisted')->count(),
-                'rejected' => (clone $statusCountsQuery)->where('status', 'rejected')->count(),
-                'hired' => (clone $statusCountsQuery)->where('status', 'hired')->count(),
-            ];
-
-            $filterOptionsQuery = Application::withTrashed()->where('job_listing_id', $jobId);
-            $atsStats = (clone $filterOptionsQuery)->selectRaw('
-                MIN(CAST(JSON_EXTRACT(ats_score, "$.percentage") AS UNSIGNED)) as min_ats,
-                MAX(CAST(JSON_EXTRACT(ats_score, "$.percentage") AS UNSIGNED)) as max_ats
-            ')->first();
-
-            $salaryStats = (clone $filterOptionsQuery)->selectRaw('
-                MIN(expected_salary) as min_salary, MAX(expected_salary) as max_salary
-            ')->first();
-
-            $expStats = (clone $filterOptionsQuery)->selectRaw('
-                MIN(years_of_experience) as min_exp, MAX(years_of_experience) as max_exp
-            ')->first();
-
-            return [
-                'job' => $job,
-                'applications' => $applications,
-                'statusCounts' => $statusCounts,
-                'filters' => $request->only([
-                    'status',
-                    'search',
-                    'min_ats_score',
-                    'max_ats_score',
-                    'min_experience',
-                    'max_experience',
-                    'min_salary',
-                    'max_salary',
-                    'education_level',
-                    'date_from',
-                    'date_to',
-                    'date_range',
-                    'sort',
-                    'direction',
-                    'per_page',
-                ]),
-                'filterOptions' => [
-                    'ats' => ['min' => $atsStats->min_ats ?? 0, 'max' => $atsStats->max_ats ?? 100],
-                    'salary' => ['min' => $salaryStats->min_salary ?? 0, 'max' => $salaryStats->max_salary ?? 500000],
-                    'experience' => ['min' => $expStats->min_exp ?? 0, 'max' => $expStats->max_exp ?? 30],
-                ],
-            ];
+        $applications->getCollection()->transform(function ($application) {
+            return $this->transformAtsScore($application);
         });
+
+        $statusCountsQuery = clone $query;
+        $statusCounts = [
+            'pending' => (clone $statusCountsQuery)->where('status', 'pending')->count(),
+            'shortlisted' => (clone $statusCountsQuery)->where('status', 'shortlisted')->count(),
+            'rejected' => (clone $statusCountsQuery)->where('status', 'rejected')->count(),
+            'hired' => (clone $statusCountsQuery)->where('status', 'hired')->count(),
+        ];
+
+        $filterOptionsQuery = Application::withTrashed()->where('job_listing_id', $jobId);
+        $atsStats = (clone $filterOptionsQuery)->selectRaw('
+            MIN(CAST(JSON_EXTRACT(ats_score, "$.percentage") AS UNSIGNED)) as min_ats,
+            MAX(CAST(JSON_EXTRACT(ats_score, "$.percentage") AS UNSIGNED)) as max_ats
+        ')->first();
+
+        $salaryStats = (clone $filterOptionsQuery)->selectRaw('
+            MIN(expected_salary) as min_salary, MAX(expected_salary) as max_salary
+        ')->first();
+
+        $expStats = (clone $filterOptionsQuery)->selectRaw('
+            MIN(years_of_experience) as min_exp, MAX(years_of_experience) as max_exp
+        ')->first();
+
+        $data = [
+            'job' => $job,
+            'applications' => $applications,
+            'statusCounts' => $statusCounts,
+            'filters' => $request->only([
+                'status',
+                'search',
+                'min_ats_score',
+                'max_ats_score',
+                'min_experience',
+                'max_experience',
+                'min_salary',
+                'max_salary',
+                'education_level',
+                'date_from',
+                'date_to',
+                'date_range',
+                'sort',
+                'direction',
+                'per_page',
+            ]),
+            'filterOptions' => [
+                'ats' => ['min' => $atsStats->min_ats ?? 0, 'max' => $atsStats->max_ats ?? 100],
+                'salary' => ['min' => $salaryStats->min_salary ?? 0, 'max' => $salaryStats->max_salary ?? 500000],
+                'experience' => ['min' => $expStats->min_exp ?? 0, 'max' => $expStats->max_exp ?? 30],
+            ],
+        ];
 
         return Inertia::render('Backend/Applications/JobApplications', $data);
     }
@@ -1090,12 +1086,15 @@ class ApplicationsController extends Controller
     }
 
     /**
-     * Clear application cache keys.
+     * ✅ Clear application cache keys - flush all cache to remove large data.
      */
     private function clearCache(): void
     {
+        // Clear any remaining cache keys
         Cache::forget('applications_index_*');
         Cache::forget('applications_job_*');
+        // ✅ Flush all cache to ensure no large data remains
+        Cache::flush();
     }
 
     /**

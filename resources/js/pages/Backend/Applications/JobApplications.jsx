@@ -63,6 +63,8 @@ export default function JobApplications({
   // Auth
   const { flash } = usePage().props;
 
+   const safeInitialFilters = (initialFilters && !Array.isArray(initialFilters)) ? initialFilters : {};
+
   // States
   const [isDeleting, setIsDeleting] = useState(false);
   const [selectedApps, setSelectedApps] = useState([]);
@@ -159,9 +161,6 @@ export default function JobApplications({
       </AuthenticatedLayout>
     );
   }
-
-  // Safe initial filters
-  const safeInitialFilters = (initialFilters && !Array.isArray(initialFilters)) ? initialFilters : {};
 
   // Statuses
   const statuses = ['pending', 'shortlisted', 'rejected', 'hired'];

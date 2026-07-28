@@ -21,8 +21,6 @@ import {
   FaCheckDouble,
   FaChevronLeft,
   FaChevronRight,
-  FaEye,
-  FaBuilding,
   FaExclamationTriangle,
   FaShieldAlt,
 } from 'react-icons/fa';
@@ -42,14 +40,10 @@ export default function LocationsIndex({ locations: initialLocations, filters: i
 
   // Use centralized auth hook
   const {
-    user: currentUser,
     hasAnyPermission,
-    hasRole,
-    isAuthenticated,
   } = useAuth();
 
   // Check permissions for location management
-  const isSuperAdmin = hasRole('super-admin');
   const canViewLocations = hasAnyPermission(['locations.view', 'locations.manage']);
   const canEditLocations = hasAnyPermission(['locations.update', 'locations.manage']);
   const canToggleLocations = hasAnyPermission(['locations.update', 'locations.manage']);
@@ -74,10 +68,10 @@ export default function LocationsIndex({ locations: initialLocations, filters: i
   const [editingLocation, setEditingLocation] = useState(null);
   const [selectedLocations, setSelectedLocations] = useState([]);
   const [isBulkProcessing, setIsBulkProcessing] = useState(false);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
 
   // Pagination state
   const [locations, setLocations] = useState(initialLocations);
-  const [currentPage, setCurrentPage] = useState(initialLocations?.current_page || 1);
 
   // Filter states
   const [filters, setFilters] = useState({
@@ -92,23 +86,12 @@ export default function LocationsIndex({ locations: initialLocations, filters: i
     is_active: true,
   });
 
-  // If user doesn't have permission to view locations, show access denied
-  if (!canViewLocations) {
-    return (
-      <AuthenticatedLayout>
-        <Head title="Access Denied" />
-        <div className="min-h-screen flex items-center justify-center">
-          <div className="text-center">
-            <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <FaShieldAlt className="w-10 h-10 text-red-500" />
-            </div>
-            <h2 className="text-xl font-semibold text-gray-900">Access Denied</h2>
-            <p className="text-gray-500 mt-2">You don't have permission to view locations.</p>
-          </div>
-        </div>
-      </AuthenticatedLayout>
-    );
-  }
+  // ✅ Prevent browser caching of this page
+  useEffect(() => {
+    document.querySelector('meta[name="cache-control"]')?.setAttribute('content', 'no-cache, no-store, must-revalidate');
+    document.querySelector('meta[name="pragma"]')?.setAttribute('content', 'no-cache');
+    document.querySelector('meta[name="expires"]')?.setAttribute('content', '0');
+  }, []);
 
   // Get locations array from paginated response
   const locationItems = useMemo(() => {
@@ -133,51 +116,36 @@ export default function LocationsIndex({ locations: initialLocations, filters: i
     return null;
   }, [locations]);
 
-  // Apply filters
+  // ✅ FIX: Apply filters only when they change, not on every render
   useEffect(() => {
+    // Skip the initial render since we already have initialLocations
+    if (isInitialLoad) {
+      setIsInitialLoad(false);
+      return;
+    }
+
     const timeoutId = setTimeout(() => {
       router.get(route('backend.locations.index'), {
         ...filters,
         page: 1,
+        _t: Date.now(), // Cache busting
       }, {
         preserveState: true,
         preserveScroll: true,
         replace: true,
         onSuccess: (page) => {
           setLocations(page.props.locations);
-          setCurrentPage(1);
         },
       });
     }, 300);
 
     return () => clearTimeout(timeoutId);
-  }, [filters]);
+  }, [filters, filters.search, filters.status, isInitialLoad]);
 
-  // Keep local locations in sync
+  // Keep local locations in sync when initialLocations changes
   useEffect(() => {
     setLocations(initialLocations);
-    setCurrentPage(initialLocations?.current_page || 1);
   }, [initialLocations]);
-
-  // Handle page change
-  const handlePageChange = (page) => {
-    if (page === pagination?.currentPage) return;
-    if (page < 1 || page > pagination?.lastPage) return;
-
-    router.get(route('backend.locations.index'), {
-      ...filters,
-      page,
-    }, {
-      preserveState: true,
-      preserveScroll: true,
-      replace: true,
-      onSuccess: (page) => {
-        setLocations(page.props.locations);
-        setCurrentPage(page);
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      },
-    });
-  };
 
   // Filtered locations
   const filteredLocations = useMemo(() => {
@@ -217,7 +185,46 @@ export default function LocationsIndex({ locations: initialLocations, filters: i
 
       return new Date(b.deleted_at) - new Date(a.deleted_at);
     });
-  }, [locationItems, filters]);
+  }, [locationItems, filters.search, filters.status]);
+
+  // Show flash messages
+  useEffect(() => {
+    if (flash?.success) {
+      Swal.fire({
+        icon: 'success',
+        title: 'Success!',
+        text: flash.success,
+        timer: 2000,
+        showConfirmButton: false,
+      });
+    }
+    if (flash?.error) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Error!',
+        text: flash.error,
+        confirmButtonColor: '#2563eb',
+      });
+    }
+  }, [flash]);
+
+  // If user doesn't have permission to view locations, show access denied
+  if (!canViewLocations) {
+    return (
+      <AuthenticatedLayout>
+        <Head title="Access Denied" />
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="text-center">
+            <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <FaShieldAlt className="w-10 h-10 text-red-500" />
+            </div>
+            <h2 className="text-xl font-semibold text-gray-900">Access Denied</h2>
+            <p className="text-gray-500 mt-2">You don't have permission to view locations.</p>
+          </div>
+        </div>
+      </AuthenticatedLayout>
+    );
+  }
 
   // Stats
   const activeCount = stats?.active || locationItems.filter(loc => !loc.deleted_at && loc.is_active).length;
@@ -243,6 +250,26 @@ export default function LocationsIndex({ locations: initialLocations, filters: i
     return filters.search !== '' || filters.status !== 'all';
   };
 
+  // Handle page change
+  const handlePageChange = (page) => {
+    if (page === pagination?.currentPage) return;
+    if (page < 1 || page > pagination?.lastPage) return;
+
+    router.get(route('backend.locations.index'), {
+      ...filters,
+      page,
+      _t: Date.now(),
+    }, {
+      preserveState: true,
+      preserveScroll: true,
+      replace: true,
+      onSuccess: (page) => {
+        setLocations(page.props.locations);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      },
+    });
+  };
+
   // Bulk selection handlers
   const handleSelectAll = () => {
     const selectableLocations = filteredLocations.filter(loc => !loc.deleted_at && canEditLocations);
@@ -253,7 +280,6 @@ export default function LocationsIndex({ locations: initialLocations, filters: i
     }
   };
 
-  // Selection handlers
   const handleSelectLocation = (locationId) => {
     setSelectedLocations(prev =>
       prev.includes(locationId)
@@ -447,7 +473,6 @@ export default function LocationsIndex({ locations: initialLocations, filters: i
       return;
     }
 
-    // Check if selected locations are all trashed
     const trashedSelected = selectedLocations.filter(id => {
       const location = locationItems.find(loc => loc.id === id);
       return location && location.deleted_at;
@@ -715,7 +740,7 @@ export default function LocationsIndex({ locations: initialLocations, filters: i
     });
   };
 
-  // Force delete (permanently delete a trashed location)
+  // Force delete
   const handleForceDelete = (id, name) => {
     if (!canForceDeleteLocations) {
       Swal.fire('Permission Denied', 'You do not have permission to permanently delete locations.', 'error');
@@ -778,7 +803,7 @@ export default function LocationsIndex({ locations: initialLocations, filters: i
     });
   };
 
-  // Restore a trashed location
+  // Restore
   const handleRestore = (id, name) => {
     if (!canRestoreLocations) {
       Swal.fire('Permission Denied', 'You do not have permission to restore locations.', 'error');
@@ -959,27 +984,6 @@ export default function LocationsIndex({ locations: initialLocations, filters: i
       </div>
     );
   };
-
-  // Show flash messages
-  useEffect(() => {
-    if (flash?.success) {
-      Swal.fire({
-        icon: 'success',
-        title: 'Success!',
-        text: flash.success,
-        timer: 2000,
-        showConfirmButton: false,
-      });
-    }
-    if (flash?.error) {
-      Swal.fire({
-        icon: 'error',
-        title: 'Error!',
-        text: flash.error,
-        confirmButtonColor: '#2563eb',
-      });
-    }
-  }, [flash]);
 
   // Check Permissions
   const canBulkActivate = canBulkActivateLocations && selectedLocations.length > 0;
@@ -1392,7 +1396,7 @@ export default function LocationsIndex({ locations: initialLocations, filters: i
         </div>
       </div>
 
-      {/* MODAL - Create/Edit Location - Only shown if user has permission */}
+      {/* MODAL - Create/Edit Location */}
       {isModalOpen && (canCreateLocations || canEditLocations) && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 animate-fade-in">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 transform transition-all duration-300 animate-slide-up">

@@ -20,9 +20,9 @@ use Inertia\Response;
 class LocationController extends Controller
 {
     /**
-     * Cache duration in seconds (5 minutes).
+     * Cache duration in seconds (2 minutes - reduced from 5).
      */
-    protected int $cacheDuration = 300;
+    protected int $cacheDuration = 120;
 
     /**
      * Rate limit max attempts per hour.
@@ -40,6 +40,12 @@ class LocationController extends Controller
             return redirect()->route('unauthorized.access')
                 ->with('error', 'You do not have permission to view locations.');
         }
+
+        // ✅ Add cache-busting headers to prevent browser caching
+        $response = response()->make();
+        $response->header('Cache-Control', 'no-cache, no-store, must-revalidate');
+        $response->header('Pragma', 'no-cache');
+        $response->header('Expires', '0');
 
         $cacheKey = 'locations_index_' . md5(json_encode($request->query()));
 
@@ -117,7 +123,9 @@ class LocationController extends Controller
 
             $location = Location::create($validated);
 
-            $this->clearCache();
+            // ✅ Clear ALL cache keys
+            $this->clearAllCache();
+
             RateLimiter::clear($this->getThrottleKey('location_create', $user->id));
 
             SimpleLogger::cms(
@@ -167,7 +175,9 @@ class LocationController extends Controller
 
             $location->update($validated);
 
-            $this->clearCache();
+            // ✅ Clear ALL cache keys
+            $this->clearAllCache();
+
             RateLimiter::clear($this->getThrottleKey('location_update', $user->id));
 
             $changes = [];
@@ -214,7 +224,9 @@ class LocationController extends Controller
             $newStatus = !$location->is_active;
             $location->update(['is_active' => $newStatus]);
 
-            $this->clearCache();
+            // ✅ Clear ALL cache keys
+            $this->clearAllCache();
+
             RateLimiter::clear($this->getThrottleKey('location_toggle', $user->id));
 
             $statusText = $newStatus ? 'activated' : 'deactivated';
@@ -259,7 +271,9 @@ class LocationController extends Controller
             $locationName = $location->name;
             $location->delete();
 
-            $this->clearCache();
+            // ✅ Clear ALL cache keys
+            $this->clearAllCache();
+
             RateLimiter::clear($this->getThrottleKey('location_delete', $user->id));
 
             SimpleLogger::cms(
@@ -296,7 +310,9 @@ class LocationController extends Controller
             $locationName = $location->name;
             $location->restore();
 
-            $this->clearCache();
+            // ✅ Clear ALL cache keys
+            $this->clearAllCache();
+
             RateLimiter::clear($this->getThrottleKey('location_restore', $user->id));
 
             SimpleLogger::cms(
@@ -339,7 +355,9 @@ class LocationController extends Controller
             $locationName = $location->name;
             $location->forceDelete();
 
-            $this->clearCache();
+            // ✅ Clear ALL cache keys
+            $this->clearAllCache();
+
             RateLimiter::clear($this->getThrottleKey('location_force_delete', $user->id));
 
             SimpleLogger::cms(
@@ -402,7 +420,9 @@ class LocationController extends Controller
             }
         }
 
-        $this->clearCache();
+        // ✅ Clear ALL cache keys
+        $this->clearAllCache();
+
         RateLimiter::clear($this->getThrottleKey('location_bulk_delete', $user->id));
 
         $message = "{$deletedCount} location(s) moved to trash successfully.";
@@ -442,7 +462,9 @@ class LocationController extends Controller
             ->whereIn('id', $validated['location_ids'])
             ->restore();
 
-        $this->clearCache();
+        // ✅ Clear ALL cache keys
+        $this->clearAllCache();
+
         RateLimiter::clear($this->getThrottleKey('location_bulk_restore', $user->id));
 
         SimpleLogger::cms(
@@ -477,7 +499,9 @@ class LocationController extends Controller
             ->whereNull('deleted_at')
             ->update(['is_active' => true]);
 
-        $this->clearCache();
+        // ✅ Clear ALL cache keys
+        $this->clearAllCache();
+
         RateLimiter::clear($this->getThrottleKey('location_bulk_activate', $user->id));
 
         SimpleLogger::cms(
@@ -512,7 +536,9 @@ class LocationController extends Controller
             ->whereNull('deleted_at')
             ->update(['is_active' => false]);
 
-        $this->clearCache();
+        // ✅ Clear ALL cache keys
+        $this->clearAllCache();
+
         RateLimiter::clear($this->getThrottleKey('location_bulk_deactivate', $user->id));
 
         SimpleLogger::cms(
@@ -526,6 +552,72 @@ class LocationController extends Controller
         );
 
         return redirect()->back()->with('success', "{$updatedCount} location(s) deactivated successfully.");
+    }
+
+    /**
+     * Bulk force delete (permanently delete) – with rate limiting.
+     */
+    public function bulkForceDelete(Request $request): RedirectResponse
+    {
+        $user = $this->getAuthUser();
+
+        if (!$user->hasPermission('locations.bulk_force_delete')) {
+            return redirect()->back()->with('error', 'You do not have permission to permanently delete locations.');
+        }
+
+        $this->checkRateLimit('location_bulk_force_delete', $user->id);
+
+        $validated = $request->validate([
+            'location_ids' => 'required|array',
+            'location_ids.*' => 'exists:locations,id',
+        ]);
+
+        $deletedCount = 0;
+        $failed = [];
+
+        foreach ($validated['location_ids'] as $locationId) {
+            $location = Location::onlyTrashed()->find($locationId);
+            if (!$location) {
+                $failed[] = "Location ID {$locationId} not found or not in trash";
+                continue;
+            }
+
+            $jobCount = $location->jobListings()->count();
+            if ($jobCount > 0) {
+                $failed[] = "{$location->name} (used in {$jobCount} job(s))";
+                continue;
+            }
+
+            try {
+                $location->forceDelete();
+                $deletedCount++;
+            } catch (\Exception $e) {
+                $failed[] = $location->name;
+                Log::error('Bulk force delete failed for location', ['location_id' => $locationId, 'error' => $e->getMessage()]);
+            }
+        }
+
+        // ✅ Clear ALL cache keys
+        $this->clearAllCache();
+
+        RateLimiter::clear($this->getThrottleKey('location_bulk_force_delete', $user->id));
+
+        $message = "{$deletedCount} location(s) permanently deleted.";
+        if (!empty($failed)) {
+            $message .= " Failed: " . implode(', ', $failed);
+        }
+
+        SimpleLogger::cms(
+            "Bulk force delete locations",
+            [
+                'deleted_count' => $deletedCount,
+                'failed' => $failed,
+                'performed_by' => $user->email,
+                'ip' => $request->ip(),
+            ]
+        );
+
+        return redirect()->back()->with($deletedCount > 0 ? 'success' : 'error', $message);
     }
 
     /**
@@ -586,11 +678,27 @@ class LocationController extends Controller
     }
 
     /**
-     * Clear location cache keys.
+     * ✅ Clear ALL location cache keys.
+     */
+    private function clearAllCache(): void
+    {
+        // Clear specific cache keys
+        Cache::forget('locations_index_*');
+        Cache::forget('locations_active');
+
+        // ✅ Use Cache::flush() to clear ALL cache (more aggressive)
+        // This ensures no stale data remains
+        Cache::flush();
+
+        // Log cache clearing
+        Log::info('Location cache cleared', ['action' => 'all']);
+    }
+
+    /**
+     * Clear location cache keys (legacy method - kept for compatibility).
      */
     private function clearCache(): void
     {
-        Cache::forget('locations_index_*');
-        Cache::forget('locations_active');
+        $this->clearAllCache();
     }
 }
