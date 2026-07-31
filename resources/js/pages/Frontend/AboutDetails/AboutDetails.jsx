@@ -13,21 +13,15 @@ import NotFoundContent from '../../../Shared/NotFoundContent';
 
 // Special ContentSection component (fixed)
 const ContentSection = ({ subPageData, bgColor, paddingY, paddingX, sectionClassName, sectionId }) => {
-
-  // Render HTML
   const renderHTML = (htmlString) => ({ __html: htmlString });
 
-  // Data
   const data = subPageData || {};
-
-  // Destructure
   const title = data.title;
   const content = data.full_content || data.content;
   const image = data.image;
   const btnText = data.btn_text || data.btn?.text;
   const btnLink = data.btn_link || data.btn?.link;
 
-  // If no title or content, don't render
   if (!title && !content) {
     console.warn('⚠️ ContentSection: No title or content to render');
     return null;
@@ -44,7 +38,8 @@ const ContentSection = ({ subPageData, bgColor, paddingY, paddingX, sectionClass
         <div className="mb-6 sm:mb-8 md:mb-10 lg:mb-12.5">
           <img
             src={image}
-            alt={title || 'About image'}
+            alt={title ? `Image for ${title}` : 'About image'}
+            loading="lazy"
             className="w-full h-auto max-h-64 sm:max-h-80 md:max-h-96 lg:max-h-125 object-cover rounded-2xl"
           />
         </div>
@@ -84,7 +79,6 @@ const AboutDetails = ({
   notFoundMessage,
   ...props
 }) => {
-  // If notFound is true, render a simple not found message within PublicLayout
   if (notFound) {
     return (
       <PublicLayout
@@ -105,18 +99,16 @@ const AboutDetails = ({
     );
   }
 
-  // The data might be nested under pageData or at the root level
-  const pageData = props.pageData || props; // Fallback to props if pageData doesn't exist
+  const pageData = props.pageData || props;
 
-  const allSections = (sectionConfig?.sections || [])
-    .filter(section => section.enabled === true);
+  const allSections = Array.isArray(sectionConfig)
+    ? sectionConfig
+    : (sectionConfig?.sections || []);
 
-  // Separate fixed sections vs dynamic sections
   const fixedSections = allSections.filter(section => section.isFixedSection === true);
   const dynamicSections = allSections.filter(section => section.isFixedSection !== true)
     .sort((a, b) => a.order - b.order);
 
-  // Find specific sections for ordering
   const bannerSection = dynamicSections.find(s => s.component === 'PageBannerSection');
   const otherDynamicSections = dynamicSections.filter(s => s.component !== 'PageBannerSection');
 
@@ -129,7 +121,6 @@ const AboutDetails = ({
     >
       <Head title={`${pageData.contentSectionData?.title || 'About'} | DUS - Dwip Unnayan Society`} />
 
-      {/* 1. Banner (first dynamic section) */}
       {bannerSection && (
         <DynamicSectionRenderer
           key={bannerSection.id}
@@ -139,7 +130,6 @@ const AboutDetails = ({
         />
       )}
 
-      {/* 2. All Fixed Sections (ContentSection, etc.) */}
       {fixedSections.map((section) => {
         if (section.component === 'ContentSection') {
           return (
@@ -153,7 +143,6 @@ const AboutDetails = ({
         return null;
       })}
 
-      {/* 3. Other Dynamic Sections (FAQ, Events, etc.) */}
       {otherDynamicSections.map((section) => (
         <DynamicSectionRenderer
           key={section.id}

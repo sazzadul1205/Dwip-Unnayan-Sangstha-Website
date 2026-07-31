@@ -1,4 +1,4 @@
-// resources/js/Pages/Frontend/ProjectsAndProgramsDetails/ProjectsAndProgramsDetails.jsx
+// resources/js/Pages/Frontend/ProjectsAndProgramsDetails/ProjectsAndProgramsDetails.jsx (original version)
 
 // React
 import React from 'react';
@@ -18,8 +18,6 @@ const ProgramContentSection = ({ programData, bgColor, paddingY, paddingX, secti
   if (!programData) return null;
 
   const data = programData;
-
-  // Try multiple property names (supports both underscore and camelCase)
   const content = data.full_content_html || data.fullContentHtml || data.fullContent || data?.content;
 
   return (
@@ -34,7 +32,8 @@ const ProgramContentSection = ({ programData, bgColor, paddingY, paddingX, secti
         <div className="mb-6 sm:mb-8 md:mb-10 lg:mb-12.5">
           <img
             src={data.image}
-            alt={data?.title || 'Program image'}
+            alt={data?.title ? `Image for ${data.title}` : 'Program image'}
+            loading="lazy"
             className="w-full h-auto max-h-64 sm:max-h-80 md:max-h-96 lg:max-h-125 object-cover rounded-2xl"
           />
         </div>
@@ -69,7 +68,6 @@ const ProjectsAndProgramsDetails = ({
   pageData: incomingPageData,
   ...rest
 }) => {
-  // If notFound is true, render a simple not found message within PublicLayout
   if (notFound) {
     return (
       <PublicLayout
@@ -92,8 +90,9 @@ const ProjectsAndProgramsDetails = ({
 
   const pageData = incomingPageData || rest;
 
-  const allSections = (sectionConfig?.sections || [])
-    .filter(section => section.enabled === true);
+  const allSections = Array.isArray(sectionConfig)
+    ? sectionConfig
+    : (sectionConfig?.sections || []);
 
   const fixedSections = allSections.filter(section => section.isFixedSection === true);
   const dynamicSections = allSections.filter(section => section.isFixedSection !== true)
@@ -102,10 +101,8 @@ const ProjectsAndProgramsDetails = ({
   const bannerSection = dynamicSections.find(s => s.component === 'PageBannerSection');
   const otherDynamicSections = dynamicSections.filter(s => s.component !== 'PageBannerSection');
 
-  // Get program data from pageData (passed from controller)
   const programData = pageData.programContentData || pageData.programData;
 
-  // Prepare page data with program data
   const enrichedPageData = {
     ...pageData,
     programContentData: programData,
@@ -120,7 +117,6 @@ const ProjectsAndProgramsDetails = ({
     >
       <Head title={`${programData?.title || 'Program'} | DUS - Dwip Unnayan Society`} />
 
-      {/* 1. Banner (first dynamic section) */}
       {bannerSection && (
         <DynamicSectionRenderer
           key={bannerSection.id}
@@ -130,7 +126,6 @@ const ProjectsAndProgramsDetails = ({
         />
       )}
 
-      {/* 2. All Fixed Sections (ProgramContentSection, etc.) */}
       {fixedSections.map((section) => {
         if (section.component === 'ProgramContentSection') {
           return (
@@ -144,7 +139,6 @@ const ProjectsAndProgramsDetails = ({
         return null;
       })}
 
-      {/* 3. Other Dynamic Sections (FAQ, Events, etc.) */}
       {otherDynamicSections.map((section) => (
         <DynamicSectionRenderer
           key={section.id}
