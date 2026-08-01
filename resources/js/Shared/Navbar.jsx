@@ -138,11 +138,10 @@ const Navbar = ({ navbarData, storageUrl = '', defaultLogo = '/images/default-lo
   return (
     <nav className="bg-white shadow-sm sticky top-0 z-20">
       <div className="mx-auto px-5 md:px-25 py-5">
+        {/* LOGO + NAV LINKS */}
         <div className="flex justify-between items-center">
 
-          {/* ============================================
-              LOGO - Fixed dimensions 73×106px (no floating)
-              ============================================ */}
+          {/* LOGO */}
           <div className="shrink-0">
             {hasLogo && (
               <Link href={logo.href || '/'} className="block">
@@ -165,54 +164,74 @@ const Navbar = ({ navbarData, storageUrl = '', defaultLogo = '/images/default-lo
             )}
           </div>
 
-          {/* ============================================
-              RIGHT SIDE - Nav Links + CTA + Hamburger
-              ============================================ */}
-          <div className="flex items-center gap-9">
+          {/* RIGHT SIDE */}
+          <div className="flex items-center gap-4 xl:gap-6 2xl:gap-9">
 
             {/* DESKTOP NAVIGATION */}
             {hasNavLinks && (
-              <ul className="hidden lg:flex items-center gap-9">
+              <ul className="hidden lg:flex items-center gap-4 xl:gap-6 2xl:gap-9">
                 {navLinks.map((link, index) => {
                   const active = isActive(link.href);
-                  const hasDropdown = hasValue(link.dropdown) || hasValue(dropdowns[index]);
+                  const hasDropdown =
+                    hasValue(link.dropdown) || hasValue(dropdowns[index]);
 
                   return (
-                    <li key={link.name || index} className="relative">
+                    <li key={link.name || index} className="relative uppercase">
                       {hasDropdown ? (
                         <div>
                           <button
                             onClick={() => toggleDropdown(index)}
-                            className={`relative font-semibold transition-all duration-300 flex items-center gap-1 whitespace-nowrap ${active ? 'text-[#009BE2]' : 'text-black hover:text-[#009BE2]'}`}
-                            aria-expanded={openDropdowns[index]}
-                            aria-haspopup="true"
+                            className={`relative flex items-center gap-1 whitespace-nowrap font-semibold transition-all duration-300
+                              ${active
+                                ? "text-[#009BE2]"
+                                : "text-black hover:text-[#009BE2]"
+                              }
+                              text-sm xl:text-base 2xl:text-lg`}
                           >
                             {link.name}
-                            <ChevronDown className={`w-3 h-3 transition-transform duration-300 ${openDropdowns[index] ? 'rotate-180' : ''}`} />
+                            <ChevronDown
+                              className={`w-3 h-3 transition-transform duration-300 ${openDropdowns[index] ? "rotate-180" : ""
+                                }`}
+                            />
                           </button>
 
                           {openDropdowns[index] && (
                             <div className="absolute top-full left-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-100 py-2 z-50">
-                              {(link.dropdown || dropdowns[index] || []).map((dropdownItem, idx) => (
-                                <Link
-                                  key={idx}
-                                  href={dropdownItem.href}
-                                  className="block px-4 py-2 text-sm text-gray-700 hover:bg-[#009BE2] hover:text-white transition-colors duration-200"
-                                  onClick={() => setOpenDropdowns({})}
-                                >
-                                  {dropdownItem.name}
-                                </Link>
-                              ))}
+                              {(link.dropdown || dropdowns[index] || []).map(
+                                (dropdownItem, idx) => (
+                                  <Link
+                                    key={idx}
+                                    href={dropdownItem.href}
+                                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-[#009BE2] hover:text-white transition-colors duration-200"
+                                    onClick={() => setOpenDropdowns({})}
+                                  >
+                                    {dropdownItem.name}
+                                  </Link>
+                                )
+                              )}
                             </div>
                           )}
                         </div>
                       ) : (
                         <Link
                           href={link.href}
-                          className={`relative font-semibold transition-all duration-300 text-[20px] group whitespace-nowrap ${active ? 'text-[#009BE2]' : 'text-black hover:text-[#009BE2]'}`}
+                          className={`relative group whitespace-nowrap font-semibold transition-all duration-300
+                            ${active
+                              ? "text-[#009BE2]"
+                              : "text-gray-800 hover:text-[#009BE2]"
+                            }
+                            text-sm xl:text-base 2xl:text-[20px]`}
                         >
                           {link.name}
-                          <span className={`absolute bottom-0 left-0 h-0.5 bg-[#009BE2] transition-all duration-300 ${active ? 'w-full' : 'w-0 group-hover:w-full'}`} />
+
+                          <span
+                            className={`absolute -bottom-2 left-1/2 h-0.75 rounded-full bg-[#009BE2]
+                              transition-all duration-300 ease-out
+                              ${active
+                                ? "w-full -translate-x-1/2"
+                                : "w-0 -translate-x-1/2 group-hover:w-full"
+                              }`}
+                          />
                         </Link>
                       )}
                     </li>
@@ -225,16 +244,19 @@ const Navbar = ({ navbarData, storageUrl = '', defaultLogo = '/images/default-lo
             {hasButton && (
               <Link
                 href={button.href}
-                className="uppercase text-white text-[18px] font-semibold bg-[#009BE2] hover:bg-[#009BE2]/80 px-6 py-4 rounded-xl transition-colors duration-200"
+                className="uppercase rounded-xl bg-[#009BE2] text-white font-semibold transition-colors duration-200 hover:bg-[#009BE2]/80
+      px-4 py-2 text-sm
+      xl:px-5 xl:py-3 xl:text-base
+      2xl:px-6 2xl:py-4 2xl:text-[18px]"
               >
                 {button.text}
               </Link>
             )}
 
-            {/* HAMBURGER MENU BUTTON - Mobile */}
+            {/* Mobile Menu */}
             <button
               onClick={() => setIsOpen(!isOpen)}
-              className={mobileMenu.className || "lg:hidden text-gray-700 hover:text-blue-600 focus:outline-none p-2"}
+              className={mobileMenu.className || "lg:hidden p-2 text-gray-700 hover:text-blue-600"}
               aria-label="Toggle menu"
               aria-expanded={isOpen}
             >
@@ -243,9 +265,7 @@ const Navbar = ({ navbarData, storageUrl = '', defaultLogo = '/images/default-lo
           </div>
         </div>
 
-        {/* ============================================
-            MOBILE MENU - Slide Down
-            ============================================ */}
+        {/*  MOBILE MENU - Slide Down */}
         <div
           className={`lg:hidden transition-all duration-300 ease-in-out overflow-hidden
             ${isOpen ? 'max-h-screen opacity-100 mt-4' : 'max-h-0 opacity-0'}`}

@@ -7,33 +7,17 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import Swal from 'sweetalert2';
 
 // Icons
-import { FaTimes } from 'react-icons/fa';
-import { FaPlus, FaTrash, FaUpload, FaSpinner } from 'react-icons/fa6';
+import { FaPlus, FaTrash, FaUpload, FaSpinner, FaImage, FaLink, FaPhone, FaAddressCard, FaShareAlt, FaCopyright, FaIcons } from 'react-icons/fa';
+import { FiExternalLink, FiFacebook, FiGithub, FiInstagram, FiLinkedin, FiTwitter, FiYoutube } from 'react-icons/fi';
 
-// CONSTANTS
-const SOCIAL_ICON_OPTIONS = [
-  { value: 'FaFacebook', label: 'Facebook' },
-  { value: 'FaInstagram', label: 'Instagram' },
-  { value: 'FaLinkedin', label: 'LinkedIn' },
-  { value: 'FaXTwitter', label: 'X (Twitter)' },
-  { value: 'FaYoutube', label: 'YouTube' },
-  { value: 'FaTiktok', label: 'TikTok' },
-  { value: 'FaPinterest', label: 'Pinterest' },
-  { value: 'FaWhatsapp', label: 'WhatsApp' },
-  { value: 'FaTelegram', label: 'Telegram' },
-];
-
-const HOVER_COLOR_OPTIONS = [
-  { value: 'hover:text-[#009BE2]', label: 'Blue (#009BE2)' },
-  { value: 'hover:text-blue-400', label: 'Light Blue' },
-  { value: 'hover:text-blue-600', label: 'Dark Blue' },
-  { value: 'hover:text-pink-400', label: 'Pink' },
-  { value: 'hover:text-red-400', label: 'Red' },
-  { value: 'hover:text-green-400', label: 'Green' },
-  { value: 'hover:text-yellow-400', label: 'Yellow' },
-  { value: 'hover:text-purple-400', label: 'Purple' },
-  { value: 'hover:text-orange-400', label: 'Orange' },
-  { value: 'hover:text-gray-300', label: 'Light Gray' },
+// Available social icons with their display names
+const SOCIAL_ICONS = [
+  { value: 'FaFacebook', label: 'Facebook', icon: FiFacebook, color: '#1877F2' },
+  { value: 'FaTwitter', label: 'Twitter', icon: FiTwitter, color: '#1DA1F2' },
+  { value: 'FaInstagram', label: 'Instagram', icon: FiInstagram, color: '#E4405F' },
+  { value: 'FaLinkedin', label: 'LinkedIn', icon: FiLinkedin, color: '#0A66C2' },
+  { value: 'FaYoutube', label: 'YouTube', icon: FiYoutube, color: '#FF0000' },
+  { value: 'FaGithub', label: 'GitHub', icon: FiGithub, color: '#181717' },
 ];
 
 export default function FooterEditor({
@@ -56,7 +40,6 @@ export default function FooterEditor({
   const fileInputRef = useRef(null);
   const quickLinkIconInputRef = useRef(null);
   const programLinkIconInputRef = useRef(null);
-
 
   // FETCH NAVIGATION ITEMS
   const fetchNavItems = useCallback(async () => {
@@ -158,8 +141,8 @@ export default function FooterEditor({
 
       Swal.fire({
         icon: 'success',
-        title: 'Image Uploaded',
-        text: 'Footer logo uploaded successfully!',
+        title: 'Uploaded!',
+        text: 'Footer logo uploaded successfully.',
         timer: 1500,
         showConfirmButton: false,
       });
@@ -195,7 +178,7 @@ export default function FooterEditor({
     });
   };
 
-  // LINK ICON HANDLING (NEW)
+  // LINK ICON HANDLING
   const handleLinkIconDrag = (e, type) => {
     e.preventDefault();
     e.stopPropagation();
@@ -332,16 +315,6 @@ export default function FooterEditor({
     updateFormData('contact.numbers', newNumbers);
   };
 
-  // SOCIAL LINK HANDLING
-  const addSocialLink = () => {
-    addArrayItem('socialLinks', {
-      iconName: 'FaFacebook',
-      url: '',
-      hoverColor: 'hover:text-[#009BE2]',
-      ariaLabel: ''
-    });
-  };
-
   // BOTTOM FOOTER LINK HANDLING
   const addBottomLink = () => {
     const currentLinks = formData.bottomFooter?.links || [];
@@ -400,163 +373,102 @@ export default function FooterEditor({
 
   const quickLinksHaveDuplicates = hasDuplicateLinks(formData.quickLinks);
   const programsHaveDuplicates = hasDuplicateLinks(formData.programs);
+  const hasLogo = formData.logo?.src && formData.logo.src.trim().length > 0;
 
-  // RENDER LINK ICON DROP ZONE
-  const renderLinkIconDropZone = (type, label, fieldName, currentValue, inputRef) => {
-    const isDragActive = dragActive === type;
-
-    return (
-      <div>
-        <label className="block text-sm font-medium text-gray-700">
-          {label}
-          <span className="text-xs text-gray-400 ml-2">(Drag & drop or click to upload)</span>
-        </label>
-        <div className="relative">
-          <div
-            className={`relative border-2 border-dashed rounded-lg p-3 transition-all ${isDragActive ? 'border-blue-500 bg-blue-50' : 'border-gray-300 hover:border-gray-400'
-              } ${uploading ? 'opacity-50' : ''}`}
-            onDragEnter={(e) => handleLinkIconDrag(e, type)}
-            onDragLeave={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              setDragActive(false);
-            }}
-            onDragOver={(e) => handleLinkIconDrag(e, type)}
-            onDrop={(e) => handleLinkIconDrop(e, type)}
-          >
-            <div className="flex items-center gap-3 min-h-14">
-              {currentValue ? (
-                <div className="flex items-center gap-3 w-full">
-                  <img
-                    src={currentValue}
-                    alt={label}
-                    className="w-12 h-12 object-contain rounded border"
-                    onError={(e) => {
-                      e.target.src = '/images/placeholder-icon.png';
-                    }}
-                  />
-                  <span className="text-xs text-gray-500 truncate flex-1">
-                    {typeof currentValue === 'string' && currentValue.startsWith('data:image')
-                      ? '📷 New icon (will be saved)'
-                      : `📁 ${currentValue.length > 40 ? `${currentValue.substring(0, 40)}...` : currentValue}`}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => removeLinkIcon(type)}
-                    className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition shrink-0"
-                    title={`Remove ${label}`}
-                    disabled={isDisabled}
-                  >
-                    <FaTimes size={14} />
-                  </button>
-                </div>
-              ) : (
-                <div className="flex items-center gap-3 w-full text-gray-400 py-2">
-                  <FaUpload size={18} className="shrink-0" />
-                  <span className="text-sm">Drop {label.toLowerCase()} or click to browse</span>
-                </div>
-              )}
-              <input
-                ref={inputRef}
-                type="file"
-                accept="image/*"
-                onChange={(e) => handleLinkIconFileSelect(e, type)}
-                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                disabled={isDisabled}
-              />
-            </div>
-            {uploading && (
-              <div className="absolute inset-0 flex items-center justify-center bg-white/80 rounded-lg">
-                <div className="flex items-center gap-2">
-                  <FaSpinner className="animate-spin text-blue-600" size={20} />
-                  <span className="text-sm text-gray-600">Uploading...</span>
-                </div>
-              </div>
-            )}
-          </div>
-          <p className="text-xs text-gray-400 mt-1">
-            Max 5MB. Supported: JPG, PNG, GIF, WebP, SVG
-          </p>
-        </div>
-      </div>
-    );
-  };
 
   return (
-    <div className="space-y-4 w-full">
+    <div className="space-y-8 w-full">
+
       {/* LOGO SECTION */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Logo
-          <span className="text-xs text-gray-400 ml-2">(Recommended: PNG with transparent background)</span>
-        </label>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
-          <div className="relative">
-            <div
-              className={`relative border-2 border-dashed rounded-lg p-4 transition-all ${dragActive === true ? 'border-blue-500 bg-blue-50' : 'border-gray-300 hover:border-gray-400'
-                } ${uploading ? 'opacity-50' : ''}`}
-              onDragEnter={handleDrag}
-              onDragLeave={handleDrag}
-              onDragOver={handleDrag}
-              onDrop={handleDrop}
-            >
-              <div className="flex items-center gap-3 min-h-16">
-                {formData.logo?.src ? (
-                  <div className="flex items-center gap-3 w-full">
-                    <img
-                      src={formData.logo.src}
-                      alt={formData.logo?.alt || 'Footer Logo preview'}
-                      className="w-16 h-16 object-contain rounded border"
-                      onError={(e) => {
-                        e.target.src = '/images/placeholder-logo.png';
-                      }}
-                    />
-                    <span className="text-xs text-gray-500 truncate flex-1">
-                      {typeof formData.logo.src === 'string' && formData.logo.src.startsWith('data:image')
-                        ? '📷 New image (will be saved)'
-                        : `📁 ${formData.logo.src.length > 40 ? `${formData.logo.src.substring(0, 40)}...` : formData.logo.src}`}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={removeLogo}
-                      className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition shrink-0"
-                      title="Remove logo"
-                      disabled={isDisabled}
-                    >
-                      <FaTimes size={14} />
-                    </button>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-3 w-full text-gray-400 py-2">
-                    <FaUpload size={20} className="shrink-0" />
-                    <span className="text-sm">Drop logo or click to browse</span>
+      <div className="bg-linear-to-r from-blue-50 to-indigo-50 rounded-xl p-6 border border-blue-100">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="p-2 bg-blue-100 rounded-lg">
+            <FaImage className="text-blue-600 text-lg" />
+          </div>
+          <div>
+            <h3 className="font-semibold text-gray-800 text-lg">Footer Logo</h3>
+            <p className="text-xs text-gray-500">Upload your brand logo for the footer</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Logo Upload */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Logo Image
+              <span className="text-xs text-gray-400 ml-2">(Recommended: PNG with transparent background)</span>
+            </label>
+            <div className="relative">
+              <div
+                className={`relative border-2 border-dashed rounded-lg p-4 transition-all ${dragActive === true ? 'border-blue-500 bg-blue-50' : 'border-gray-300 hover:border-gray-400'
+                  } ${uploading ? 'opacity-50' : ''}`}
+                onDragEnter={handleDrag}
+                onDragLeave={handleDrag}
+                onDragOver={handleDrag}
+                onDrop={handleDrop}
+              >
+                <div className="flex items-center gap-3 min-h-16">
+                  {hasLogo ? (
+                    <div className="flex items-center gap-3 w-full">
+                      {/* Dark background preview - matches footer */}
+                      <div className="w-16 h-16 rounded border border-gray-600 bg-[#080C14] flex items-center justify-center p-1 shrink-0">
+                        <img
+                          src={formData.logo.src}
+                          alt={formData.logo?.alt || 'Logo preview'}
+                          className="max-w-full max-h-full object-contain"
+                          onError={(e) => {
+                            e.target.src = '/images/placeholder-logo.png';
+                          }}
+                        />
+                      </div>
+                      <span className="text-xs text-gray-500 truncate flex-1">
+                        Logo uploaded
+                      </span>
+                      <button
+                        type="button"
+                        onClick={removeLogo}
+                        className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition shrink-0"
+                        title="Remove logo"
+                        disabled={isDisabled}
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-3 w-full text-gray-400 py-2">
+                      <FaUpload size={20} className="shrink-0" />
+                      <span className="text-sm">Drop logo or click to browse</span>
+                    </div>
+                  )}
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFileSelect}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                    disabled={isDisabled}
+                  />
+                </div>
+                {uploading && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-white/80 rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <FaSpinner className="animate-spin text-blue-600" size={24} />
+                      <span className="text-sm text-gray-600">Uploading...</span>
+                    </div>
                   </div>
                 )}
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  onChange={handleFileSelect}
-                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                  disabled={isDisabled}
-                />
               </div>
-              {uploading && (
-                <div className="absolute inset-0 flex items-center justify-center bg-white/80 rounded-lg">
-                  <div className="flex items-center gap-2">
-                    <FaSpinner className="animate-spin text-blue-600" size={24} />
-                    <span className="text-sm text-gray-600">Uploading...</span>
-                  </div>
-                </div>
-              )}
+              <p className="text-xs text-gray-400 mt-1.5">
+                Drag & drop or click to upload. Max 5MB. Supported: JPG, PNG, GIF, WebP, SVG
+              </p>
             </div>
-            <p className="text-xs text-gray-400 mt-1">
-              Drag & drop or click to upload. Max 5MB. Supported: JPG, PNG, GIF, WebP, SVG
-            </p>
           </div>
 
+          {/* Logo Alt Text */}
           <div>
-            <label className="block text-sm font-medium text-gray-700">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
               Logo Alt Text
               <span className="text-xs text-gray-400 ml-2">(for accessibility)</span>
             </label>
@@ -565,77 +477,101 @@ export default function FooterEditor({
               value={formData.logo?.alt || ''}
               onChange={(e) => updateFormData('logo.alt', e.target.value)}
               placeholder="e.g., Company Logo"
-              className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition outline-none"
               disabled={isDisabled}
             />
-            <p className="text-xs text-gray-400 mt-1">
+            <p className="text-xs text-gray-400 mt-1.5">
               Describes the logo for screen readers and SEO
             </p>
           </div>
         </div>
       </div>
 
-      {/* DESCRIPTION */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700">
-          Footer Description
-          <span className="text-xs text-gray-400 ml-2">(optional)</span>
-        </label>
+      {/* DESCRIPTION SECTION */}
+      <div className="bg-linear-to-r from-gray-50 to-slate-50 rounded-xl p-6 border border-gray-200">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="p-2 bg-gray-100 rounded-lg">
+            <FaAddressCard className="text-gray-600 text-lg" />
+          </div>
+          <div>
+            <h3 className="font-semibold text-gray-800 text-lg">Footer Description</h3>
+            <p className="text-xs text-gray-500">Brief description of your organization</p>
+          </div>
+        </div>
+
         <textarea
           value={formData.description || ''}
           onChange={(e) => updateFormData('description', e.target.value)}
           rows={3}
           placeholder="Brief description of your organization..."
-          className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+          className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition outline-none"
           disabled={isDisabled}
         />
       </div>
 
-      {/*  ADDRESS */}
-      <div>
-        <h3 className="font-semibold text-lg pt-2">Address & Contact</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full mt-2">
+      {/*   ADDRESS & CONTACT SECTION */}
+      <div className="bg-linear-to-r from-green-50 to-emerald-50 rounded-xl p-6 border border-green-100">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="p-2 bg-green-100 rounded-lg">
+            <FaAddressCard className="text-green-600 text-lg" />
+          </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700">Address Title</label>
+            <h3 className="font-semibold text-gray-800 text-lg">Address & Contact</h3>
+            <p className="text-xs text-gray-500">Physical address and contact information</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Address Title</label>
             <input
               type="text"
               value={formData.address?.title || ''}
               onChange={(e) => updateFormData('address.title', e.target.value)}
               placeholder="e.g., Address"
-              className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition outline-none"
               disabled={isDisabled}
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700">Address Details</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Address Details</label>
             <input
               type="text"
               value={formData.address?.details || ''}
               onChange={(e) => updateFormData('address.details', e.target.value)}
               placeholder="Full address"
-              className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition outline-none"
               disabled={isDisabled}
             />
           </div>
         </div>
       </div>
 
-      {/* CONTACT NUMBERS */}
-      <div className="w-full">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
+      {/* CONTACT & EMAIL SECTION */}
+      <div className="bg-linear-to-r from-cyan-50 to-teal-50 rounded-xl p-6 border border-cyan-100">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="p-2 bg-cyan-100 rounded-lg">
+            <FaPhone className="text-cyan-600 text-lg" />
+          </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700">Contact Title</label>
+            <h3 className="font-semibold text-gray-800 text-lg">Contact & Email</h3>
+            <p className="text-xs text-gray-500">Phone numbers and email addresses</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Contact Numbers */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Contact Title</label>
             <input
               type="text"
               value={formData.contact?.title || ''}
               onChange={(e) => updateFormData('contact.title', e.target.value)}
               placeholder="e.g., Call, Contact, Phone"
-              className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition outline-none mb-3"
               disabled={isDisabled}
             />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Contact Numbers</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Phone Numbers</label>
             <div className="space-y-2">
               {(formData.contact?.numbers || []).map((number, index) => (
                 <div key={index} className="flex gap-2 items-center">
@@ -644,13 +580,13 @@ export default function FooterEditor({
                     value={number || ''}
                     onChange={(e) => updateContactNumber(index, e.target.value)}
                     placeholder="Enter phone number"
-                    className="flex-1 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition outline-none"
                     disabled={isDisabled}
                   />
                   <button
                     type="button"
                     onClick={() => removeContactNumber(index)}
-                    className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition shrink-0"
+                    className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition shrink-0"
                     disabled={isDisabled || (formData.contact?.numbers || []).length <= 1}
                   >
                     <FaTrash size={14} />
@@ -660,32 +596,26 @@ export default function FooterEditor({
               <button
                 type="button"
                 onClick={addContactNumber}
-                className="text-blue-600 hover:text-blue-700 flex items-center gap-2 text-sm"
+                className="text-cyan-600 hover:text-cyan-700 flex items-center gap-2 text-sm font-medium"
                 disabled={isDisabled}
               >
                 <FaPlus size={14} /> Add Phone Number
               </button>
             </div>
           </div>
-        </div>
-      </div>
 
-      {/* EMAIL ADDRESSES */}
-      <div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
+          {/* Email Addresses */}
           <div>
-            <label className="block text-sm font-medium text-gray-700">Email Section Title</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Email Section Title</label>
             <input
               type="text"
               value={formData.email?.title || ''}
               onChange={(e) => updateFormData('email.title', e.target.value)}
               placeholder="e.g., Email"
-              className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition outline-none mb-3"
               disabled={isDisabled}
             />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Email Addresses</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Email Addresses</label>
             <div className="space-y-2">
               {(formData.email?.addresses || []).map((address, index) => (
                 <div key={index} className="flex gap-2 items-center">
@@ -694,13 +624,13 @@ export default function FooterEditor({
                     value={address || ''}
                     onChange={(e) => updateEmailAddress(index, e.target.value)}
                     placeholder="Enter email address"
-                    className="flex-1 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition outline-none"
                     disabled={isDisabled}
                   />
                   <button
                     type="button"
                     onClick={() => removeEmailAddress(index)}
-                    className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition shrink-0"
+                    className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition shrink-0"
                     disabled={isDisabled || (formData.email?.addresses || []).length <= 1}
                   >
                     <FaTrash size={14} />
@@ -710,7 +640,7 @@ export default function FooterEditor({
               <button
                 type="button"
                 onClick={addEmailAddress}
-                className="text-blue-600 hover:text-blue-700 flex items-center gap-2 text-sm"
+                className="text-cyan-600 hover:text-cyan-700 flex items-center gap-2 text-sm font-medium"
                 disabled={isDisabled}
               >
                 <FaPlus size={14} /> Add Email Address
@@ -720,355 +650,573 @@ export default function FooterEditor({
         </div>
       </div>
 
-      {/* SOCIAL LINKS */}
-      <div>
-        <h3 className="font-semibold text-lg pt-2">Social Links</h3>
-        <p className="text-xs text-gray-500 mb-2">Add social media links for your organization</p>
-
-        {(formData.socialLinks || []).map((link, index) => (
-          <div key={index} className="flex gap-3 items-center bg-gray-50 p-3 rounded-lg w-full flex-wrap mb-2">
-            <div className="flex-1 min-w-30">
-              <select
-                value={link.iconName || 'FaFacebook'}
-                onChange={(e) => updateFormData(`socialLinks.${index}.iconName`, e.target.value)}
-                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 bg-white"
-                disabled={isDisabled}
-              >
-                {SOCIAL_ICON_OPTIONS.map(option => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
+      {/* SOCIAL LINKS SECTION */}
+      <div className="bg-linear-to-r from-pink-50 to-rose-50 rounded-xl p-6 border border-pink-100">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-pink-100 rounded-lg">
+              <FaShareAlt className="text-pink-600 text-lg" />
             </div>
-            <input
-              type="text"
-              value={link.url || ''}
-              onChange={(e) => updateFormData(`socialLinks.${index}.url`, e.target.value)}
-              placeholder="URL (e.g., https://facebook.com/yourpage)"
-              className="flex-1 min-w-37.5 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
-              disabled={isDisabled}
-            />
-            <div className="min-w-32.5">
-              <select
-                value={link.hoverColor || 'hover:text-[#009BE2]'}
-                onChange={(e) => updateFormData(`socialLinks.${index}.hoverColor`, e.target.value)}
-                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 bg-white"
-                disabled={isDisabled}
-              >
-                {HOVER_COLOR_OPTIONS.map(option => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
+            <div>
+              <h3 className="font-semibold text-gray-800 text-lg">Social Links</h3>
+              <p className="text-xs text-gray-500">
+                {(formData.socialLinks || []).length} social media links
+              </p>
             </div>
-            <button
-              type="button"
-              onClick={() => removeArrayItem('socialLinks', index)}
-              className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition shrink-0"
-              disabled={isDisabled}
-            >
-              <FaTrash size={14} />
-            </button>
           </div>
-        ))}
-        <button
-          type="button"
-          onClick={addSocialLink}
-          className="text-blue-600 hover:text-blue-700 flex items-center gap-2"
-          disabled={isDisabled}
-        >
-          <FaPlus size={14} /> Add Social Link
-        </button>
-      </div>
-
-      {/* QUICK LINKS */}
-      <div>
-        <h3 className="font-semibold text-lg pt-2">Quick Links</h3>
-        <p className="text-xs text-gray-500 mb-2">Select pages from dropdown or enter custom links</p>
-
-        {quickLinksHaveDuplicates && (
-          <div className="mb-3 p-2 bg-yellow-50 border border-yellow-200 rounded-lg text-sm text-yellow-700">
-            ⚠️ Duplicate URLs detected in Quick Links. Please ensure each link has a unique URL.
-          </div>
-        )}
-
-        {(formData.quickLinks || []).map((link, index) => (
-          <div key={index} className="flex gap-3 items-center bg-gray-50 p-3 rounded-lg w-full flex-wrap mb-2">
-            <div className="flex-1 min-w-37.5">
-              <select
-                value={link.url ? link.url.replace(/^\//, '').split('/').pop() || '' : ''}
-                onChange={(e) => handleItemSelect('quickLinks', index, e.target.value)}
-                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 bg-white"
-                disabled={isDisabled}
-              >
-                <option value="">-- Select Page/Program --</option>
-                {loadingItems ? (
-                  <option value="" disabled>⏳ Loading...</option>
-                ) : itemsError ? (
-                  <option value="" disabled>⚠️ Could not load</option>
-                ) : dropdownItems.length === 0 ? (
-                  <option value="" disabled>No items available</option>
-                ) : (
-                  dropdownItems.map((item) => {
-                    if (item.type === 'header') {
-                      return (
-                        <option key={item.key} value="" disabled className="font-bold text-gray-700 bg-gray-100">
-                          {item.label}
-                        </option>
-                      );
-                    }
-                    return (
-                      <option key={item.key} value={item.slug}>
-                        {item.name}
-                      </option>
-                    );
-                  })
-                )}
-              </select>
-            </div>
-            <input
-              type="text"
-              value={link.name || ''}
-              onChange={(e) => updateFormData(`quickLinks.${index}.name`, e.target.value)}
-              placeholder="Link Name"
-              className="flex-1 min-w-25 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
-              disabled={isDisabled}
-            />
-            <input
-              type="text"
-              value={link.url || ''}
-              onChange={(e) => updateFormData(`quickLinks.${index}.url`, e.target.value)}
-              placeholder="URL"
-              className="flex-1 min-w-25 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
-              disabled={isDisabled}
-            />
-            <button
-              type="button"
-              onClick={() => removeArrayItem('quickLinks', index)}
-              className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition shrink-0"
-              disabled={isDisabled}
-            >
-              <FaTrash size={14} />
-            </button>
-          </div>
-        ))}
-        <button
-          type="button"
-          onClick={() => addArrayItem('quickLinks', { name: '', url: '/' })}
-          className="text-blue-600 hover:text-blue-700 flex items-center gap-2"
-          disabled={isDisabled}
-        >
-          <FaPlus size={14} /> Add Quick Link
-        </button>
-      </div>
-
-      {/* PROGRAMS */}
-      <div>
-        <h3 className="font-semibold text-lg pt-2">Programs</h3>
-        <p className="text-xs text-gray-500 mb-2">Select programs from dropdown or enter custom links</p>
-
-        {programsHaveDuplicates && (
-          <div className="mb-3 p-2 bg-yellow-50 border border-yellow-200 rounded-lg text-sm text-yellow-700">
-            ⚠️ Duplicate URLs detected in Programs. Please ensure each link has a unique URL.
-          </div>
-        )}
-
-        {(formData.programs || []).map((program, index) => (
-          <div key={index} className="flex gap-3 items-center bg-gray-50 p-3 rounded-lg w-full flex-wrap mb-2">
-            <div className="flex-1 min-w-37.5">
-              <select
-                value={program.url ? program.url.replace(/^\//, '').split('/').pop() || '' : ''}
-                onChange={(e) => handleItemSelect('programs', index, e.target.value)}
-                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 bg-white"
-                disabled={isDisabled}
-              >
-                <option value="">-- Select Program --</option>
-                {loadingItems ? (
-                  <option value="" disabled>⏳ Loading...</option>
-                ) : itemsError ? (
-                  <option value="" disabled>⚠️ Could not load</option>
-                ) : dropdownItems.length === 0 ? (
-                  <option value="" disabled>No items available</option>
-                ) : (
-                  dropdownItems.map((item) => {
-                    if (item.type === 'header') {
-                      return (
-                        <option key={item.key} value="" disabled className="font-bold text-gray-700 bg-gray-100">
-                          {item.label}
-                        </option>
-                      );
-                    }
-                    return (
-                      <option key={item.key} value={item.slug}>
-                        {item.name}
-                      </option>
-                    );
-                  })
-                )}
-              </select>
-            </div>
-            <input
-              type="text"
-              value={program.name || ''}
-              onChange={(e) => updateFormData(`programs.${index}.name`, e.target.value)}
-              placeholder="Program Name"
-              className="flex-1 min-w-25 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
-              disabled={isDisabled}
-            />
-            <input
-              type="text"
-              value={program.url || ''}
-              onChange={(e) => updateFormData(`programs.${index}.url`, e.target.value)}
-              placeholder="URL"
-              className="flex-1 min-w-25 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
-              disabled={isDisabled}
-            />
-            <button
-              type="button"
-              onClick={() => removeArrayItem('programs', index)}
-              className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition shrink-0"
-              disabled={isDisabled}
-            >
-              <FaTrash size={14} />
-            </button>
-          </div>
-        ))}
-
-        <button
-          type="button"
-          onClick={() => addArrayItem('programs', { name: '', url: '/' })}
-          className="text-blue-600 hover:text-blue-700 flex items-center gap-2"
-          disabled={isDisabled}
-        >
-          <FaPlus size={14} /> Add Program
-        </button>
-      </div>
-
-      {/* NEWSLETTER */}
-      <div>
-        <h3 className="font-semibold text-lg pt-2">Newsletter</h3>
-        <p className="text-xs text-gray-500 mb-2">Configure the newsletter subscription section</p>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full">
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Newsletter Title</label>
-            <input
-              type="text"
-              value={formData.newsletter?.title || ''}
-              onChange={(e) => updateFormData('newsletter.title', e.target.value)}
-              placeholder="Subscribe to Our Newsletter"
-              className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
-              disabled={isDisabled}
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Button Text</label>
-            <input
-              type="text"
-              value={formData.newsletter?.buttonText || ''}
-              onChange={(e) => updateFormData('newsletter.buttonText', e.target.value)}
-              placeholder="Subscribe"
-              className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
-              disabled={isDisabled}
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Placeholder</label>
-            <input
-              type="text"
-              value={formData.newsletter?.placeholder || ''}
-              onChange={(e) => updateFormData('newsletter.placeholder', e.target.value)}
-              placeholder="Enter your email address"
-              className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
-              disabled={isDisabled}
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* BOTTOM FOOTER */}
-      <div>
-        <h3 className="font-semibold text-lg pt-2">Bottom Footer</h3>
-        <p className="text-xs text-gray-500 mb-2">Copyright and legal links</p>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700">Copyright Text</label>
-          <input
-            type="text"
-            value={formData.bottomFooter?.copyright || ''}
-            onChange={(e) => updateFormData('bottomFooter.copyright', e.target.value)}
-            placeholder="© 2024 Your Organization. All rights reserved."
-            className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
-            disabled={isDisabled}
-          />
-        </div>
-
-        <div className="mt-3">
-          <label className="block text-sm font-medium text-gray-700">Legal Links</label>
-          <p className="text-xs text-gray-400 mb-2">Links like Privacy Policy, Terms of Service, etc.</p>
-
-          {(formData.bottomFooter?.links || []).map((link, index) => (
-            <div key={index} className="flex gap-3 items-center bg-gray-50 p-3 rounded-lg w-full flex-wrap mb-2">
-              <input
-                type="text"
-                value={link.text || ''}
-                onChange={(e) => updateBottomLink(index, 'text', e.target.value)}
-                placeholder="Link Text"
-                className="flex-1 min-w-25 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
-                disabled={isDisabled}
-              />
-              <input
-                type="text"
-                value={link.url || ''}
-                onChange={(e) => updateBottomLink(index, 'url', e.target.value)}
-                placeholder="URL"
-                className="flex-1 min-w-25 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
-                disabled={isDisabled}
-              />
-              <button
-                type="button"
-                onClick={() => removeBottomLink(index)}
-                className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition shrink-0"
-                disabled={isDisabled}
-              >
-                <FaTrash size={14} />
-              </button>
-            </div>
-          ))}
-          <button
+          {/* <button
             type="button"
-            onClick={addBottomLink}
-            className="text-blue-600 hover:text-blue-700 flex items-center gap-2"
+            onClick={addSocialLink}
+            className="flex items-center gap-2 px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 transition shadow-sm"
             disabled={isDisabled}
           >
-            <FaPlus size={14} /> Add Legal Link
-          </button>
+            <FaPlus size={14} />
+            Add Social Link
+          </button> */}
+        </div>
+
+        {(!formData.socialLinks || formData.socialLinks.length === 0) ? (
+          <div className="bg-white rounded-lg p-8 text-center border-2 border-dashed border-gray-300">
+            <FaShareAlt className="text-gray-300 text-4xl mx-auto mb-3" />
+            <p className="text-gray-400 font-medium">No social links added yet</p>
+            <p className="text-xs text-gray-400">Click "Add Social Link" to connect your social media</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {(formData.socialLinks || []).map((link, index) => {
+              const iconConfig = SOCIAL_ICONS.find(i => i.value === link.iconName);
+              const IconComponent = iconConfig?.icon || FiExternalLink;
+              const hasUrl = link.url && link.url.trim() !== '';
+              return (
+                <div
+                  key={index}
+                  className={`bg-white rounded-lg p-4 shadow-sm border transition ${hasUrl ? 'border-green-200 hover:border-green-300' : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                >
+                  <div className="flex flex-wrap items-center gap-3">
+
+                    {/* URL */}
+                    <div className="flex-1 min-w-45">
+                      <input
+                        type="url"
+                        value={link.url || ''}
+                        onChange={(e) => updateFormData(`socialLinks.${index}.url`, e.target.value)}
+                        placeholder="https://facebook.com/yourpage"
+                        className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition outline-none ${hasUrl ? 'border-green-300' : 'border-gray-300'
+                          }`}
+                        disabled={isLoading}
+                      />
+                    </div>
+
+                    {/* Name */}
+                    <div className="min-w-25">
+                      <input
+                        type="text"
+                        value={link.ariaLabel || ''}
+                        onChange={(e) => updateFormData(`socialLinks.${index}.ariaLabel`, e.target.value)}
+                        placeholder="Label"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition outline-none text-sm"
+                        disabled={isLoading}
+                      />
+                    </div>
+                  </div>
+                  {/* Preview of how it will look */}
+                  {hasUrl && (
+                    <div className="mt-3 pt-3 border-t border-gray-100 flex items-center gap-2 text-sm">
+                      <span className="text-xs text-gray-400">Preview:</span>
+                      <a
+                        href="#"
+                        className={`text-gray-600 transition ${link.hoverColor || 'hover:text-cyan-600'} flex items-center gap-1`}
+                        onClick={(e) => e.preventDefault()}
+                      >
+                        <IconComponent size={14} />
+                        {link.name || 'Link'}
+                      </a>
+                      <span className="text-xs text-gray-400 ml-2">→ {link.url}</span>
+                    </div>
+                  )}
+
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* QUICK LINKS & PROGRAMS SECTION*/}
+      <div className="bg-linear-to-r from-orange-50 to-amber-50 rounded-xl p-6 border border-orange-100">
+
+        {/* Header */}
+        <div className="flex items-center gap-3 mb-4">
+          <div className="p-2 bg-orange-100 rounded-lg">
+            <FaLink className="text-orange-600 text-lg" />
+          </div>
+          <div>
+            <h3 className="font-semibold text-gray-800 text-lg">Quick Links & Programs</h3>
+            <p className="text-xs text-gray-500">
+              {(formData.quickLinks || []).length} quick links • {(formData.programs || []).length} programs
+            </p>
+          </div>
+        </div>
+
+        {/* Quick Links */}
+        <div className="space-y-6">
+          {/* Quick Links */}
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <h4 className="font-medium text-gray-700">Quick Links</h4>
+              <button
+                type="button"
+                onClick={() => addArrayItem('quickLinks', { name: '', url: '/' })}
+                className="text-orange-600 hover:text-orange-700 flex items-center gap-1 text-sm font-medium"
+                disabled={isDisabled}
+              >
+                <FaPlus size={12} /> Add Quick Link
+              </button>
+            </div>
+
+            {quickLinksHaveDuplicates && (
+              <div className="mb-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-sm text-yellow-700 flex items-center gap-2">
+                <span>⚠️</span>
+                Duplicate URLs detected. Please ensure each link has a unique URL.
+              </div>
+            )}
+
+            {(formData.quickLinks || []).length === 0 ? (
+              <div className="bg-white rounded-lg p-6 text-center border-2 border-dashed border-gray-300">
+                <p className="text-gray-400 text-sm">No quick links added yet</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {(formData.quickLinks || []).map((link, index) => (
+                  <div key={index} className="bg-white rounded-lg p-3 shadow-sm border border-gray-200 hover:border-orange-300 transition">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <div className="flex-1 min-w-37.5">
+                        <select
+                          value={link.url ? link.url.replace(/^\//, '').split('/').pop() || '' : ''}
+                          onChange={(e) => handleItemSelect('quickLinks', index, e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition outline-none bg-white text-sm"
+                          disabled={isDisabled}
+                        >
+                          <option value="">-- Select Page/Program --</option>
+                          {loadingItems ? (
+                            <option value="" disabled>⏳ Loading...</option>
+                          ) : itemsError ? (
+                            <option value="" disabled>⚠️ Could not load</option>
+                          ) : dropdownItems.length === 0 ? (
+                            <option value="" disabled>No items available</option>
+                          ) : (
+                            dropdownItems.map((item) => {
+                              if (item.type === 'header') {
+                                return (
+                                  <option key={item.key} value="" disabled className="font-bold text-gray-700 bg-gray-100">
+                                    {item.label}
+                                  </option>
+                                );
+                              }
+                              return (
+                                <option key={item.key} value={item.slug}>
+                                  {item.name}
+                                </option>
+                              );
+                            })
+                          )}
+                        </select>
+                      </div>
+                      <div className="flex-1 min-w-25">
+                        <input
+                          type="text"
+                          value={link.name || ''}
+                          onChange={(e) => updateFormData(`quickLinks.${index}.name`, e.target.value)}
+                          placeholder="Link Name"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition outline-none text-sm"
+                          disabled={isDisabled}
+                        />
+                      </div>
+                      <div className="flex-1 min-w-25">
+                        <input
+                          type="text"
+                          value={link.url || ''}
+                          onChange={(e) => updateFormData(`quickLinks.${index}.url`, e.target.value)}
+                          placeholder="URL"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition outline-none text-sm"
+                          disabled={isDisabled}
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => removeArrayItem('quickLinks', index)}
+                        className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition shrink-0"
+                        disabled={isDisabled}
+                      >
+                        <FaTrash size={14} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Programs */}
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <h4 className="font-medium text-gray-700">Programs</h4>
+              <button
+                type="button"
+                onClick={() => addArrayItem('programs', { name: '', url: '/' })}
+                className="text-orange-600 hover:text-orange-700 flex items-center gap-1 text-sm font-medium"
+                disabled={isDisabled}
+              >
+                <FaPlus size={12} /> Add Program
+              </button>
+            </div>
+
+            {programsHaveDuplicates && (
+              <div className="mb-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-sm text-yellow-700 flex items-center gap-2">
+                <span>⚠️</span>
+                Duplicate URLs detected. Please ensure each program has a unique URL.
+              </div>
+            )}
+
+            {/* Programs */}
+            {(formData.programs || []).length === 0 ? (
+              <div className="bg-white rounded-lg p-6 text-center border-2 border-dashed border-gray-300">
+                <p className="text-gray-400 text-sm">No programs added yet</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {(formData.programs || []).map((program, index) => (
+                  <div key={index} className="bg-white rounded-lg p-3 shadow-sm border border-gray-200 hover:border-orange-300 transition">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <div className="flex-1 min-w-37.5">
+                        <select
+                          value={program.url ? program.url.replace(/^\//, '').split('/').pop() || '' : ''}
+                          onChange={(e) => handleItemSelect('programs', index, e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition outline-none bg-white text-sm"
+                          disabled={isDisabled}
+                        >
+                          <option value="">-- Select Program --</option>
+                          {loadingItems ? (
+                            <option value="" disabled>⏳ Loading...</option>
+                          ) : itemsError ? (
+                            <option value="" disabled>⚠️ Could not load</option>
+                          ) : dropdownItems.length === 0 ? (
+                            <option value="" disabled>No items available</option>
+                          ) : (
+                            dropdownItems.map((item) => {
+                              if (item.type === 'header') {
+                                return (
+                                  <option key={item.key} value="" disabled className="font-bold text-gray-700 bg-gray-100">
+                                    {item.label}
+                                  </option>
+                                );
+                              }
+                              return (
+                                <option key={item.key} value={item.slug}>
+                                  {item.name}
+                                </option>
+                              );
+                            })
+                          )}
+                        </select>
+                      </div>
+                      <div className="flex-1 min-w-25">
+                        <input
+                          type="text"
+                          value={program.name || ''}
+                          onChange={(e) => updateFormData(`programs.${index}.name`, e.target.value)}
+                          placeholder="Program Name"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition outline-none text-sm"
+                          disabled={isDisabled}
+                        />
+                      </div>
+                      <div className="flex-1 min-w-25">
+                        <input
+                          type="text"
+                          value={program.url || ''}
+                          onChange={(e) => updateFormData(`programs.${index}.url`, e.target.value)}
+                          placeholder="URL"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition outline-none text-sm"
+                          disabled={isDisabled}
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => removeArrayItem('programs', index)}
+                        className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition shrink-0"
+                        disabled={isDisabled}
+                      >
+                        <FaTrash size={14} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* LINK ICONS (Updated with Drag & Drop) */}
-      <div>
-        <h3 className="font-semibold text-lg pt-2">Link Icons</h3>
-        <p className="text-xs text-gray-500 mb-2">Small icons shown next to links (optional)</p>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
-          <div>
-            {renderLinkIconDropZone(
-              'quick',
-              'Quick Link Icon',
-              'quickLinkLinkIcon',
-              formData.quickLinkLinkIcon || '',
-              quickLinkIconInputRef
-            )}
+      {/* BOTTOM FOOTER SECTION*/}
+      <div className="bg-linear-to-r from-gray-50 to-slate-50 rounded-xl p-6 border border-gray-200">
+        {/* HEADER */}
+        <div className="flex items-center gap-3 mb-4">
+          <div className="p-2 bg-gray-100 rounded-lg">
+            <FaCopyright className="text-gray-600 text-lg" />
           </div>
           <div>
-            {renderLinkIconDropZone(
-              'program',
-              'Program Link Icon',
-              'OurProgramLinkIcon',
-              formData.OurProgramLinkIcon || '',
-              programLinkIconInputRef
+            <h3 className="font-semibold text-gray-800 text-lg">Bottom Footer</h3>
+            <p className="text-xs text-gray-500">Copyright and legal links</p>
+          </div>
+        </div>
+
+        {/* CONTENT */}
+        <div className="space-y-4">
+          {/* COPYRIGHT */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Copyright Text</label>
+            <input
+              type="text"
+              value={formData.bottomFooter?.copyright || ''}
+              onChange={(e) => updateFormData('bottomFooter.copyright', e.target.value)}
+              placeholder="© 2024 Your Organization. All rights reserved."
+              className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition outline-none"
+              disabled={isDisabled}
+            />
+          </div>
+
+          {/* LEGAL LINKS */}
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <label className="block text-sm font-medium text-gray-700">Legal Links</label>
+              <button
+                type="button"
+                onClick={addBottomLink}
+                className="text-blue-600 hover:text-blue-700 flex items-center gap-1 text-sm font-medium"
+                disabled={isDisabled}
+              >
+                <FaPlus size={12} /> Add Legal Link
+              </button>
+            </div>
+
+            {(formData.bottomFooter?.links || []).length === 0 ? (
+              <div className="bg-white rounded-lg p-6 text-center border-2 border-dashed border-gray-300">
+                <p className="text-gray-400 text-sm">No legal links added yet</p>
+                <p className="text-xs text-gray-400">Add Privacy Policy, Terms of Service, etc.</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {(formData.bottomFooter?.links || []).map((link, index) => (
+                  <div key={index} className="bg-white rounded-lg p-3 shadow-sm border border-gray-200 hover:border-blue-300 transition">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <div className="flex-1 min-w-25">
+                        <input
+                          type="text"
+                          value={link.text || ''}
+                          onChange={(e) => updateBottomLink(index, 'text', e.target.value)}
+                          placeholder="Link Text"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition outline-none text-sm"
+                          disabled={isDisabled}
+                        />
+                      </div>
+                      <div className="flex-1 min-w-25">
+                        <input
+                          type="text"
+                          value={link.url || ''}
+                          onChange={(e) => updateBottomLink(index, 'url', e.target.value)}
+                          placeholder="URL"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition outline-none text-sm"
+                          disabled={isDisabled}
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => removeBottomLink(index)}
+                        className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition shrink-0"
+                        disabled={isDisabled}
+                      >
+                        <FaTrash size={14} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
             )}
+          </div>
+        </div>
+      </div>
+
+      {/* LINK ICONS SECTION */}
+      <div className="bg-linear-to-r from-purple-50 to-indigo-50 rounded-xl p-6 border border-purple-100">
+
+        {/* Header */}
+        <div className="flex items-center gap-3 mb-4">
+          <div className="p-2 bg-purple-100 rounded-lg">
+            <FaIcons className="text-purple-600 text-lg" />
+          </div>
+          <div>
+            <h3 className="font-semibold text-gray-800 text-lg">Link Icons</h3>
+            <p className="text-xs text-gray-500">Small icons shown next to links (optional)</p>
+          </div>
+        </div>
+
+        {/* Quick Link Icon */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Quick Link Icon */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Quick Link Icon
+              <span className="text-xs text-gray-400 ml-2">(Optional)</span>
+            </label>
+            <div className="relative">
+              <div
+                className={`relative border-2 border-dashed rounded-lg p-4 transition-all ${dragActive === 'quick' ? 'border-purple-500 bg-purple-50' : 'border-gray-300 hover:border-gray-400'
+                  } ${uploading ? 'opacity-50' : ''}`}
+                onDragEnter={(e) => handleLinkIconDrag(e, 'quick')}
+                onDragLeave={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setDragActive(false);
+                }}
+                onDragOver={(e) => handleLinkIconDrag(e, 'quick')}
+                onDrop={(e) => handleLinkIconDrop(e, 'quick')}
+              >
+                <div className="flex items-center gap-3 min-h-16">
+                  {formData.quickLinkLinkIcon ? (
+                    <div className="flex items-center gap-3 w-full">
+                      {/* Dark background preview */}
+                      <div className="w-12 h-12 rounded border border-gray-600 bg-[#080C14] flex items-center justify-center p-1 shrink-0">
+                        <img
+                          src={formData.quickLinkLinkIcon}
+                          alt="Quick Link Icon"
+                          className="max-w-full max-h-full object-contain"
+                          onError={(e) => {
+                            e.target.src = '/images/placeholder-icon.png';
+                          }}
+                        />
+                      </div>
+                      <span className="text-xs text-gray-500 truncate flex-1">
+                        Icon uploaded
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => removeLinkIcon('quick')}
+                        className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition shrink-0"
+                        title="Remove icon"
+                        disabled={isDisabled}
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-3 w-full text-gray-400 py-2">
+                      <FaUpload size={20} className="shrink-0" />
+                      <span className="text-sm">Drop icon or click to browse</span>
+                    </div>
+                  )}
+                  <input
+                    ref={quickLinkIconInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => handleLinkIconFileSelect(e, 'quick')}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                    disabled={isDisabled}
+                  />
+                </div>
+                {uploading && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-white/80 rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <FaSpinner className="animate-spin text-purple-600" size={20} />
+                      <span className="text-sm text-gray-600">Uploading...</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+              <p className="text-xs text-gray-400 mt-1.5">
+                Max 5MB. Supported: JPG, PNG, GIF, WebP, SVG
+              </p>
+            </div>
+          </div>
+
+          {/* Program Link Icon */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Program Link Icon
+              <span className="text-xs text-gray-400 ml-2">(Optional)</span>
+            </label>
+            <div className="relative">
+              <div
+                className={`relative border-2 border-dashed rounded-lg p-4 transition-all ${dragActive === 'program' ? 'border-purple-500 bg-purple-50' : 'border-gray-300 hover:border-gray-400'
+                  } ${uploading ? 'opacity-50' : ''}`}
+                onDragEnter={(e) => handleLinkIconDrag(e, 'program')}
+                onDragLeave={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setDragActive(false);
+                }}
+                onDragOver={(e) => handleLinkIconDrag(e, 'program')}
+                onDrop={(e) => handleLinkIconDrop(e, 'program')}
+              >
+                <div className="flex items-center gap-3 min-h-16">
+                  {formData.OurProgramLinkIcon ? (
+                    <div className="flex items-center gap-3 w-full">
+                      {/* Dark background preview */}
+                      <div className="w-12 h-12 rounded border border-gray-600 bg-[#080C14] flex items-center justify-center p-1 shrink-0">
+                        <img
+                          src={formData.OurProgramLinkIcon}
+                          alt="Program Link Icon"
+                          className="max-w-full max-h-full object-contain"
+                          onError={(e) => {
+                            e.target.src = '/images/placeholder-icon.png';
+                          }}
+                        />
+                      </div>
+                      <span className="text-xs text-gray-500 truncate flex-1">
+                        Icon uploaded
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => removeLinkIcon('program')}
+                        className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition shrink-0"
+                        title="Remove icon"
+                        disabled={isDisabled}
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-3 w-full text-gray-400 py-2">
+                      <FaUpload size={20} className="shrink-0" />
+                      <span className="text-sm">Drop icon or click to browse</span>
+                    </div>
+                  )}
+                  <input
+                    ref={programLinkIconInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => handleLinkIconFileSelect(e, 'program')}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                    disabled={isDisabled}
+                  />
+                </div>
+                {uploading && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-white/80 rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <FaSpinner className="animate-spin text-purple-600" size={20} />
+                      <span className="text-sm text-gray-600">Uploading...</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+              <p className="text-xs text-gray-400 mt-1.5">
+                Max 5MB. Supported: JPG, PNG, GIF, WebP, SVG
+              </p>
+            </div>
           </div>
         </div>
       </div>

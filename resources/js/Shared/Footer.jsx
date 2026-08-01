@@ -49,6 +49,7 @@ import {
   FaWhatsapp,
   FaTelegram
 } from 'react-icons/fa6';
+import ArrowIcon from './ArrowIcon';
 
 // UTILITY: Check if value exists
 const hasValue = (value) => {
@@ -305,120 +306,120 @@ const Footer = ({ footerData, storageUrl = '', defaultLogo = '/images/default-lo
   const secondProgramColumn = hasPrograms ? programs.slice(itemsPerColumn) : [];
 
   return (
-    <div>
+    <footer className='bg-[#080C14] text-white rounded-t-[100px] px-50 pt-37.5'>
       {/* Main Footer */}
-      <footer className='bg-[#080C14] rounded-t-2xl lg:rounded-t-4xl' role="contentinfo">
-        <div className='mx-auto flex flex-col lg:flex-row px-5 lg:px-50 pt-10 lg:pt-37.5 gap-8 lg:gap-50'>
+      <div className='mx-auto flex flex-col lg:flex-row gap-8 lg:gap-50 pb-25'>
 
-          {/* LEFT COLUMN - Logo, Description, Social, Contact */}
-          <div className='w-full lg:w-1/3'>
-            {/* Logo */}
-            {hasLogo && (
-              <div className="flex justify-center lg:justify-start">
-                <img
-                  src={logoUrl}
-                  alt={logo.alt || 'Footer Logo'}
-                  className={logo.className || 'h-auto w-auto'}
-                  loading="lazy"
-                  onError={handleLogoError}
-                />
-              </div>
-            )}
+        {/* LEFT COLUMN - Logo, Description, Social, Contact */}
+        <div className='w-92.5'>
+          {/* Logo */}
+          {hasLogo && (
+            <div className="flex justify-center lg:justify-start">
+              <img
+                src={logoUrl}
+                alt={logo.alt || "Footer Logo"}
+                className={logo.className || "w-27.5 h-41.25 object-contain"}
+                loading="lazy"
+                onError={handleLogoError}
+              />
+            </div>
+          )}
 
-            {/* Description */}
-            {hasDescription && (
-              <p className='pt-5 text-center lg:text-left text-xs lg:text-sm leading-relaxed text-gray-300 px-4 lg:px-0'>
-                {description}
-              </p>
-            )}
+          {/* Description */}
+          {hasDescription && (
+            <p className='pt-7.5 text-center lg:text-left text-xs lg:text-sm leading-relaxed text-[#FFFFFF] '>
+              {description}
+            </p>
+          )}
 
-            {/* Social Links */}
-            {hasSocialLinks && (
-              <div
-                className='pt-5 flex justify-center lg:justify-start gap-3 lg:gap-5 flex-wrap'
-                aria-label="Social media links"
-              >
-                {socialLinks.map((social, index) => {
-                  const IconComponent = getIconComponent(social.iconName);
-                  if (!IconComponent) return null;
+          {/* Social Links */}
+          {hasSocialLinks && (
+            <div
+              className='pt-7.5 flex justify-center lg:justify-start gap-3 lg:gap-5 flex-wrap'
+              aria-label="Social media links"
+            >
+              {socialLinks.map((social, index) => {
+                const IconComponent = getIconComponent(social.iconName);
+                if (!IconComponent) return null;
 
-                  return (
-                    <div
-                      key={index}
-                      className='border border-white rounded-full p-2 transition-transform duration-200 hover:scale-110 hover:border-[#009BE2]'
+                return (
+                  <div
+                    key={index}
+                    className='border border-white rounded-full p-2 transition-transform duration-200 hover:scale-110 hover:border-[#009BE2]'
+                  >
+                    <a
+                      href={social.url}
+                      className={`text-xl lg:text-2xl text-white ${social.hoverColor || ''} transition-colors duration-200 block`}
+                      aria-label={social.ariaLabel || `${social.iconName || 'Social'} link`}
+                      target="_blank"
+                      rel="noopener noreferrer"
                     >
-                      <a
-                        href={social.url}
-                        className={`text-xl lg:text-2xl text-white ${social.hoverColor || ''} transition-colors duration-200 block`}
-                        aria-label={social.ariaLabel || `${social.iconName || 'Social'} link`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        <IconComponent />
-                      </a>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-
-            {/* Address, Contact, Email */}
-            {(hasAddress || hasContact || hasEmailInfo) && (
-              <div className='max-w-full lg:max-w-125 pt-5 space-y-4 text-center lg:text-left'>
-                {/* Address */}
-                {hasAddress && (
-                  <div>
-                    <h2 className='text-gray-400 font-semibold mb-2 text-xs lg:text-sm uppercase tracking-wide'>
-                      {address.title || 'Address'}
-                    </h2>
-                    <address className="not-italic text-gray-300 text-xs lg:text-sm leading-relaxed">
-                      {address.details}
-                    </address>
+                      <IconComponent />
+                    </a>
                   </div>
-                )}
+                );
+              })}
+            </div>
+          )}
 
-                {/* Contact Numbers */}
-                {hasContact && hasValue(contact.numbers) && (
-                  <div>
-                    <h2 className='text-gray-400 font-semibold mb-2 text-xs lg:text-sm uppercase tracking-wide'>
-                      {contact.title || 'Contact'}
-                    </h2>
-                    {contact.numbers.map((number, index) => (
-                      <a
-                        key={index}
-                        href={`tel:${number.replace(/\D/g, '')}`}
-                        className="block text-gray-300 hover:text-white transition-colors text-xs lg:text-sm mb-1"
-                      >
-                        {number}
-                      </a>
-                    ))}
-                  </div>
-                )}
+          {/* Address, Contact, Email */}
+          {(hasAddress || hasContact || hasEmailInfo) && (
+            <div className='pt-7.5 space-y-5 text-center lg:text-left'>
+              {/* Address */}
+              {hasAddress && (
+                <div>
+                  <h2 className='text-white/50 font-semibold mb-2 text-xs lg:text-sm uppercase tracking-wide'>
+                    {address.title || 'Address'}
+                  </h2>
+                  <address className="not-italic text-white text-xs lg:text-sm leading-relaxed">
+                    {address.details}
+                  </address>
+                </div>
+              )}
 
-                {/* Email Addresses */}
-                {hasEmailInfo && hasValue(emailInfo.addresses) && (
-                  <div>
-                    <h2 className='text-gray-400 font-semibold mb-2 text-xs lg:text-sm uppercase tracking-wide'>
-                      {emailInfo.title || 'Email'}
-                    </h2>
-                    {emailInfo.addresses.map((emailAddr, index) => (
-                      <a
-                        key={index}
-                        href={`mailto:${emailAddr}`}
-                        className="block text-gray-300 hover:text-white transition-colors break-all text-xs lg:text-sm mb-1"
-                      >
-                        {emailAddr}
-                      </a>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
+              {/* Contact Numbers */}
+              {hasContact && hasValue(contact.numbers) && (
+                <div>
+                  <h2 className='text-white/50 font-semibold mb-2 text-xs lg:text-sm uppercase tracking-wide'>
+                    {contact.title || 'Contact'}
+                  </h2>
+                  {contact.numbers.map((number, index) => (
+                    <a
+                      key={index}
+                      href={`tel:${number.replace(/\D/g, '')}`}
+                      className="block text-white hover:text-white transition-colors text-xs lg:text-sm mb-1"
+                    >
+                      {number}
+                    </a>
+                  ))}
+                </div>
+              )}
 
-          {/* RIGHT COLUMN - Quick Links, Programs, Newsletter */}
+              {/* Email Addresses */}
+              {hasEmailInfo && hasValue(emailInfo.addresses) && (
+                <div>
+                  <h2 className='text-white/50 font-semibold mb-2 text-xs lg:text-sm uppercase tracking-wide'>
+                    {emailInfo.title || 'Email'}
+                  </h2>
+                  {emailInfo.addresses.map((emailAddr, index) => (
+                    <a
+                      key={index}
+                      href={`mailto:${emailAddr}`}
+                      className="block text-white hover:text-white transition-colors break-all text-xs lg:text-sm mb-1"
+                    >
+                      {emailAddr}
+                    </a>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* RIGHT COLUMN - Quick Links, Programs, Newsletter */}
+        <div className='w-full lg:w-2/3'>
           {(hasQuickLinks || hasPrograms || hasNewsletter) && (
-            <div className='w-full lg:w-2/3'>
+            <>
 
               {/* DESKTOP: Grid layout for links */}
               {(hasQuickLinks || hasPrograms) && (
@@ -527,7 +528,7 @@ const Footer = ({ footerData, storageUrl = '', defaultLogo = '/images/default-lo
 
               {/* NEWSLETTER SECTION - Updated with name field and route */}
               {hasNewsletter && (
-                <div className='pt-10 mt-5 border-t border-gray-700'>
+                <div className='pt-10 mt-5'>
                   <h2 className='text-xl lg:text-[28px] font-bold text-white text-center lg:text-left'>
                     {newsletter.title}
                   </h2>
@@ -580,7 +581,10 @@ const Footer = ({ footerData, storageUrl = '', defaultLogo = '/images/default-lo
                               Subscribing...
                             </>
                           ) : (
-                            newsletter.buttonText || 'Subscribe'
+                            <>
+                              {newsletter.buttonText || 'Subscribe'}
+                              <ArrowIcon className="w-4 h-4 text-white" />
+                            </>
                           )}
                         </button>
                       </div>
@@ -599,41 +603,39 @@ const Footer = ({ footerData, storageUrl = '', defaultLogo = '/images/default-lo
                   </form>
                 </div>
               )}
-            </div>
+            </>
           )}
         </div>
-      </footer>
+      </div>
 
       {/* BOTTOM FOOTER - Copyright & Legal Links */}
       {hasBottomFooter && (
-        <div className='bg-[#080C14] border-t border-[#090C40] px-5 lg:px-50 py-6'>
-          <div className='flex flex-col sm:flex-row justify-between items-center gap-4'>
-            {/* Copyright */}
-            {hasValue(bottomFooter.copyright) && (
-              <p className='text-white text-[12px] lg:text-[14px] font-400 text-center sm:text-left'>
-                {bottomFooter.copyright}
-              </p>
-            )}
+        <div className='flex flex-col sm:flex-row justify-between items-center gap-4 py-10'>
+          {/* Copyright */}
+          {hasValue(bottomFooter.copyright) && (
+            <p className='text-white text-[12px] lg:text-[14px] font-400 text-center sm:text-left'>
+              {bottomFooter.copyright}
+            </p>
+          )}
 
-            {/* Legal Links */}
-            {hasValue(bottomFooter.links) && (
-              <ul className='flex flex-wrap justify-center gap-4 lg:gap-8 text-white text-[12px] lg:text-[14px] font-400'>
-                {bottomFooter.links.map((link, index) => (
-                  <li key={index}>
-                    <a
-                      href={link.url}
-                      className='hover:text-[#009BE2] cursor-pointer transition-colors duration-200'
-                    >
-                      {link.text}
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
+          {/* Legal Links */}
+          {hasValue(bottomFooter.links) && (
+            <ul className='flex flex-wrap justify-center gap-4 lg:gap-8 text-white text-[12px] lg:text-[14px] font-400'>
+              {bottomFooter.links.map((link, index) => (
+                <li key={index}>
+                  <a
+                    href={link.url}
+                    className='hover:text-[#009BE2] cursor-pointer transition-colors duration-200'
+                  >
+                    {link.text}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
       )}
-    </div>
+    </footer>
   );
 };
 
