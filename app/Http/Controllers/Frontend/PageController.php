@@ -51,17 +51,18 @@ class PageController extends Controller
 
     /**
      * JSON keys that need to be decoded.
+     * 🔥 ADDED faqData to this list
      */
     private const JSON_KEYS = [
         'storiesData',
         'upcomingEventsData',
+        'faqData',  // <-- ADD THIS
     ];
 
     public function __construct(ContentService $contentService)
     {
         $this->contentService = $contentService;
     }
-
     /**
      * Handle all public pages dynamically.
      */
