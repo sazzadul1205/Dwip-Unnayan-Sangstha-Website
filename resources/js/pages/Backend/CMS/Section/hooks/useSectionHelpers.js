@@ -1,4 +1,3 @@
- 
 // resources/js/pages/Backend/CMS/Section/hooks/useSectionHelpers.js
 
 import { useState, useEffect, useCallback } from 'react';
@@ -16,6 +15,10 @@ export const useSectionHelpers = (initialSections, pageId) => {
   const [editingSection, setEditingSection] = useState(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [error, setError] = useState(null);
+
+  // Drag state for visual feedback
+  const [draggedIndex, setDraggedIndex] = useState(null);
+  const [dragOverIndex, setDragOverIndex] = useState(null);
 
   // Effect hook - always called in the same order
   useEffect(() => {
@@ -102,6 +105,8 @@ export const useSectionHelpers = (initialSections, pageId) => {
       e.dataTransfer.effectAllowed = 'move';
       e.dataTransfer.setData('text/plain', index.toString());
       e.currentTarget.style.opacity = '0.5';
+      setDraggedIndex(index);
+      setDragOverIndex(null);
     } catch (err) {
       console.error('Drag start error:', err);
       setError('Failed to start drag operation');
@@ -111,6 +116,8 @@ export const useSectionHelpers = (initialSections, pageId) => {
   const handleDragEnd = useCallback((e) => {
     try {
       e.currentTarget.style.opacity = '1';
+      setDraggedIndex(null);
+      setDragOverIndex(null);
     } catch (err) {
       console.error('Drag end error:', err);
     }
@@ -125,15 +132,36 @@ export const useSectionHelpers = (initialSections, pageId) => {
     }
   }, []);
 
+  const handleDragEnter = useCallback((e, index) => {
+    e.preventDefault();
+    if (draggedIndex !== null && draggedIndex !== index) {
+      setDragOverIndex(index);
+    }
+  }, [draggedIndex]);
+
+  const handleDragLeave = useCallback((e) => {
+    const relatedTarget = e.relatedTarget;
+    if (!relatedTarget || !e.currentTarget.contains(relatedTarget)) {
+      setDragOverIndex(null);
+    }
+  }, []);
+
   const handleDrop = useCallback((e, dropIndex) => {
     try {
       e.preventDefault();
+      setDragOverIndex(null);
 
       const dragData = e.dataTransfer.getData('text/plain');
-      if (!dragData) return;
+      if (!dragData) {
+        setDraggedIndex(null);
+        return;
+      }
 
       const dragIndex = parseInt(dragData, 10);
-      if (isNaN(dragIndex) || dragIndex === dropIndex) return;
+      if (isNaN(dragIndex) || dragIndex === dropIndex) {
+        setDraggedIndex(null);
+        return;
+      }
 
       const draggedSection = sections[dragIndex];
       const dropSection = sections[dropIndex];
@@ -141,6 +169,7 @@ export const useSectionHelpers = (initialSections, pageId) => {
       if (!canMove(draggedSection) || !canMove(dropSection)) {
         setDragError('Fixed sections cannot be reordered.');
         showToast('warning', 'Cannot Reorder', 'Fixed sections are locked and cannot be moved.', 2500);
+        setDraggedIndex(null);
         return;
       }
 
@@ -155,44 +184,57 @@ export const useSectionHelpers = (initialSections, pageId) => {
         display_order: idx,
       }));
 
+      // Optimistic update
       setSections(updatedSections);
       setIsReordering(true);
       setIsSaving(true);
+      setDraggedIndex(null);
 
       const orders = updatedSections.map((section) => ({
         id: section.id,
         display_order: section.display_order,
       }));
 
-      router.post(
-        route('backend.cms.sections.update-order', pageId),
-        { orders },
-        {
-          preserveScroll: true,
-          preserveState: true,
-          onSuccess: () => {
-            setIsReordering(false);
-            setIsSaving(false);
-            showToast('success', '✅ Reordered!', 'Section order updated successfully.', 2000);
-          },
-          onError: (errors) => {
-            setIsReordering(false);
-            setIsSaving(false);
-            setSections(initialSections || []);
-            setDragError('Failed to update order. Changes reverted.');
-            
-            let errorMessage = 'Failed to update section order. Changes have been reverted.';
-            if (errors?.message) {
-              errorMessage = errors.message;
-            } else if (typeof errors === 'string') {
-              errorMessage = errors;
-            }
-            
-            showToast('error', '❌ Reorder Failed', errorMessage, 4000);
-            console.error('Reorder error:', errors);
-          },
+      // ✅ USE FETCH INSTEAD OF ROUTER.POST
+      const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
+      const url = route('backend.cms.sections.update-order', pageId);
+
+      fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'X-CSRF-TOKEN': csrfToken,
+          'X-Requested-With': 'XMLHttpRequest',
+        },
+        body: JSON.stringify({ orders }),
+      })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
         }
-      );
+        return response.json();
+      })
+      .then(data => {
+        if (data.success) {
+          setIsReordering(false);
+          setIsSaving(false);
+          showToast('success', '✅ Reordered!', 'Section order updated successfully.', 2000);
+          // Reload to get fresh data
+          router.reload({ only: ['sections'] });
+        } else {
+          throw new Error(data.message || 'Failed to update order');
+        }
+      })
+      .catch(error => {
+        console.error('Reorder error:', error);
+        setIsReordering(false);
+        setIsSaving(false);
+        setSections(initialSections || []);
+        setDragError('Failed to update order. Changes reverted.');
+        showToast('error', '❌ Reorder Failed', error.message || 'Failed to update section order. Changes have been reverted.', 4000);
+      });
+
     } catch (err) {
       console.error('Drop error:', err);
       setIsReordering(false);
@@ -200,6 +242,7 @@ export const useSectionHelpers = (initialSections, pageId) => {
       setSections(initialSections || []);
       setDragError('An unexpected error occurred during reorder.');
       showToast('error', '❌ Reorder Failed', 'An unexpected error occurred. Changes have been reverted.', 4000);
+      setDraggedIndex(null);
     }
   }, [sections, canMove, initialSections, pageId]);
 
@@ -256,6 +299,8 @@ export const useSectionHelpers = (initialSections, pageId) => {
     editingSection,
     isEditModalOpen,
     error,
+    draggedIndex,
+    dragOverIndex,
     toggleExpand,
     togglePreview,
     hasData,
@@ -264,6 +309,8 @@ export const useSectionHelpers = (initialSections, pageId) => {
     handleDragStart,
     handleDragEnd,
     handleDragOver,
+    handleDragEnter,
+    handleDragLeave,
     handleDrop,
     handleMoveUp,
     handleMoveDown,

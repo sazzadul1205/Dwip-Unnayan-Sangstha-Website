@@ -1,18 +1,19 @@
 // resources/js/pages/Backend/CMS/Section/components/SectionFooter.jsx
 
-/**
- * SectionFooter - Footer with summary statistics and helpful tips
- * Features:
- * - Section statistics summary
- * - Drag & drop instructions
- * - Fixed section indicator
- */
-
 import React from 'react';
-import { FaGripVertical } from 'react-icons/fa';
+import {
+  FaGripVertical,
+  FaHashtag,
+  FaStar,
+  FaLock,
+  FaShareAlt,
+  FaBriefcase,
+  FaList,
+  FaDatabase,
+  FaInfoCircle
+} from 'react-icons/fa';
 
 const SectionFooter = ({ sections, hasData }) => {
-  // Calculate statistics from sections
   const stats = {
     total: sections.length,
     banner: sections.filter(s => s.component === 'HomeBanner' || s.component === 'PageBannerSection').length,
@@ -23,36 +24,42 @@ const SectionFooter = ({ sections, hasData }) => {
     hasData: sections.filter(s => hasData(s)).length,
   };
 
-  return (
-    <div className="mt-4 flex items-center gap-4 text-xs text-gray-400 flex-wrap">
-      {/* Total Sections */}
-      <span>📊 Total: {stats.total} sections</span>
-
-      {/* Banner Sections */}
-      <span>⭐ Banner: {stats.banner}</span>
-
-      {/* Fixed Sections */}
-      <span>🔒 Fixed: {stats.fixed}</span>
-
-      {/* Shared Sections */}
-      <span>🔄 Shared: {stats.shared}</span>
-
-      {/* Jobs Sections */}
-      <span>💼 Jobs: {stats.jobs}</span>
-
-      {/* Programs Sections */}
-      <span>📋 Programs: {stats.programs}</span>
-
-      {/* Sections with Data */}
-      <span>📦 Has Data: {stats.hasData}</span>
-
-      {/* Drag & Drop Instructions */}
-      <span>
-        💡 Drag the <FaGripVertical className="inline text-gray-400" size={12} /> handle or use ↑ ↓ buttons to reorder
+  const StatBadge = ({ icon, label, value, color = 'gray' }) => {
+    const colorClasses = {
+      gray: 'bg-gray-50 text-gray-600 border-gray-200',
+      blue: 'bg-blue-50 text-blue-600 border-blue-200',
+      yellow: 'bg-yellow-50 text-yellow-600 border-yellow-200',
+      green: 'bg-green-50 text-green-600 border-green-200',
+      purple: 'bg-purple-50 text-purple-600 border-purple-200',
+      orange: 'bg-orange-50 text-orange-600 border-orange-200',
+      red: 'bg-red-50 text-red-600 border-red-200',
+    };
+    return (
+      <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border ${colorClasses[color]}`}>
+        {icon}
+        {label}: <span className="font-bold ml-0.5">{value}</span>
       </span>
+    );
+  };
 
-      {/* Fixed Sections Notice */}
-      <span>🔒 Fixed sections cannot be moved</span>
+  return (
+    <div className="mt-4 flex flex-wrap items-center gap-2 text-xs">
+      <StatBadge icon={<FaHashtag size={11} />} label="Total" value={stats.total} color="gray" />
+      <StatBadge icon={<FaStar size={11} />} label="Banner" value={stats.banner} color="yellow" />
+      <StatBadge icon={<FaLock size={10} />} label="Fixed" value={stats.fixed} color="blue" />
+      <StatBadge icon={<FaShareAlt size={10} />} label="Shared" value={stats.shared} color="green" />
+      <StatBadge icon={<FaBriefcase size={10} />} label="Jobs" value={stats.jobs} color="purple" />
+      <StatBadge icon={<FaList size={10} />} label="Programs" value={stats.programs} color="orange" />
+      <StatBadge icon={<FaDatabase size={10} />} label="Has Data" value={stats.hasData} color="blue" />
+
+      <span className="text-gray-400 flex items-center gap-1.5 ml-1">
+        <FaInfoCircle size={12} />
+        <span className="text-gray-400">
+          Drag <FaGripVertical className="inline text-gray-400" size={11} /> or use ↑↓ to reorder
+        </span>
+      </span>
+      <span className="text-gray-300">•</span>
+      <span className="text-gray-400">🔒 Fixed sections locked</span>
     </div>
   );
 };

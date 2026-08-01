@@ -48,7 +48,6 @@ const EDITOR_COMPONENTS = {
   'CardsSection': CardsEditor,
   'LegalSection': LegalEditor,
   'HomeBanner': HomeBannerEditor,
-  // 'StoriesSection' removed - now in SharedData
   'StoriesSection': StoriesEditor,
   'ContentSection': ContentEditor,
   'AddressSection': AddressEditor,

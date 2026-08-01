@@ -1,4 +1,4 @@
- 
+
 // resources/js/pages/Backend/CMS/Section/components/SectionEditModal.jsx
 
 import { router } from '@inertiajs/react';
@@ -99,7 +99,7 @@ const SectionEditModal = ({
       ...prev,
       [name]: type === 'checkbox' ? checked : value,
     }));
-  
+
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: '' }));
     }
@@ -546,22 +546,24 @@ const SectionEditModal = ({
         style={{ animationDuration: '200ms' }}
         onMouseDown={(e) => e.stopPropagation()}
       >
-        {/* Header */}
+        {/* Header - Improved */}
         <div className="sticky top-0 z-10 flex items-center justify-between p-6 border-b border-gray-200 bg-white rounded-t-2xl">
           <div>
             <h2 id="modal-title" className="text-xl font-bold text-gray-900 flex items-center gap-2">
-              <FaEdit className="text-blue-500" size={18} />
+              <div className="p-2 bg-linear-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg shadow-blue-200">
+                <FaEdit className="text-white" size={16} />
+              </div>
               Edit Section
             </h2>
             <p className="text-sm text-gray-500 mt-1 flex items-center gap-2">
-              <span className="font-mono bg-gray-100 px-2 py-0.5 rounded">{section.section_key}</span>
+              <span className="font-mono bg-gray-100 px-2.5 py-0.5 rounded-lg text-xs">{section.section_key}</span>
               <span className="text-gray-300">•</span>
-              <span className="text-gray-400">ID: {section.id}</span>
+              <span className="text-xs text-gray-400">ID: {section.id}</span>
             </p>
           </div>
           <button
             onClick={onClose}
-            className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+            className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-xl transition-colors"
             disabled={isSubmitting}
             aria-label="Close modal"
           >
@@ -569,15 +571,15 @@ const SectionEditModal = ({
           </button>
         </div>
 
-        {/* Tabs */}
-        <div className="border-b border-gray-200 bg-gray-50/50 px-2">
-          <div className="flex">
+        {/* Tabs - Improved */}
+        <div className="border-b border-gray-200 bg-gray-50/50 px-4">
+          <div className="flex gap-1">
             <button
               type="button"
               onClick={() => setActiveTab('basic')}
-              className={`px-6 py-3 text-sm font-medium transition-colors relative flex items-center gap-2 ${activeTab === 'basic'
-                  ? 'text-blue-600 border-b-2 border-blue-600 bg-white rounded-t-lg'
-                  : 'text-gray-500 hover:text-gray-700'
+              className={`px-5 py-3 text-sm font-medium transition-all relative flex items-center gap-2 rounded-t-xl ${activeTab === 'basic'
+                ? 'text-blue-600 bg-white shadow-sm'
+                : 'text-gray-500 hover:text-gray-700 hover:bg-white/50'
                 }`}
             >
               <FaCog size={14} />
@@ -586,9 +588,9 @@ const SectionEditModal = ({
             <button
               type="button"
               onClick={() => setActiveTab('data')}
-              className={`px-6 py-3 text-sm font-medium transition-colors relative flex items-center gap-2 ${activeTab === 'data'
-                  ? 'text-blue-600 border-b-2 border-blue-600 bg-white rounded-t-lg'
-                  : 'text-gray-500 hover:text-gray-700'
+              className={`px-5 py-3 text-sm font-medium transition-all relative flex items-center gap-2 rounded-t-xl ${activeTab === 'data'
+                ? 'text-blue-600 bg-white shadow-sm'
+                : 'text-gray-500 hover:text-gray-700 hover:bg-white/50'
                 }`}
             >
               <FaDatabase size={14} />
@@ -634,8 +636,8 @@ const SectionEditModal = ({
               type="submit"
               disabled={isSubmitting}
               className={`px-7 py-2.5 rounded-xl text-white transition-all duration-200 flex items-center gap-2 font-medium ${isSubmitting
-                  ? 'bg-gray-400 cursor-not-allowed'
-                  : 'bg-linear-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 shadow-lg shadow-blue-200 hover:shadow-xl hover:scale-[1.02] cursor-pointer'
+                ? 'bg-gray-400 cursor-not-allowed'
+                : 'bg-linear-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 shadow-lg shadow-blue-200 hover:shadow-xl hover:scale-[1.02] cursor-pointer'
                 }`}
             >
               {isSubmitting ? (

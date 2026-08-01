@@ -53,6 +53,7 @@ class SectionController extends Controller
       $sectionsData = Cache::remember($cacheKey, 300, function () use ($pageId) {
         $page = Page::withTrashed()->findOrFail($pageId);
 
+        // Get active sections
         $sectionConfigs = SectionConfig::where('page_slug', $page->slug)
           ->orderBy('display_order')
           ->get();
@@ -84,9 +85,31 @@ class SectionController extends Controller
           $sections[] = $section;
         }
 
+        // Get trashed sections
+        $trashedSections = SectionConfig::onlyTrashed()
+          ->where('page_slug', $page->slug)
+          ->orderBy('deleted_at', 'desc')
+          ->get()
+          ->map(function ($section) {
+            return [
+              'id' => $section->id,
+              'section_key' => $section->section_key,
+              'component' => $section->component,
+              'data_table' => $section->data_table,
+              'is_enabled' => $section->is_enabled,
+              'is_fixed_section' => $section->is_fixed_section,
+              'display_order' => $section->display_order,
+              'deleted_at' => $section->deleted_at ? $section->deleted_at->toISOString() : null,
+              'created_at' => $section->created_at ? $section->created_at->toISOString() : null,
+              'updated_at' => $section->updated_at ? $section->updated_at->toISOString() : null,
+            ];
+          });
+
         return [
           'page' => $page,
           'sections' => $sections,
+          'trashedSections' => $trashedSections,
+          'trashedCount' => $trashedSections->count(),
         ];
       });
 
@@ -100,6 +123,8 @@ class SectionController extends Controller
       return Inertia::render('Backend/CMS/Section/Index', [
         'page' => null,
         'sections' => [],
+        'trashedSections' => [],
+        'trashedCount' => 0,
         'flash' => ['error' => 'Failed to load sections: ' . $e->getMessage()],
       ]);
     }
@@ -108,7 +133,7 @@ class SectionController extends Controller
   /**
    * Update display order for multiple sections (drag & drop) – with rate limiting.
    */
-  public function updateOrder(Request $request, int $pageId): JsonResponse
+  public function updateOrder(Request $request, int $pageId): JsonResponse|RedirectResponse
   {
     $user = $this->getAuthUser();
 
@@ -160,6 +185,7 @@ class SectionController extends Controller
         ]
       );
 
+      // Return JSON response for the fetch request
       return response()->json(['success' => true]);
     } catch (ValidationException $e) {
       return response()->json(['success' => false, 'errors' => $e->errors()], 422);
@@ -555,68 +581,6 @@ class SectionController extends Controller
       ]);
 
       return back()->with('error', 'Failed to permanently delete section: ' . $e->getMessage());
-    }
-  }
-
-  /**
-   * Get trashed sections for a page.
-   */
-  public function trashed(int $pageId): Response|RedirectResponse
-  {
-    $user = $this->getAuthUser();
-
-    if (!$user->hasPermission('sections.view')) {
-      return redirect()->route('unauthorized.access')
-        ->with('error', 'You do not have permission to view trashed sections.');
-    }
-
-    try {
-      $page = Page::withTrashed()->findOrFail($pageId);
-
-      $trashedSections = SectionConfig::onlyTrashed()
-        ->where('page_slug', $page->slug)
-        ->orderBy('deleted_at', 'desc')
-        ->get();
-
-      return Inertia::render('Backend/CMS/Section/Trashed', [
-        'page' => $page,
-        'sections' => $trashedSections,
-      ]);
-    } catch (\Exception $e) {
-      Log::error('Failed to load trashed sections: ' . $e->getMessage(), [
-        'page_id' => $pageId,
-        'trace' => $e->getTraceAsString(),
-      ]);
-
-      return Inertia::render('Backend/CMS/Section/Trashed', [
-        'page' => null,
-        'sections' => [],
-        'flash' => ['error' => 'Failed to load trashed sections: ' . $e->getMessage()],
-      ]);
-    }
-  }
-
-  /**
-   * Get the count of trashed sections for a page.
-   */
-  public function trashedCount(int $pageId): JsonResponse
-  {
-    $user = $this->getAuthUser();
-
-    if (!$user->hasPermission('sections.view')) {
-      return response()->json(['error' => 'Unauthorized'], 403);
-    }
-
-    try {
-      $page = Page::findOrFail($pageId);
-      $count = SectionConfig::onlyTrashed()
-        ->where('page_slug', $page->slug)
-        ->count();
-
-      return response()->json(['count' => $count]);
-    } catch (\Exception $e) {
-      Log::error('Failed to get trashed count: ' . $e->getMessage(), ['page_id' => $pageId]);
-      return response()->json(['count' => 0, 'error' => $e->getMessage()], 500);
     }
   }
 

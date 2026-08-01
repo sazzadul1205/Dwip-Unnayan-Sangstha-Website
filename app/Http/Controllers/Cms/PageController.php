@@ -27,7 +27,12 @@ class PageController extends Controller
     'services',
     'contact',
     'blog',
-    'programs',
+    'projects-programs',
+    'publications',
+    'gallery',
+    'jobs',
+    'terms',
+    'privacy',
   ];
 
   /**

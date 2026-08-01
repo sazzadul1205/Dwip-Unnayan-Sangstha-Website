@@ -1,4 +1,4 @@
- 
+
 // resources/js/pages/Backend/CMS/Section/components/AddSectionModal.jsx
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
@@ -485,7 +485,7 @@ const AddSectionModal = ({ isOpen, onClose, pageId, onSuccess }) => {
         ref={modalRef}
         className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[95vh] overflow-y-auto animate-slideUp"
       >
-        {/* Header - Enhanced with gradient accent */}
+        {/* Header - Improved */}
         <div className="sticky top-0 z-10 flex items-center justify-between p-6 border-b border-gray-200 bg-white rounded-t-2xl">
           <div className="flex items-center gap-3">
             <div className="p-2.5 bg-linear-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg shadow-blue-200">
@@ -498,12 +498,36 @@ const AddSectionModal = ({ isOpen, onClose, pageId, onSuccess }) => {
           </div>
           <button
             onClick={onClose}
-            className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors duration-200"
+            className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-xl transition-colors duration-200"
             disabled={isSubmitting}
             aria-label="Close modal"
           >
             <FaTimes size={20} />
           </button>
+        </div>
+
+        {/* Search Bar - Improved */}
+        <div className="relative mb-5">
+          <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+            <FaSearch className="text-gray-400" size={15} />
+          </div>
+          <input
+            ref={searchInputRef}
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search sections by name or description..."
+            className="w-full pl-10.5 pr-10 py-3.5 border border-gray-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all bg-gray-50 hover:bg-white focus:bg-white"
+          />
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={() => setSearchQuery('')}
+              className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-100 transition-colors"
+            >
+              <FaTimes size={14} />
+            </button>
+          )}
         </div>
 
         <form onSubmit={handleSubmit} className="p-6">
@@ -537,8 +561,8 @@ const AddSectionModal = ({ isOpen, onClose, pageId, onSuccess }) => {
               type="button"
               onClick={() => setActiveTab('all')}
               className={`px-4 py-2 text-sm rounded-xl transition-all duration-200 font-medium ${activeTab === 'all'
-                  ? 'bg-blue-600 text-white shadow-lg shadow-blue-200'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                ? 'bg-blue-600 text-white shadow-lg shadow-blue-200'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
             >
               All ({Object.keys(SECTION_OPTIONS).length})
@@ -547,8 +571,8 @@ const AddSectionModal = ({ isOpen, onClose, pageId, onSuccess }) => {
               type="button"
               onClick={() => setActiveTab('custom')}
               className={`px-4 py-2 text-sm rounded-xl transition-all duration-200 font-medium flex items-center gap-1.5 ${activeTab === 'custom'
-                  ? 'bg-blue-600 text-white shadow-lg shadow-blue-200'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                ? 'bg-blue-600 text-white shadow-lg shadow-blue-200'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
             >
               <FaThLarge size={12} />
@@ -558,8 +582,8 @@ const AddSectionModal = ({ isOpen, onClose, pageId, onSuccess }) => {
               type="button"
               onClick={() => setActiveTab('special')}
               className={`px-4 py-2 text-sm rounded-xl transition-all duration-200 font-medium flex items-center gap-1.5 ${activeTab === 'special'
-                  ? 'bg-blue-600 text-white shadow-lg shadow-blue-200'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                ? 'bg-blue-600 text-white shadow-lg shadow-blue-200'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
             >
               <FaStar size={12} />
@@ -579,8 +603,8 @@ const AddSectionModal = ({ isOpen, onClose, pageId, onSuccess }) => {
                       type="button"
                       onClick={() => setSelectedCategory(selectedCategory === key ? 'all' : key)}
                       className={`px-3 py-2 text-sm rounded-xl transition-all duration-200 ${isActive
-                          ? `bg-linear-to-r ${CATEGORY_COLORS[key]} text-gray-800 shadow-sm`
-                          : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
+                        ? `bg-linear-to-r ${CATEGORY_COLORS[key]} text-gray-800 shadow-sm`
+                        : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
                         }`}
                     >
                       {CATEGORY_ICONS[key]} {label} ({count})
@@ -616,8 +640,8 @@ const AddSectionModal = ({ isOpen, onClose, pageId, onSuccess }) => {
                       onMouseEnter={() => setIsHovered(key)}
                       onMouseLeave={() => setIsHovered(null)}
                       className={`group relative flex items-start gap-3 p-4 rounded-xl border-2 transition-all duration-200 text-left ${isSelected
-                          ? 'border-blue-500 bg-blue-50 shadow-lg shadow-blue-100 scale-[1.02]'
-                          : 'border-gray-200 hover:border-blue-300 hover:bg-gray-50 hover:shadow-md'
+                        ? 'border-blue-500 bg-blue-50 shadow-lg shadow-blue-100 scale-[1.02]'
+                        : 'border-gray-200 hover:border-blue-300 hover:bg-gray-50 hover:shadow-md'
                         } ${isHoveredState && !isSelected ? 'border-blue-200 bg-gray-50' : ''}`}
                     >
                       {/* Popular badge */}
@@ -629,8 +653,8 @@ const AddSectionModal = ({ isOpen, onClose, pageId, onSuccess }) => {
                       )}
 
                       <div className={`p-2.5 rounded-xl shrink-0 transition-all duration-200 ${isSelected
-                          ? 'bg-blue-500 text-white shadow-lg shadow-blue-200'
-                          : 'bg-gray-100 text-gray-500 group-hover:bg-blue-100 group-hover:text-blue-600'
+                        ? 'bg-blue-500 text-white shadow-lg shadow-blue-200'
+                        : 'bg-gray-100 text-gray-500 group-hover:bg-blue-100 group-hover:text-blue-600'
                         }`}>
                         <Icon size={20} />
                       </div>
@@ -699,8 +723,8 @@ const AddSectionModal = ({ isOpen, onClose, pageId, onSuccess }) => {
                   <div className="flex items-center gap-2 flex-wrap">
                     <h4 className="font-bold text-gray-800 text-lg">{selectedOption.label}</h4>
                     <span className={`text-xs px-2.5 py-0.5 rounded-full font-semibold ${selectedOption.isSpecial
-                        ? 'bg-purple-100 text-purple-700'
-                        : 'bg-blue-100 text-blue-700'
+                      ? 'bg-purple-100 text-purple-700'
+                      : 'bg-blue-100 text-blue-700'
                       }`}>
                       {selectedOption.isSpecial ? '⭐ Special' : '📝 Custom'}
                     </span>
@@ -843,8 +867,8 @@ const AddSectionModal = ({ isOpen, onClose, pageId, onSuccess }) => {
               type="submit"
               disabled={isSubmitting || !selectedComponent}
               className={`px-7 py-2.5 rounded-xl text-white transition-all duration-200 flex items-center gap-2 font-medium ${isSubmitting || !selectedComponent
-                  ? 'bg-gray-400 cursor-not-allowed'
-                  : 'bg-linear-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 shadow-lg shadow-blue-200 hover:shadow-xl hover:scale-[1.02]'
+                ? 'bg-gray-400 cursor-not-allowed'
+                : 'bg-linear-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 shadow-lg shadow-blue-200 hover:shadow-xl hover:scale-[1.02]'
                 }`}
             >
               {isSubmitting ? (
