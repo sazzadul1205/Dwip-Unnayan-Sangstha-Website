@@ -27,6 +27,23 @@ Route::prefix('data')->group(function () {
   Route::get('custom_section_data.json', [ContentApiController::class, 'customSectionData']);
 });
 
+// ============================================
+// ✅ ADD THIS: API routes for frontend components
+// ============================================
+Route::prefix('api')->group(function () {
+  // Blogs endpoint
+  Route::get('blogs', [ContentApiController::class, 'blogs'])->name('api.blogs');
+
+  // Other API endpoints
+  Route::get('pages', [ContentApiController::class, 'pages'])->name('api.pages');
+  Route::get('programs', [ContentApiController::class, 'programs'])->name('api.programs');
+  Route::get('jobs', [ContentApiController::class, 'jobs'])->name('api.jobs');
+  Route::get('shared-data', [ContentApiController::class, 'sharedData'])->name('api.shared-data');
+  Route::get('about-content', [ContentApiController::class, 'aboutContent'])->name('api.about-content');
+  Route::get('section-configs', [ContentApiController::class, 'sectionConfigs'])->name('api.section-configs');
+  Route::get('custom-section-data', [ContentApiController::class, 'customSectionData'])->name('api.custom-section-data');
+});
+
 // Navigation endpoints
 Route::get('/data/navigation.json', function () {
   $pages = Page::where('is_active', true)
@@ -74,7 +91,6 @@ Route::get('/api/pages', function () {
   ]);
 })->name('api.pages');
 
-// Legacy API endpoints (maintained for backward compatibility)
 Route::get('/api/programs', function () {
   return response()->json([
     'success' => true,
@@ -89,21 +105,10 @@ Route::get('/api/programs', function () {
 // ✅ JOB LISTING API ROUTES (Infinite Scroll)
 // ============================================
 Route::prefix('api/jobs')->group(function () {
-  // Main endpoint with pagination support
   Route::get('/', [JobListingApiController::class, 'index'])->name('api.jobs.index');
-
-  // ✅ Filter options endpoint
   Route::get('/filter-options', [JobListingApiController::class, 'filterOptions'])->name('api.jobs.filters');
-
-  // Popular jobs
   Route::get('/popular', [JobListingApiController::class, 'popular'])->name('api.jobs.popular');
-
-  // Trending jobs
   Route::get('/trending', [JobListingApiController::class, 'trending'])->name('api.jobs.trending');
-
-  // Single job by ID or slug
   Route::get('/{identifier}', [JobListingApiController::class, 'show'])->name('api.jobs.show');
-
-  // Related jobs
   Route::get('/{slug}/related', [JobListingApiController::class, 'related'])->name('api.jobs.related');
 });
