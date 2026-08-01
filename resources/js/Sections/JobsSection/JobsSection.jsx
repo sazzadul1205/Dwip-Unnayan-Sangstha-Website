@@ -17,10 +17,6 @@ import ArrowIcon from '../../Shared/ArrowIcon';
 // Utils
 import { hasValue } from '../../utils/sectionHelpers';
 
-// ============================================
-// SKELETON LOADING COMPONENTS
-// ============================================
-
 // Individual job skeleton card
 const JobSkeletonCard = () => (
   <div className="bg-white p-5 sm:p-6 md:p-8 lg:p-10 rounded-2xl animate-pulse">
@@ -87,45 +83,41 @@ const JobsSection = ({
   publicJobsRoute = '/backend/seeker/jobs',
   perPage = 10,
 }) => {
-  // ============================================
   // STATE
-  // ============================================
-  const [selectedFilter, setSelectedFilter] = useState("");
-  const [searchTerm, setSearchTerm] = useState("");
-  const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [jobs, setJobs] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState(null);
-  const [filterOptions, setFilterOptions] = useState([{ value: 'all', label: 'All Jobs' }]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [hasMorePages, setHasMorePages] = useState(true);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [selectedFilter, setSelectedFilter] = useState("");
   const [initialFetchDone, setInitialFetchDone] = useState(false);
+  const [filterOptions, setFilterOptions] = useState([{ value: 'all', label: 'All Jobs' }]);
 
-  // ============================================
-  // REFS
-  // ============================================
+  // REFS - Bool
   const searchRef = useRef(null);
-  const debounceTimerRef = useRef(null);
-  const isFetchingRef = useRef(false);
   const observerRef = useRef(null);
+  const isFetchingRef = useRef(false);
+  const debounceTimerRef = useRef(null);
+  const shouldFetchAllRef = useRef(true);
   const loadMoreDebounceRef = useRef(null);
 
-  const apiParamsRef = useRef(apiParams);
-  const propDataRef = useRef(propData);
-  const apiEndpointRef = useRef(apiEndpoint);
-  const publicJobsRouteRef = useRef(publicJobsRoute);
+  // REFS - Values
   const perPageRef = useRef(perPage);
   const displayLimitRef = useRef(999);
-  const shouldFetchAllRef = useRef(true);
+  const propDataRef = useRef(propData);
+  const apiParamsRef = useRef(apiParams);
+  const apiEndpointRef = useRef(apiEndpoint);
+  const publicJobsRouteRef = useRef(publicJobsRoute);
 
+  // REFS - Strings
   const titleRef = useRef('Job Openings');
-  const descriptionRef = useRef('Join our team and make a difference');
   const filterPlaceholderRef = useRef('Browse By');
+  const descriptionRef = useRef('Join our team and make a difference');
 
-  // ============================================
   // UPDATE REFS WHEN PROPS CHANGE
-  // ============================================
   useEffect(() => {
     apiParamsRef.current = apiParams;
     propDataRef.current = propData;
@@ -153,9 +145,7 @@ const JobsSection = ({
     filterPlaceholderRef.current = customProps.filterPlaceholder || propData?.data?.filter?.placeholder || propFilterPlaceholder || 'Browse By';
   }, [customProps, propData, propTitle, propDescription, propLimit, propFilterPlaceholder, apiParams, apiEndpoint, publicJobsRoute, perPage]);
 
-  // ============================================
   // CLOSE SEARCH DROPDOWN ON OUTSIDE CLICK
-  // ============================================
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (searchRef.current && !searchRef.current.contains(event.target)) {
@@ -166,9 +156,7 @@ const JobsSection = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // ============================================
   // FETCH JOBS
-  // ============================================
   const fetchJobs = useCallback(async (params = {}) => {
     if (isFetchingRef.current) return;
     isFetchingRef.current = true;
@@ -291,9 +279,7 @@ const JobsSection = ({
     }
   }, [searchTerm, selectedFilter]);
 
-  // ============================================
   // LOAD MORE JOBS
-  // ============================================
   const loadMoreJobs = useCallback(async () => {
     if (isFetchingRef.current || loadingMore || !hasMorePages) return;
 
@@ -407,9 +393,7 @@ const JobsSection = ({
     }
   }, [currentPage, hasMorePages, loadingMore, searchTerm, selectedFilter, jobs]);
 
-  // ============================================
   // INFINITE SCROLL - Intersection Observer
-  // ============================================
   useEffect(() => {
     if (jobs.length === 0 || !hasMorePages || loading || loadingMore) return;
 
@@ -473,9 +457,7 @@ const JobsSection = ({
     };
   }, [jobs, hasMorePages, loading, loadingMore, loadMoreJobs]);
 
-  // ============================================
-  // DEBOUNCED FETCH ON SEARCH/FILTER CHANGE
-  // ============================================
+  // DEBOUNCED FETCH ON SEARCH/FILTER CHANGE 
   useEffect(() => {
     if (!initialFetchDone) return;
 
@@ -494,9 +476,7 @@ const JobsSection = ({
     };
   }, [searchTerm, selectedFilter, fetchJobs, initialFetchDone]);
 
-  // ============================================
-  // INITIAL FETCH
-  // ============================================
+  // INITIAL FETCH 
   useEffect(() => {
     if (!initialFetchDone) {
       fetchJobs();
@@ -504,14 +484,13 @@ const JobsSection = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ============================================
-  // HANDLERS
-  // ============================================
+  // HANDLER - Search Input Change 
   const handleSearchChange = (e) => {
     setSearchTerm(e.target.value);
     setIsSearchOpen(true);
   };
 
+  // HANDLER - Search Select and Filter Change
   const handleSearchSelect = (job) => {
     setSearchTerm(job.title);
     setIsSearchOpen(false);
@@ -523,14 +502,7 @@ const JobsSection = ({
     }
   };
 
-  const handleFilterChange = (filter) => {
-    setSelectedFilter(filter);
-    setIsSearchOpen(false);
-  };
-
-  // ============================================
   // DERIVED DATA
-  // ============================================
   const filteredJobs = useMemo(() => {
     if (!searchTerm.trim()) return jobs;
     const lower = searchTerm.toLowerCase().trim();
@@ -548,17 +520,18 @@ const JobsSection = ({
   const displayLimit = displayLimitRef.current;
   const displayedJobs = filteredJobs.slice(0, displayLimit);
 
+  // 
   const title = titleRef.current;
   const description = descriptionRef.current;
 
-  // ============================================
-  // RENDER
-  // ============================================
+
   return (
     <section id="jobs" className={`${bgColor} ${paddingX} ${paddingY} ${sectionClassName}`}>
       {/* Header */}
       {(hasValue(title) || hasValue(description) || hasValue(filterOptions)) && (
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center pb-8 sm:pb-10 lg:pb-15 flex-wrap gap-5">
+
+          {/* Title and Description */}
           {(hasValue(title) || hasValue(description)) && (
             <div>
               {hasValue(title) && (
@@ -572,28 +545,9 @@ const JobsSection = ({
             </div>
           )}
 
+          {/* Search and Filter */}
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 w-full lg:w-auto">
-            {filterOptions.length > 1 && (
-              <div className="relative w-full sm:w-auto">
-                <select
-                  value={selectedFilter}
-                  onChange={(e) => handleFilterChange(e.target.value)}
-                  className="w-full sm:w-auto px-4 py-3 sm:py-4 border border-[#A3A3A3] rounded-[14px] bg-white text-[14px] sm:text-[16px] font-400 text-[#515151] outline-none focus:border-[#009BE2] focus:ring-1 focus:ring-[#009BE2] transition-all duration-300 appearance-none pr-10"
-                >
-                  {filterOptions.map(option => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-                <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
-                  <svg className="w-4 h-4 text-[#A3A3A3]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-                  </svg>
-                </div>
-              </div>
-            )}
-
+            {/* Search Input */}
             <div className="relative w-full lg:min-w-80" ref={searchRef}>
               <div className="relative">
                 <input
@@ -660,6 +614,8 @@ const JobsSection = ({
       {/* Jobs list */}
       {!loading && jobs.length > 0 && (
         <div className="space-y-4 sm:space-y-5 lg:space-y-6">
+
+          {/* Job cards */}
           {displayedJobs.map((job, index) => (
             <div
               key={job.id || `job-${index}`}
@@ -736,17 +692,7 @@ const JobsSection = ({
             </div>
           )}
 
-          {/* No More Jobs Message */}
-          {!loadingMore && !hasMorePages && jobs.length > 0 && (
-            <div className="text-center py-8">
-              <p className="text-[#524B48] text-[14px]">
-                {jobs.length >= displayLimitRef.current
-                  ? `Showing ${displayLimitRef.current} jobs (display limit reached)`
-                  : "You've reached the end of the list"}
-              </p>
-            </div>
-          )}
-
+          {/* No more jobs */}
           {filteredJobs.length === 0 && jobs.length > 0 && (
             <div className="bg-white p-8 sm:p-10 lg:p-12 rounded-2xl text-center">
               <p className="text-[#515151] text-[16px] sm:text-[17px] lg:text-[18px] font-400">

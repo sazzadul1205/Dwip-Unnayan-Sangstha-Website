@@ -115,7 +115,7 @@ const ProjectsAndProgramsDetails = ({
       footerData={footerData}
       storageUrl={storageUrl}
     >
-      <Head title={`${programData?.title || 'Program'} | DUS - Dwip Unnayan Society`} />
+      <Head title={`${programData?.title || 'Programs and Projects Details'}`} />
 
       {bannerSection && (
         <DynamicSectionRenderer

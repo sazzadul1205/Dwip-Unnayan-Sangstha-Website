@@ -119,7 +119,7 @@ const AboutDetails = ({
       footerData={footerData}
       storageUrl={storageUrl}
     >
-      <Head title={`${pageData.contentSectionData?.title || 'About'} | DUS - Dwip Unnayan Society`} />
+      <Head title={`${pageData.contentSectionData?.title || 'About Us Details'}`} />
 
       {bannerSection && (
         <DynamicSectionRenderer

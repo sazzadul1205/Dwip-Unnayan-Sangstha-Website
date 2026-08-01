@@ -349,7 +349,7 @@ const BlogDetails = ({
       footerData={footerData}
       storageUrl={storageUrl}
     >
-      <Head title={`${blogData?.title || 'Blog Details'} | DUS - Dwip Unnayan Society | Empowering Communities`} />
+      <Head title={`${blogData?.title || 'Blog Details'}`} />
 
       {sectionsToRender.map((section) => {
         if (section.isSpecialComponent || section.component === 'BannerSection' || section.component === 'BlogContentSection' || section.component === 'PageBannerSection') {

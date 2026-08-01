@@ -34,7 +34,7 @@ const DynamicPage = ({
       footerData={footerData}
       storageUrl={storageUrl}
     >
-      <Head title={pageTitle || "DUS - Dwip Unnayan Society | Empowering Communities"} />
+      <Head title={pageTitle} />
 
       {sectionsToRender.length === 0 && (
         <div className="mx-auto max-w-5xl px-4 py-16 text-center text-slate-500">

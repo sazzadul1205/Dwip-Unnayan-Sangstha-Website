@@ -359,7 +359,7 @@ const ProjectsAndProgramsDetails = ({
       footerData={footerData}
       storageUrl={storageUrl}
     >
-      <Head title={`${publicationData?.title || 'Publication Details'} | DUS - Dwip Unnayan Society | Empowering Communities`} />
+      <Head title={`${publicationData?.title || 'Publication Details'}`} />
 
       {sectionsToRender.map((section) => {
         if (
