@@ -38,6 +38,9 @@ Route::get('/unauthorized', function () {
 // Home page
 Route::get('/', [PageController::class, 'show'])->name('home');
 
+// Sitemap page
+Route::get('/sitemap', [PageController::class, 'sitemap'])->name('sitemap');
+
 // Playground
 Route::get('/playground', function () {
   return Inertia::render('Playground');

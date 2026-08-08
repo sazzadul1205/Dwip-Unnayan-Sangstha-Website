@@ -6,8 +6,10 @@ use App\Http\Controllers\Controller;
 use App\Models\JobListing;
 use App\Models\pages\Page;
 use App\Services\ContentService;
+use App\Services\PageMapService;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
@@ -63,6 +65,25 @@ class PageController extends Controller
     {
         $this->contentService = $contentService;
     }
+
+    /**
+     * Render the public sitemap page.
+     */
+    public function sitemap(): SymfonyResponse
+    {
+        $urls = Cache::remember('sitemap_urls', 3600, function () {
+            return App::make(PageMapService::class)->getPublicUrls();
+        });
+
+        $shared = $this->getSharedData();
+
+        return Inertia::render('Frontend/Sitemap', array_merge($shared, [
+            'storageUrl' => config('app.storage_url', ''),
+            'pageTitle' => 'Sitemap | DUS',
+            'urls' => $urls,
+        ]))->toResponse(request())->setStatusCode(SymfonyResponse::HTTP_OK);
+    }
+
     /**
      * Handle all public pages dynamically.
      */
@@ -87,6 +108,21 @@ class PageController extends Controller
 
             if ($sectionConfigs->isEmpty()) {
                 return $this->renderNotFound($pageSlug, $detailSlug, 'Page configuration not found');
+            }
+
+            // Render the public sitemap page if requested
+            if ($pageSlug === 'sitemap' && is_null($detailSlug)) {
+                $urls = Cache::remember('sitemap_urls', 3600, function () {
+                    return App::make(PageMapService::class)->getPublicUrls();
+                });
+
+                $shared = $this->getSharedData();
+
+                return Inertia::render('Frontend/Sitemap', array_merge($shared, [
+                    'storageUrl' => config('app.storage_url', ''),
+                    'pageTitle' => 'Sitemap | DUS',
+                    'urls' => $urls,
+                ]))->toResponse(request())->setStatusCode(SymfonyResponse::HTTP_OK);
             }
 
             $dataNeeds = $this->determineDataNeeds($sectionConfigs);

@@ -11,9 +11,8 @@ use Illuminate\Support\Facades\Route;
 // Controllers
 use App\Http\Controllers\Backend\DashboardController;
 use App\Http\Controllers\Admin\CacheController;
+use App\Http\Controllers\Backend\PageMapController;
 
-// Inertia
-use Inertia\Inertia;
 
 Route::middleware(['auth', 'verified', 'profile.complete'])->group(function () {
   // Dashboard

@@ -46,3 +46,9 @@ require __DIR__ . '/admin/dashboard.php';
 // SECTION 6: FALLBACK ROUTE (MUST BE AT THE END)
 // ============================================
 require __DIR__ . '/fallback.php';
+
+// ============================================
+// SECTION 7: ADMIN/BACKEND PAGE MAP ROUTES
+// URL: /backend/page-map/*
+// ============================================
+require __DIR__ . '/admin/page-map.php';
