@@ -38,11 +38,7 @@ class BlogController extends Controller
     }
 
     try {
-      // Cache the list for 5 minutes
-      $items = Cache::remember('blog_admin_list', 300, function () {
-        return Blog::withTrashed()->orderBy('created_at', 'desc')->get();
-      });
-
+      $items = Blog::withTrashed()->orderBy('created_at', 'desc')->get();
       return Inertia::render('Backend/CMS/Blogs/Index', ['items' => $items]);
     } catch (\Exception $e) {
       Log::error('Failed to fetch blogs: ' . $e->getMessage());
@@ -440,8 +436,9 @@ class BlogController extends Controller
   private function clearCache(): void
   {
     Cache::forget('blog_admin_list');
-    // Also clear frontend cache if you have one
     Cache::forget('frontend_blog_list');
+    // Clear frontend content service cache
+    app(\App\Services\ContentService::class)->clearCache();
   }
 
   /**

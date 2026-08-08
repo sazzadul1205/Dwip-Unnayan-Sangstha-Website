@@ -39,10 +39,7 @@ class ProgramController extends Controller
         }
 
         try {
-            $items = Cache::remember('cms_program_list', 300, function () {
-                return Program::withTrashed()->orderBy('display_order')->get();
-            });
-
+            $items = Program::withTrashed()->orderBy('display_order')->get();
             return Inertia::render('Backend/CMS/Programs/Index', ['items' => $items]);
         } catch (\Exception $e) {
             Log::error('Failed to fetch programs: ' . $e->getMessage());
@@ -128,7 +125,6 @@ class ProgramController extends Controller
             session()->forget('_old_input');
 
             return redirect()->back()->with('success', '✅ Program created successfully.');
-
         } catch (ValidationException $e) {
             return back()->withErrors($e->errors())->withInput();
         } catch (\Exception $e) {
@@ -229,7 +225,6 @@ class ProgramController extends Controller
             session()->forget('_old_input');
 
             return redirect()->back()->with('success', '✅ Program updated successfully.');
-
         } catch (ValidationException $e) {
             return back()->withErrors($e->errors())->withInput();
         } catch (\Exception $e) {
@@ -279,7 +274,6 @@ class ProgramController extends Controller
             );
 
             return redirect()->back()->with('success', "✅ Program {$status} successfully.");
-
         } catch (\Exception $e) {
             Log::error('Program status toggle failed: ' . $e->getMessage(), ['program_id' => $id]);
             return redirect()->back()->with('error', 'Failed to toggle program status.');
@@ -326,7 +320,6 @@ class ProgramController extends Controller
             );
 
             return redirect()->back()->with('success', "✅ Program {$status} successfully.");
-
         } catch (\Exception $e) {
             Log::error('Program featured toggle failed: ' . $e->getMessage(), ['program_id' => $id]);
             return redirect()->back()->with('error', 'Failed to toggle featured status.');
@@ -372,7 +365,6 @@ class ProgramController extends Controller
             );
 
             return response()->json(['success' => true, 'message' => 'Order updated successfully.']);
-
         } catch (ValidationException $e) {
             return response()->json(['errors' => $e->errors()], 422);
         } catch (\Exception $e) {
@@ -412,7 +404,6 @@ class ProgramController extends Controller
             );
 
             return redirect()->back()->with('success', '🗑️ Program moved to trash successfully.');
-
         } catch (\Exception $e) {
             Log::error('Program deletion failed: ' . $e->getMessage(), ['program_id' => $id]);
             return redirect()->back()->with('error', 'Failed to delete program.');
@@ -450,7 +441,6 @@ class ProgramController extends Controller
             );
 
             return redirect()->back()->with('success', '🔄 Program restored successfully.');
-
         } catch (\Exception $e) {
             Log::error('Program restoration failed: ' . $e->getMessage(), ['program_id' => $id]);
             return redirect()->back()->with('error', 'Failed to restore program.');
@@ -497,7 +487,6 @@ class ProgramController extends Controller
             );
 
             return redirect()->back()->with('success', '🗑️ Program permanently deleted.');
-
         } catch (\Exception $e) {
             Log::error('Program force deletion failed: ' . $e->getMessage(), ['program_id' => $id]);
             return redirect()->back()->with('error', 'Failed to permanently delete program.');
@@ -549,8 +538,9 @@ class ProgramController extends Controller
     private function clearCache(): void
     {
         Cache::forget('cms_program_list');
-        // Also clear frontend program cache if needed
         Cache::forget('frontend_program_list');
+        // Clear frontend content service cache
+        app(\App\Services\ContentService::class)->clearCache();
     }
 
     /**
@@ -638,7 +628,6 @@ class ProgramController extends Controller
             }
 
             return '/storage/' . $path;
-
         } catch (\Exception $e) {
             Log::error('Image upload failed: ' . $e->getMessage());
             return null;

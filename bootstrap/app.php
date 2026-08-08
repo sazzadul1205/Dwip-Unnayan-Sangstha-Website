@@ -1,13 +1,14 @@
 <?php
 
-use App\Http\Controllers\JobListing\JobListingController;
+use App\Console\Commands\ClearFrontendCache;
+use App\Console\Commands\UpdateJobStatuses;
 use App\Http\Middleware\HandleInertiaRequests;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets;
 use Illuminate\Console\Scheduling\Schedule;
-use Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful; 
+use Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -16,6 +17,11 @@ return Application::configure(basePath: dirname(__DIR__))
         commands: __DIR__ . '/../routes/console.php',
         health: '/up',
     )
+    // ✅ Register your custom console commands
+    ->withCommands([
+        ClearFrontendCache::class,
+        UpdateJobStatuses::class,
+    ])
     ->withMiddleware(function (Middleware $middleware) {
         // Add custom aliases
         $middleware->alias([
@@ -28,22 +34,20 @@ return Application::configure(basePath: dirname(__DIR__))
             AddLinkHeadersForPreloadedAssets::class,
         ]);
 
-        // API middleware group - ADD THIS
+        // API middleware group
         $middleware->group('api', [
             EnsureFrontendRequestsAreStateful::class,
             'throttle:api',
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
         ]);
     })
+    // ✅ Schedule tasks using the registered command
     ->withSchedule(function (Schedule $schedule) {
-        // Update job statuses every hour
-        $schedule->call(function () {
-            $controller = app(JobListingController::class);
-            $controller->updateJobStatuses();
-        })->hourly()->name('update-job-statuses');
+        // Update job statuses every hour using the dedicated command
+        $schedule->command('jobs:update-status')->hourly();
 
-        // You can also use a command if you create one (recommended)
-        // $schedule->command('jobs:update-status')->hourly();
+        // Optionally clear frontend cache daily (uncomment if needed)
+        // $schedule->command('frontend:clear-cache --all')->daily();
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //

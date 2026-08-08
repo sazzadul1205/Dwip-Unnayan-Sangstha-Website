@@ -674,10 +674,6 @@ class UserController extends Controller
         // Clear specific cache keys
         Cache::forget('users_index_*');
 
-        // ✅ Use Cache::flush() to clear ALL cache (more aggressive)
-        // This ensures no stale data remains
-        Cache::flush();
-
         // Log cache clearing
         Log::info('User cache cleared', ['action' => 'all']);
     }

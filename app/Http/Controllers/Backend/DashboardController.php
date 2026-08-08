@@ -21,7 +21,7 @@ class DashboardController extends Controller
   /**
    * Cache duration in seconds (5 minutes).
    */
-  protected int $cacheDuration = 300;
+  protected int $cacheDuration = 120;
 
   /**
    * Display the dashboard based on user role.

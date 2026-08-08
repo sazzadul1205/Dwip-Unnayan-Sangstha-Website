@@ -61,10 +61,7 @@ class PageController extends Controller
     }
 
     try {
-      $items = Cache::remember('cms_page_list', 300, function () {
-        return Page::withTrashed()->get();
-      });
-
+      $items = Page::withTrashed()->get();
       return Inertia::render('Backend/CMS/Index', [
         'items' => $items,
         'protectedPages' => $this->protectedSlugs,
@@ -422,7 +419,8 @@ class PageController extends Controller
   private function clearCache(): void
   {
     Cache::forget('cms_page_list');
-    // Also clear frontend page cache if needed
     Cache::forget('frontend_page_list');
+    // Clear frontend content service cache
+    app(\App\Services\ContentService::class)->clearCache();
   }
 }

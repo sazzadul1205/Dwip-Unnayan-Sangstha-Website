@@ -41,64 +41,53 @@ class LocationController extends Controller
                 ->with('error', 'You do not have permission to view locations.');
         }
 
-        // ✅ Add cache-busting headers to prevent browser caching
-        $response = response()->make();
-        $response->header('Cache-Control', 'no-cache, no-store, must-revalidate');
-        $response->header('Pragma', 'no-cache');
-        $response->header('Expires', '0');
+        $query = Location::withTrashed();
 
-        $cacheKey = 'locations_index_' . md5(json_encode($request->query()));
+        $status = $request->input('status', 'all');
+        if ($status !== 'all') {
+            match ($status) {
+                'active' => $query->where('is_active', true)->whereNull('deleted_at'),
+                'inactive' => $query->where('is_active', false)->whereNull('deleted_at'),
+                'deleted' => $query->onlyTrashed(),
+                default => null,
+            };
+        }
 
-        $data = Cache::remember($cacheKey, $this->cacheDuration, function () use ($request) {
-            $query = Location::withTrashed();
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                    ->orWhere('address', 'like', "%{$search}%");
+            });
+        }
 
-            $status = $request->input('status', 'all');
-            if ($status !== 'all') {
-                match ($status) {
-                    'active' => $query->where('is_active', true)->whereNull('deleted_at'),
-                    'inactive' => $query->where('is_active', false)->whereNull('deleted_at'),
-                    'deleted' => $query->onlyTrashed(),
-                    default => null,
-                };
-            }
+        $sortField = $request->input('sort', 'name');
+        $sortDirection = $request->input('direction', 'asc');
+        $allowedSortFields = ['name', 'is_active', 'created_at', 'updated_at'];
 
-            if ($request->filled('search')) {
-                $search = $request->search;
-                $query->where(function ($q) use ($search) {
-                    $q->where('name', 'like', "%{$search}%")
-                        ->orWhere('address', 'like', "%{$search}%");
-                });
-            }
+        if (in_array($sortField, $allowedSortFields)) {
+            $query->orderBy($sortField, $sortDirection);
+        } else {
+            $query->orderBy('name', 'asc');
+        }
 
-            $sortField = $request->input('sort', 'name');
-            $sortDirection = $request->input('direction', 'asc');
-            $allowedSortFields = ['name', 'is_active', 'created_at', 'updated_at'];
+        $locations = $query->paginate(9)->withQueryString();
 
-            if (in_array($sortField, $allowedSortFields)) {
-                $query->orderBy($sortField, $sortDirection);
-            } else {
-                $query->orderBy('name', 'asc');
-            }
+        $stats = [
+            'total' => Location::count(),
+            'active' => Location::where('is_active', true)->count(),
+            'inactive' => Location::where('is_active', false)->count(),
+            'total_deleted' => Location::onlyTrashed()->count(),
+        ];
 
-            $locations = $query->paginate(9)->withQueryString();
-
-            $stats = [
-                'total' => Location::count(),
-                'active' => Location::where('is_active', true)->count(),
-                'inactive' => Location::where('is_active', false)->count(),
-                'total_deleted' => Location::onlyTrashed()->count(),
-            ];
-
-            return [
-                'locations' => $locations,
-                'filters' => $request->only(['search', 'status', 'sort', 'direction']),
-                'stats' => $stats,
-            ];
-        });
+        $data = [
+            'locations' => $locations,
+            'filters' => $request->only(['search', 'status', 'sort', 'direction']),
+            'stats' => $stats,
+        ];
 
         return Inertia::render('Backend/Locations/Index', $data);
     }
-
     /**
      * Store a newly created location – with rate limiting.
      */
@@ -686,12 +675,8 @@ class LocationController extends Controller
         Cache::forget('locations_index_*');
         Cache::forget('locations_active');
 
-        // ✅ Use Cache::flush() to clear ALL cache (more aggressive)
-        // This ensures no stale data remains
-        Cache::flush();
-
-        // Log cache clearing
-        Log::info('Location cache cleared', ['action' => 'all']);
+        // No flush here – only specific keys
+        Log::info('Location cache cleared', ['action' => 'specific']);
     }
 
     /**

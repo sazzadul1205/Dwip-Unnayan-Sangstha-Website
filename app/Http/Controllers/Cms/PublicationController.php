@@ -39,10 +39,7 @@ class PublicationController extends Controller
     }
 
     try {
-      $items = Cache::remember('cms_publication_list', 300, function () {
-        return Publication::withTrashed()->orderBy('created_at', 'desc')->get();
-      });
-
+      $items = Publication::withTrashed()->orderBy('created_at', 'desc')->get();
       return Inertia::render('Backend/CMS/Publications/Index', ['items' => $items]);
     } catch (\Exception $e) {
       Log::error('Failed to fetch publications: ' . $e->getMessage());
@@ -511,10 +508,15 @@ class PublicationController extends Controller
     return "publication_{$action}|{$userId}";
   }
 
+  /**
+   * Clear the publication cache.
+   */
   private function clearCache(): void
   {
     Cache::forget('cms_publication_list');
     Cache::forget('frontend_publication_list');
+    // Clear frontend content service cache
+    app(\App\Services\ContentService::class)->clearCache();
   }
 
   private function prepareData(array $validated): array

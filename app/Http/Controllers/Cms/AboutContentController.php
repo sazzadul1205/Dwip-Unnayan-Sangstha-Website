@@ -40,11 +40,7 @@ class AboutContentController extends Controller
     }
 
     try {
-      // Cache the index for 5 minutes to reduce DB load
-      $items = Cache::remember('about_content_list', 300, function () {
-        return AboutContent::withTrashed()->orderBy('display_order')->get();
-      });
-
+      $items = AboutContent::withTrashed()->orderBy('display_order')->get();
       return Inertia::render('Backend/CMS/About/Index', ['items' => $items]);
     } catch (\Exception $e) {
       Log::error('Failed to fetch about content: ' . $e->getMessage());
@@ -495,6 +491,8 @@ class AboutContentController extends Controller
   private function clearCache(): void
   {
     Cache::forget('about_content_list');
+    // Clear frontend content service cache
+    app(\App\Services\ContentService::class)->clearCache();
   }
 
   /**

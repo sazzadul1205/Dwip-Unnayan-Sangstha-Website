@@ -731,4 +731,23 @@ class PageController extends Controller
             ];
         })->toArray();
     }
+
+
+    /**
+     * Clear cache for a specific page.
+     * Used by the ClearFrontendCache console command.
+     */
+    public function clearPageCache(string $pageSlug): void
+    {
+        // Clear the entire content service cache (frontend)
+        app(\App\Services\ContentService::class)->clearCache();
+
+        // Also clear page-specific caches for good measure
+        Cache::forget('frontend_page_' . $pageSlug);
+        Cache::forget('frontend_detail_' . $pageSlug);
+        Cache::forget('frontend_custom_' . $pageSlug);
+        Cache::forget('page_sections_' . $pageSlug);
+        Cache::forget('page.' . $pageSlug);
+        Cache::forget('sections.' . $pageSlug);
+    }
 }

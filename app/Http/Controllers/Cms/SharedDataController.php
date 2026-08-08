@@ -180,6 +180,8 @@ class SharedDataController extends Controller
     Cache::forget('shared.' . $type);
     Cache::forget('shared_data_' . $type);
     Cache::forget('shared_data_list');
+    // Clear frontend content service cache
+    app(\App\Services\ContentService::class)->clearCache();
   }
 
   /**

@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Route;
 // Controllers
 use App\Http\Controllers\Api\ContentApiController;
 use App\Http\Controllers\Api\JobListingApiController;
-
+use App\Http\Controllers\JobListing\PublicJobListingController;
 // Models
 use App\Models\pages\Page;
 use App\Models\pages\Program;
@@ -107,8 +107,9 @@ Route::get('/api/programs', function () {
 Route::prefix('api/jobs')->group(function () {
   Route::get('/', [JobListingApiController::class, 'index'])->name('api.jobs.index');
   Route::get('/filter-options', [JobListingApiController::class, 'filterOptions'])->name('api.jobs.filters');
-  Route::get('/popular', [JobListingApiController::class, 'popular'])->name('api.jobs.popular');
-  Route::get('/trending', [JobListingApiController::class, 'trending'])->name('api.jobs.trending');
+  // ✅ Use PublicJobListingController for these two
+  Route::get('/popular', [PublicJobListingController::class, 'popular'])->name('api.jobs.popular');
+  Route::get('/trending', [PublicJobListingController::class, 'trending'])->name('api.jobs.trending');
   Route::get('/{identifier}', [JobListingApiController::class, 'show'])->name('api.jobs.show');
   Route::get('/{slug}/related', [JobListingApiController::class, 'related'])->name('api.jobs.related');
 });

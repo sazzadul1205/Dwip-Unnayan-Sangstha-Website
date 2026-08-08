@@ -42,61 +42,50 @@ class JobCategoryController extends Controller
                 ->with('error', 'You do not have permission to view categories.');
         }
 
-        // ✅ Add cache-busting headers to prevent browser caching
-        $response = response()->make();
-        $response->header('Cache-Control', 'no-cache, no-store, must-revalidate');
-        $response->header('Pragma', 'no-cache');
-        $response->header('Expires', '0');
+        $query = JobCategory::withTrashed();
 
-        $cacheKey = 'job_categories_index_' . md5(json_encode($request->query()));
+        $status = $request->input('status', 'all');
+        if ($status !== 'all') {
+            match ($status) {
+                'active' => $query->where('is_active', true)->whereNull('deleted_at'),
+                'inactive' => $query->where('is_active', false)->whereNull('deleted_at'),
+                'deleted' => $query->onlyTrashed(),
+                default => null,
+            };
+        }
 
-        $data = Cache::remember($cacheKey, $this->cacheDuration, function () use ($request) {
-            $query = JobCategory::withTrashed();
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where('name', 'like', "%{$search}%");
+        }
 
-            $status = $request->input('status', 'all');
-            if ($status !== 'all') {
-                match ($status) {
-                    'active' => $query->where('is_active', true)->whereNull('deleted_at'),
-                    'inactive' => $query->where('is_active', false)->whereNull('deleted_at'),
-                    'deleted' => $query->onlyTrashed(),
-                    default => null,
-                };
-            }
+        $sortField = $request->input('sort', 'name');
+        $sortDirection = $request->input('direction', 'asc');
+        $allowedSortFields = ['name', 'is_active', 'created_at', 'updated_at'];
 
-            if ($request->filled('search')) {
-                $search = $request->search;
-                $query->where('name', 'like', "%{$search}%");
-            }
+        if (in_array($sortField, $allowedSortFields)) {
+            $query->orderBy($sortField, $sortDirection);
+        } else {
+            $query->orderBy('name', 'asc');
+        }
 
-            $sortField = $request->input('sort', 'name');
-            $sortDirection = $request->input('direction', 'asc');
-            $allowedSortFields = ['name', 'is_active', 'created_at', 'updated_at'];
+        $categories = $query->paginate(9)->withQueryString();
 
-            if (in_array($sortField, $allowedSortFields)) {
-                $query->orderBy($sortField, $sortDirection);
-            } else {
-                $query->orderBy('name', 'asc');
-            }
+        $stats = [
+            'total' => JobCategory::count(),
+            'active' => JobCategory::where('is_active', true)->count(),
+            'inactive' => JobCategory::where('is_active', false)->count(),
+            'total_deleted' => JobCategory::onlyTrashed()->count(),
+        ];
 
-            $categories = $query->paginate(9)->withQueryString();
-
-            $stats = [
-                'total' => JobCategory::count(),
-                'active' => JobCategory::where('is_active', true)->count(),
-                'inactive' => JobCategory::where('is_active', false)->count(),
-                'total_deleted' => JobCategory::onlyTrashed()->count(),
-            ];
-
-            return [
-                'categories' => $categories,
-                'filters' => $request->only(['search', 'status', 'sort', 'direction']),
-                'stats' => $stats,
-            ];
-        });
+        $data = [
+            'categories' => $categories,
+            'filters' => $request->only(['search', 'status', 'sort', 'direction']),
+            'stats' => $stats,
+        ];
 
         return Inertia::render('Backend/JobCategories/Index', $data);
     }
-
     /**
      * Store a new category – with rate limiting.
      */
@@ -698,12 +687,8 @@ class JobCategoryController extends Controller
         Cache::forget('job_categories_index_*');
         Cache::forget('job_categories_active');
 
-        // ✅ Use Cache::flush() to clear ALL cache (more aggressive)
-        // This ensures no stale data remains
-        Cache::flush();
-
-        // Log cache clearing
-        Log::info('Job category cache cleared', ['action' => 'all']);
+        // No flush here – only specific keys
+        Log::info('Job category cache cleared', ['action' => 'specific']);
     }
 
     /**

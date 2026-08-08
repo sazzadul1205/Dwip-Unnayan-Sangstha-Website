@@ -49,71 +49,62 @@ class SectionController extends Controller
     }
 
     try {
-      $cacheKey = "sections_page_{$pageId}";
-      $sectionsData = Cache::remember($cacheKey, 300, function () use ($pageId) {
-        $page = Page::withTrashed()->findOrFail($pageId);
+      $page = Page::withTrashed()->findOrFail($pageId);
 
-        // Get active sections
-        $sectionConfigs = SectionConfig::where('page_slug', $page->slug)
-          ->orderBy('display_order')
-          ->get();
+      $sectionConfigs = SectionConfig::where('page_slug', $page->slug)
+        ->orderBy('display_order')
+        ->get();
 
-        $customSectionData = CustomSectionData::where('page_slug', $page->slug)
-          ->get()
-          ->keyBy('section_key');
+      $customSectionData = CustomSectionData::where('page_slug', $page->slug)
+        ->get()
+        ->keyBy('section_key');
 
-        $sharedData = SharedData::whereIn('type', $sectionConfigs->pluck('section_key'))
-          ->get()
-          ->keyBy('type');
+      $sharedData = SharedData::whereIn('type', $sectionConfigs->pluck('section_key'))
+        ->get()
+        ->keyBy('type');
 
-        $sections = [];
+      $sections = [];
 
-        foreach ($sectionConfigs as $config) {
-          $section = $config->toArray();
-
-          try {
-            $section['data'] = $this->loadSectionData($config, $customSectionData, $sharedData);
-          } catch (\Exception $e) {
-            Log::error('Failed to load data for section: ' . $config->section_key, [
-              'error' => $e->getMessage(),
-              'data_table' => $config->data_table,
-            ]);
-            $section['data'] = null;
-            $section['data_error'] = 'Failed to load data: ' . $e->getMessage();
-          }
-
-          $sections[] = $section;
+      foreach ($sectionConfigs as $config) {
+        $section = $config->toArray();
+        try {
+          $section['data'] = $this->loadSectionData($config, $customSectionData, $sharedData);
+        } catch (\Exception $e) {
+          Log::error('Failed to load data for section: ' . $config->section_key, [
+            'error' => $e->getMessage(),
+            'data_table' => $config->data_table,
+          ]);
+          $section['data'] = null;
+          $section['data_error'] = 'Failed to load data: ' . $e->getMessage();
         }
+        $sections[] = $section;
+      }
 
-        // Get trashed sections
-        $trashedSections = SectionConfig::onlyTrashed()
-          ->where('page_slug', $page->slug)
-          ->orderBy('deleted_at', 'desc')
-          ->get()
-          ->map(function ($section) {
-            return [
-              'id' => $section->id,
-              'section_key' => $section->section_key,
-              'component' => $section->component,
-              'data_table' => $section->data_table,
-              'is_enabled' => $section->is_enabled,
-              'is_fixed_section' => $section->is_fixed_section,
-              'display_order' => $section->display_order,
-              'deleted_at' => $section->deleted_at ? $section->deleted_at->toISOString() : null,
-              'created_at' => $section->created_at ? $section->created_at->toISOString() : null,
-              'updated_at' => $section->updated_at ? $section->updated_at->toISOString() : null,
-            ];
-          });
+      $trashedSections = SectionConfig::onlyTrashed()
+        ->where('page_slug', $page->slug)
+        ->orderBy('deleted_at', 'desc')
+        ->get()
+        ->map(function ($section) {
+          return [
+            'id' => $section->id,
+            'section_key' => $section->section_key,
+            'component' => $section->component,
+            'data_table' => $section->data_table,
+            'is_enabled' => $section->is_enabled,
+            'is_fixed_section' => $section->is_fixed_section,
+            'display_order' => $section->display_order,
+            'deleted_at' => $section->deleted_at ? $section->deleted_at->toISOString() : null,
+            'created_at' => $section->created_at ? $section->created_at->toISOString() : null,
+            'updated_at' => $section->updated_at ? $section->updated_at->toISOString() : null,
+          ];
+        });
 
-        return [
-          'page' => $page,
-          'sections' => $sections,
-          'trashedSections' => $trashedSections,
-          'trashedCount' => $trashedSections->count(),
-        ];
-      });
-
-      return Inertia::render('Backend/CMS/Section/Index', $sectionsData);
+      return Inertia::render('Backend/CMS/Section/Index', [
+        'page' => $page,
+        'sections' => $sections,
+        'trashedSections' => $trashedSections,
+        'trashedCount' => $trashedSections->count(),
+      ]);
     } catch (\Exception $e) {
       Log::error('Failed to load sections page: ' . $e->getMessage(), [
         'page_id' => $pageId,
@@ -676,6 +667,8 @@ class SectionController extends Controller
   {
     Cache::forget("sections_page_{$pageId}");
     Cache::forget('about_content_options');
+    // Clear frontend content service cache
+    app(\App\Services\ContentService::class)->clearCache();
   }
 
   /**
@@ -688,6 +681,7 @@ class SectionController extends Controller
       $this->clearCache($page->id);
     }
   }
+
   /**
    * Load section data based on data_table.
    *
@@ -1043,6 +1037,89 @@ class SectionController extends Controller
         'is_active' => true,
       ]
     );
+  }
+
+  /**
+   * Display a listing of trashed (soft-deleted) sections for a specific page.
+   */
+  public function trashed(int $pageId): Response|RedirectResponse
+  {
+    $user = $this->getAuthUser();
+
+    if (!$user->hasPermission('sections.view')) {
+      return redirect()->route('unauthorized.access')
+        ->with('error', 'You do not have permission to view trashed sections.');
+    }
+
+    try {
+      $page = Page::withTrashed()->findOrFail($pageId);
+
+      $trashedSections = SectionConfig::onlyTrashed()
+        ->where('page_slug', $page->slug)
+        ->orderBy('deleted_at', 'desc')
+        ->get()
+        ->map(function ($section) {
+          return [
+            'id' => $section->id,
+            'section_key' => $section->section_key,
+            'component' => $section->component,
+            'data_table' => $section->data_table,
+            'is_enabled' => $section->is_enabled,
+            'is_fixed_section' => $section->is_fixed_section,
+            'display_order' => $section->display_order,
+            'deleted_at' => $section->deleted_at?->toISOString(),
+            'created_at' => $section->created_at?->toISOString(),
+            'updated_at' => $section->updated_at?->toISOString(),
+          ];
+        });
+
+      return Inertia::render('Backend/CMS/Section/Trashed', [
+        'page' => $page,
+        'trashedSections' => $trashedSections,
+        'trashedCount' => $trashedSections->count(),
+      ]);
+    } catch (\Exception $e) {
+      Log::error('Failed to load trashed sections: ' . $e->getMessage(), [
+        'page_id' => $pageId,
+        'trace' => $e->getTraceAsString(),
+      ]);
+
+      return redirect()->back()->with('error', 'Failed to load trashed sections.');
+    }
+  }
+
+  /**
+   * Get the count of trashed sections for a specific page (AJAX).
+   */
+  public function trashedCount(int $pageId): JsonResponse
+  {
+    $user = $this->getAuthUser();
+
+    if (!$user->hasPermission('sections.view')) {
+      return response()->json(['error' => 'Unauthorized'], 403);
+    }
+
+    try {
+      $page = Page::withTrashed()->findOrFail($pageId);
+
+      $count = SectionConfig::onlyTrashed()
+        ->where('page_slug', $page->slug)
+        ->count();
+
+      return response()->json([
+        'success' => true,
+        'count' => $count,
+      ]);
+    } catch (\Exception $e) {
+      Log::error('Failed to get trashed count: ' . $e->getMessage(), [
+        'page_id' => $pageId,
+      ]);
+
+      return response()->json([
+        'success' => false,
+        'message' => 'Failed to get trashed count.',
+      ], 500);
+    }
   }
 
   /**
