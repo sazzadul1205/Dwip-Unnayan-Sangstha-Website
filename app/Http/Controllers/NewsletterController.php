@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Jobs\SendNewsletterBulkEmail;
 use App\Models\NewsletterSubscription;
 use App\Mail\NewsletterWelcomeEmail;
 use App\Mail\NewsletterTestEmail;
@@ -599,7 +600,7 @@ class NewsletterController extends Controller
   }
 
   /**
-   * Admin: Send bulk email.
+   * Admin: Send bulk email using queue.
    */
   public function sendBulkEmail(Request $request): \Illuminate\Http\JsonResponse
   {
@@ -641,38 +642,28 @@ class NewsletterController extends Controller
       ], 400);
     }
 
-    $sentCount = 0;
-    $failedCount = 0;
-
+    // Dispatch jobs to queue
+    $dispatched = 0;
     foreach ($subscribers as $subscriber) {
-      try {
-        Mail::to($subscriber->email)->send(new NewsletterBulkEmail(
-          $subscriber,
-          $request->input('subject'),
-          $request->input('content')
-        ));
-        $sentCount++;
-      } catch (\Exception $e) {
-        Log::error('Failed to send bulk email: ' . $e->getMessage(), [
-          'email' => $subscriber->email,
-          'subject' => $request->input('subject'),
-        ]);
-        $failedCount++;
-      }
+      SendNewsletterBulkEmail::dispatch( 
+        $subscriber,
+        $request->input('subject'),
+        $request->input('content')
+      );
+      $dispatched++;
     }
 
     RateLimiter::clear($throttleKey);
 
     SimpleLogger::security(
-      "Newsletter bulk email sent by {$user->email}",
-      ['user_id' => $user->id, 'sent' => $sentCount, 'failed' => $failedCount]
+      "Newsletter bulk email dispatched by {$user->email}",
+      ['user_id' => $user->id, 'count' => $dispatched]
     );
 
     return response()->json([
       'success' => true,
-      'message' => "Emails sent: {$sentCount}, Failed: {$failedCount}",
-      'sent' => $sentCount,
-      'failed' => $failedCount,
+      'message' => "Dispatched {$dispatched} emails to queue.",
+      'queued' => $dispatched,
     ]);
   }
 }
