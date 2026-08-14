@@ -306,19 +306,19 @@ const Footer = ({ footerData, storageUrl = '', defaultLogo = '/images/default-lo
   const secondProgramColumn = hasPrograms ? programs.slice(itemsPerColumn) : [];
 
   return (
-    <footer className='bg-[#080C14] text-white rounded-t-[100px] px-50 pt-37.5'>
+    <footer className='bg-[#080C14] text-white rounded-t-[40px] md:rounded-t-[80px] lg:rounded-t-[100px] px-4 sm:px-8 md:px-12 lg:px-30 xl:px-50 pt-12 sm:pt-20 md:pt-25 lg:pt-30 xl:pt-37.5'>
       {/* Main Footer */}
-      <div className='mx-auto flex flex-col lg:flex-row gap-8 lg:gap-50 pb-25'>
+      <div className='mx-auto flex flex-col lg:flex-row gap-8 md:gap-10 lg:gap-30 xl:gap-50 pb-12 md:pb-20 lg:pb-25'>
 
         {/* LEFT COLUMN - Logo, Description, Social, Contact */}
-        <div className='w-92.5'>
+        <div className='w-full lg:w-70 xl:w-92.5'>
           {/* Logo */}
           {hasLogo && (
             <div className="flex justify-center lg:justify-start">
               <img
                 src={logoUrl}
                 alt={logo.alt || "Footer Logo"}
-                className={logo.className || "w-27.5 h-41.25 object-contain"}
+                className={logo.className || "w-20 sm:w-24 md:w-27.5 h-auto object-contain"}
                 loading="lazy"
                 onError={handleLogoError}
               />
@@ -327,7 +327,7 @@ const Footer = ({ footerData, storageUrl = '', defaultLogo = '/images/default-lo
 
           {/* Description */}
           {hasDescription && (
-            <p className='pt-7.5 text-center lg:text-left text-xs lg:text-sm leading-relaxed text-[#FFFFFF] '>
+            <p className='pt-5 md:pt-7.5 text-center lg:text-left text-sm md:text-base lg:text-sm xl:text-base leading-relaxed text-[#FFFFFF]'>
               {description}
             </p>
           )}
@@ -335,7 +335,7 @@ const Footer = ({ footerData, storageUrl = '', defaultLogo = '/images/default-lo
           {/* Social Links */}
           {hasSocialLinks && (
             <div
-              className='pt-7.5 flex justify-center lg:justify-start gap-3 lg:gap-5 flex-wrap'
+              className='pt-5 md:pt-7.5 flex justify-center lg:justify-start gap-2 sm:gap-3 lg:gap-4 xl:gap-5 flex-wrap'
               aria-label="Social media links"
             >
               {socialLinks.map((social, index) => {
@@ -345,11 +345,11 @@ const Footer = ({ footerData, storageUrl = '', defaultLogo = '/images/default-lo
                 return (
                   <div
                     key={index}
-                    className='border border-white rounded-full p-2 transition-transform duration-200 hover:scale-110 hover:border-[#009BE2]'
+                    className='border border-white rounded-full p-1.5 sm:p-2 transition-transform duration-200 hover:scale-110 hover:border-[#009BE2]'
                   >
                     <a
                       href={social.url}
-                      className={`text-xl lg:text-2xl text-white ${social.hoverColor || ''} transition-colors duration-200 block`}
+                      className={`text-lg sm:text-xl lg:text-2xl text-white ${social.hoverColor || ''} transition-colors duration-200 block`}
                       aria-label={social.ariaLabel || `${social.iconName || 'Social'} link`}
                       target="_blank"
                       rel="noopener noreferrer"
@@ -364,14 +364,14 @@ const Footer = ({ footerData, storageUrl = '', defaultLogo = '/images/default-lo
 
           {/* Address, Contact, Email */}
           {(hasAddress || hasContact || hasEmailInfo) && (
-            <div className='pt-7.5 space-y-5 text-center lg:text-left'>
+            <div className='pt-5 md:pt-7.5 space-y-4 md:space-y-5 text-center lg:text-left'>
               {/* Address */}
               {hasAddress && (
                 <div>
-                  <h2 className='text-white/50 font-semibold mb-2 text-xs lg:text-sm uppercase tracking-wide'>
+                  <h2 className='text-white/50 font-semibold mb-1.5 md:mb-2 text-xs lg:text-sm uppercase tracking-wide'>
                     {address.title || 'Address'}
                   </h2>
-                  <address className="not-italic text-white text-xs lg:text-sm leading-relaxed">
+                  <address className="not-italic text-white text-sm md:text-base lg:text-xs xl:text-sm leading-relaxed">
                     {address.details}
                   </address>
                 </div>
@@ -380,14 +380,14 @@ const Footer = ({ footerData, storageUrl = '', defaultLogo = '/images/default-lo
               {/* Contact Numbers */}
               {hasContact && hasValue(contact.numbers) && (
                 <div>
-                  <h2 className='text-white/50 font-semibold mb-2 text-xs lg:text-sm uppercase tracking-wide'>
+                  <h2 className='text-white/50 font-semibold mb-1.5 md:mb-2 text-xs lg:text-sm uppercase tracking-wide'>
                     {contact.title || 'Contact'}
                   </h2>
                   {contact.numbers.map((number, index) => (
                     <a
                       key={index}
                       href={`tel:${number.replace(/\D/g, '')}`}
-                      className="block text-white hover:text-white transition-colors text-xs lg:text-sm mb-1"
+                      className="block text-white hover:text-white transition-colors text-sm md:text-base lg:text-xs xl:text-sm mb-1"
                     >
                       {number}
                     </a>
@@ -398,14 +398,14 @@ const Footer = ({ footerData, storageUrl = '', defaultLogo = '/images/default-lo
               {/* Email Addresses */}
               {hasEmailInfo && hasValue(emailInfo.addresses) && (
                 <div>
-                  <h2 className='text-white/50 font-semibold mb-2 text-xs lg:text-sm uppercase tracking-wide'>
+                  <h2 className='text-white/50 font-semibold mb-1.5 md:mb-2 text-xs lg:text-sm uppercase tracking-wide'>
                     {emailInfo.title || 'Email'}
                   </h2>
                   {emailInfo.addresses.map((emailAddr, index) => (
                     <a
                       key={index}
                       href={`mailto:${emailAddr}`}
-                      className="block text-white hover:text-white transition-colors break-all text-xs lg:text-sm mb-1"
+                      className="block text-white hover:text-white transition-colors break-all text-sm md:text-base lg:text-xs xl:text-sm mb-1"
                     >
                       {emailAddr}
                     </a>
@@ -417,19 +417,18 @@ const Footer = ({ footerData, storageUrl = '', defaultLogo = '/images/default-lo
         </div>
 
         {/* RIGHT COLUMN - Quick Links, Programs, Newsletter */}
-        <div className='w-full lg:w-2/3'>
+        <div className='w-full lg:flex-1'>
           {(hasQuickLinks || hasPrograms || hasNewsletter) && (
             <>
 
               {/* DESKTOP: Grid layout for links */}
               {(hasQuickLinks || hasPrograms) && (
-                <div className='hidden md:grid md:grid-cols-3 gap-8'>
-
+                <div className='hidden md:grid md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8'>
                   {/* Quick Links */}
                   {hasQuickLinks && (
                     <div>
-                      <h2 className='text-white text-xl lg:text-[22px] font-bold mb-5'>Quick Links</h2>
-                      <ul className='space-y-3'>
+                      <h2 className='text-white text-lg sm:text-xl lg:text-[22px] font-bold mb-3 md:mb-5'>Quick Links</h2>
+                      <ul className='space-y-2 md:space-y-3'>
                         {quickLinks.map((link, index) => renderLinkWithIcon(link, quickLinkLinkIcon, index))}
                       </ul>
                     </div>
@@ -438,8 +437,8 @@ const Footer = ({ footerData, storageUrl = '', defaultLogo = '/images/default-lo
                   {/* Programs - Column 1 */}
                   {hasPrograms && (
                     <div>
-                      <h2 className='text-white text-xl lg:text-[22px] font-bold mb-5'>Our Programs</h2>
-                      <ul className='space-y-3'>
+                      <h2 className='text-white text-lg sm:text-xl lg:text-[22px] font-bold mb-3 md:mb-5'>Our Programs</h2>
+                      <ul className='space-y-2 md:space-y-3'>
                         {firstProgramColumn.map((program, index) => renderLinkWithIcon(program, OurProgramLinkIcon, index))}
                       </ul>
                     </div>
@@ -448,10 +447,10 @@ const Footer = ({ footerData, storageUrl = '', defaultLogo = '/images/default-lo
                   {/* Programs - Column 2 (hidden title for alignment) */}
                   {hasPrograms && secondProgramColumn.length > 0 && (
                     <div>
-                      <h2 className='text-xl lg:text-[22px] font-bold mb-5 opacity-0 pointer-events-none invisible'>
+                      <h2 className='text-lg sm:text-xl lg:text-[22px] font-bold mb-3 md:mb-5 opacity-0 pointer-events-none invisible'>
                         Our Programs
                       </h2>
-                      <ul className='space-y-3'>
+                      <ul className='space-y-2 md:space-y-3'>
                         {secondProgramColumn.map((program, index) => renderLinkWithIcon(program, OurProgramLinkIcon, index + firstProgramColumn.length))}
                       </ul>
                     </div>
@@ -460,13 +459,13 @@ const Footer = ({ footerData, storageUrl = '', defaultLogo = '/images/default-lo
               )}
 
               {/* MOBILE: Accordion for links */}
-              <div className='md:hidden space-y-4'>
+              <div className='md:hidden space-y-3'>
                 {/* Quick Links Accordion */}
                 {hasQuickLinks && (
                   <div className="border-b border-gray-700">
                     <button
                       onClick={() => toggleMobileSection('quickLinks')}
-                      className="flex justify-between items-center w-full py-4 text-white font-bold text-lg hover:text-[#009BE2] transition-colors"
+                      className="flex justify-between items-center w-full py-3 text-white font-bold text-base hover:text-[#009BE2] transition-colors"
                       aria-expanded={isMobileMenuOpen.quickLinks}
                       aria-controls="quick-links-mobile"
                     >
@@ -483,10 +482,10 @@ const Footer = ({ footerData, storageUrl = '', defaultLogo = '/images/default-lo
                     </button>
                     <div
                       id="quick-links-mobile"
-                      className={`overflow-hidden transition-all duration-300 ease-in-out ${isMobileMenuOpen.quickLinks ? 'max-h-96 mb-4' : 'max-h-0'}`}
+                      className={`overflow-hidden transition-all duration-300 ease-in-out ${isMobileMenuOpen.quickLinks ? 'max-h-96 mb-3' : 'max-h-0'}`}
                       role="region"
                     >
-                      <ul className='space-y-3'>
+                      <ul className='space-y-2.5'>
                         {quickLinks.map((link, index) => renderLinkWithIcon(link, quickLinkLinkIcon, index))}
                       </ul>
                     </div>
@@ -498,7 +497,7 @@ const Footer = ({ footerData, storageUrl = '', defaultLogo = '/images/default-lo
                   <div className="border-b border-gray-700">
                     <button
                       onClick={() => toggleMobileSection('programs')}
-                      className="flex justify-between items-center w-full py-4 text-white font-bold text-lg hover:text-[#009BE2] transition-colors"
+                      className="flex justify-between items-center w-full py-3 text-white font-bold text-base hover:text-[#009BE2] transition-colors"
                       aria-expanded={isMobileMenuOpen.programs}
                       aria-controls="programs-mobile"
                     >
@@ -515,10 +514,10 @@ const Footer = ({ footerData, storageUrl = '', defaultLogo = '/images/default-lo
                     </button>
                     <div
                       id="programs-mobile"
-                      className={`overflow-hidden transition-all duration-300 ease-in-out ${isMobileMenuOpen.programs ? 'max-h-96 mb-4' : 'max-h-0'}`}
+                      className={`overflow-hidden transition-all duration-300 ease-in-out ${isMobileMenuOpen.programs ? 'max-h-96 mb-3' : 'max-h-0'}`}
                       role="region"
                     >
-                      <ul className='space-y-3'>
+                      <ul className='space-y-2.5'>
                         {programs.map((program, index) => renderLinkWithIcon(program, OurProgramLinkIcon, index))}
                       </ul>
                     </div>
@@ -528,12 +527,12 @@ const Footer = ({ footerData, storageUrl = '', defaultLogo = '/images/default-lo
 
               {/* NEWSLETTER SECTION - Updated with name field and route */}
               {hasNewsletter && (
-                <div className='pt-10 mt-5'>
-                  <h2 className='text-xl lg:text-[28px] font-bold text-white text-center lg:text-left'>
+                <div className='pt-6 md:pt-8 lg:pt-10 mt-3 md:mt-4 lg:mt-5'>
+                  <h2 className='text-xl sm:text-2xl md:text-[24px] lg:text-[28px] font-bold text-white text-center lg:text-left'>
                     {newsletter.title}
                   </h2>
 
-                  <form onSubmit={handleSubscribe} className='space-y-3 pt-5' noValidate>
+                  <form onSubmit={handleSubscribe} className='space-y-3 pt-4 md:pt-5' noValidate>
                     {/* Name Field - Optional */}
                     <div>
                       <label htmlFor="footer-name" className="text-gray-300 text-sm block text-center lg:text-left">
@@ -546,7 +545,7 @@ const Footer = ({ footerData, storageUrl = '', defaultLogo = '/images/default-lo
                         value={name}
                         onChange={(e) => setName(e.target.value)}
                         placeholder="Enter your name"
-                        className="w-full mt-2 py-3 px-4 bg-[#080C14] border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-[#009BE2] focus:border-transparent transition-all text-white placeholder:text-gray-500 text-sm lg:text-base"
+                        className="w-full mt-2 py-2.5 sm:py-3 px-3 sm:px-4 bg-[#080C14] border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-[#009BE2] focus:border-transparent transition-all text-white placeholder:text-gray-500 text-sm lg:text-base"
                         disabled={isSubmitting}
                       />
                     </div>
@@ -564,7 +563,7 @@ const Footer = ({ footerData, storageUrl = '', defaultLogo = '/images/default-lo
                           value={email}
                           onChange={(e) => setEmail(e.target.value)}
                           placeholder={newsletter.placeholder || 'Enter your email address'}
-                          className="flex-1 py-3 px-4 bg-[#080C14] border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-[#009BE2] focus:border-transparent transition-all text-white placeholder:text-gray-500 text-sm lg:text-base"
+                          className="flex-1 py-2.5 sm:py-3 px-3 sm:px-4 bg-[#080C14] border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-[#009BE2] focus:border-transparent transition-all text-white placeholder:text-gray-500 text-sm lg:text-base"
                           required
                           aria-label="Email address for newsletter subscription"
                           aria-describedby={submitMessage ? "newsletter-message" : undefined}
@@ -573,12 +572,13 @@ const Footer = ({ footerData, storageUrl = '', defaultLogo = '/images/default-lo
                         <button
                           type="submit"
                           disabled={isSubmitting}
-                          className="bg-[#009BE2] hover:bg-[#009BE2]/80 disabled:bg-[#009BE2]/50 disabled:cursor-not-allowed px-6 py-3 rounded-md font-semibold text-white transition-all duration-200 text-sm lg:text-base flex items-center justify-center gap-2 min-w-30"
+                          className="bg-[#009BE2] hover:bg-[#009BE2]/80 disabled:bg-[#009BE2]/50 disabled:cursor-not-allowed px-4 sm:px-6 py-2.5 sm:py-3 rounded-md font-semibold text-white transition-all duration-200 text-sm lg:text-base flex items-center justify-center gap-2 min-w-30 sm:min-w-30"
                         >
                           {isSubmitting ? (
                             <>
                               <span className="inline-block w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                              Subscribing...
+                              <span className="hidden xs:inline">Subscribing...</span>
+                              <span className="xs:hidden">...</span>
                             </>
                           ) : (
                             <>
@@ -610,17 +610,17 @@ const Footer = ({ footerData, storageUrl = '', defaultLogo = '/images/default-lo
 
       {/* BOTTOM FOOTER - Copyright & Legal Links */}
       {hasBottomFooter && (
-        <div className='flex flex-col sm:flex-row justify-between items-center gap-4 py-10'>
+        <div className='flex flex-col sm:flex-row justify-between items-center gap-4 py-6 md:py-8 lg:py-10'>
           {/* Copyright */}
           {hasValue(bottomFooter.copyright) && (
-            <p className='text-white text-[12px] lg:text-[14px] font-400 text-center sm:text-left'>
+            <p className='text-white text-[11px] sm:text-[12px] lg:text-[14px] font-400 text-center sm:text-left'>
               {bottomFooter.copyright}
             </p>
           )}
 
           {/* Legal Links */}
           {hasValue(bottomFooter.links) && (
-            <ul className='flex flex-wrap justify-center gap-4 lg:gap-8 text-white text-[12px] lg:text-[14px] font-400'>
+            <ul className='flex flex-wrap justify-center gap-3 sm:gap-4 lg:gap-8 text-white text-[11px] sm:text-[12px] lg:text-[14px] font-400'>
               {bottomFooter.links.map((link, index) => (
                 <li key={index}>
                   <a
