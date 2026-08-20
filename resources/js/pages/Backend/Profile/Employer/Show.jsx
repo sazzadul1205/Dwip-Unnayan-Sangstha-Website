@@ -4,14 +4,13 @@
 import { useState } from 'react';
 
 // Inertia
-import { Head, Link, router, usePage } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 
 // Layout
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import AuthenticatedLayout from '../../../../layouts/AuthenticatedLayout';
 
 // Auth
 import { useAuth } from '../../../../hooks/useAuth';
-import { Can } from '../../../../components/Auth/Can';
 
 // Icons
 import {
@@ -26,8 +25,6 @@ import {
   FaUsers,
   FaBriefcase,
   FaEye,
-  FaStar,
-  FaClock,
   FaCheckCircle,
   FaExclamationTriangle,
   FaLock,
@@ -35,10 +32,6 @@ import {
   FaUndo,
   FaExclamationCircle,
   FaSpinner,
-  FaChartLine,
-  FaChartBar,
-  FaChartPie,
-  FaDownload,
   FaUserTie,
   FaIdCard,
   FaArrowLeft,
@@ -56,12 +49,10 @@ export default function EmployerShow({ user: employerUser, stats }) {
     user: currentUser,
     hasAnyPermission,
     hasRole,
-    isAuthenticated,
   } = useAuth();
 
   // Check permissions for employer management
   const isSuperAdmin = hasRole('super-admin');
-  const isRegularEmployer = hasRole('employer');
   const isEmployerAdmin = hasRole('employer-admin');
 
   // FIXED: Include both permission types
@@ -92,7 +83,6 @@ export default function EmployerShow({ user: employerUser, stats }) {
 
   // Check if viewing own profile
   const isOwnProfile = currentUser?.id === employerUser?.id;
-  const isAdminUser = isSuperAdmin || hasAnyPermission(['admin.view', 'admin.manage']);
 
   // Check if user can edit this employer
   const canEditTargetEmployer = () => {

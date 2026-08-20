@@ -7,7 +7,7 @@ import React, { useState } from 'react';
 import { Head, useForm, router } from '@inertiajs/react';
 
 // Layout
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import AuthenticatedLayout from '../../../../layouts/AuthenticatedLayout';
 
 // Sweetalert
 import Swal from 'sweetalert2';
@@ -38,12 +38,10 @@ export default function Edit({ user: employerUser, employer }) {
     user: currentUser,
     hasAnyPermission,
     hasRole,
-    isAuthenticated,
   } = useAuth();
 
   // Check permissions for employer management
   const isSuperAdmin = hasRole('super-admin');
-  const isRegularEmployer = hasRole('employer');
   const isEmployerAdmin = hasRole('employer-admin');
 
   // FIXED: Include both employer.* and employer_profile.* permissions
