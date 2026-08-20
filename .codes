@@ -1,0 +1,4 @@
+export PATH=/opt/alt/alt-nodejs22/root/usr/bin:$PATH
+
+chmod -R u+rwX node_modules
+chmod +x node_modules/.bin/vite
