@@ -1,0 +1,15 @@
+---
+deployment:
+    tasks:
+        - export DEPLOYPATH=/home/sixonici/dus.sixonicit.com
+        - export PATH=/opt/alt/alt-nodejs22/root/usr/bin:$PATH
+
+        - npm ci
+        - npm run build
+
+        - rsync -a --exclude='.env' --exclude='storage/' --exclude='public/storage/' --exclude='vendor/' --exclude='node_modules/' --exclude='.git/' ./ $DEPLOYPATH/
+
+        - cd $DEPLOYPATH && composer install --no-dev --optimize-autoloader --no-interaction
+
+        - cd $DEPLOYPATH && php artisan optimize:clear
+        - cd $DEPLOYPATH && php artisan optimize
