@@ -7,7 +7,7 @@ import { useState } from 'react';
 import { Head, Link, router } from '@inertiajs/react';
 
 // Layout
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import AuthenticatedLayout from '../../../layouts/AuthenticatedLayout';
 
 // Sweetalert
 import Swal from 'sweetalert2';
@@ -22,17 +22,13 @@ import {
   FiClock,
   FiInbox,
   FiAlertCircle,
-  FiRefreshCw,
 } from 'react-icons/fi';
 import { FaSpinner } from 'react-icons/fa';
 
 export default function Index({ notifications }) {
   // Use centralized auth hook
   const {
-    user: currentUser,
     isAuthenticated,
-    hasAnyPermission,
-    hasRole,
   } = useAuth();
 
   // Check if user is authenticated to view notifications
