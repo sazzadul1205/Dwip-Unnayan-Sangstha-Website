@@ -3,6 +3,7 @@ deployment:
     tasks:
         - export DEPLOYPATH=/home/sixonici/dus.sixonicit.com
         - export PATH=/opt/alt/alt-nodejs22/root/usr/bin:$PATH
+        - export NODE_OPTIONS="--max-old-space-size=4096"
 
         - npm ci
         - npm run build
