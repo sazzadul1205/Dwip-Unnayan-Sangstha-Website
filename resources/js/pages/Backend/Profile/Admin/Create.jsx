@@ -1,13 +1,13 @@
 // resources/js/Pages/Backend/Profile/Admin/Create.jsx
 
 // React
-import React, { useState } from 'react';
+import { useState } from 'react';
 
 // Inertia
 import { Head, useForm, router } from '@inertiajs/react';
 
 // Layout
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import AuthenticatedLayout from '../../../../layouts/AuthenticatedLayout';
 
 // Sweetalert
 import Swal from 'sweetalert2';
@@ -35,10 +35,8 @@ import {
 export default function Create() {
   // Use centralized auth hook
   const {
-    user: currentUser,
     hasAnyPermission,
-    hasRole,
-    isAuthenticated,
+    hasRole
   } = useAuth();
 
   // Check permissions for admin management

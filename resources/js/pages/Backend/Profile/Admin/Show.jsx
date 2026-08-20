@@ -1,20 +1,17 @@
 // resources/js/Pages/Backend/Profile/Admin/Show.jsx
 
-// React
-import React from 'react';
-
 // Inertia
 import { Head, Link, router } from '@inertiajs/react';
 
 // Layout
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import AuthenticatedLayout from '../../../../layouts/AuthenticatedLayout';
+
 
 // Sweetalert
 import Swal from 'sweetalert2';
 
 // Auth
 import { useAuth } from '@/hooks/useAuth';
-import { Can } from '../../../../components/Auth/Can';
 
 // Icons
 import {
@@ -39,7 +36,6 @@ export default function Show({ user: adminUser }) {
     user: currentUser,
     hasAnyPermission,
     hasRole,
-    isAuthenticated,
   } = useAuth();
 
   // Check permissions for admin management
