@@ -25,7 +25,7 @@ const getPlaceholderImage = (width = 1920, height = 600, text = 'Gallery Banner'
  * @param {Object} props.data - Banner data from API (from DynamicSectionRenderer)
  * @param {Object} props.bannerData - Banner data from API (direct prop)
  * @param {string} props.bgColor - Background color (optional)
- * @param {string} props.height - Height classes (default: 'h-125 md:h-147.25')
+ * @param {string} props.height - Height classes (default: 'h-64 sm:h-80 md:h-100 lg:h-120 xl:h-135 2xl:h-147.25')
  * @param {string} props.paddingY - Vertical padding classes
  * @param {string} props.paddingX - Horizontal padding classes
  * @param {string} props.sectionClassName - Additional CSS classes
@@ -40,9 +40,9 @@ const PageTagBannerSection = ({
   data,
   bannerData,
   bgColor = '',
-  height = 'h-125 md:h-147.25',
+  height = 'h-64 sm:h-80 md:h-100 lg:h-120 xl:h-135 2xl:h-147.25',
   paddingY = '',
-  paddingX = '',
+  paddingX = 'px-5 sm:px-8 md:px-12 lg:px-20 xl:px-30 2xl:px-50',
   sectionClassName = '',
   sectionId = 'page-tag-banner',
   tags = [],
@@ -141,6 +141,14 @@ const PageTagBannerSection = ({
       }
     }
 
+    // If it's a Tailwind class like "bg-[#FDCB6E]" with other text
+    if (typeof color === 'string') {
+      const match = color.match(/#[0-9a-fA-F]{6}/);
+      if (match) {
+        return match[0];
+      }
+    }
+
     // If it's a color name or other format, return as-is
     return color;
   };
@@ -152,7 +160,7 @@ const PageTagBannerSection = ({
     if (!hasTags) return null;
 
     return (
-      <div className="pt-5 max-w-232.5 flex flex-wrap gap-4">
+      <div className="pt-3 sm:pt-4 md:pt-5 max-w-232.5 flex flex-wrap gap-2 sm:gap-3 md:gap-4">
         {galleryTags.map((tag, index) => {
           // Handle both string and object formats
           const tagLabel = typeof tag === 'string' ? tag : tag.label;
@@ -166,21 +174,22 @@ const PageTagBannerSection = ({
             <button
               key={index}
               className={`
-                group flex items-center gap-2.5 px-5.5 py-2.75 rounded-lg font-semibold text-[16px] 
+                group flex items-center gap-2 sm:gap-2.5 px-3.5 sm:px-4.5 md:px-5.5 py-1.5 sm:py-2 md:py-2.75 rounded-lg font-semibold text-[13px] sm:text-[14px] md:text-[15px] lg:text-[16px]
                 transition-all duration-300 cursor-pointer
                 ${isActive
-                  ? 'bg-[#009BE2] text-white'
-                  : 'bg-white text-black hover:bg-[#009BE2] hover:text-white'
+                  ? 'bg-[#009BE2] text-white hover:bg-[#0080C4]'
+                  : 'bg-white/90 text-black hover:bg-[#009BE2] hover:text-white'
                 }
+                shadow-md hover:shadow-lg
               `}
             >
               <span
                 className={`
-                  w-3 h-3 rounded-full transition-all duration-300 shrink-0
+                  w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full transition-all duration-300 shrink-0
                   ${isActive ? 'bg-white' : ''}
                   group-hover:bg-white
                 `}
-                style={!isActive ? { backgroundColor: tagColor } : {}}
+                style={!isActive ? { backgroundColor: tagColor } : { backgroundColor: tagColor }}
               />
               <span>{tagLabel}</span>
             </button>
@@ -202,7 +211,7 @@ const PageTagBannerSection = ({
       <img
         src={imageSrc}
         alt={imageAlt}
-        className="w-full h-full object-cover object-center md:object-cover"
+        className="w-full h-full object-cover object-center"
         onError={handleImageError}
       />
 
@@ -216,16 +225,15 @@ const PageTagBannerSection = ({
         <div className={`absolute inset-0 ${overlay.gradient}`} />
       )}
 
-      {/* Additional overlay for mobile */}
-      <div className="absolute inset-0 bg-black/40 md:hidden" />
+      {/* Responsive overlay for text readability */}
+      <div className="absolute inset-0 bg-black/30 sm:bg-black/20 md:bg-black/10 lg:bg-black/5" />
 
       {/* Content */}
-      <div className="absolute left-0 md:left-10 inset-0 flex items-center p-5 md:p-12.5">
-        <div className="w-full px-4 md:px-20 text-white space-y-3 md:space-y-5">
-
+      <div className="absolute left-0 inset-0 flex items-center p-4 sm:p-6 md:p-8 lg:p-10 xl:p-12.5">
+        <div className="w-full px-2 sm:px-4 md:px-8 lg:px-12 xl:px-20 text-white space-y-2 sm:space-y-3 md:space-y-4 lg:space-y-5">
           {/* Title */}
           {hasTitle && (
-            <h1 className="bricolage-grotesque font-bold leading-tight text-[32px] md:text-[100px] text-center md:text-left w-full md:w-215.75">
+            <h1 className="bricolage-grotesque font-bold leading-tight text-[28px] sm:text-[36px] md:text-[48px] lg:text-[64px] xl:text-[80px] 2xl:text-[100px] text-center md:text-left w-full md:max-w-2xl lg:max-w-3xl xl:max-w-4xl 2xl:max-w-215.75">
               {galleryTitle}
             </h1>
           )}
