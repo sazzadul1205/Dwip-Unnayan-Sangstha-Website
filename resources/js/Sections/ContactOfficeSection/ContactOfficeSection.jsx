@@ -39,8 +39,8 @@ const ContactOfficeSection = ({
   title = "Our Offices",
   orgName = "Dwip Unnayan Songstha (DUS)",
   bgColor = 'bg-white',
-  paddingY = 'py-10 sm:py-14 lg:py-37.5',
-  paddingX = 'px-4 sm:px-6 lg:px-50',
+  paddingY = 'py-12 sm:py-16 md:py-20 lg:py-25 xl:py-30 2xl:py-37.5',
+  paddingX = 'px-5 sm:px-8 md:px-12 lg:px-20 xl:px-30 2xl:px-50',
   sectionClassName = '',
   sectionId = 'contact-offices',
 }) => {
@@ -49,7 +49,7 @@ const ContactOfficeSection = ({
   // ============================================
   // Use data prop if available, fallback to officesData or offices
   let resolvedData = data || officesData || offices;
-  
+
   // ============================================
   // EARLY RETURN - No data
   // ============================================
@@ -126,28 +126,28 @@ const ContactOfficeSection = ({
       <div className={`mx-auto ${paddingX} ${paddingY}`}>
         {/* Section Title */}
         {hasValue(title) && (
-          <h2 className="text-[#1D2566] font-bold text-[28px] sm:text-[32px] lg:text-[36px] leading-tight pb-6 sm:pb-8 lg:pb-12.5 text-center sm:text-left">
+          <h2 className="text-[#1D2566] font-bold text-[24px] sm:text-[28px] md:text-[32px] lg:text-[36px] xl:text-[40px] leading-tight pb-4 sm:pb-6 md:pb-8 lg:pb-10 xl:pb-12.5 text-center sm:text-left">
             {title}
           </h2>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 lg:gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 md:gap-6 lg:gap-7 xl:gap-8">
           {officesArray.map((office, index) => (
             <div
               key={office.title || index}
-              className="rounded-2xl border border-gray-100 bg-white p-6 sm:p-8 md:p-10 lg:p-12.5 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
+              className="rounded-2xl border border-gray-100 bg-white p-5 sm:p-6 md:p-8 lg:p-10 xl:p-12.5 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
             >
               {/* Icon */}
-              <FaGraduationCap className="text-4xl text-black" />
+              <FaGraduationCap className="text-3xl sm:text-4xl text-black" />
 
               {/* Office Title */}
               {hasValue(office.title) && (
-                <h3 className="text-[22px] sm:text-[24px] font-bold text-[#080C14] pt-5">
+                <h3 className="text-[18px] sm:text-[20px] md:text-[22px] lg:text-[24px] font-bold text-[#080C14] pt-4 sm:pt-5">
                   {office.title}
                 </h3>
               )}
 
-              <div className="space-y-2 text-[14px] sm:text-[15px] leading-relaxed text-[#444] mt-3">
+              <div className="space-y-1.5 sm:space-y-2 text-[13px] sm:text-[14px] md:text-[15px] leading-relaxed text-[#444] mt-2 sm:mt-3">
                 {/* Organization Name */}
                 {hasValue(orgName) && (
                   <p className="font-semibold text-[#333333]">{orgName}</p>
@@ -155,7 +155,7 @@ const ContactOfficeSection = ({
 
                 {/* Address */}
                 {hasValue(office.address) && (
-                  <p className="flex gap-2">
+                  <p className="flex flex-col sm:flex-row gap-0.5 sm:gap-2">
                     <span className="font-semibold text-[#333333] shrink-0">Address:</span>
                     <span>{office.address}</span>
                   </p>
@@ -163,7 +163,7 @@ const ContactOfficeSection = ({
 
                 {/* Phone Numbers */}
                 {hasValue(office.phones) && (
-                  <p className="flex gap-2 flex-wrap">
+                  <p className="flex flex-col sm:flex-row gap-0.5 sm:gap-2 flex-wrap">
                     <span className="font-semibold text-[#333333] shrink-0">Phone:</span>
                     <span>{office.phones}</span>
                   </p>
@@ -171,7 +171,7 @@ const ContactOfficeSection = ({
 
                 {/* Emails */}
                 {hasValue(office.emails) && office.emails.length > 0 && (
-                  <p className="flex gap-2 flex-wrap">
+                  <p className="flex flex-col sm:flex-row gap-0.5 sm:gap-2 flex-wrap">
                     <span className="font-semibold text-[#333333] shrink-0">E-mail:</span>
                     <span>
                       {office.emails.map((email, idx) => (
@@ -179,7 +179,7 @@ const ContactOfficeSection = ({
                           {idx > 0 && <span>, </span>}
                           <a
                             href={`mailto:${email}`}
-                            className="text-[#444] hover:text-[#009BE2] transition-colors"
+                            className="text-[#444] hover:text-[#009BE2] transition-colors break-all"
                           >
                             {email}
                           </a>

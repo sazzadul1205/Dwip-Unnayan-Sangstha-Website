@@ -50,8 +50,8 @@ const PublicationsSection = ({
   sectionTitle = null,
   isRelated = false,
   bgColor = 'bg-white',
-  paddingY = 'py-10 sm:py-15 md:py-20 lg:py-37.5',
-  paddingX = 'px-5 sm:px-8 md:px-12 lg:px-50',
+  paddingY = 'py-12 sm:py-16 md:py-20 lg:py-25 xl:py-30 2xl:py-37.5',
+  paddingX = 'px-5 sm:px-8 md:px-12 lg:px-20 xl:px-30 2xl:px-50',
   sectionClassName = '',
   sectionId = 'publications-section',
 }) => {
@@ -134,8 +134,6 @@ const PublicationsSection = ({
     resolvedPublicationItems = Array.isArray(resolvedPublicationItems)
       ? resolvedPublicationItems.slice(0, 3)
       : [];
-    // Force grid view for related sections
-    // (viewMode will be 'grid' by default, but we can override if needed)
   }
 
   const hasMainPublication = !isRelatedSection && hasValue(resolvedMainPublication) &&
@@ -174,16 +172,12 @@ const PublicationsSection = ({
   // GET DETAIL PAGE URL
   // ============================================
   const getDetailUrl = (publication) => {
-    // Use the slug to build the detail URL
-    // Frontend URL is /publications/{slug}
     if (publication.slug) {
       return `/publications/${publication.slug}`;
     }
-    // Fallback to using link if provided
     if (publication.link) {
       return publication.link;
     }
-    // Fallback to using id
     if (publication.id) {
       return `/publications/${publication.id}`;
     }
@@ -195,7 +189,6 @@ const PublicationsSection = ({
   // ============================================
   const getSortedPublications = () => {
     const sorted = [...resolvedPublicationItems];
-    // Don't sort if it's a related section (maintain original order)
     if (isRelatedSection) {
       return sorted;
     }
@@ -220,11 +213,10 @@ const PublicationsSection = ({
   // ============================================
   const renderGridView = () => (
     <div
-      className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6 md:gap-7.5 items-stretch ${hasMainPublication ? "pt-10 sm:pt-12 md:pt-15" : ""
+      className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 md:gap-6 lg:gap-7.5 items-stretch ${hasMainPublication ? "pt-8 sm:pt-10 md:pt-12 lg:pt-15" : ""
         }`}
     >
       {sortedPublications.map((publication) => {
-        // Skip main publication in the grid if we have one
         if (hasMainPublication && resolvedMainPublication.id === publication.id) {
           return null;
         }
@@ -232,39 +224,39 @@ const PublicationsSection = ({
         return (
           <div
             key={publication.id}
-            className="text-black flex h-full flex-col rounded-2xl bg-white p-5 sm:p-6 md:p-7.5 shadow-2xl transition-shadow duration-300 hover:shadow-3xl"
+            className="text-black flex h-full flex-col rounded-2xl bg-white p-4 sm:p-5 md:p-6 lg:p-7.5 shadow-2xl transition-shadow duration-300 hover:shadow-3xl"
           >
             {hasValue(publication.image) && (
               <img
                 src={publication.image}
                 alt={publication.title || "Publication image"}
-                className="mb-5 h-48 w-full rounded-2xl object-cover object-center sm:h-56 md:h-62.5 md:w-106.25 mx-auto"
+                className="mb-4 sm:mb-5 h-40 sm:h-48 md:h-56 lg:h-62.5 w-full rounded-2xl object-cover object-center"
               />
             )}
 
             <div className="flex-1">
               {hasValue(publication.date) && (
-                <p className="mb-2 text-[14px] font-normal text-[#009BE2] md:text-[16px]">
+                <p className="mb-1.5 sm:mb-2 text-[12px] sm:text-[13px] md:text-[14px] lg:text-[16px] font-normal text-[#009BE2]">
                   {formatDate(publication.date)}
                 </p>
               )}
 
               {hasValue(publication.title) && (
-                <h3 className="mb-5 text-[20px] font-semibold leading-tight md:text-[22px] lg:text-[36px]">
+                <h3 className="mb-3 sm:mb-4 md:mb-5 text-[18px] sm:text-[20px] md:text-[22px] lg:text-[28px] xl:text-[32px] 2xl:text-[36px] font-semibold leading-tight">
                   {publication.title}
                 </h3>
               )}
 
               {hasValue(publication.excerpt) && (
-                <p className="text-[14px] font-normal text-gray-600 md:text-[15px] lg:text-[20px] line-clamp-4">
+                <p className="text-[13px] sm:text-[14px] md:text-[15px] lg:text-[18px] xl:text-[20px] font-normal text-gray-600 line-clamp-4">
                   {publication.excerpt}
                 </p>
               )}
             </div>
 
-            <div className="mt-8 flex items-center justify-between gap-3">
+            <div className="mt-5 sm:mt-6 md:mt-7 lg:mt-8 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 sm:gap-3">
               <button
-                className="flex items-center gap-2 rounded-xl border border-[#E8E8EB] px-4 py-2 text-[14px] font-medium transition-colors hover:bg-gray-50 cursor-pointer"
+                className="flex items-center justify-center gap-2 rounded-xl border border-[#E8E8EB] px-3 sm:px-4 py-2 text-[12px] sm:text-[13px] md:text-[14px] font-medium transition-colors hover:bg-gray-50 cursor-pointer"
                 onClick={() => {
                   const url = getDetailUrl(publication);
                   if (url && url !== '#') {
@@ -278,7 +270,7 @@ const PublicationsSection = ({
 
               {hasValue(publication.pdf_url) && (
                 <button
-                  className="flex items-center gap-2 rounded-xl border border-[#009BE2] px-4 py-2 text-[14px] font-medium text-[#009BE2] transition-colors hover:bg-[#009BE2] hover:text-white cursor-pointer"
+                  className="flex items-center justify-center gap-2 rounded-xl border border-[#009BE2] px-3 sm:px-4 py-2 text-[12px] sm:text-[13px] md:text-[14px] font-medium text-[#009BE2] transition-colors hover:bg-[#009BE2] hover:text-white cursor-pointer"
                   onClick={() => window.open(publication.pdf_url, "_blank")}
                 >
                   <Download size={14} />
@@ -296,47 +288,46 @@ const PublicationsSection = ({
   // RENDER LIST VIEW
   // ============================================
   const renderListView = () => (
-    <div className={`text-black flex flex-col gap-5 sm:gap-6 ${hasMainPublication ? 'pt-10 sm:pt-12 md:pt-15' : ''}`}>
+    <div className={`text-black flex flex-col gap-4 sm:gap-5 md:gap-6 ${hasMainPublication ? 'pt-8 sm:pt-10 md:pt-12 lg:pt-15' : ''}`}>
       {sortedPublications.map((publication) => {
-        // Skip the main publication if it's featured and we're showing it separately
         if (hasMainPublication && resolvedMainPublication.id === publication.id) {
           return null;
         }
 
         return (
-          <div key={publication.id} className='shadow-2xl p-5 sm:p-6 md:p-7.5 rounded-2xl hover:shadow-3xl transition-shadow duration-300 bg-white flex flex-col md:flex-row gap-4 sm:gap-6'>
+          <div key={publication.id} className='shadow-2xl p-4 sm:p-5 md:p-6 lg:p-7.5 rounded-2xl hover:shadow-3xl transition-shadow duration-300 bg-white flex flex-col md:flex-row gap-4 sm:gap-5 md:gap-6'>
             {hasValue(publication.image) && (
               <img
                 src={publication.image}
                 alt={publication.title || "Publication image"}
-                className="w-full md:w-48 lg:w-56 h-40 sm:h-48 rounded-2xl object-cover shrink-0"
+                className="w-full md:w-40 lg:w-48 xl:w-56 h-32 sm:h-40 md:h-44 lg:h-48 rounded-2xl object-cover shrink-0"
               />
             )}
 
             <div className="flex-1 flex flex-col justify-between">
               <div>
                 {hasValue(publication.date) && (
-                  <p className='font-normal text-[14px] sm:text-[16px] text-[#009BE2] pb-2 block'>
+                  <p className='font-normal text-[12px] sm:text-[13px] md:text-[14px] lg:text-[16px] text-[#009BE2] pb-1.5 sm:pb-2 block'>
                     {formatDate(publication.date)}
                   </p>
                 )}
 
                 {hasValue(publication.title) && (
-                  <h3 className='font-semibold text-[20px] sm:text-[22px] lg:text-[24px] leading-snug pb-2 sm:pb-3'>
+                  <h3 className='font-semibold text-[18px] sm:text-[20px] md:text-[22px] lg:text-[24px] xl:text-[26px] leading-snug pb-2 sm:pb-3'>
                     {publication.title}
                   </h3>
                 )}
 
                 {hasValue(publication.excerpt) && (
-                  <p className='font-normal text-[14px] sm:text-[15px] lg:text-[16px] line-clamp-3 text-gray-600'>
+                  <p className='font-normal text-[13px] sm:text-[14px] md:text-[15px] lg:text-[16px] line-clamp-3 text-gray-600'>
                     {publication.excerpt}
                   </p>
                 )}
 
-                <div className='flex items-center gap-3 sm:gap-4 pt-2 sm:pt-3 flex-wrap'>
+                <div className='flex items-center gap-2 sm:gap-3 md:gap-4 pt-2 sm:pt-3 flex-wrap'>
                   {hasValue(publication.author) && (
                     <>
-                      <span className='flex items-center gap-1 text-xs sm:text-sm text-gray-500'>
+                      <span className='flex items-center gap-1 text-[11px] sm:text-[12px] md:text-[13px] lg:text-[14px] text-gray-500'>
                         <User size={14} />
                         {publication.author}
                       </span>
@@ -344,8 +335,8 @@ const PublicationsSection = ({
                   )}
                   {hasValue(publication.views) && (
                     <>
-                      {hasValue(publication.author) && <span className='text-xs sm:text-sm text-gray-500'>•</span>}
-                      <span className='flex items-center gap-1 text-xs sm:text-sm text-gray-500'>
+                      {hasValue(publication.author) && <span className='text-[11px] sm:text-[12px] md:text-[13px] lg:text-[14px] text-gray-500'>•</span>}
+                      <span className='flex items-center gap-1 text-[11px] sm:text-[12px] md:text-[13px] lg:text-[14px] text-gray-500'>
                         <Eye size={14} />
                         {publication.views} views
                       </span>
@@ -354,9 +345,9 @@ const PublicationsSection = ({
                   {hasValue(publication.readTime) && (
                     <>
                       {(hasValue(publication.author) || hasValue(publication.views)) && (
-                        <span className='text-xs sm:text-sm text-gray-500'>•</span>
+                        <span className='text-[11px] sm:text-[12px] md:text-[13px] lg:text-[14px] text-gray-500'>•</span>
                       )}
-                      <span className='flex items-center gap-1 text-xs sm:text-sm text-gray-500'>
+                      <span className='flex items-center gap-1 text-[11px] sm:text-[12px] md:text-[13px] lg:text-[14px] text-gray-500'>
                         <Calendar size={14} />
                         {publication.readTime}
                       </span>
@@ -367,7 +358,7 @@ const PublicationsSection = ({
 
               <div className="mt-3 sm:mt-4 flex flex-wrap gap-2 sm:gap-3">
                 <button
-                  className="px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl border border-[#E8E8EB] text-[12px] sm:text-[14px] font-medium flex items-center gap-1 hover:bg-gray-50 transition-colors"
+                  className="px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl border border-[#E8E8EB] text-[11px] sm:text-[12px] md:text-[13px] lg:text-[14px] font-medium flex items-center gap-1 hover:bg-gray-50 transition-colors"
                   onClick={() => {
                     const url = getDetailUrl(publication);
                     if (url && url !== '#') {
@@ -380,7 +371,7 @@ const PublicationsSection = ({
                 </button>
                 {hasValue(publication.pdf_url) && (
                   <button
-                    className="px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl border border-[#009BE2] text-[#009BE2] text-[12px] sm:text-[14px] font-medium flex items-center gap-1 hover:bg-[#009BE2] hover:text-white transition-colors"
+                    className="px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl border border-[#009BE2] text-[#009BE2] text-[11px] sm:text-[12px] md:text-[13px] lg:text-[14px] font-medium flex items-center gap-1 hover:bg-[#009BE2] hover:text-white transition-colors"
                     onClick={() => {
                       window.open(publication.pdf_url, '_blank');
                     }}
@@ -407,8 +398,8 @@ const PublicationsSection = ({
     >
       {/* Section Title - Left aligned for related sections, otherwise left aligned */}
       {hasValue(resolvedSectionTitle) && isRelatedSection && (
-        <div className="mb-8 sm:mb-10 md:mb-12 lg:mb-15">
-          <h2 className="text-[#080C14] font-extrabold text-[28px] sm:text-[34px] md:text-[40px] lg:text-[50px] leading-tight text-left">
+        <div className="mb-6 sm:mb-8 md:mb-10 lg:mb-12 xl:mb-15">
+          <h2 className="text-[#080C14] font-extrabold text-[24px] sm:text-[28px] md:text-[32px] lg:text-[40px] xl:text-[44px] 2xl:text-[50px] leading-tight text-left">
             {resolvedSectionTitle}
           </h2>
         </div>
@@ -419,8 +410,8 @@ const PublicationsSection = ({
         <>
           {/* Filters Bar - Only show for main publications section, NOT for related */}
           {!isRelatedSection && (
-            <div className={`flex flex-wrap items-center justify-between gap-4 ${hasMainPublication ? 'pt-6 sm:pt-8 lg:pt-10' : ''}`}>
-              <h3 className='font-normal text-[16px] sm:text-[18px] lg:text-[20px]'>
+            <div className={`flex flex-col sm:flex-row flex-wrap items-start sm:items-center justify-between gap-3 sm:gap-4 ${hasMainPublication ? 'pt-4 sm:pt-6 md:pt-8 lg:pt-10' : ''}`}>
+              <h3 className='font-normal text-[14px] sm:text-[15px] md:text-[16px] lg:text-[18px] xl:text-[20px]'>
                 Showing all {sortedPublications.length} results
               </h3>
               <div className='flex items-center flex-wrap gap-2'>
@@ -430,8 +421,8 @@ const PublicationsSection = ({
                     className='flex items-center cursor-pointer px-2 py-1 hover:bg-gray-50 rounded-lg transition-colors'
                     onClick={() => setIsSortOpen(!isSortOpen)}
                   >
-                    <p className='text-[#5D6174] text-[14px] pr-2 hidden sm:block'>Sort by:</p>
-                    <p className='text-[#171D38] font-medium text-[14px] pr-2'>
+                    <p className='text-[#5D6174] text-[12px] sm:text-[13px] md:text-[14px] pr-2 hidden sm:block'>Sort by:</p>
+                    <p className='text-[#171D38] font-medium text-[12px] sm:text-[13px] md:text-[14px] pr-2'>
                       {selectedSort}
                     </p>
                     <ChevronDown
@@ -442,11 +433,11 @@ const PublicationsSection = ({
 
                   {/* Sort Dropdown */}
                   {isSortOpen && (
-                    <div className='absolute top-full right-0 sm:left-0 mt-2 bg-white border border-[#E8E8EB] rounded-xl shadow-lg py-2 min-w-45 sm:min-w-50 z-10'>
+                    <div className='absolute top-full right-0 sm:left-0 mt-2 bg-white border border-[#E8E8EB] rounded-xl shadow-lg py-2 min-w-40 sm:min-w-45 md:min-w-50 z-10'>
                       {sortOptions.map((option) => (
                         <div
                           key={option}
-                          className={`px-4 py-2 text-[14px] hover:bg-[#F6F6F7] cursor-pointer transition-colors ${selectedSort === option ? 'text-[#009BE2] font-medium' : 'text-[#171D38]'
+                          className={`px-3 sm:px-4 py-1.5 sm:py-2 text-[12px] sm:text-[13px] md:text-[14px] hover:bg-[#F6F6F7] cursor-pointer transition-colors ${selectedSort === option ? 'text-[#009BE2] font-medium' : 'text-[#171D38]'
                             }`}
                           onClick={() => handleSortSelect(option)}
                         >
@@ -458,24 +449,24 @@ const PublicationsSection = ({
                 </div>
 
                 {/* View Toggle */}
-                <div className='px-2 py-1 rounded-xl bg-[#F6F6F7] border border-[#E8E8EB] gap-1 flex items-center'>
+                <div className='px-1.5 sm:px-2 py-1 rounded-xl bg-[#F6F6F7] border border-[#E8E8EB] gap-1 flex items-center'>
                   <div
-                    className={`p-[10.5px] rounded-xl cursor-pointer transition-colors ${viewMode === 'grid' ? 'bg-[#009BE2]' : 'hover:bg-[#E8E8EB]'
+                    className={`p-2 sm:p-[10.5px] rounded-xl cursor-pointer transition-colors ${viewMode === 'grid' ? 'bg-[#009BE2]' : 'hover:bg-[#E8E8EB]'
                       }`}
                     onClick={() => setViewMode('grid')}
                   >
                     <LayoutGrid
-                      size={15}
+                      size={14}
                       color={viewMode === 'grid' ? 'white' : '#171D38'}
                     />
                   </div>
                   <div
-                    className={`p-[10.5px] rounded-xl cursor-pointer transition-colors ${viewMode === 'list' ? 'bg-[#009BE2]' : 'hover:bg-[#E8E8EB]'
+                    className={`p-2 sm:p-[10.5px] rounded-xl cursor-pointer transition-colors ${viewMode === 'list' ? 'bg-[#009BE2]' : 'hover:bg-[#E8E8EB]'
                       }`}
                     onClick={() => setViewMode('list')}
                   >
                     <List
-                      size={16}
+                      size={15}
                       color={viewMode === 'list' ? 'white' : '#171D38'}
                     />
                   </div>
@@ -489,7 +480,7 @@ const PublicationsSection = ({
 
           {sortedPublications.length === 0 && (
             <div className='text-center py-10'>
-              <p className='text-gray-500 text-lg'>No publications found.</p>
+              <p className='text-gray-500 text-[15px] sm:text-[16px] md:text-[17px] lg:text-[18px]'>No publications found.</p>
             </div>
           )}
         </>

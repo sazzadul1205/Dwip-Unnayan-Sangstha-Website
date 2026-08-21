@@ -15,8 +15,8 @@ const ImageGallerySection = ({
   imagesPerPage = 9,
   imagesPerLoad = 6,
   bgColor = 'bg-white',
-  paddingY = 'py-37.5',
-  paddingX = 'px-50',
+  paddingY = 'py-12 sm:py-16 md:py-20 lg:py-25 xl:py-30 2xl:py-37.5',
+  paddingX = 'px-5 sm:px-8 md:px-12 lg:px-20 xl:px-30 2xl:px-50',
   sectionClassName = '',
   sectionId = 'image-gallery-section',
 }) => {
@@ -126,21 +126,21 @@ const ImageGallerySection = ({
       id={sectionId}
       className={`${bgColor} ${paddingY} ${paddingX} ${sectionClassName}`}
     >
-      <div className="mx-auto space-y-7.5">
+      <div className="mx-auto space-y-5 sm:space-y-6 md:space-y-7.5">
         {/* Header */}
-        <div className="flex items-center justify-between flex-wrap gap-4">
-          <h3 className="text-[#171D38] text-[28px] sm:text-[34px] md:text-[36px] font-semibold">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between flex-wrap gap-3 sm:gap-4">
+          <h3 className="text-[#171D38] text-[24px] sm:text-[28px] md:text-[32px] lg:text-[36px] font-semibold">
             {resolvedSectionTitle}
           </h3>
-          <div className="bg-[#EAF6FF] px-4 sm:px-5 py-2 sm:py-2.5 rounded-lg">
-            <p className="text-[14px] sm:text-[16px] font-normal text-[#2781BD]">
+          <div className="bg-[#EAF6FF] px-3 sm:px-4 md:px-5 py-1.5 sm:py-2 md:py-2.5 rounded-lg">
+            <p className="text-[12px] sm:text-[13px] md:text-[14px] lg:text-[16px] font-normal text-[#2781BD]">
               {resolvedImageCountLabel}: {resolvedImages.length}
             </p>
           </div>
         </div>
 
         {/* Image Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6 md:gap-7.5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 md:gap-6 lg:gap-7.5">
           {visibleImages.map((image, index) => {
             const imageId = image.id || index;
             const imageSrc = getImageSrc(image, index);
@@ -154,7 +154,7 @@ const ImageGallerySection = ({
                 <img
                   src={imageSrc}
                   alt={imageAlt}
-                  className="w-full h-48 sm:h-56 md:h-64 lg:h-100 object-cover hover:scale-105 transition-transform duration-300"
+                  className="w-full h-48 sm:h-52 md:h-60 lg:h-80 xl:h-90 2xl:h-100 object-cover hover:scale-105 transition-transform duration-300"
                   loading="lazy"
                   onError={() => handleImageError(imageId)}
                 />
@@ -165,10 +165,10 @@ const ImageGallerySection = ({
 
         {/* Show More Button */}
         {!isAllVisible && (
-          <div className="flex justify-center">
+          <div className="flex justify-center pt-2 sm:pt-3 md:pt-4">
             <button
               onClick={handleShowMore}
-              className="px-6 py-3.75 border border-[#2781BD] rounded-lg text-[14px] sm:text-[16px] font-semibold text-[#2781BD] hover:bg-[#2781BD] hover:text-white transition-colors duration-200 cursor-pointer"
+              className="px-4 sm:px-5 md:px-6 py-2.5 sm:py-3 md:py-3.5 lg:py-3.75 border border-[#2781BD] rounded-lg text-[13px] sm:text-[14px] md:text-[15px] lg:text-[16px] font-semibold text-[#2781BD] hover:bg-[#2781BD] hover:text-white transition-colors duration-200 cursor-pointer"
             >
               Show More
             </button>
