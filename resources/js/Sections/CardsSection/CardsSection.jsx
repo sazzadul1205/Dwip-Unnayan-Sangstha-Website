@@ -29,7 +29,7 @@ const getPlaceholderImage = (width = 400, height = 300, text = 'Card Image') => 
  * @param {string} props.bgColor - Background color (optional)
  * @param {string} props.paddingY - Vertical padding classes
  * @param {string} props.paddingX - Horizontal padding classes
- * @param {string} props.gap - Gap between cards (default: 'gap-6 sm:gap-8 md:gap-12 lg:gap-25')
+ * @param {string} props.gap - Gap between cards (default: 'gap-6 sm:gap-8 md:gap-10 lg:gap-12 xl:gap-15 2xl:gap-25')
  * @param {string} props.sectionClassName - Additional CSS classes
  * @param {string} props.sectionId - Section ID (default: 'cards')
  * 
@@ -39,9 +39,9 @@ const CardsSection = ({
   data,           // From DynamicSectionRenderer
   cardsData,      // Direct prop (legacy support)
   bgColor = 'bg-white',
-  paddingY = 'py-8 sm:py-12 md:py-20 lg:py-37.5',
-  paddingX = 'px-4 sm:px-8 md:px-16 lg:px-50',
-  gap = 'gap-6 sm:gap-8 md:gap-12 lg:gap-25',
+  paddingY = 'py-12 sm:py-16 md:py-20 lg:py-25 xl:py-30 2xl:py-37.5',
+  paddingX = 'px-5 sm:px-8 md:px-12 lg:px-20 xl:px-30 2xl:px-50',
+  gap = 'gap-6 sm:gap-8 md:gap-10 lg:gap-12 xl:gap-15 2xl:gap-25',
   sectionClassName = '',
   sectionId = 'cards',
 }) => {
@@ -117,10 +117,10 @@ const CardsSection = ({
     >
       {cards.map((card) => (
         <div key={card.id} className='w-full lg:w-1/2 flex'>
-          <div className={`${card.bgColor || 'bg-white'} w-full rounded-xl sm:rounded-2xl px-4 sm:px-8 md:px-12 lg:px-17 py-6 sm:py-8 md:py-10 lg:py-12.5 flex flex-col`}>
+          <div className={`${card.bgColor || 'bg-white'} w-full rounded-xl sm:rounded-2xl px-4 sm:px-6 md:px-8 lg:px-12 xl:px-15 2xl:px-17 py-5 sm:py-6 md:py-8 lg:py-10 xl:py-12.5 flex flex-col h-full`}>
 
-            {/* Image Container with fixed height and centering */}
-            <div className='flex items-center justify-center min-h-50 sm:min-h-62.5 md:min-h-75 lg:min-h-87.5 xl:min-h-110'>
+            {/* Image Container - Centered vertically */}
+            <div className='flex-1 flex items-center justify-center min-h-40 sm:min-h-48 md:min-h-56 lg:min-h-64 xl:min-h-75 2xl:min-h-87.5'>
               <img
                 src={getImageSrc(card)}
                 alt={getImageAlt(card)}
@@ -130,26 +130,26 @@ const CardsSection = ({
               />
             </div>
 
-            {/* Bottom Card - Always at bottom with consistent height */}
+            {/* Bottom Card - Always at bottom */}
             {(hasValue(card.title) || hasValue(card.buttonText)) && (
-              <div className={`${card.cardBgColor || 'bg-white'} w-full rounded-xl sm:rounded-2xl p-4 sm:p-6 md:p-8 lg:p-12.5 mt-4 sm:mt-5 md:mt-6 lg:mt-7.5 flex flex-col justify-between min-h-50 sm:min-h-62.5 md:min-h-70 lg:min-h-62.5`}>
+              <div className={`${card.cardBgColor || 'bg-white'} w-full rounded-xl sm:rounded-2xl p-4 sm:p-5 md:p-6 lg:p-8 xl:p-10 2xl:p-12.5 mt-4 sm:mt-5 md:mt-6 lg:mt-7.5 flex flex-col justify-between min-h-40 sm:min-h-48 md:min-h-56 lg:min-h-62.5`}>
 
                 {/* Card Title */}
                 {hasValue(card.title) && (
-                  <h1 className='font-700 text-2xl sm:text-3xl md:text-4xl lg:text-[40px] leading-tight'>
+                  <h1 className='text-black font-700 text-[20px] sm:text-[24px] md:text-[28px] lg:text-[32px] xl:text-[36px] 2xl:text-[40px] leading-tight'>
                     {card.title}
                   </h1>
                 )}
 
                 {/* Card Button */}
                 {hasValue(card.buttonText) && hasValue(card.buttonLink) && (
-                  <div className='pt-3 sm:pt-4 md:pt-5 lg:pt-6'>
+                  <div className='pt-2 sm:pt-3 md:pt-4 lg:pt-5 xl:pt-6'>
                     <button
                       onClick={() => window.location.href = card.buttonLink}
-                      className='bricolage-grotesque border border-[#009BE2] rounded-md text-[#009BE2] px-3 py-2 sm:px-4 sm:py-2.5 md:px-5 md:py-3 lg:px-6 lg:py-3.5 xl:p-4 font-600 text-xs sm:text-sm md:text-base lg:text-[16px] inline-flex items-center gap-2 sm:gap-3 group hover:bg-[#009BE2] hover:text-white transition-all duration-300'
+                      className='bricolage-grotesque border border-[#009BE2] rounded-md text-[#009BE2] px-3 py-2 sm:px-3.5 sm:py-2.5 md:px-4.5 md:py-3 lg:px-5 lg:py-3.5 xl:px-6 xl:py-4 font-600 text-[12px] sm:text-[13px] md:text-[14px] lg:text-[15px] xl:text-[16px] inline-flex items-center gap-1.5 sm:gap-2 md:gap-2.5 lg:gap-3 group hover:bg-[#009BE2] hover:text-white transition-all duration-300'
                     >
                       <span>{card.buttonText}</span>
-                      <ArrowIcon className="w-4 h-4 sm:w-5 sm:h-5 group-hover:translate-x-1 group-hover:-translate-y-1 transition-all duration-300" />
+                      <ArrowIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-4.5 md:h-4.5 lg:w-5 lg:h-5 group-hover:translate-x-1 group-hover:-translate-y-1 transition-all duration-300" />
                     </button>
                   </div>
                 )}

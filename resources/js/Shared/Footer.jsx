@@ -1,41 +1,23 @@
 // resources/js/components/Footer.jsx
 
 /**
- * 
+ *
  * FOOTER - Site Footer Component
- * 
- * 
+ *
  * PURPOSE:
  * - Renders the website footer with all sections
  * - Provides navigation links, social media, and newsletter
  * - Responsive: Desktop grid layout, mobile accordion
- * 
+ *
  * SECTIONS:
  * 1. Left Column: Logo, description, social links, address/contact
  * 2. Right Column: Quick Links, Our Programs, Newsletter
- * 
- * DATA STRUCTURE:
- * {
- *   logo: { src, alt, className },
- *   description: string,
- *   socialLinks: [{ iconName, url, hoverColor }],
- *   address: { title, details },
- *   contact: { title, numbers: [] },
- *   email: { title, addresses: [] },
- *   quickLinks: [{ name, url }],
- *   programs: [{ name, url }],
- *   newsletter: { title, placeholder, buttonText },
- *   bottomFooter: { copyright, links: [{ text, url }] },
- *   quickLinkLinkIcon: string,
- *   OurProgramLinkIcon: string
- * }
- * 
- * 
+ *
  */
 
 // React
 import { Link } from '@inertiajs/react';
-import React, { useState, useCallback, memo } from 'react';
+import  { useState, useCallback, memo } from 'react';
 
 // Icons
 import {
@@ -47,11 +29,13 @@ import {
   FaTiktok,
   FaPinterest,
   FaWhatsapp,
-  FaTelegram
+  FaTelegram,
 } from 'react-icons/fa6';
 import ArrowIcon from './ArrowIcon';
 
-// UTILITY: Check if value exists
+/**
+ * UTILITY: Check if value exists
+ */
 const hasValue = (value) => {
   if (value === undefined || value === null) return false;
   if (typeof value === 'string') return value.trim().length > 0;
@@ -60,7 +44,9 @@ const hasValue = (value) => {
   return true;
 };
 
-// ICON MAPPING - Extended with common social icons
+/**
+ * ICON MAPPING
+ */
 const iconMap = {
   FaFacebook,
   FaInstagram,
@@ -71,7 +57,8 @@ const iconMap = {
   FaPinterest,
   FaWhatsapp,
   FaTelegram,
-  // Aliases for common variations
+
+  // Aliases
   facebook: FaFacebook,
   instagram: FaInstagram,
   linkedin: FaLinkedin,
@@ -88,64 +75,81 @@ const iconMap = {
  */
 const getIconComponent = (iconName) => {
   if (!iconName) return null;
-  // Try direct match first, then case-insensitive match
-  if (iconMap[iconName]) return iconMap[iconName];
 
-  // Try case-insensitive match
+  if (iconMap[iconName]) {
+    return iconMap[iconName];
+  }
+
   const lowerName = iconName.toLowerCase();
+
   for (const [key, value] of Object.entries(iconMap)) {
     if (key.toLowerCase() === lowerName) {
       return value;
     }
   }
+
   return null;
 };
 
 /**
  * Footer Component
- * 
- * @param {Object} props
- * @param {Object} props.footerData - Footer configuration data
- * @param {string} props.storageUrl - Base URL for image storage
- * @param {string} props.defaultLogo - Fallback logo URL
- * 
- * @returns {JSX.Element} Rendered footer
  */
-const Footer = ({ footerData, storageUrl = '', defaultLogo = '/images/default-logo.png' }) => {
+const Footer = ({
+  footerData,
+  storageUrl = '',
+  defaultLogo = '/images/default-logo.png',
+}) => {
+  // ====
   // STATE
+  // ====
+
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
   const [logoError, setLogoError] = useState(false);
+
   const [submitMessage, setSubmitMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitMessageType, setSubmitMessageType] = useState('');
 
-  // Mobile accordion
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState({
     quickLinks: false,
-    programs: false
+    programs: false,
   });
 
   /**
    * Build image URL with storage path
    */
-  const getImageSrc = useCallback((imagePath) => {
-    if (!imagePath) return null;
-    if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
+  const getImageSrc = useCallback(
+    (imagePath) => {
+      if (!imagePath) return null;
+
+      if (
+        imagePath.startsWith('http://') ||
+        imagePath.startsWith('https://')
+      ) {
+        return imagePath;
+      }
+
+      if (imagePath.startsWith('/storage/')) {
+        return imagePath;
+      }
+
+      if (imagePath.startsWith('/asset/')) {
+        return imagePath;
+      }
+
+      if (storageUrl) {
+        const cleanPath = imagePath.startsWith('/')
+          ? imagePath.slice(1)
+          : imagePath;
+
+        return `${storageUrl}${cleanPath}`;
+      }
+
       return imagePath;
-    }
-    if (imagePath.startsWith('/storage/')) {
-      return imagePath;
-    }
-    if (imagePath.startsWith('/asset/')) {
-      return imagePath;
-    }
-    if (storageUrl) {
-      const cleanPath = imagePath.startsWith('/') ? imagePath.slice(1) : imagePath;
-      return `${storageUrl}${cleanPath}`;
-    }
-    return imagePath;
-  }, [storageUrl]);
+    },
+    [storageUrl],
+  );
 
   /**
    * Handle logo image error
@@ -158,113 +162,152 @@ const Footer = ({ footerData, storageUrl = '', defaultLogo = '/images/default-lo
    * Toggle mobile accordion sections
    */
   const toggleMobileSection = useCallback((section) => {
-    setIsMobileMenuOpen(prev => ({
+    setIsMobileMenuOpen((prev) => ({
       ...prev,
-      [section]: !prev[section]
+      [section]: !prev[section],
     }));
   }, []);
 
   /**
-   * Handle newsletter subscription - Updated to use Laravel route
+   * Handle newsletter subscription
    */
-  const handleSubscribe = useCallback(async (e) => {
-    e.preventDefault();
+  const handleSubscribe = useCallback(
+    async (e) => {
+      e.preventDefault();
 
-    // Validate email
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!email || !emailRegex.test(email)) {
-      setSubmitMessage('Please enter a valid email address');
-      setSubmitMessageType('error');
-      setTimeout(() => {
-        setSubmitMessage('');
-        setSubmitMessageType('');
-      }, 4000);
-      return;
-    }
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-    setIsSubmitting(true);
-    setSubmitMessage('');
-    setSubmitMessageType('');
-
-    try {
-      // Get CSRF token
-      const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
-
-      // 🔥 Use the Laravel route for newsletter subscription
-      const response = await fetch('/newsletter/subscribe', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-CSRF-TOKEN': csrfToken,
-          'Accept': 'application/json',
-        },
-        body: JSON.stringify({
-          email: email.trim(),
-          name: name.trim() || null,
-          source: 'footer',
-        }),
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
-        setSubmitMessage(data.message || 'Successfully subscribed to our newsletter! 🎉');
-        setSubmitMessageType('success');
-        setEmail('');
-        setName('');
-      } else {
-        // Handle validation errors
-        if (data.errors) {
-          const errorMessages = Object.values(data.errors).flat();
-          setSubmitMessage(errorMessages[0] || 'Subscription failed. Please check your email.');
-        } else {
-          setSubmitMessage(data.message || 'Subscription failed. Please try again.');
-        }
+      if (!email || !emailRegex.test(email)) {
+        setSubmitMessage('Please enter a valid email address');
         setSubmitMessageType('error');
+
+        setTimeout(() => {
+          setSubmitMessage('');
+          setSubmitMessageType('');
+        }, 4000);
+
+        return;
       }
-    } catch (error) {
-      console.error('Newsletter subscription error:', error);
-      setSubmitMessage('Unable to subscribe at this time. Please try again later.');
-      setSubmitMessageType('error');
-    } finally {
-      setIsSubmitting(false);
-      setTimeout(() => {
-        setSubmitMessage('');
-        setSubmitMessageType('');
-      }, 5000);
-    }
-  }, [email, name]);
+
+      setIsSubmitting(true);
+      setSubmitMessage('');
+      setSubmitMessageType('');
+
+      try {
+        const csrfToken =
+          document
+            .querySelector('meta[name="csrf-token"]')
+            ?.getAttribute('content') || '';
+
+        const response = await fetch('/newsletter/subscribe', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': csrfToken,
+            Accept: 'application/json',
+          },
+          body: JSON.stringify({
+            email: email.trim(),
+            name: name.trim() || null,
+            source: 'footer',
+          }),
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          setSubmitMessage(
+            data.message ||
+            'Successfully subscribed to our newsletter!',
+          );
+
+          setSubmitMessageType('success');
+          setEmail('');
+          setName('');
+        } else {
+          if (data.errors) {
+            const errorMessages =
+              Object.values(data.errors).flat();
+
+            setSubmitMessage(
+              errorMessages[0] ||
+              'Subscription failed. Please check your email.',
+            );
+          } else {
+            setSubmitMessage(
+              data.message ||
+              'Subscription failed. Please try again.',
+            );
+          }
+
+          setSubmitMessageType('error');
+        }
+      } catch (error) {
+        console.error(
+          'Newsletter subscription error:',
+          error,
+        );
+
+        setSubmitMessage(
+          'Unable to subscribe at this time. Please try again later.',
+        );
+
+        setSubmitMessageType('error');
+      } finally {
+        setIsSubmitting(false);
+
+        setTimeout(() => {
+          setSubmitMessage('');
+          setSubmitMessageType('');
+        }, 5000);
+      }
+    },
+    [email, name],
+  );
 
   /**
    * Render link with icon
    */
-  const renderLinkWithIcon = useCallback((link, iconSrc, index) => {
-    const iconUrl = getImageSrc(iconSrc);
-    return (
-      <li key={index} className='flex items-center group'>
-        {hasValue(iconSrc) && iconUrl && (
-          <img
-            src={iconUrl}
-            alt=""
-            className='mr-3 w-2.5 h-auto opacity-70 group-hover:opacity-100 transition-opacity'
-            aria-hidden="true"
-            loading="lazy"
-          />
-        )}
-        <Link
-          href={link.url}
-          className="hover:text-[#009BE2] transition-colors cursor-pointer text-white font-400 text-[14px]"
-        >
-          {link.name}
-        </Link>
-      </li>
-    );
-  }, [getImageSrc]);
+  const renderLinkWithIcon = useCallback(
+    (link, iconSrc, index) => {
+      const iconUrl = getImageSrc(iconSrc);
 
-  // EARLY RETURN - After all hooks
-  if (!hasValue(footerData)) return null;
+      return (
+        <li key={index} className="group flex min-w-0 items-center">
+          {hasValue(iconSrc) && iconUrl && (
+            <img
+              src={iconUrl}
+              alt=""
+              className="mr-3 h-auto w-2.5 shrink-0 opacity-70 transition-opacity group-hover:opacity-100"
+              aria-hidden="true"
+              loading="lazy"
+            />
+          )}
 
-  // DESTRUCTURE DATA
+          <Link
+            href={link.url}
+            className="cursor-pointer truncate text-[14px] font-400 text-white transition-colors hover:text-[#009BE2]"
+          >
+            {link.name}
+          </Link>
+        </li>
+      );
+    },
+    [getImageSrc],
+  );
+
+  // ====
+  // EARLY RETURN
+  // ====
+
+  if (!hasValue(footerData)) {
+    return null;
+  }
+
+  // ====
+  // DATA
+  // ====
+
   const {
     logo = {},
     description = '',
@@ -277,48 +320,81 @@ const Footer = ({ footerData, storageUrl = '', defaultLogo = '/images/default-lo
     newsletter = {},
     bottomFooter = {},
     quickLinkLinkIcon = '',
-    OurProgramLinkIcon = ''
+    OurProgramLinkIcon = '',
   } = footerData;
 
+  // ====
+  // CONTENT CHECKS
+  // ====
 
-  // CHECK FOR CONTENT
   const hasLogo = hasValue(logo.src);
   const hasPrograms = hasValue(programs);
   const hasQuickLinks = hasValue(quickLinks);
   const hasDescription = hasValue(description);
   const hasSocialLinks = hasValue(socialLinks);
   const hasNewsletter = hasValue(newsletter.title);
-  const hasAddress = hasValue(address.title) || hasValue(address.details);
-  const hasContact = hasValue(contact.title) || hasValue(contact.numbers);
-  const hasEmailInfo = hasValue(emailInfo.title) || hasValue(emailInfo.addresses);
-  const hasBottomFooter = hasValue(bottomFooter.copyright) || hasValue(bottomFooter.links);
 
-  // If no content, don't render anything
-  if (!hasLogo && !hasDescription && !hasSocialLinks && !hasAddress &&
-    !hasContact && !hasEmailInfo && !hasQuickLinks && !hasPrograms && !hasNewsletter) {
+  const hasAddress =
+    hasValue(address.title) || hasValue(address.details);
+
+  const hasContact =
+    hasValue(contact.title) || hasValue(contact.numbers);
+
+  const hasEmailInfo =
+    hasValue(emailInfo.title) ||
+    hasValue(emailInfo.addresses);
+
+  const hasBottomFooter =
+    hasValue(bottomFooter.copyright) ||
+    hasValue(bottomFooter.links);
+
+  if (
+    !hasLogo &&
+    !hasDescription &&
+    !hasSocialLinks &&
+    !hasAddress &&
+    !hasContact &&
+    !hasEmailInfo &&
+    !hasQuickLinks &&
+    !hasPrograms &&
+    !hasNewsletter
+  ) {
     return null;
   }
 
+  // ====
   // COMPUTED VALUES
-  const logoUrl = logoError ? defaultLogo : (getImageSrc(logo.src) || defaultLogo);
-  const itemsPerColumn = hasPrograms ? Math.ceil(programs.length / 2) : 0;
-  const firstProgramColumn = hasPrograms ? programs.slice(0, itemsPerColumn) : [];
-  const secondProgramColumn = hasPrograms ? programs.slice(itemsPerColumn) : [];
+  // ====
+
+  const logoUrl = logoError
+    ? defaultLogo
+    : getImageSrc(logo.src) || defaultLogo;
+
+  const itemsPerColumn = hasPrograms
+    ? Math.ceil(programs.length / 2)
+    : 0;
+
+  const firstProgramColumn = hasPrograms
+    ? programs.slice(0, itemsPerColumn)
+    : [];
+
+  const secondProgramColumn = hasPrograms
+    ? programs.slice(itemsPerColumn)
+    : [];
 
   return (
-    <footer className='bg-[#080C14] text-white rounded-t-[40px] md:rounded-t-[80px] lg:rounded-t-[100px] px-4 sm:px-8 md:px-12 lg:px-30 xl:px-50 pt-12 sm:pt-20 md:pt-25 lg:pt-30 xl:pt-37.5'>
-      {/* Main Footer */}
-      <div className='mx-auto flex flex-col lg:flex-row gap-8 md:gap-10 lg:gap-30 xl:gap-50 pb-12 md:pb-20 lg:pb-25'>
-
-        {/* LEFT COLUMN - Logo, Description, Social, Contact */}
-        <div className='w-full lg:w-70 xl:w-92.5'>
+    <footer className="overflow-hidden rounded-t-[40px] bg-[#080C14] px-4 pt-12 text-white sm:rounded-t-[50px] sm:px-8 sm:pt-16 md:rounded-t-[70px] md:px-12 md:pt-20 lg:rounded-t-[80px] lg:px-20 lg:pt-25 xl:rounded-t-[90px] xl:px-30 xl:pt-30 2xl:rounded-t-[100px] 2xl:px-50 2xl:pt-37.5">
+      {/*  MAIN FOOTER */}
+      <div className="mx-auto flex max-w-[1800px] flex-col gap-12 pb-12 sm:gap-14 sm:pb-16 md:gap-16 md:pb-20 lg:gap-20 lg:pb-24 xl:flex-row xl:gap-20 xl:pb-25 2xl:gap-40">
+        {/* LEFT COLUMN */}
+        <div className="w-full min-w-0 xl:w-[32%] xl:max-w-110 2xl:w-[30%] 2xl:max-w-120">
           {/* Logo */}
           {hasLogo && (
-            <div className="flex justify-center lg:justify-start">
+            <div className="flex justify-center xl:justify-start">
               <img
                 src={logoUrl}
-                alt={logo.alt || "Footer Logo"}
-                className={logo.className || "w-20 sm:w-24 md:w-27.5 h-auto object-contain"}
+                alt={logo.alt || 'Footer Logo'}
+                className={logo.className || 'h-auto w-20 object-contain sm:w-24 md:w-27.5'}
                 loading="lazy"
                 onError={handleLogoError}
               />
@@ -327,29 +403,24 @@ const Footer = ({ footerData, storageUrl = '', defaultLogo = '/images/default-lo
 
           {/* Description */}
           {hasDescription && (
-            <p className='pt-5 md:pt-7.5 text-center lg:text-left text-sm md:text-base lg:text-sm xl:text-base leading-relaxed text-[#FFFFFF]'>
+            <p className="pt-5 text-center text-sm leading-relaxed text-[#FFFFFF] sm:pt-6 sm:text-base md:pt-7.5 xl:text-left">
               {description}
             </p>
           )}
 
           {/* Social Links */}
           {hasSocialLinks && (
-            <div
-              className='pt-5 md:pt-7.5 flex justify-center lg:justify-start gap-2 sm:gap-3 lg:gap-4 xl:gap-5 flex-wrap'
-              aria-label="Social media links"
-            >
+            <div className="flex flex-wrap justify-center gap-2 pt-5 sm:gap-3 sm:pt-6 md:gap-4 md:pt-7.5 xl:justify-start xl:gap-5" aria-label="Social media links">
               {socialLinks.map((social, index) => {
                 const IconComponent = getIconComponent(social.iconName);
+
                 if (!IconComponent) return null;
 
                 return (
-                  <div
-                    key={index}
-                    className='border border-white rounded-full p-1.5 sm:p-2 transition-transform duration-200 hover:scale-110 hover:border-[#009BE2]'
-                  >
+                  <div key={index} className="rounded-full border border-white p-1.5 transition-transform duration-200 hover:scale-110 hover:border-[#009BE2] sm:p-2">
                     <a
                       href={social.url}
-                      className={`text-lg sm:text-xl lg:text-2xl text-white ${social.hoverColor || ''} transition-colors duration-200 block`}
+                      className={`block text-lg text-white transition-colors duration-200 sm:text-xl md:text-2xl ${social.hoverColor || ''}`}
                       aria-label={social.ariaLabel || `${social.iconName || 'Social'} link`}
                       target="_blank"
                       rel="noopener noreferrer"
@@ -362,32 +433,34 @@ const Footer = ({ footerData, storageUrl = '', defaultLogo = '/images/default-lo
             </div>
           )}
 
-          {/* Address, Contact, Email */}
+          {/* Address / Contact / Email */}
           {(hasAddress || hasContact || hasEmailInfo) && (
-            <div className='pt-5 md:pt-7.5 space-y-4 md:space-y-5 text-center lg:text-left'>
+            <div className="space-y-4 pt-5 text-center sm:pt-6 md:space-y-5 md:pt-7.5 xl:text-left">
               {/* Address */}
               {hasAddress && (
                 <div>
-                  <h2 className='text-white/50 font-semibold mb-1.5 md:mb-2 text-xs lg:text-sm uppercase tracking-wide'>
+                  <h2 className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-white/50 sm:mb-2 md:text-sm">
                     {address.title || 'Address'}
                   </h2>
-                  <address className="not-italic text-white text-sm md:text-base lg:text-xs xl:text-sm leading-relaxed">
+
+                  <address className="not-italic text-sm leading-relaxed text-white sm:text-base">
                     {address.details}
                   </address>
                 </div>
               )}
 
-              {/* Contact Numbers */}
+              {/* Contact */}
               {hasContact && hasValue(contact.numbers) && (
                 <div>
-                  <h2 className='text-white/50 font-semibold mb-1.5 md:mb-2 text-xs lg:text-sm uppercase tracking-wide'>
+                  <h2 className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-white/50 sm:mb-2 md:text-sm">
                     {contact.title || 'Contact'}
                   </h2>
+
                   {contact.numbers.map((number, index) => (
                     <a
                       key={index}
                       href={`tel:${number.replace(/\D/g, '')}`}
-                      className="block text-white hover:text-white transition-colors text-sm md:text-base lg:text-xs xl:text-sm mb-1"
+                      className="mb-1 block text-sm text-white transition-colors hover:text-[#009BE2] sm:text-base"
                     >
                       {number}
                     </a>
@@ -395,17 +468,18 @@ const Footer = ({ footerData, storageUrl = '', defaultLogo = '/images/default-lo
                 </div>
               )}
 
-              {/* Email Addresses */}
+              {/* Email */}
               {hasEmailInfo && hasValue(emailInfo.addresses) && (
                 <div>
-                  <h2 className='text-white/50 font-semibold mb-1.5 md:mb-2 text-xs lg:text-sm uppercase tracking-wide'>
+                  <h2 className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-white/50 sm:mb-2 md:text-sm">
                     {emailInfo.title || 'Email'}
                   </h2>
+
                   {emailInfo.addresses.map((emailAddr, index) => (
                     <a
                       key={index}
                       href={`mailto:${emailAddr}`}
-                      className="block text-white hover:text-white transition-colors break-all text-sm md:text-base lg:text-xs xl:text-sm mb-1"
+                      className="mb-1 block break-all text-sm text-white transition-colors hover:text-[#009BE2] sm:text-base"
                     >
                       {emailAddr}
                     </a>
@@ -416,62 +490,82 @@ const Footer = ({ footerData, storageUrl = '', defaultLogo = '/images/default-lo
           )}
         </div>
 
-        {/* RIGHT COLUMN - Quick Links, Programs, Newsletter */}
-        <div className='w-full lg:flex-1'>
+        {/* RIGHT COLUMN */}
+
+        <div className="w-full min-w-0 xl:flex-1">
           {(hasQuickLinks || hasPrograms || hasNewsletter) && (
             <>
+              {/* DESKTOP / TABLET LINK GRID */}
 
-              {/* DESKTOP: Grid layout for links */}
               {(hasQuickLinks || hasPrograms) && (
-                <div className='hidden md:grid md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8'>
+                <div className="hidden min-w-0 grid-cols-2 gap-8 md:grid lg:gap-10 xl:grid-cols-3 xl:gap-8 2xl:gap-12">
                   {/* Quick Links */}
                   {hasQuickLinks && (
-                    <div>
-                      <h2 className='text-white text-lg sm:text-xl lg:text-[22px] font-bold mb-3 md:mb-5'>Quick Links</h2>
-                      <ul className='space-y-2 md:space-y-3'>
-                        {quickLinks.map((link, index) => renderLinkWithIcon(link, quickLinkLinkIcon, index))}
+                    <div className="min-w-0">
+                      <h2 className="mb-4 text-lg font-bold text-white sm:text-xl md:mb-5 lg:text-[22px]">
+                        Quick Links
+                      </h2>
+
+                      <ul className="space-y-2.5 md:space-y-3">
+                        {quickLinks.map((link, index) =>
+                          renderLinkWithIcon(link, quickLinkLinkIcon, index)
+                        )}
                       </ul>
                     </div>
                   )}
 
-                  {/* Programs - Column 1 */}
+                  {/* Programs Column 1 */}
                   {hasPrograms && (
-                    <div>
-                      <h2 className='text-white text-lg sm:text-xl lg:text-[22px] font-bold mb-3 md:mb-5'>Our Programs</h2>
-                      <ul className='space-y-2 md:space-y-3'>
-                        {firstProgramColumn.map((program, index) => renderLinkWithIcon(program, OurProgramLinkIcon, index))}
-                      </ul>
-                    </div>
-                  )}
-
-                  {/* Programs - Column 2 (hidden title for alignment) */}
-                  {hasPrograms && secondProgramColumn.length > 0 && (
-                    <div>
-                      <h2 className='text-lg sm:text-xl lg:text-[22px] font-bold mb-3 md:mb-5 opacity-0 pointer-events-none invisible'>
+                    <div className="min-w-0">
+                      <h2 className="mb-4 text-lg font-bold text-white sm:text-xl md:mb-5 lg:text-[22px]">
                         Our Programs
                       </h2>
-                      <ul className='space-y-2 md:space-y-3'>
-                        {secondProgramColumn.map((program, index) => renderLinkWithIcon(program, OurProgramLinkIcon, index + firstProgramColumn.length))}
+
+                      <ul className="space-y-2.5 md:space-y-3">
+                        {firstProgramColumn.map((program, index) =>
+                          renderLinkWithIcon(program, OurProgramLinkIcon, index)
+                        )}
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* Programs Column 2 */}
+                  {hasPrograms && secondProgramColumn.length > 0 && (
+                    <div className="min-w-0">
+                      <h2 className="invisible pointer-events-none mb-4 text-lg font-bold sm:text-xl md:mb-5 lg:text-[22px]">
+                        Our Programs
+                      </h2>
+
+                      <ul className="space-y-2.5 md:space-y-3">
+                        {secondProgramColumn.map((program, index) =>
+                          renderLinkWithIcon(
+                            program,
+                            OurProgramLinkIcon,
+                            index + firstProgramColumn.length
+                          )
+                        )}
                       </ul>
                     </div>
                   )}
                 </div>
               )}
 
-              {/* MOBILE: Accordion for links */}
-              <div className='md:hidden space-y-3'>
-                {/* Quick Links Accordion */}
+              {/* MOBILE ACCORDION */}
+
+              <div className="space-y-3 md:hidden">
+                {/* Quick Links */}
                 {hasQuickLinks && (
                   <div className="border-b border-gray-700">
                     <button
                       onClick={() => toggleMobileSection('quickLinks')}
-                      className="flex justify-between items-center w-full py-3 text-white font-bold text-base hover:text-[#009BE2] transition-colors"
+                      className="flex w-full items-center justify-between py-3 text-base font-bold text-white transition-colors hover:text-[#009BE2]"
                       aria-expanded={isMobileMenuOpen.quickLinks}
                       aria-controls="quick-links-mobile"
                     >
                       Quick Links
+
                       <svg
-                        className={`w-5 h-5 transition-transform duration-300 ${isMobileMenuOpen.quickLinks ? 'rotate-180' : ''}`}
+                        className={`h-5 w-5 transition-transform duration-300 ${isMobileMenuOpen.quickLinks ? 'rotate-180' : ''}`}
                         fill="none"
                         stroke="currentColor"
                         viewBox="0 0 24 24"
@@ -480,30 +574,34 @@ const Footer = ({ footerData, storageUrl = '', defaultLogo = '/images/default-lo
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                       </svg>
                     </button>
+
                     <div
                       id="quick-links-mobile"
-                      className={`overflow-hidden transition-all duration-300 ease-in-out ${isMobileMenuOpen.quickLinks ? 'max-h-96 mb-3' : 'max-h-0'}`}
+                      className={`overflow-hidden transition-all duration-300 ease-in-out ${isMobileMenuOpen.quickLinks ? 'mb-3 max-h-96' : 'max-h-0'}`}
                       role="region"
                     >
-                      <ul className='space-y-2.5'>
-                        {quickLinks.map((link, index) => renderLinkWithIcon(link, quickLinkLinkIcon, index))}
+                      <ul className="space-y-2.5">
+                        {quickLinks.map((link, index) =>
+                          renderLinkWithIcon(link, quickLinkLinkIcon, index)
+                        )}
                       </ul>
                     </div>
                   </div>
                 )}
 
-                {/* Programs Accordion */}
+                {/* Programs */}
                 {hasPrograms && (
                   <div className="border-b border-gray-700">
                     <button
                       onClick={() => toggleMobileSection('programs')}
-                      className="flex justify-between items-center w-full py-3 text-white font-bold text-base hover:text-[#009BE2] transition-colors"
+                      className="flex w-full items-center justify-between py-3 text-base font-bold text-white transition-colors hover:text-[#009BE2]"
                       aria-expanded={isMobileMenuOpen.programs}
                       aria-controls="programs-mobile"
                     >
                       Our Programs
+
                       <svg
-                        className={`w-5 h-5 transition-transform duration-300 ${isMobileMenuOpen.programs ? 'rotate-180' : ''}`}
+                        className={`h-5 w-5 transition-transform duration-300 ${isMobileMenuOpen.programs ? 'rotate-180' : ''}`}
                         fill="none"
                         stroke="currentColor"
                         viewBox="0 0 24 24"
@@ -512,32 +610,37 @@ const Footer = ({ footerData, storageUrl = '', defaultLogo = '/images/default-lo
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                       </svg>
                     </button>
+
                     <div
                       id="programs-mobile"
-                      className={`overflow-hidden transition-all duration-300 ease-in-out ${isMobileMenuOpen.programs ? 'max-h-96 mb-3' : 'max-h-0'}`}
+                      className={`overflow-hidden transition-all duration-300 ease-in-out ${isMobileMenuOpen.programs ? 'mb-3 max-h-96' : 'max-h-0'}`}
                       role="region"
                     >
-                      <ul className='space-y-2.5'>
-                        {programs.map((program, index) => renderLinkWithIcon(program, OurProgramLinkIcon, index))}
+                      <ul className="space-y-2.5">
+                        {programs.map((program, index) =>
+                          renderLinkWithIcon(program, OurProgramLinkIcon, index)
+                        )}
                       </ul>
                     </div>
                   </div>
                 )}
               </div>
 
-              {/* NEWSLETTER SECTION - Updated with name field and route */}
+              {/* NEWSLETTER */}
+
               {hasNewsletter && (
-                <div className='pt-6 md:pt-8 lg:pt-10 mt-3 md:mt-4 lg:mt-5'>
-                  <h2 className='text-xl sm:text-2xl md:text-[24px] lg:text-[28px] font-bold text-white text-center lg:text-left'>
+                <div className="mt-6 pt-6 sm:mt-8 sm:pt-8 md:mt-10 md:pt-10 xl:mt-12 xl:pt-12">
+                  <h2 className="text-center text-xl font-bold text-white sm:text-2xl md:text-[24px] xl:text-left xl:text-[28px]">
                     {newsletter.title}
                   </h2>
 
-                  <form onSubmit={handleSubscribe} className='space-y-3 pt-4 md:pt-5' noValidate>
-                    {/* Name Field - Optional */}
+                  <form onSubmit={handleSubscribe} className="space-y-3 pt-4 sm:pt-5" noValidate>
+                    {/* Name */}
                     <div>
-                      <label htmlFor="footer-name" className="text-gray-300 text-sm block text-center lg:text-left">
-                        Your Name <span className="text-gray-500 text-xs">(optional)</span>
+                      <label htmlFor="footer-name" className="block text-center text-sm text-gray-300 xl:text-left">
+                        Your Name <span className="text-xs text-gray-500">(optional)</span>
                       </label>
+
                       <input
                         type="text"
                         id="footer-name"
@@ -545,17 +648,18 @@ const Footer = ({ footerData, storageUrl = '', defaultLogo = '/images/default-lo
                         value={name}
                         onChange={(e) => setName(e.target.value)}
                         placeholder="Enter your name"
-                        className="w-full mt-2 py-2.5 sm:py-3 px-3 sm:px-4 bg-[#080C14] border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-[#009BE2] focus:border-transparent transition-all text-white placeholder:text-gray-500 text-sm lg:text-base"
+                        className="mt-2 w-full rounded-md border border-gray-600 bg-[#080C14] px-3 py-2.5 text-sm text-white transition-all placeholder:text-gray-500 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#009BE2] sm:px-4 sm:py-3 lg:text-base"
                         disabled={isSubmitting}
                       />
                     </div>
 
-                    {/* Email Field */}
+                    {/* Email */}
                     <div>
-                      <label htmlFor="footer-email" className="text-gray-300 text-sm block text-center lg:text-left">
+                      <label htmlFor="footer-email" className="block text-center text-sm text-gray-300 xl:text-left">
                         Email Address <span className="text-red-400">*</span>
                       </label>
-                      <div className='flex flex-col sm:flex-row items-stretch sm:items-center gap-3 mt-2'>
+
+                      <div className="mt-2 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center">
                         <input
                           type="email"
                           id="footer-email"
@@ -563,38 +667,35 @@ const Footer = ({ footerData, storageUrl = '', defaultLogo = '/images/default-lo
                           value={email}
                           onChange={(e) => setEmail(e.target.value)}
                           placeholder={newsletter.placeholder || 'Enter your email address'}
-                          className="flex-1 py-2.5 sm:py-3 px-3 sm:px-4 bg-[#080C14] border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-[#009BE2] focus:border-transparent transition-all text-white placeholder:text-gray-500 text-sm lg:text-base"
+                          className="min-w-0 flex-1 rounded-md border border-gray-600 bg-[#080C14] px-3 py-2.5 text-sm text-white transition-all placeholder:text-gray-500 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#009BE2] sm:px-4 sm:py-3 lg:text-base"
                           required
-                          aria-label="Email address for newsletter subscription"
-                          aria-describedby={submitMessage ? "newsletter-message" : undefined}
                           disabled={isSubmitting}
                         />
+
                         <button
                           type="submit"
                           disabled={isSubmitting}
-                          className="bg-[#009BE2] hover:bg-[#009BE2]/80 disabled:bg-[#009BE2]/50 disabled:cursor-not-allowed px-4 sm:px-6 py-2.5 sm:py-3 rounded-md font-semibold text-white transition-all duration-200 text-sm lg:text-base flex items-center justify-center gap-2 min-w-30 sm:min-w-30"
+                          className="flex min-w-30 shrink-0 items-center justify-center gap-2 rounded-md bg-[#009BE2] px-4 py-2.5 text-sm font-semibold text-white transition-all duration-200 hover:bg-[#009BE2]/80 disabled:cursor-not-allowed disabled:bg-[#009BE2]/50 sm:px-6 sm:py-3 lg:text-base"
                         >
                           {isSubmitting ? (
                             <>
-                              <span className="inline-block w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                              <span className="hidden xs:inline">Subscribing...</span>
-                              <span className="xs:hidden">...</span>
+                              <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                              <span>Subscribing...</span>
                             </>
                           ) : (
                             <>
                               {newsletter.buttonText || 'Subscribe'}
-                              <ArrowIcon className="w-4 h-4 text-white" />
+                              <ArrowIcon className="h-4 w-4 text-white" />
                             </>
                           )}
                         </button>
                       </div>
                     </div>
 
+                    {/* Message */}
                     {submitMessage && (
                       <p
-                        id="newsletter-message"
-                        className={`text-sm mt-2 text-center lg:text-left ${submitMessageType === 'success' ? 'text-green-400' : 'text-red-400'
-                          }`}
+                        className={`mt-2 text-center text-sm xl:text-left ${submitMessageType === 'success' ? 'text-green-400' : 'text-red-400'}`}
                         role="status"
                       >
                         {submitMessage}
@@ -608,25 +709,22 @@ const Footer = ({ footerData, storageUrl = '', defaultLogo = '/images/default-lo
         </div>
       </div>
 
-      {/* BOTTOM FOOTER - Copyright & Legal Links */}
+      {/*  BOTTOM FOOTER */}
       {hasBottomFooter && (
-        <div className='flex flex-col sm:flex-row justify-between items-center gap-4 py-6 md:py-8 lg:py-10'>
+        <div className="mx-auto flex max-w-[1800px] flex-col items-center justify-between gap-4 py-6 sm:flex-row sm:py-8 lg:py-10">
           {/* Copyright */}
           {hasValue(bottomFooter.copyright) && (
-            <p className='text-white text-[11px] sm:text-[12px] lg:text-[14px] font-400 text-center sm:text-left'>
+            <p className="text-center text-[11px] font-400 text-white sm:text-left sm:text-[12px] lg:text-[14px]">
               {bottomFooter.copyright}
             </p>
           )}
 
           {/* Legal Links */}
           {hasValue(bottomFooter.links) && (
-            <ul className='flex flex-wrap justify-center gap-3 sm:gap-4 lg:gap-8 text-white text-[11px] sm:text-[12px] lg:text-[14px] font-400'>
+            <ul className="flex flex-wrap justify-center gap-3 text-[11px] font-400 text-white sm:gap-4 sm:text-[12px] lg:gap-8 lg:text-[14px]">
               {bottomFooter.links.map((link, index) => (
                 <li key={index}>
-                  <a
-                    href={link.url}
-                    className='hover:text-[#009BE2] cursor-pointer transition-colors duration-200'
-                  >
+                  <a href={link.url} className="cursor-pointer transition-colors duration-200 hover:text-[#009BE2]">
                     {link.text}
                   </a>
                 </li>

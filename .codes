@@ -2,3 +2,15 @@ export PATH=/opt/alt/alt-nodejs22/root/usr/bin:$PATH
 
 chmod -R u+rwX node_modules
 chmod +x node_modules/.bin/vite
+
+npm run build
+
+The fix
+
+This is the command you want to remember:
+
+chmod 755 /home/sixonici/dus.sixonicit.com
+
+Then verify:
+
+ls -ld /home/sixonici/dus.sixonicit.com

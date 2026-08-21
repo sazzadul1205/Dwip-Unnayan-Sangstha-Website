@@ -35,8 +35,8 @@ const ProgramImpactSection = ({
   data,           // From DynamicSectionRenderer
   impactData,     // Direct prop (legacy support)
   bgColor = 'bg-white',
-  paddingY = 'py-12 sm:py-16 md:py-25 lg:py-37.5',
-  paddingX = 'px-5 sm:px-10 md:px-20 lg:px-75',
+  paddingY = 'py-12 sm:py-16 md:py-20 lg:py-25 xl:py-30 2xl:py-37.5',
+  paddingX = 'px-5 sm:px-8 md:px-12 lg:px-20 xl:px-30 2xl:px-50',
   sectionClassName = '',
   sectionId = 'program-impact',
 }) => {
@@ -124,14 +124,14 @@ const ProgramImpactSection = ({
     >
       {/* Carousel - Only show if images exist */}
       {hasImages && (
-        <div className="w-full flex flex-col items-center pb-8 sm:pb-10 lg:pb-15">
+        <div className="w-full flex flex-col items-center pb-6 sm:pb-8 md:pb-10 lg:pb-12 xl:pb-15">
           <div className="w-full">
             <div className="relative overflow-hidden rounded-xl sm:rounded-2xl group">
               {hasValue(images[index]) && (
                 <img
                   src={getCarouselImageSrc(images[index], index)}
                   alt={`Impact slide ${index + 1}`}
-                  className="w-full h-48 sm:h-64 md:h-96 lg:h-186.25 object-cover transition-all duration-500 group-hover:scale-105"
+                  className="w-full h-48 sm:h-60 md:h-80 lg:h-120 xl:h-150 2xl:h-186.25 object-cover transition-all duration-500 group-hover:scale-105"
                   onError={() => handleImageError({ id: `carousel-${index}` })}
                 />
               )}
@@ -159,14 +159,14 @@ const ProgramImpactSection = ({
 
       {/* Title - Only show if exists */}
       {hasTitle && (
-        <h1 className='text-[#080C14] text-[20px] sm:text-[22px] lg:text-[24px] font-600 mb-4 sm:mb-5 lg:mb-6'>
+        <h1 className='text-[#080C14] text-[18px] sm:text-[20px] md:text-[22px] lg:text-[24px] xl:text-[26px] 2xl:text-[28px] font-600 mb-3 sm:mb-4 md:mb-5 lg:mb-6'>
           {section.title}
         </h1>
       )}
 
       {/* SDG Grid - Only show if images exist */}
       {hasSdgImages && (
-        <div className='grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4 md:gap-5'>
+        <div className='grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4 md:gap-5 lg:gap-6 xl:gap-7'>
           {sdgImages.map((image) => (
             <img
               key={image.id}
