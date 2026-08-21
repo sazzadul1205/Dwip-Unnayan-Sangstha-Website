@@ -9,6 +9,7 @@ use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets;
 use Illuminate\Console\Scheduling\Schedule;
 use Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful;
+use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -50,7 +51,11 @@ return Application::configure(basePath: dirname(__DIR__))
         // $schedule->command('frontend:clear-cache --all')->daily();
     })
     ->withExceptions(function (Exceptions $exceptions) {
-        $exceptions->render(function () {
-            return response()->view('errors.maintenance', [], 503);
+        $exceptions->render(function (Throwable $exception) {
+            if ($exception instanceof HttpExceptionInterface && $exception->getStatusCode() === 503) {
+                return response()->view('errors.maintenance', [], 503, $exception->getHeaders());
+            }
+
+            return null;
         });
     })->create();
