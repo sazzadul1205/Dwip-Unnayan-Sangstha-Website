@@ -50,5 +50,7 @@ return Application::configure(basePath: dirname(__DIR__))
         // $schedule->command('frontend:clear-cache --all')->daily();
     })
     ->withExceptions(function (Exceptions $exceptions) {
-        //
+        $exceptions->render(function () {
+            return response()->view('errors.maintenance', [], 503);
+        });
     })->create();
