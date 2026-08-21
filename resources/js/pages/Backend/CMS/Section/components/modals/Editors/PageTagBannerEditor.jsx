@@ -266,6 +266,8 @@ const PageTagBannerEditor = ({ section, hasData, onDataChange }) => {
                 />
 
                 {/* Tag Color - Using color picker with dropdown options */}
+
+                {/* Tag Color - Using color picker with dropdown options */}
                 <div>
                   <label className="block text-xs text-gray-400 mb-0.5">Color</label>
                   <div className="flex items-center gap-2">

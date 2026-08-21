@@ -87,9 +87,9 @@ const PageTagBannerSection = ({
   const galleryTitle = tagTitle || resolvedData.tagTitle || title.text || 'Photo Gallery';
 
   // ============================================
-  // DOT COLORS
+  // DOT COLORS - FALLBACK COLORS
   // ============================================
-  const dotColors = [
+  const defaultColors = [
     '#009BE2', '#FF6B6B', '#4ECDC4', '#FFE66D', '#6C5CE7',
     '#FD79A8', '#00B894', '#FDCB6E', '#E17055', '#0984E3',
     '#A29BFE', '#55EFC4', '#F8A5C2', '#74B9FF', '#FF7675'
@@ -112,24 +112,41 @@ const PageTagBannerSection = ({
   // ============================================
   // IMAGE HANDLING
   // ============================================
-  // Determine if we should use placeholder
   const usePlaceholder = !hasBackground || imageError;
-
-  // Get image source
   const imageSrc = usePlaceholder
     ? getPlaceholderImage(1920, 600, galleryTitle)
     : background.src;
-
-  // Get image alt text
   const imageAlt = background.alt || (galleryTitle ? `${galleryTitle} - Banner` : 'Gallery banner background');
 
-  // Handle image error
   const handleImageError = () => {
     setImageError(true);
   };
 
   // ============================================
-  // RENDER TAGS
+  // HELPER: Extract hex color from various formats
+  // ============================================
+  const extractColorValue = (color) => {
+    if (!color) return null;
+
+    // If it's already a hex color (starts with #)
+    if (typeof color === 'string' && color.startsWith('#')) {
+      return color;
+    }
+
+    // If it's a Tailwind class like "bg-[#FDCB6E]"
+    if (typeof color === 'string' && color.includes('bg-[')) {
+      const match = color.match(/bg-\[(#[^\]]+)\]/);
+      if (match) {
+        return match[1];
+      }
+    }
+
+    // If it's a color name or other format, return as-is
+    return color;
+  };
+
+  // ============================================
+  // RENDER TAGS - OPTIMIZED
   // ============================================
   const renderTags = () => {
     if (!hasTags) return null;
@@ -139,7 +156,10 @@ const PageTagBannerSection = ({
         {galleryTags.map((tag, index) => {
           // Handle both string and object formats
           const tagLabel = typeof tag === 'string' ? tag : tag.label;
-          const tagColor = typeof tag === 'object' ? tag.color : dotColors[index % dotColors.length];
+          const rawColor = typeof tag === 'object' && tag.color
+            ? tag.color
+            : defaultColors[index % defaultColors.length];
+          const tagColor = extractColorValue(rawColor) || defaultColors[index % defaultColors.length];
           const isActive = tagLabel === galleryActiveTag;
 
           return (

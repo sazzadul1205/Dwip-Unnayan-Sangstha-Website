@@ -27,7 +27,7 @@ const getPlaceholderImage = (width = 1920, height = 600, text = 'Welcome') => {
  * @param {Object} props.data - Banner data from API (from DynamicSectionRenderer)
  * @param {Object} props.bannerData - Banner data from API (direct prop)
  * @param {string} props.bgColor - Background color (optional)
- * @param {string} props.height - Height classes (default: 'h-125 md:h-250')
+ * @param {string} props.height - Height classes (default: 'h-64 sm:h-80 md:h-100 lg:h-150 xl:h-200 2xl:h-250')
  * @param {string} props.sectionClassName - Additional CSS classes
  * 
  * @returns {JSX.Element} Rendered home banner
@@ -36,7 +36,7 @@ const HomeBanner = ({
   data,
   bannerData,
   bgColor = '',
-  height = 'h-125 md:h-250',
+  height = 'h-100 sm:h-80 md:h-100 lg:h-150 xl:h-200 2xl:h-250',
   sectionClassName = '',
 }) => {
   const [imageError, setImageError] = useState(false);
@@ -88,7 +88,7 @@ const HomeBanner = ({
   };
 
   return (
-    <div className="w-full flex justify-center overflow-hidden">
+    <div className=" w-full flex justify-center overflow-hidden">
       <section
         id="banner"
         className={`relative w-[1920px] max-w-full ${height} overflow-hidden ${bgColor} ${sectionClassName}`}
@@ -97,11 +97,11 @@ const HomeBanner = ({
         <img
           src={imageSrc}
           alt={imageAlt}
-          className="w-full h-full object-cover object-center md:object-cover"
+          className="w-full h-full object-cover object-center"
           onError={handleImageError}
         />
 
-        {/*  OVERLAYS */}
+        {/* OVERLAYS */}
         {/* Dark overlay (e.g., 'bg-black/50') */}
         {hasValue(overlay.darkOverlay) && (
           <div className={`absolute inset-0 ${overlay.darkOverlay}`} />
@@ -112,38 +112,37 @@ const HomeBanner = ({
           <div className={`absolute inset-0 ${overlay.gradient}`} />
         )}
 
-        {/* Mobile-only overlay - ensures text readability on small screens */}
-        <div className="absolute inset-0 bg-black/40 md:hidden" />
+        {/* Responsive overlay - ensures text readability on all screens */}
+        <div className="absolute inset-0 bg-black/40 sm:bg-black/30 md:bg-black/20 lg:bg-black/10" />
 
         {/* CONTENT */}
         {hasAnyContent && (
-          <div className="absolute left-0 md:left-5 inset-0 flex items-center p-5 md:p-12.5">
-            <div className="w-full px-4 md:px-20 text-white space-y-3 md:space-y-5">
-
+          <div className="absolute left-0 inset-0 flex items-center p-4 sm:p-6 md:p-8 lg:p-10 xl:p-12.5">
+            <div className="w-full px-2 sm:px-4 md:px-8 lg:px-12 xl:px-20 text-white space-y-2 sm:space-y-3 md:space-y-4 lg:space-y-5">
               {/* Tagline - small text above title */}
               {hasValue(content.tagline?.text) && (
-                <p className={`bricolage-grotesque ${content.tagline.className || ''} text-white text-center md:text-left text-sm md:text-[30px] tracking-[2px] md:tracking-[4px]`}>
+                <p className={`bricolage-grotesque ${content.tagline.className || ''} text-white text-center md:text-left text-[12px] sm:text-[14px] md:text-[18px] lg:text-[24px] xl:text-[30px] tracking-[1px] sm:tracking-[2px] md:tracking-[3px] lg:tracking-[4px]`}>
                   {content.tagline.text}
                 </p>
               )}
 
               {/* Title - main heading */}
               {hasValue(content.title?.text) && (
-                <h1 className="bricolage-grotesque font-bold leading-tight text-[32px] md:text-[100px] text-center md:text-left w-full md:w-215.75">
+                <h1 className="bricolage-grotesque font-bold leading-tight text-[28px] sm:text-[36px] md:text-[48px] lg:text-[64px] xl:text-[80px] 2xl:text-[100px] text-center md:text-left w-full md:max-w-2xl lg:max-w-3xl xl:max-w-4xl 2xl:max-w-215.75">
                   {content.title.text}
                 </h1>
               )}
 
               {/* Description - supporting text */}
               {hasValue(content.description?.text) && (
-                <p className="bricolage-grotesque font-normal text-[14px] md:text-[30px] leading-tight text-center md:text-left text-white w-full md:w-215.75 line-clamp-3 md:line-clamp-none">
+                <p className="bricolage-grotesque font-normal text-[13px] sm:text-[15px] md:text-[18px] lg:text-[22px] xl:text-[28px] 2xl:text-[30px] leading-tight text-center md:text-left text-white w-full md:max-w-2xl lg:max-w-3xl xl:max-w-4xl 2xl:max-w-215.75 line-clamp-3 md:line-clamp-none">
                   {content.description.text}
                 </p>
               )}
 
               {/* CTA Buttons */}
               {hasValue(buttons) && (
-                <div className='flex flex-col sm:flex-row items-center gap-3 md:gap-6 pt-5 md:pt-7.5'>
+                <div className='flex flex-col sm:flex-row items-center gap-2 sm:gap-3 md:gap-4 lg:gap-5 xl:gap-6 pt-3 sm:pt-4 md:pt-5 lg:pt-6 xl:pt-7.5'>
                   {buttons.map((button) => (
                     <button
                       key={button.id || Math.random()}
@@ -152,18 +151,17 @@ const HomeBanner = ({
                           window.location.href = button.link;
                         }
                       }}
-                      className={`capitalize font-600 text-[14px] md:text-[18px] px-5 md:px-7.5 py-3 md:py-5 bricolage-grotesque rounded-md inline-flex items-center justify-center gap-2 md:gap-3 group transition-all duration-300 w-full sm:w-auto ${button.className || ''}`}
+                      className={`capitalize font-600 text-[13px] sm:text-[14px] md:text-[15px] lg:text-[16px] xl:text-[18px] px-4 sm:px-5 md:px-6 lg:px-7 xl:px-7.5 py-2.5 sm:py-3 md:py-3.5 lg:py-4 xl:py-5 bricolage-grotesque rounded-md inline-flex items-center justify-center gap-1.5 sm:gap-2 md:gap-2.5 lg:gap-3 group transition-all duration-300 w-full sm:w-auto ${button.className || ''}`}
                     >
                       <span>{button.text}</span>
                       {/* Arrow icon - only shown if icon: true */}
                       {button.icon && (
-                        <ArrowIcon className="group-hover:translate-x-1 group-hover:-translate-y-1 transition-all duration-300 w-4 h-4 md:w-5 md:h-5" />
+                        <ArrowIcon className="group-hover:translate-x-1 group-hover:-translate-y-1 transition-all duration-300 w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-4.5 md:h-4.5 lg:w-5 lg:h-5" />
                       )}
                     </button>
                   ))}
                 </div>
               )}
-
             </div>
           </div>
         )}

@@ -103,7 +103,7 @@ const OurProgramsSection = ({
   }, []);
 
   // ============================================
-  // FUNCTION: Truncate HTML content to ~9 lines
+  // FUNCTION: Truncate HTML content with responsive lines
   // ============================================
   const truncateHtml = useCallback((html, maxLines = 9) => {
     if (!html) return '';
@@ -120,7 +120,8 @@ const OurProgramsSection = ({
     let truncatedText = words.slice(0, maxWords).join(' ');
     truncatedText = `${truncatedText}...`;
 
-    return `<p class="font-400 text-[16px] sm:text-[18px] lg:text-[20px] text-[#524B48] leading-relaxed">${truncatedText}</p>`;
+    // Use responsive line clamping with different max lines per breakpoint
+    return `<p class="font-400 text-[15px] sm:text-[16px] md:text-[17px] lg:text-[18px] xl:text-[19px] 2xl:text-[20px] text-[#524B48] leading-relaxed line-clamp-6 sm:line-clamp-7 md:line-clamp-8 lg:line-clamp-9 xl:line-clamp-10 2xl:line-clamp-11">${truncatedText}</p>`;
   }, [stripHtmlTags]);
 
   // ============================================
@@ -171,12 +172,11 @@ const OurProgramsSection = ({
     return () => {
       observer.disconnect();
     };
-  }, [filteredPrograms]); // Re-run when filteredPrograms changes
+  }, [filteredPrograms]);
 
   // ============================================
   // EARLY RETURN - No data
   // ============================================
-  // Check after all hooks have been called
   const hasTitle = hasValue(section.title);
   const hasDescription = hasValue(section.description);
   const hasButton = hasValue(section.button?.text);
@@ -243,7 +243,15 @@ const OurProgramsSection = ({
               }
 
               const descriptionHtml = program.full_content_html || program.description || '';
-              const truncatedDescription = truncateHtml(descriptionHtml, 9);
+
+              // Get responsive max lines based on screen size
+              const getResponsiveLines = () => {
+                // For mobile: 5 lines, tablet: 7 lines, laptop: 9 lines, desktop: 11 lines
+                return 9; // Default, but the CSS classes will handle the responsive part
+              };
+
+              const maxLines = getResponsiveLines();
+              const truncatedDescription = truncateHtml(descriptionHtml, maxLines);
 
               return (
                 <div
@@ -280,7 +288,7 @@ const OurProgramsSection = ({
                       )}
                       {hasValue(descriptionHtml) && (
                         <div
-                          className="bricolage-grotesque font-400 text-[15px] sm:text-[16px] md:text-[17px] lg:text-[18px] xl:text-[19px] 2xl:text-[20px] text-[#524B48] leading-relaxed line-clamp-9"
+                          className="bricolage-grotesque font-400 text-[15px] sm:text-[16px] md:text-[17px] lg:text-[18px] xl:text-[19px] 2xl:text-[20px] text-[#524B48] leading-relaxed line-clamp-5 sm:line-clamp-6 md:line-clamp-7 lg:line-clamp-8 xl:line-clamp-9 2xl:line-clamp-10"
                           dangerouslySetInnerHTML={{ __html: sanitizeHTML(truncatedDescription) }}
                         />
                       )}
