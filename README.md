@@ -11,9 +11,9 @@
 
 ### 🔎 Quick Navigation
 
-- **Public Website:** `http://localhost:8000`
-- **Admin Login:** `http://localhost:8000/login/staff`
-- **Job Seeker Login:** `http://localhost:8000/login/seeker`
+- **Public Website:** `dus.sixonicit.com/`
+- **Admin Login:** `dus.sixonicit.com/login/staff`
+- **Job Seeker Login:** `dus.sixonicit.com/login/seeker`
 - **License:** MIT
 
 
