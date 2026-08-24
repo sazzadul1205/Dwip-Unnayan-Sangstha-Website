@@ -1,6 +1,6 @@
-# 🏝️ Dwip Unnayan Songstha (DUS) — Job Portal & NGO Management System
+# 🏝️ Dwip Unnayan Songstha (DUS) — Job Portal & CMS Website
 
-> **Enterprise-grade Laravel + Inertia.js + React platform for NGO operations, job listings, applicant tracking, and content management.**
+> **A comprehensive Laravel + Inertia.js + React platform for job listings, applicant tracking, and dynamic content management.**
 
 [![PHP](https://img.shields.io/badge/PHP-8.2%2B-777BB4?logo=php&logoColor=white)](https://www.php.net/)
 [![Laravel](https://img.shields.io/badge/Laravel-11.x-FF2D20?logo=laravel&logoColor=white)](https://laravel.com/)
@@ -11,11 +11,12 @@
 
 ### 🔎 Quick Navigation
 
-- **Public Website:** `dus.sixonicit.com/`
-- **Admin Login:** `dus.sixonicit.com/login/staff`
-- **Job Seeker Login:** `dus.sixonicit.com/login/seeker`
-- **License:** MIT
-
+| Link | URL |
+|------|-----|
+| Public Website | `dus.sixonicit.com/` |
+| Admin Login | `dus.sixonicit.com/login/staff` |
+| Job Seeker Login | `dus.sixonicit.com/login/seeker` |
+| License | MIT |
 
 ---
 
@@ -42,91 +43,92 @@
 
 ## 🌟 Overview
 
-**Dwip Unnayan Songstha (DUS)** is a comprehensive web platform built to empower island communities in Bangladesh through sustainable development, education, healthcare, and livelihood support. The system combines:
+**Dwip Unnayan Songstha (DUS)** is a comprehensive web platform built to serve as a job portal and content management system. The platform combines:
 
-- **Job Portal** – Full-featured job listing and application tracking
-- **Applicant Tracking System (ATS)** – AI-powered resume scoring
-- **Content Management System (CMS)** – Dynamic page and section builder
-- **Role-Based Access Control (RBAC)** – Granular permissions system
-- **Newsletter Management** – Subscriber management and email campaigns
-- **Backup & Logging** – Automated system backups and audit trails
+- **Job Portal** — Full-featured job listing and application tracking
+- **Applicant Tracking System (ATS)** — AI-powered resume scoring
+- **Content Management System (CMS)** — Dynamic page and section builder
+- **Role-Based Access Control (RBAC)** — Granular permissions system
+- **Newsletter Management** — Subscriber management and email campaigns
+- **Backup & Logging** — Automated system backups and audit trails
 
 ---
 
 ## ✨ Features
 
 ### 🏢 Job Portal
-- **Public Job Listings** – Browse jobs with advanced filtering
-- **Infinite Scroll** – Seamless job listing experience
-- **Job Details** – Comprehensive job descriptions with ATS scoring
-- **Popular & Trending** – View most viewed and most applied jobs
-- **Job Categories & Locations** – Organized by category and location
-- **Employer Profiles** – Company profiles with job history
+- **Public Job Listings** — Browse jobs with advanced filtering
+- **Infinite Scroll** — Seamless job listing experience
+- **Job Details** — Comprehensive job descriptions with ATS scoring
+- **Popular & Trending** — View most-viewed and most-applied jobs
+- **Job Categories & Locations** — Organized by category and location
+- **Employer Profiles** — Company profiles with job history
 
 ### 📄 Applicant Tracking System (ATS)
-- **AI-Powered Resume Scoring** – Match resumes against job requirements
-- **Keyword Extraction** – Automatically extract skills and keywords
-- **Score Analysis** – Visual feedback on resume completeness
-- **CV Management** – Upload, set primary, and manage multiple CVs
-- **Application Status Tracking** – Pending → Shortlisted → Rejected → Hired
-- **Bulk Operations** – Batch update status, delete, and export applications
+- **AI-Powered Resume Scoring** — Match resumes against job requirements
+- **Keyword Extraction** — Automatically extract skills and keywords
+- **Score Analysis** — Visual feedback on resume completeness
+- **CV Management** — Upload, set primary, and manage multiple CVs
+- **Application Status Tracking** — Pending → Shortlisted → Rejected → Hired
+- **Bulk Operations** — Batch update status, delete, and export applications
 
 ### 📝 Content Management System (CMS)
-- **Dynamic Page Builder** – Drag-and-drop section management
-- **Blog Management** – Full CRUD with featured posts
-- **Programs** – Project and program showcase
-- **Publications** – Digital publications with PDF support
-- **About Content** – Dynamic about pages with details
-- **Shared Data** – Centralized topbar, navbar, footer management
-- **Editor Image Upload** – Base64 image handling for rich text
+- **Dynamic Page Builder** — Drag-and-drop section management
+- **Blog Management** — Full CRUD with featured posts
+- **Programs** — Project and program showcase
+- **Publications** — Digital publications with PDF support
+- **About Content** — Dynamic about pages with details
+- **Shared Data** — Centralized topbar, navbar, and footer management
+- **Editor Image Upload** — Base64 image handling for rich text
 
 ### 👥 Role-Based Access Control (RBAC)
-- **Granular Permissions** – Fine-grained access control
-- **Role Hierarchy** – Level-based permission inheritance
-- **Module Access** – Manage access per module (read, write, manage)
-- **User Management** – Create, update, delete, and verify users
-- **Role Cloning** – Duplicate roles for quick setup
+- **Granular Permissions** — Fine-grained access control
+- **Role Hierarchy** — Level-based permission inheritance
+- **Module Access** — Manage access per module (read, write, manage)
+- **User Management** — Create, update, delete, and verify users
+- **Role Cloning** — Duplicate roles for quick setup
 
 ### 🔐 Authentication & Security
-- **Multi-Role Login** – Admin and Job Seeker separate login flows
-- **Google OAuth** – Social login integration
-- **Email Verification** – Verify email before access
-- **Rate Limiting** – Throttle sensitive endpoints
-- **Security Logging** – Comprehensive audit trails
-- **Password Reset** – Secure password recovery
+- **Multi-Role Login** — Separate admin and job seeker login flows
+- **Google OAuth** — Social login integration
+- **Email Verification** — Verify email before access
+- **Rate Limiting** — Throttle sensitive endpoints
+- **Security Logging** — Comprehensive audit trails
+- **Password Reset** — Secure password recovery
 
 ### 📊 Analytics & Monitoring
-- **Dashboard** – Role-based dashboards with metrics
-- **Job Statistics** – Charts and trends for jobs and applications
-- **ATS Score Analytics** – Score distribution by job type
-- **Employer Rankings** – Top employers by job count and applications
-- **Activity Logs** – System, security, and application logs
+- **Dashboard** — Role-based dashboards with metrics
+- **Job Statistics** — Charts and trends for jobs and applications
+- **ATS Score Analytics** — Score distribution by job type
+- **Employer Rankings** — Top employers by job count and applications
+- **Activity Logs** — System, security, and application logs
 
 ### 🔄 Cache Management
-- **Smart Caching** – 5-minute TTL for public content
-- **Admin Cache Control** – Clear specific or all caches
-- **Frontend Cache** – Shared data and page section caching
-- **Cache Invalidation** – Automatic cache clear on content updates
+- **Smart Caching** — 5-minute TTL for public content
+- **Admin Cache Control** — Clear specific or all caches
+- **Frontend Cache** — Shared data and page section caching
+- **Cache Invalidation** — Automatic cache clear on content updates
 
 ### 📧 Newsletter System
-- **Subscriber Management** – Subscribe, unsubscribe, resubscribe
-- **Bulk Emails** – Send newsletters to subscribers
-- **Test Emails** – Test email templates before sending
-- **CSV Export** – Export subscriber list
-- **Unsubscribe Links** – Automatic unsubscribe tokens
+- **Subscriber Management** — Subscribe, unsubscribe, resubscribe
+- **Bulk Emails** — Send newsletters to subscribers
+- **Test Emails** — Test email templates before sending
+- **CSV Export** — Export subscriber list
+- **Unsubscribe Links** — Automatic unsubscribe tokens
 
 ### 💾 Backup System
-- **Manual & Automated Backups** – Full or partial backups
-- **Database Backup** – SQL dump with structure and data
-- **File Backup** – Config, routes, views, and environment
-- **Restore** – Restore from backup files
-- **Retention Policy** – Automatic cleanup of old backups
+- **Manual & Automated Backups** — Full or partial backups
+- **Database Backup** — SQL dump with structure and data
+- **File Backup** — Config, routes, views, and environment
+- **Restore** — Restore from backup files
+- **Retention Policy** — Automatic cleanup of old backups
 
 ---
 
 ## 🛠️ Tech Stack
 
 ### Backend
+
 | Technology | Version | Purpose |
 |------------|---------|---------|
 | **PHP** | 8.2+ | Core language |
@@ -134,13 +136,14 @@
 | **Laravel Sanctum** | Latest | API authentication |
 | **Laravel Socialite** | Latest | Google OAuth |
 | **Laravel Inertia** | Latest | Server-side routing |
-| **Laravel Cache** | Redis/Database | Caching layer |
-| **Laravel Queue** | Redis/Database | Job processing |
+| **Laravel Cache** | Redis / Database | Caching layer |
+| **Laravel Queue** | Redis / Database | Job processing |
 | **Laravel Notifications** | Latest | Notifications system |
 | **Laravel Mail** | Latest | Email sending |
 | **Smalot PDF Parser** | Latest | PDF text extraction |
 
 ### Frontend
+
 | Technology | Version | Purpose |
 |------------|---------|---------|
 | **React** | 18.x | UI library |
@@ -151,14 +154,16 @@
 | **Vite** | 5.x | Build tool |
 
 ### Database & Storage
+
 | Technology | Purpose |
 |------------|---------|
 | **MySQL** | Primary database |
 | **Redis** | Cache & session storage |
 | **Laravel Storage** | File storage (local/S3) |
-| **Elasticsearch** | (Future) Job search |
+| **Elasticsearch** | (Future) job search |
 
 ### Development Tools
+
 | Tool | Purpose |
 |------|---------|
 | **Laravel Pint** | Code formatting |
@@ -173,35 +178,35 @@
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                         Frontend (React)                       │
+│                         Frontend (React)                        │
 ├─────────────────────────────────────────────────────────────────┤
-│  Public Layout  │  Admin Layout  │  Components  │  Pages      │
+│  Public Layout  │  Admin Layout  │  Components  │  Pages         │
 ├─────────────────────────────────────────────────────────────────┤
-│                      Inertia.js Bridge                         │
+│                      Inertia.js Bridge                           │
 ├─────────────────────────────────────────────────────────────────┤
-│                         Laravel Backend                        │
+│                        Laravel Backend                           │
 ├─────────────────────────────────────────────────────────────────┤
-│  Controllers  │  Models  │  Services  │  Middleware  │  Traits │
+│  Controllers  │  Models  │  Services  │  Middleware  │  Traits    │
 ├─────────────────────────────────────────────────────────────────┤
-│                    Database (MySQL)                            │
+│                       Database (MySQL)                           │
 ├─────────────────────────────────────────────────────────────────┤
-│  Pages  │  Blogs  │  Programs  │  Publications  │  Shared Data │
-│  Jobs   │  Applications  │  Users  │  Roles  │  Permissions   │
+│  Pages  │  Blogs  │  Programs  │  Publications  │  Shared Data    │
+│  Jobs   │  Applications  │  Users  │  Roles  │  Permissions       │
 ├─────────────────────────────────────────────────────────────────┤
-│                     Cache (Redis)                              │
-│                     Queue (Redis)                              │
-│                     Storage (Local/S3)                         │
+│                        Cache (Redis)                              │
+│                        Queue (Redis)                              │
+│                      Storage (Local/S3)                           │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
 ### Key Architecture Decisions
 
-1. **Inertia.js Integration** – Single-page application feel without complex API management
-2. **Repository Pattern** – Separates business logic from controllers
-3. **Service Layer** – Encapsulates complex business operations
-4. **Trait-Based Reusability** – Shared functionality across controllers
-5. **Smart Caching** – Reduces database load for public content
-6. **Comprehensive Logging** – Audit trails for all critical actions
+1. **Inertia.js Integration** — Single-page application feel without complex API management
+2. **Repository Pattern** — Separates business logic from controllers
+3. **Service Layer** — Encapsulates complex business operations
+4. **Trait-Based Reusability** — Shared functionality across controllers
+5. **Smart Caching** — Reduces database load for public content
+6. **Comprehensive Logging** — Audit trails for all critical actions
 
 ---
 
@@ -211,7 +216,7 @@
 - PHP 8.2+
 - Composer
 - Node.js 18+
-- NPM/Yarn
+- npm/Yarn
 - MySQL 8.0+
 - Redis (optional, for caching)
 
@@ -235,19 +240,19 @@ composer install
 npm install
 ```
 
-### Step 4: Environment Setup
+### Step 4: Set Up the Environment File
 
 ```bash
 cp .env.example .env
 ```
 
-### Step 5: Generate Application Key
+### Step 5: Generate the Application Key
 
 ```bash
 php artisan key:generate
 ```
 
-### Step 6: Storage Link
+### Step 6: Create the Storage Link
 
 ```bash
 php artisan storage:link
@@ -266,7 +271,6 @@ npm run build
 ### ⚠️ Security Note
 
 Never commit `.env`, real credentials, OAuth secrets, SMTP passwords, API keys, production database credentials, or generated backup files to Git. Use `.env.example` as the template for local configuration.
-
 
 ### Required Environment Variables
 
@@ -318,7 +322,7 @@ SESSION_DRIVER=redis
 
 ## 🗄️ Database Setup
 
-### Step 1: Create Database
+### Step 1: Create the Database
 
 ```sql
 CREATE DATABASE dus_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
@@ -330,13 +334,13 @@ CREATE DATABASE dus_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 php artisan migrate
 ```
 
-### Step 3: Seed Database (Optional)
+### Step 3: Seed the Database (Optional)
 
 ```bash
 php artisan db:seed
 ```
 
-### Step 4: Create Default Admin
+### Step 4: Create a Default Admin
 
 ```bash
 php artisan tinker
@@ -380,7 +384,7 @@ php artisan optimize
 php artisan serve --env=production
 ```
 
-### Queue Worker (For Email & Background Jobs)
+### Queue Worker (Email & Background Jobs)
 
 ```bash
 php artisan queue:work --queue=default,emails
@@ -599,7 +603,7 @@ dwip-unnayan-songstha/
 | GET | `/api/jobs/filter-options` | Get filter options |
 | GET | `/api/jobs/popular` | Get popular jobs |
 | GET | `/api/jobs/trending` | Get trending jobs |
-| GET | `/api/jobs/{identifier}` | Get single job |
+| GET | `/api/jobs/{identifier}` | Get a single job |
 | GET | `/api/jobs/{slug}/related` | Get related jobs |
 
 ### Authentication Endpoints
@@ -633,27 +637,27 @@ dwip-unnayan-songstha/
 
 | Cache Key | TTL | Description |
 |-----------|-----|-------------|
-| `frontend_shared_data` | 5 mins | Topbar, navbar, footer, stories |
-| `sections.*` | 60 mins | Page section configurations |
-| `blogs.all.*` | 60 mins | Blog listings |
-| `programs.all.*` | 60 mins | Program listings |
-| `publications.all.*` | 60 mins | Publication listings |
-| `job_statistics_*` | 5 mins | Job statistics dashboard |
-| `page_map_data` | 5 mins | Page map data |
-| `navigation_tree` | 5 mins | Frontend navigation tree |
-| `sitemap_urls` | 60 mins | Sitemap URLs |
-| `public_job_filters` | 5 mins | Public job filter options |
-| `public_job_stats` | 5 mins | Public job statistics |
+| `frontend_shared_data` | 5 min | Topbar, navbar, footer, stories |
+| `sections.*` | 60 min | Page section configurations |
+| `blogs.all.*` | 60 min | Blog listings |
+| `programs.all.*` | 60 min | Program listings |
+| `publications.all.*` | 60 min | Publication listings |
+| `job_statistics_*` | 5 min | Job statistics dashboard |
+| `page_map_data` | 5 min | Page map data |
+| `navigation_tree` | 5 min | Frontend navigation tree |
+| `sitemap_urls` | 60 min | Sitemap URLs |
+| `public_job_filters` | 5 min | Public job filter options |
+| `public_job_stats` | 5 min | Public job statistics |
 
 ### Cache Invalidation
 
 Cache is automatically invalidated when:
-- CMS content is created/updated/deleted
-- Jobs are created/updated/deleted
-- Applications are created/updated/deleted
+- CMS content is created, updated, or deleted
+- Jobs are created, updated, or deleted
+- Applications are created, updated, or deleted
 - Shared data is updated
 - Roles/permissions are changed
-- Manually via `/backend/cache/clear` endpoint
+- Cleared manually via the `/backend/cache/clear` endpoint
 
 ---
 
@@ -664,7 +668,7 @@ Cache is automatically invalidated when:
 1. **Authentication & Authorization**
    - Multi-role authentication (Admin/Job Seeker)
    - Google OAuth 2.0 integration
-   - Email verification required
+   - Required email verification
    - Role-based permissions (RBAC)
 
 2. **Rate Limiting**
@@ -702,7 +706,7 @@ Cache is automatically invalidated when:
 # Run all tests
 php artisan test
 
-# Run specific test suite
+# Run a specific test suite
 php artisan test --testsuite=Feature
 php artisan test --testsuite=Unit
 
@@ -733,25 +737,25 @@ tests/
 
 ### Production Deployment Steps
 
-1. **Set Environment Variables**
+1. **Set environment variables**
    ```bash
    APP_ENV=production
    APP_DEBUG=false
    ```
 
-2. **Install Dependencies**
+2. **Install dependencies**
    ```bash
    composer install --optimize-autoloader --no-dev
    npm install --production
    npm run build
    ```
 
-3. **Migrate Database**
+3. **Migrate the database**
    ```bash
    php artisan migrate --force
    ```
 
-4. **Optimize Application**
+4. **Optimize the application**
    ```bash
    php artisan optimize
    php artisan view:cache
@@ -760,33 +764,35 @@ tests/
    php artisan event:cache
    ```
 
-5. **Set Permissions**
+5. **Set permissions**
    ```bash
    chmod -R 775 storage bootstrap/cache
    chown -R www-data:www-data .
    ```
 
-6. **Setup Queue Worker**
+6. **Set up the queue worker**
    ```bash
    sudo supervisorctl reread
    sudo supervisorctl update
    sudo supervisorctl start all
    ```
 
-7. **Setup Cron**
+7. **Set up the cron job**
    ```bash
    * * * * * cd /var/www/dus && php artisan schedule:run >> /dev/null 2>&1
    ```
 
 ### Recommended Server Configuration
 
-- **Web Server**: Nginx or Apache
-- **PHP**: PHP-FPM 8.2+
-- **Database**: MySQL 8.0+ with InnoDB
-- **Cache**: Redis 6.0+
-- **Queue**: Redis with Horizon
-- **Storage**: S3 or local with CDN
-- **CDN**: Cloudflare or AWS CloudFront
+| Component | Recommendation |
+|-----------|-----------------|
+| Web Server | Nginx or Apache |
+| PHP | PHP-FPM 8.2+ |
+| Database | MySQL 8.0+ with InnoDB |
+| Cache | Redis 6.0+ |
+| Queue | Redis with Horizon |
+| Storage | S3 or local with CDN |
+| CDN | Cloudflare or AWS CloudFront |
 
 ---
 
@@ -794,20 +800,20 @@ tests/
 
 ### Development Workflow
 
-1. **Fork the Repository**
-2. **Create a Feature Branch**
+1. **Fork the repository**
+2. **Create a feature branch**
    ```bash
    git checkout -b feature/your-feature-name
    ```
-3. **Commit Changes**
+3. **Commit your changes**
    ```bash
    git commit -m "feat: add your feature"
    ```
-4. **Push to Branch**
+4. **Push the branch**
    ```bash
    git push origin feature/your-feature-name
    ```
-5. **Create Pull Request**
+5. **Open a pull request**
 
 ### Coding Standards
 
@@ -815,18 +821,18 @@ tests/
   ```bash
   ./vendor/bin/pint
   ```
-- **JavaScript**: Follow ESLint configuration
+- **JavaScript**: Follow the ESLint configuration
   ```bash
   npm run lint
   ```
 - **CSS**: Follow Tailwind CSS conventions
-- **Commit Messages**: Conventional Commits format
+- **Commit messages**: Conventional Commits format
 
 ### Code Review Checklist
 
 - [ ] PHP unit tests pass
 - [ ] JavaScript tests pass
-- [ ] No console errors in browser
+- [ ] No console errors in the browser
 - [ ] No new warnings/errors in logs
 - [ ] All permissions are validated
 - [ ] Rate limiting is applied where needed
@@ -837,7 +843,7 @@ tests/
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.
 
 ---
 
@@ -851,16 +857,16 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 📌 Documentation Notes
 
-> **Repository-specific values:** Some URLs, contributor names, deployment paths, and credentials in this README are examples/placeholders and should be replaced with the values used by your deployment.
+> **Repository-specific values:** Some URLs, contributor names, deployment paths, and credentials in this README are placeholders and should be replaced with the values used in your deployment.
 
-> **Infrastructure:** Redis, Horizon, Sentry, Elasticsearch, and other optional services listed below depend on the deployment environment and are not necessarily required for every local development setup.
+> **Infrastructure:** Redis, Horizon, Sentry, Elasticsearch, and other optional services listed above depend on the deployment environment and aren't necessarily required for every local development setup.
 
 ## 🙏 Acknowledgments
 
-- **Dwip Unnayan Songstha** – For the opportunity to build this platform
-- **Laravel Community** – For the amazing framework
-- **React & Inertia Teams** – For the incredible frontend experience
-- **All Contributors** – For their time and effort
+- **Dwip Unnayan Songstha** — For the opportunity to build this platform
+- **Laravel Community** — For the amazing framework
+- **React & Inertia Teams** — For the incredible frontend experience
+- **All Contributors** — For their time and effort
 
 ---
 
@@ -873,16 +879,12 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ---
 
 <div align="center">
-  <p>
-    <strong>Built with ❤️ for the communities of Bangladesh</strong>
-  </p>
-  <p>
-    <sub>© 2024 Dwip Unnayan Songstha. All rights reserved.</sub>
-  </p>
+  <p><strong>Built with ❤️ for the communities of Bangladesh</strong></p>
+  <p><sub>© 2024 Dwip Unnayan Songstha. All rights reserved.</sub></p>
 </div>
 
 ---
 
 ## 🏷️ Keywords
 
-`NGO` `Job Portal` `ATS` `Laravel` `React` `Inertia` `Bangladesh` `Community Development` `Education` `Healthcare` `Livelihood Support` `Island Development` `Sustainable Development` `RBAC` `CMS` `Applicant Tracking` `Resume Scoring` `Job Listing` `Recruitment` `Employee Management` `Open Source` `PHP 8.2` `Tailwind CSS`
+`Job Portal` `ATS` `CMS` `Laravel` `React` `Inertia` `Bangladesh` `Community Development` `Education` `Healthcare` `Livelihood Support` `Island Development` `Sustainable Development` `RBAC` `Applicant Tracking` `Resume Scoring` `Job Listing` `Recruitment` `Employee Management` `Open Source` `PHP 8.2` `Tailwind CSS`
