@@ -43,48 +43,41 @@ import Swal from 'sweetalert2';
 // ============================================
 
 const JobSkeletonCard = () => (
-  <div className="bg-white p-5 sm:p-6 md:p-8 lg:p-10 rounded-2xl animate-pulse">
-    <div className="flex flex-col md:flex-row items-start justify-between gap-5">
+  <div className="bg-white p-4 sm:p-5 md:p-8 rounded-2xl animate-pulse">
+    <div className="flex flex-col md:flex-row items-start justify-between gap-4">
       <div className="flex-1 w-full">
-        {/* Tags skeleton */}
         <div className="flex items-center gap-2 sm:gap-3 mb-3 flex-wrap">
-          <div className="h-6 w-24 bg-gray-200 rounded-full" />
-          <div className="h-6 w-20 bg-gray-200 rounded-full" />
-          <div className="h-6 w-16 bg-gray-200 rounded-full" />
+          <div className="h-6 w-20 sm:w-24 bg-gray-200 rounded-full" />
+          <div className="h-6 w-16 sm:w-20 bg-gray-200 rounded-full" />
+          <div className="h-6 w-12 sm:w-16 bg-gray-200 rounded-full" />
         </div>
-        {/* Title skeleton */}
-        <div className="h-8 bg-gray-200 rounded-lg mb-3 w-3/4" />
-        {/* Meta skeleton */}
-        <div className="flex flex-wrap gap-3 mb-3">
-          <div className="h-5 w-32 bg-gray-200 rounded" />
-          <div className="h-5 w-40 bg-gray-200 rounded" />
-          <div className="h-5 w-28 bg-gray-200 rounded" />
+        <div className="h-6 sm:h-8 bg-gray-200 rounded-lg mb-2 sm:mb-3 w-3/4" />
+        <div className="flex flex-wrap gap-2 sm:gap-3 mb-2 sm:mb-3">
+          <div className="h-4 sm:h-5 w-24 sm:w-32 bg-gray-200 rounded" />
+          <div className="h-4 sm:h-5 w-28 sm:w-40 bg-gray-200 rounded" />
+          <div className="h-4 sm:h-5 w-20 sm:w-28 bg-gray-200 rounded" />
         </div>
-        {/* Description skeleton */}
         <div className="space-y-2">
-          <div className="h-4 bg-gray-200 rounded w-full" />
-          <div className="h-4 bg-gray-200 rounded w-5/6" />
+          <div className="h-3 sm:h-4 bg-gray-200 rounded w-full" />
+          <div className="h-3 sm:h-4 bg-gray-200 rounded w-5/6" />
         </div>
-        {/* Deadline skeleton */}
-        <div className="mt-3 h-6 w-32 bg-gray-200 rounded-full" />
+        <div className="mt-3 h-5 sm:h-6 w-24 sm:w-32 bg-gray-200 rounded-full" />
       </div>
       <div className="flex flex-col items-end gap-3 w-full md:w-auto">
-        {/* Stats skeleton */}
-        <div className="flex gap-4">
+        <div className="flex gap-3 sm:gap-4">
           <div className="text-center">
-            <div className="h-5 w-12 bg-gray-200 rounded" />
-            <div className="h-3 w-8 bg-gray-200 rounded mt-1" />
+            <div className="h-4 sm:h-5 w-10 sm:w-12 bg-gray-200 rounded" />
+            <div className="h-2 sm:h-3 w-6 sm:w-8 bg-gray-200 rounded mt-1" />
           </div>
           <div className="text-center">
-            <div className="h-5 w-12 bg-gray-200 rounded" />
-            <div className="h-3 w-8 bg-gray-200 rounded mt-1" />
+            <div className="h-4 sm:h-5 w-10 sm:w-12 bg-gray-200 rounded" />
+            <div className="h-2 sm:h-3 w-6 sm:w-8 bg-gray-200 rounded mt-1" />
           </div>
         </div>
-        {/* Buttons skeleton */}
         <div className="flex gap-2">
-          <div className="h-10 w-10 bg-gray-200 rounded-lg" />
-          <div className="h-10 w-10 bg-gray-200 rounded-lg" />
-          <div className="h-10 w-28 bg-gray-200 rounded-lg" />
+          <div className="h-8 w-8 sm:h-10 sm:w-10 bg-gray-200 rounded-lg" />
+          <div className="h-8 w-8 sm:h-10 sm:w-10 bg-gray-200 rounded-lg" />
+          <div className="h-8 sm:h-10 w-20 sm:w-28 bg-gray-200 rounded-lg" />
         </div>
       </div>
     </div>
@@ -451,26 +444,26 @@ export default function PublicJobListingsIndex({
 
       <div className="min-h-screen bg-linear-to-br from-gray-50 to-gray-100">
         {/* Hero Section */}
-        <div className="bg-linear-to-r from-blue-600 to-indigo-700 text-white py-12">
-          <div className="mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="bg-linear-to-r from-blue-600 to-indigo-700 text-white py-8">
+          <div className="mx-auto px-3 sm:px-6 lg:px-8">
             <div className="text-center">
-              <h1 className="text-3xl md:text-4xl font-bold mb-3">
+              <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2 sm:mb-3">
                 Find Your Dream Job
               </h1>
-              <p className="text-blue-100 mb-6">
+              <p className="text-blue-100 text-sm sm:text-base mb-4 sm:mb-6">
                 {stats.total_jobs.toLocaleString()} active jobs • {stats.total_views.toLocaleString()} total views • {stats.total_applications.toLocaleString()} applications
               </p>
 
               {/* Search Bar */}
               <div className="max-w-2xl mx-auto">
                 <div className="relative">
-                  <FaSearch className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+                  <FaSearch className="absolute left-3 sm:left-4 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
                   <input
                     type="text"
                     value={filters.search}
                     onChange={(e) => handleFilterChange('search', e.target.value)}
                     placeholder="Search by job title, company, or keyword..."
-                    className="w-full bg-white pl-12 pr-4 py-3 rounded-xl text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-300 shadow-lg"
+                    className="w-full bg-white pl-9 sm:pl-12 pr-3 sm:pr-4 py-2.5 sm:py-3 rounded-xl text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-300 shadow-lg text-sm sm:text-base"
                   />
                 </div>
               </div>
@@ -479,21 +472,21 @@ export default function PublicJobListingsIndex({
         </div>
 
         {/* Main Content */}
-        <div className="mx-auto pt-5">
-          <div className="flex flex-col lg:flex-row gap-6">
+        <div className="mx-auto">
+          <div className="flex flex-col lg:flex-row gap-4 sm:gap-6">
             {/* Sidebar Filters - Desktop */}
-            <div className="hidden lg:block w-80 shrink-0">
+            <div className="hidden lg:block w-72 xl:w-80 shrink-0">
               <div className="bg-white rounded-xl shadow-md sticky top-24">
-                <div className="p-5 border-b border-gray-200">
+                <div className="p-4 sm:p-5 border-b border-gray-200">
                   <div className="flex items-center justify-between">
-                    <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                    <h3 className="text-base sm:text-lg font-semibold text-gray-900 flex items-center gap-2">
                       <FaFilter size={16} className="text-gray-500" />
                       Filters
                     </h3>
                     {hasActiveFilters() && (
                       <button
                         onClick={resetFilters}
-                        className="text-sm text-red-600 hover:text-red-800"
+                        className="text-xs sm:text-sm text-red-600 hover:text-red-800"
                       >
                         Reset all
                       </button>
@@ -501,16 +494,16 @@ export default function PublicJobListingsIndex({
                   </div>
                 </div>
 
-                <div className="p-5 space-y-5">
+                <div className="p-4 sm:p-5 space-y-4 sm:space-y-5">
                   {/* Category Filter */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">
                       Job Category
                     </label>
                     <select
                       value={filters.category}
                       onChange={(e) => handleFilterChange('category', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
                     >
                       <option value="">All Categories</option>
                       {categories.map(cat => (
@@ -523,13 +516,13 @@ export default function PublicJobListingsIndex({
 
                   {/* Location Filter */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">
                       Location
                     </label>
                     <select
                       value={filters.location}
                       onChange={(e) => handleFilterChange('location', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
                     >
                       <option value="">All Locations</option>
                       {locations.map(loc => (
@@ -542,13 +535,13 @@ export default function PublicJobListingsIndex({
 
                   {/* Job Type Filter */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">
                       Job Type
                     </label>
                     <select
                       value={filters.job_type}
                       onChange={(e) => handleFilterChange('job_type', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
                     >
                       <option value="">All Types</option>
                       {jobTypes.map(type => (
@@ -561,13 +554,13 @@ export default function PublicJobListingsIndex({
 
                   {/* Experience Level Filter */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">
                       Experience Level
                     </label>
                     <select
                       value={filters.experience_level}
                       onChange={(e) => handleFilterChange('experience_level', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
                     >
                       <option value="">All Levels</option>
                       {experienceLevels.map(level => (
@@ -580,7 +573,7 @@ export default function PublicJobListingsIndex({
 
                   {/* Salary Range Filter */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">
                       Salary Range (BDT)
                     </label>
                     <div className="space-y-2">
@@ -589,21 +582,21 @@ export default function PublicJobListingsIndex({
                         placeholder={`Min (${salaryRange.min.toLocaleString()})`}
                         value={filters.salary_min}
                         onChange={(e) => handleFilterChange('salary_min', e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
                       />
                       <input
                         type="number"
                         placeholder={`Max (${salaryRange.max.toLocaleString()})`}
                         value={filters.salary_max}
                         onChange={(e) => handleFilterChange('salary_max', e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
                       />
                     </div>
                   </div>
 
                   <button
                     onClick={handleApplyFilters}
-                    className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition font-medium"
+                    className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition font-medium text-sm"
                   >
                     Apply Filters
                   </button>
@@ -612,10 +605,10 @@ export default function PublicJobListingsIndex({
             </div>
 
             {/* Mobile Filter Button */}
-            <div className="lg:hidden sticky top-0 z-10 bg-white shadow-md rounded-lg p-3 mb-4">
+            <div className="lg:hidden sticky top-0 z-10 bg-white shadow-md rounded-lg p-3 mb-3 sm:mb-4">
               <button
                 onClick={() => setShowMobileFilters(!showMobileFilters)}
-                className="w-full flex items-center justify-between px-4 py-2 bg-gray-100 rounded-lg"
+                className="w-full flex items-center justify-between px-3 sm:px-4 py-2 bg-gray-100 rounded-lg text-sm"
               >
                 <span className="flex items-center gap-2">
                   <FaFilter />
@@ -630,11 +623,11 @@ export default function PublicJobListingsIndex({
               </button>
 
               {showMobileFilters && (
-                <div className="mt-4 space-y-4">
+                <div className="mt-3 sm:mt-4 space-y-3 sm:space-y-4">
                   <select
                     value={filters.category}
                     onChange={(e) => handleFilterChange('category', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
                   >
                     <option value="">All Categories</option>
                     {categories.map(cat => (
@@ -645,7 +638,7 @@ export default function PublicJobListingsIndex({
                   <select
                     value={filters.location}
                     onChange={(e) => handleFilterChange('location', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
                   >
                     <option value="">All Locations</option>
                     {locations.map(loc => (
@@ -656,7 +649,7 @@ export default function PublicJobListingsIndex({
                   <select
                     value={filters.job_type}
                     onChange={(e) => handleFilterChange('job_type', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
                   >
                     <option value="">All Types</option>
                     {jobTypes.map(type => (
@@ -666,7 +659,7 @@ export default function PublicJobListingsIndex({
 
                   <button
                     onClick={handleApplyFilters}
-                    className="w-full bg-blue-600 text-white py-2 rounded-lg"
+                    className="w-full bg-blue-600 text-white py-2 rounded-lg text-sm"
                   >
                     Apply Filters
                   </button>
@@ -675,34 +668,36 @@ export default function PublicJobListingsIndex({
             </div>
 
             {/* Job Listings */}
-            <div className="flex-1">
+            <div className="flex-1 min-w-0">
               {/* Sort and Results Header */}
-              <div className="bg-white rounded-lg shadow-sm p-4 mb-4 flex flex-wrap items-center justify-between gap-3">
-                <div className="text-sm text-gray-600">
+              <div className="bg-white rounded-lg shadow-sm p-3 sm:p-4 mb-3 sm:mb-4 flex flex-wrap items-center justify-between gap-2 sm:gap-3">
+                <div className="text-xs sm:text-sm text-gray-600">
                   Showing <span className="font-semibold">{pagination?.from || 0}</span> to{' '}
                   <span className="font-semibold">{pagination?.to || 0}</span> of{' '}
                   <span className="font-semibold">{pagination?.total || 0}</span> jobs
                 </div>
 
                 {isAuthenticated && (
-                  <div className="flex items-center gap-2 text-sm text-green-600 bg-green-50 px-3 py-1 rounded-full">
-                    <FaUserCheck size={14} />
-                    <span>Welcome back, {currentUser?.name}!</span>
+                  <div className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-green-600 bg-green-50 px-2 sm:px-3 py-0.5 sm:py-1 rounded-full">
+                    <FaUserCheck size={12} />
+                    <span className="hidden xs:inline">Welcome back, {currentUser?.name}!</span>
+                    <span className="xs:hidden">Hi!</span>
                   </div>
                 )}
 
                 <div className="relative">
                   <button
                     onClick={() => setShowSortMenu(!showSortMenu)}
-                    className="flex items-center gap-2 px-4 py-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition"
+                    className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-1.5 sm:py-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition text-xs sm:text-sm"
                   >
-                    <FaChartLine size={14} />
-                    Sort by: {getSortLabel()}
-                    <FaChevronDown size={12} />
+                    <FaChartLine size={12} />
+                    <span className="hidden xs:inline">Sort by: {getSortLabel()}</span>
+                    <span className="xs:hidden">Sort</span>
+                    <FaChevronDown size={10} />
                   </button>
 
                   {showSortMenu && (
-                    <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 z-20">
+                    <div className="absolute right-0 mt-2 w-48 sm:w-56 bg-white rounded-lg shadow-lg border border-gray-200 z-20">
                       {[
                         { value: 'latest', label: 'Latest Jobs' },
                         { value: 'oldest', label: 'Oldest Jobs' },
@@ -716,7 +711,7 @@ export default function PublicJobListingsIndex({
                         <button
                           key={option.value}
                           onClick={() => handleSortChange(option.value)}
-                          className={`block w-full text-left px-4 py-2 hover:bg-gray-50 transition ${filters.sort === option.value ? 'bg-blue-50 text-blue-600' : ''
+                          className={`block w-full text-left px-3 sm:px-4 py-1.5 sm:py-2 hover:bg-gray-50 transition text-sm ${filters.sort === option.value ? 'bg-blue-50 text-blue-600' : ''
                             }`}
                         >
                           {option.label}
@@ -729,37 +724,37 @@ export default function PublicJobListingsIndex({
 
               {/* Active Filters Tags */}
               {hasActiveFilters() && (
-                <div className="flex flex-wrap gap-2 mb-4">
+                <div className="flex flex-wrap gap-1.5 sm:gap-2 mb-3 sm:mb-4">
                   {filters.category && (
-                    <span className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs">
+                    <span className="inline-flex items-center gap-1 px-1.5 sm:px-2 py-0.5 sm:py-1 bg-blue-100 text-blue-800 rounded-full text-[10px] sm:text-xs">
                       Category: {categories.find(c => c.slug === filters.category)?.name}
-                      <button onClick={() => clearFilter('category')} className="ml-1 hover:text-blue-600">
+                      <button onClick={() => clearFilter('category')} className="ml-0.5 sm:ml-1 hover:text-blue-600">
                         <FaTimes size={10} />
                       </button>
                     </span>
                   )}
                   {filters.location && (
-                    <span className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs">
+                    <span className="inline-flex items-center gap-1 px-1.5 sm:px-2 py-0.5 sm:py-1 bg-blue-100 text-blue-800 rounded-full text-[10px] sm:text-xs">
                       Location: {locations.find(l => String(l.id) === String(filters.location))?.name}
-                      <button onClick={() => clearFilter('location')} className="ml-1 hover:text-blue-600">
+                      <button onClick={() => clearFilter('location')} className="ml-0.5 sm:ml-1 hover:text-blue-600">
                         <FaTimes size={10} />
                       </button>
                     </span>
                   )}
                   {filters.job_type && (
-                    <span className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs">
+                    <span className="inline-flex items-center gap-1 px-1.5 sm:px-2 py-0.5 sm:py-1 bg-blue-100 text-blue-800 rounded-full text-[10px] sm:text-xs">
                       Type: {filters.job_type}
-                      <button onClick={() => clearFilter('job_type')} className="ml-1 hover:text-blue-600">
+                      <button onClick={() => clearFilter('job_type')} className="ml-0.5 sm:ml-1 hover:text-blue-600">
                         <FaTimes size={10} />
                       </button>
                     </span>
                   )}
                   {(filters.salary_min || filters.salary_max) && (
-                    <span className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs">
+                    <span className="inline-flex items-center gap-1 px-1.5 sm:px-2 py-0.5 sm:py-1 bg-blue-100 text-blue-800 rounded-full text-[10px] sm:text-xs">
                       Salary: {filters.salary_min ? `${Number(filters.salary_min).toLocaleString()}+` : ''}
                       {filters.salary_min && filters.salary_max ? ' - ' : ''}
                       {filters.salary_max ? `up to ${Number(filters.salary_max).toLocaleString()}` : ''}
-                      <button onClick={() => { clearFilter('salary_min'); clearFilter('salary_max'); }} className="ml-1 hover:text-blue-600">
+                      <button onClick={() => { clearFilter('salary_min'); clearFilter('salary_max'); }} className="ml-0.5 sm:ml-1 hover:text-blue-600">
                         <FaTimes size={10} />
                       </button>
                     </span>
@@ -769,24 +764,24 @@ export default function PublicJobListingsIndex({
 
               {/* Skeleton Loading - Initial Load */}
               {isLoading && (
-                <div className="space-y-4">
+                <div className="space-y-3 sm:space-y-4">
                   <JobSkeleton count={3} />
                 </div>
               )}
 
               {/* No Jobs */}
               {!loading && jobListingItems.length === 0 && (
-                <div className="bg-white rounded-xl shadow-md p-12 text-center">
-                  <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <FaBriefcase className="h-10 w-10 text-gray-400" />
+                <div className="bg-white rounded-xl shadow-md p-8 sm:p-12 text-center">
+                  <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4">
+                    <FaBriefcase className="h-8 w-8 sm:h-10 sm:w-10 text-gray-400" />
                   </div>
-                  <h3 className="text-lg font-medium text-gray-900">No jobs found</h3>
-                  <p className="mt-1 text-sm text-gray-500">
+                  <h3 className="text-base sm:text-lg font-medium text-gray-900">No jobs found</h3>
+                  <p className="mt-1 text-xs sm:text-sm text-gray-500">
                     Try adjusting your filters or search term.
                   </p>
                   <button
                     onClick={resetFilters}
-                    className="mt-4 inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                    className="mt-3 sm:mt-4 inline-flex items-center px-3 sm:px-4 py-1.5 sm:py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm"
                   >
                     Clear all filters
                   </button>
@@ -795,7 +790,7 @@ export default function PublicJobListingsIndex({
 
               {/* Job Cards Grid */}
               {!loading && jobListingItems.length > 0 && (
-                <div className="space-y-4">
+                <div className="space-y-3 sm:space-y-4">
                   {jobListingItems.map((job, index) => {
                     const isSaved = savedJobs.includes(job.id);
                     const isJobOwner = isEmployer && currentUser?.employer_id === job.employer_id;
@@ -806,117 +801,117 @@ export default function PublicJobListingsIndex({
                         className="bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden animate-fade-in"
                         style={{ animationDelay: `${index * 50}ms` }}
                       >
-                        <div className="p-5 sm:p-6 md:p-8 lg:p-10">
-                          <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div className="p-4 sm:p-5 md:p-8">
+                          <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-3 sm:gap-4">
                             {/* Job Info */}
                             <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2 mb-2 flex-wrap">
-                                <h2 className="text-xl font-bold text-gray-900 hover:text-blue-600 transition">
+                              <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 mb-1.5 sm:mb-2">
+                                <h2 className="text-base sm:text-lg md:text-xl font-bold text-gray-900 hover:text-blue-600 transition">
                                   <a href={route('public.jobs.show', job.slug)}>
                                     {job.title}
                                   </a>
                                 </h2>
-                                <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getJobTypeColor(job.job_type)}`}>
+                                <span className={`inline-flex px-1.5 sm:px-2 py-0.5 text-[10px] sm:text-xs font-semibold rounded-full ${getJobTypeColor(job.job_type)}`}>
                                   {job.job_type?.replace('-', ' ').toUpperCase()}
                                 </span>
                                 {job.experience_level && (
-                                  <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-700">
+                                  <span className="inline-flex px-1.5 sm:px-2 py-0.5 text-[10px] sm:text-xs font-semibold rounded-full bg-gray-100 text-gray-700">
                                     {job.experience_level}
                                   </span>
                                 )}
                                 {isJobOwner && (
-                                  <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold rounded-full bg-purple-100 text-purple-700">
+                                  <span className="inline-flex items-center gap-0.5 sm:gap-1 px-1.5 sm:px-2 py-0.5 text-[10px] sm:text-xs font-semibold rounded-full bg-purple-100 text-purple-700">
                                     <FaBuilding size={10} />
                                     Your Job
                                   </span>
                                 )}
                               </div>
 
-                              <div className="flex flex-wrap gap-3 text-sm text-gray-500 mb-3">
-                                <div className="flex items-center gap-1">
-                                  <FaBuilding size={14} />
+                              <div className="flex flex-wrap gap-1.5 sm:gap-3 text-xs sm:text-sm text-gray-500 mb-2 sm:mb-3">
+                                <div className="flex items-center gap-0.5 sm:gap-1">
+                                  <FaBuilding size={12} />
                                   <span>{job.employer?.name || 'Company'}</span>
                                 </div>
-                                <div className="flex items-center gap-1">
-                                  <FaMapMarkerAlt size={14} />
+                                <div className="flex items-center gap-0.5 sm:gap-1">
+                                  <FaMapMarkerAlt size={12} />
                                   <span>
                                     {job.locations?.length > 0
                                       ? job.locations.map(l => l.name).join(', ')
                                       : 'Location not specified'}
                                   </span>
                                 </div>
-                                <div className="flex items-center gap-1">
-                                  <FaDollarSign size={14} />
+                                <div className="flex items-center gap-0.5 sm:gap-1">
+                                  <FaDollarSign size={12} />
                                   <span className="font-medium text-green-600">
                                     {formatSalary(job)}
                                   </span>
                                 </div>
                               </div>
 
-                              <p className="text-gray-600 text-sm mb-3 line-clamp-2">
+                              <p className="text-gray-600 text-xs sm:text-sm mb-2 sm:mb-3 line-clamp-2">
                                 {job.description}
                               </p>
 
-                              <div className="flex flex-wrap gap-3 text-xs">
-                                <div className={`flex items-center gap-1 px-2 py-1 rounded-full ${getDeadlineColor(job.application_deadline)}`}>
-                                  <FaCalendarAlt size={12} />
+                              <div className="flex flex-wrap gap-1.5 sm:gap-3 text-[10px] sm:text-xs">
+                                <div className={`flex items-center gap-0.5 sm:gap-1 px-1.5 sm:px-2 py-0.5 rounded-full ${getDeadlineColor(job.application_deadline)}`}>
+                                  <FaCalendarAlt size={10} />
                                   <span>{formatDate(job.application_deadline)}</span>
                                 </div>
                               </div>
                             </div>
 
                             {/* Stats and Actions */}
-                            <div className="flex flex-col items-end gap-3">
-                              <div className="flex gap-3 text-sm">
+                            <div className="flex flex-row lg:flex-col items-center lg:items-end justify-between lg:justify-start gap-2 sm:gap-3 w-full lg:w-auto">
+                              <div className="flex gap-2 sm:gap-3 text-xs sm:text-sm">
                                 <div className="text-center">
-                                  <div className="flex items-center gap-1 text-blue-600">
-                                    <FaEye size={14} />
+                                  <div className="flex items-center gap-0.5 sm:gap-1 text-blue-600">
+                                    <FaEye size={12} />
                                     <span className="font-semibold">{job.views_count?.toLocaleString() || 0}</span>
                                   </div>
-                                  <span className="text-xs text-gray-500">Views</span>
+                                  <span className="text-[8px] sm:text-xs text-gray-500">Views</span>
                                 </div>
                                 <div className="text-center">
-                                  <div className="flex items-center gap-1 text-purple-600">
-                                    <FaUsers size={14} />
+                                  <div className="flex items-center gap-0.5 sm:gap-1 text-purple-600">
+                                    <FaUsers size={12} />
                                     <span className="font-semibold">{job.applications_count || 0}</span>
                                   </div>
-                                  <span className="text-xs text-gray-500">Applied</span>
+                                  <span className="text-[8px] sm:text-xs text-gray-500">Applied</span>
                                 </div>
                               </div>
 
-                              <div className="flex gap-2">
+                              <div className="flex flex-wrap items-center gap-1 sm:gap-2">
                                 <button
                                   onClick={() => handleSaveJob(job.id)}
                                   disabled={savingJobId === job.id}
-                                  className={`p-2 rounded-lg transition-all duration-200 ${isSaved
+                                  className={`p-1.5 sm:p-2 rounded-lg transition-all duration-200 ${isSaved
                                     ? 'text-yellow-600 bg-yellow-50 hover:bg-yellow-100'
                                     : 'text-gray-400 hover:text-yellow-600 hover:bg-yellow-50'
                                     } ${savingJobId === job.id ? 'opacity-50 cursor-not-allowed' : ''}`}
                                   title={isSaved ? 'Remove from saved' : 'Save job'}
                                 >
                                   {savingJobId === job.id ? (
-                                    <div className="w-5 h-5 border-2 border-gray-300 border-t-transparent rounded-full animate-spin" />
+                                    <div className="w-4 h-4 sm:w-5 sm:h-5 border-2 border-gray-300 border-t-transparent rounded-full animate-spin" />
                                   ) : isSaved ? (
-                                    <FaBookmark size={18} />
+                                    <FaBookmark size={14} />
                                   ) : (
-                                    <FaRegBookmark size={18} />
+                                    <FaRegBookmark size={14} />
                                   )}
                                 </button>
 
                                 <button
                                   onClick={() => handleShareJob(job)}
-                                  className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all duration-200"
+                                  className="p-1.5 sm:p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all duration-200"
                                   title="Share job"
                                 >
-                                  <FaShareAlt size={16} />
+                                  <FaShareAlt size={12} />
                                 </button>
 
                                 <a
                                   href={route('public.jobs.show', job.slug)}
-                                  className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm font-medium"
+                                  className="inline-flex items-center gap-1 sm:gap-2 px-2.5 sm:px-4 py-1.5 sm:py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-xs sm:text-sm font-medium"
                                 >
                                   View Details
-                                  <FaChevronRight size={12} />
+                                  <FaChevronRight size={10} />
                                 </a>
                               </div>
                             </div>
@@ -930,22 +925,23 @@ export default function PublicJobListingsIndex({
 
               {/* Pagination */}
               {pagination && pagination.lastPage > 1 && !loading && jobListingItems.length > 0 && (
-                <div className="mt-6 flex items-center justify-between flex-wrap gap-3">
-                  <div className="text-sm text-gray-500">
+                <div className="mt-4 sm:mt-6 flex flex-col sm:flex-row items-center justify-between gap-3">
+                  <div className="text-xs sm:text-sm text-gray-500 text-center sm:text-left">
                     Showing {pagination.from || 0} to {pagination.to || 0} of {pagination.total} jobs
                   </div>
 
-                  <div className="flex items-center gap-1">
+                  <div className="flex flex-wrap items-center justify-center gap-0.5 sm:gap-1">
                     <button
                       onClick={() => handlePageChange(pagination.currentPage - 1)}
                       disabled={pagination.currentPage === 1}
-                      className={`px-3 py-2 rounded-lg text-sm flex items-center gap-1 transition ${pagination.currentPage === 1
-                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                        : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-300'
+                      className={`px-2 sm:px-3 py-1 sm:py-2 rounded-lg text-xs sm:text-sm flex items-center gap-0.5 sm:gap-1 transition ${pagination.currentPage === 1
+                          ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                          : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-300'
                         }`}
                     >
-                      <FaChevronLeft size={12} />
-                      Previous
+                      <FaChevronLeft size={10} />
+                      <span className="hidden xs:inline">Previous</span>
+                      <span className="xs:hidden">Prev</span>
                     </button>
 
                     {(() => {
@@ -968,11 +964,11 @@ export default function PublicJobListingsIndex({
                             <>
                               <button
                                 onClick={() => handlePageChange(1)}
-                                className="px-3 py-2 rounded-lg text-sm bg-white text-gray-700 hover:bg-gray-100 border border-gray-300"
+                                className="px-2 sm:px-3 py-1 sm:py-2 rounded-lg text-xs sm:text-sm bg-white text-gray-700 hover:bg-gray-100 border border-gray-300"
                               >
                                 1
                               </button>
-                              {startPage > 2 && <span className="px-2 text-gray-400">...</span>}
+                              {startPage > 2 && <span className="px-1 text-gray-400 text-xs">...</span>}
                             </>
                           )}
 
@@ -980,9 +976,9 @@ export default function PublicJobListingsIndex({
                             <button
                               key={page}
                               onClick={() => handlePageChange(page)}
-                              className={`px-3 py-2 rounded-lg text-sm transition ${page === pagination.currentPage
-                                ? 'bg-blue-600 text-white'
-                                : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-300'
+                              className={`px-2 sm:px-3 py-1 sm:py-2 rounded-lg text-xs sm:text-sm transition ${page === pagination.currentPage
+                                  ? 'bg-blue-600 text-white'
+                                  : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-300'
                                 }`}
                             >
                               {page}
@@ -991,10 +987,10 @@ export default function PublicJobListingsIndex({
 
                           {endPage < pagination.lastPage && (
                             <>
-                              {endPage < pagination.lastPage - 1 && <span className="px-2 text-gray-400">...</span>}
+                              {endPage < pagination.lastPage - 1 && <span className="px-1 text-gray-400 text-xs">...</span>}
                               <button
                                 onClick={() => handlePageChange(pagination.lastPage)}
-                                className="px-3 py-2 rounded-lg text-sm bg-white text-gray-700 hover:bg-gray-100 border border-gray-300"
+                                className="px-2 sm:px-3 py-1 sm:py-2 rounded-lg text-xs sm:text-sm bg-white text-gray-700 hover:bg-gray-100 border border-gray-300"
                               >
                                 {pagination.lastPage}
                               </button>
@@ -1007,13 +1003,14 @@ export default function PublicJobListingsIndex({
                     <button
                       onClick={() => handlePageChange(pagination.currentPage + 1)}
                       disabled={pagination.currentPage === pagination.lastPage}
-                      className={`px-3 py-2 rounded-lg text-sm flex items-center gap-1 transition ${pagination.currentPage === pagination.lastPage
-                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                        : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-300'
+                      className={`px-2 sm:px-3 py-1 sm:py-2 rounded-lg text-xs sm:text-sm flex items-center gap-0.5 sm:gap-1 transition ${pagination.currentPage === pagination.lastPage
+                          ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                          : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-300'
                         }`}
                     >
-                      Next
-                      <FaChevronRight size={12} />
+                      <span className="hidden xs:inline">Next</span>
+                      <span className="xs:hidden">Next</span>
+                      <FaChevronRight size={10} />
                     </button>
                   </div>
                 </div>
@@ -1044,6 +1041,21 @@ export default function PublicJobListingsIndex({
           -webkit-line-clamp: 2;
           -webkit-box-orient: vertical;
           overflow: hidden;
+        }
+
+        @media (min-width: 480px) {
+          .xs\\:inline {
+            display: inline !important;
+          }
+          .xs\\:hidden {
+            display: none !important;
+          }
+        }
+        .xs\\:inline {
+          display: none;
+        }
+        .xs\\:hidden {
+          display: inline;
         }
       `}</style>
     </AuthenticatedLayout>
