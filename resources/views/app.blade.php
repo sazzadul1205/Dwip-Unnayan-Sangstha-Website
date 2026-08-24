@@ -95,7 +95,7 @@
             align-items: center;
             justify-content: center;
             background: #fafbfd;
-            transition: opacity 0.6s ease, visibility 0.6s ease;
+            transition: opacity 0.2s ease, visibility 0.2s ease;
         }
 
         #app-loading.hidden {
@@ -361,32 +361,30 @@
                 if (hidden) return;
                 hidden = true;
                 if (cover) cover.classList.add('done');
+                loading.classList.add('hidden');
                 setTimeout(function() {
-                    loading.classList.add('hidden');
-                    setTimeout(function() {
-                        if (loading.parentNode) loading.style.display = 'none';
-                    }, 700);
-                }, 200);
+                    if (loading.parentNode) loading.style.display = 'none';
+                }, 250);
             }
 
             // Hide once Inertia has actually mounted content into #main,
             // instead of guessing with DOMContentLoaded/setTimeout.
-            const mainEl = document.getElementById('main');
-            if (mainEl && mainEl.children.length > 0) {
+            const appRoot = document.getElementById('app');
+            if (appRoot && appRoot.children.length > 0) {
                 hideLoader();
-            } else if (mainEl) {
+            } else if (appRoot) {
                 const observer = new MutationObserver(function() {
-                    if (mainEl.children.length > 0) {
+                    if (appRoot.children.length > 0) {
                         observer.disconnect();
                         hideLoader();
                     }
                 });
-                observer.observe(mainEl, { childList: true, subtree: true });
+                observer.observe(appRoot, { childList: true });
             }
 
             // Fallback safety net so the loader never gets stuck.
             window.addEventListener('load', function() {
-                setTimeout(hideLoader, 4000);
+                setTimeout(hideLoader, 1200);
             });
         })();
     </script>

@@ -14,7 +14,6 @@ import AuthenticatedLayout from '../../../layouts/AuthenticatedLayout';
 
 // Auth
 import { useAuth } from '../../../hooks/useAuth';
-import { Can } from '../../../components/Auth/Can';
 
 import {
   FaArrowLeft,
@@ -37,7 +36,6 @@ import {
   FaTags,
   FaTrash,
   FaSyncAlt,
-  FaExternalLinkAlt,
   FaLinkedin,
   FaFacebook,
   FaEnvelope,
@@ -55,7 +53,6 @@ export default function Show({ jobListing, applicationStats, averageAtsScore, re
     user: currentUser,
     hasAnyPermission,
     hasRole,
-    isAuthenticated,
   } = useAuth();
 
   // Check permissions for job management

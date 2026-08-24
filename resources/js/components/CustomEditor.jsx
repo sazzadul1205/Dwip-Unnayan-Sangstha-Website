@@ -11,9 +11,10 @@ import {
   FaAlignRight,
   FaUndo,
   FaRedo,
+  FaEraser,
   FaEye,
   FaEyeSlash,
-  FaEraser,
+  FaCode,
 } from 'react-icons/fa';
 import DOMPurify from 'dompurify';
 
@@ -21,6 +22,10 @@ export default function CustomEditor({
   value,
   onChange,
   placeholder = 'Write something...',
+  showPreviewToggle = true,
+  showCodeView = false,
+  minHeight = 'min-h-52',
+  className = '',
 }) {
   const editorRef = useRef(null);
   const historyRef = useRef([]);
@@ -31,6 +36,7 @@ export default function CustomEditor({
   const isInitialized = useRef(false);
 
   const [isPreview, setIsPreview] = useState(false);
+  const [isCodeView, setIsCodeView] = useState(false);
   const [activeFormats, setActiveFormats] = useState({
     bold: false,
     italic: false,
@@ -53,7 +59,9 @@ export default function CustomEditor({
     if (sel && sel.rangeCount > 0) {
       try {
         savedRangeRef.current = sel.getRangeAt(0).cloneRange();
-      } catch (e) { }
+      } catch (e) {
+        console.error(e);
+       }
     }
   }, []);
 
@@ -63,7 +71,9 @@ export default function CustomEditor({
       try {
         sel.removeAllRanges();
         sel.addRange(savedRangeRef.current);
-      } catch (e) { }
+      } catch (e) {
+        console.error(e);
+       }
     }
   }, []);
 
@@ -92,7 +102,9 @@ export default function CustomEditor({
         insertUnorderedList: document.queryCommandState('insertUnorderedList'),
         insertOrderedList: document.queryCommandState('insertOrderedList'),
       });
-    } catch (e) { }
+    } catch (e) {
+      console.error(e);
+     }
   }, []);
 
   // ========== INPUT HANDLER ==========
@@ -149,6 +161,16 @@ export default function CustomEditor({
     }
   }, [onChange]);
 
+  // ========== TOGGLE PREVIEW ==========
+  const togglePreview = useCallback(() => {
+    setIsPreview(prev => !prev);
+  }, []);
+
+  // ========== TOGGLE CODE VIEW ==========
+  const toggleCodeView = useCallback(() => {
+    setIsCodeView(prev => !prev);
+  }, []);
+
   // ========== INITIALIZE ==========
   useEffect(() => {
     if (editorRef.current && !isInitialized.current) {
@@ -203,82 +225,235 @@ export default function CustomEditor({
     };
   }, []);
 
+  // ========== KEYBOARD SHORTCUTS ==========
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      // Ctrl+Z for undo
+      if (e.ctrlKey && e.key === 'z' && !e.shiftKey) {
+        e.preventDefault();
+        undo();
+      }
+      // Ctrl+Y for redo
+      if (e.ctrlKey && e.key === 'y') {
+        e.preventDefault();
+        redo();
+      }
+      // Ctrl+B for bold
+      if (e.ctrlKey && e.key === 'b') {
+        e.preventDefault();
+        exec('bold');
+      }
+      // Ctrl+I for italic
+      if (e.ctrlKey && e.key === 'i') {
+        e.preventDefault();
+        exec('italic');
+      }
+      // Ctrl+U for underline
+      if (e.ctrlKey && e.key === 'u') {
+        e.preventDefault();
+        exec('underline');
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [undo, redo, exec]);
+
   const getButtonClass = (key) => `${btnClass} ${activeFormats[key] ? activeBtnClass : inactiveBtnClass}`;
 
+  // ========== RENDER ==========
   return (
-    <div className="border border-gray-300 rounded-lg overflow-hidden bg-white shadow-sm">
+    <div className={`border border-gray-300 rounded-lg overflow-hidden bg-white shadow-sm ${className}`}>
       {/* TOOLBAR */}
-      {!isPreview && (
+      {!isPreview && !isCodeView && (
         <div className="border-b bg-gray-50 px-3 py-2 overflow-x-auto">
-          <div className="flex items-center gap-2 min-w-min">
+          <div className="flex items-center gap-2 min-w-min flex-wrap">
             {/* Text formatting */}
             <div className="flex items-center gap-1 border-r border-gray-300 pr-3 mr-3">
-              <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => exec('bold')} className={getButtonClass('bold')} title="Bold (Ctrl+B)">
+              <button 
+                type="button" 
+                onMouseDown={(e) => e.preventDefault()} 
+                onClick={() => exec('bold')} 
+                className={getButtonClass('bold')} 
+                title="Bold (Ctrl+B)"
+              >
                 <FaBold />
               </button>
-              <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => exec('italic')} className={getButtonClass('italic')} title="Italic (Ctrl+I)">
+              <button 
+                type="button" 
+                onMouseDown={(e) => e.preventDefault()} 
+                onClick={() => exec('italic')} 
+                className={getButtonClass('italic')} 
+                title="Italic (Ctrl+I)"
+              >
                 <FaItalic />
               </button>
-              <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => exec('underline')} className={getButtonClass('underline')} title="Underline (Ctrl+U)">
+              <button 
+                type="button" 
+                onMouseDown={(e) => e.preventDefault()} 
+                onClick={() => exec('underline')} 
+                className={getButtonClass('underline')} 
+                title="Underline (Ctrl+U)"
+              >
                 <FaUnderline />
               </button>
-              <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => exec('strikeThrough')} className={getButtonClass('strikeThrough')} title="Strikethrough">
+              <button 
+                type="button" 
+                onMouseDown={(e) => e.preventDefault()} 
+                onClick={() => exec('strikeThrough')} 
+                className={getButtonClass('strikeThrough')} 
+                title="Strikethrough"
+              >
                 <FaStrikethrough />
               </button>
-              <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => exec('removeFormat')} className={`${btnClass} hover:bg-gray-200`} title="Clear formatting">
+              <button 
+                type="button" 
+                onMouseDown={(e) => e.preventDefault()} 
+                onClick={() => exec('removeFormat')} 
+                className={`${btnClass} hover:bg-gray-200`} 
+                title="Clear formatting"
+              >
                 <FaEraser />
               </button>
             </div>
 
             {/* Lists */}
             <div className="flex items-center gap-1 border-r border-gray-300 pr-3 mr-3">
-              <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => exec('insertUnorderedList')} className={getButtonClass('insertUnorderedList')} title="Bulleted list">
+              <button 
+                type="button" 
+                onMouseDown={(e) => e.preventDefault()} 
+                onClick={() => exec('insertUnorderedList')} 
+                className={getButtonClass('insertUnorderedList')} 
+                title="Bulleted list"
+              >
                 <FaListUl />
               </button>
-              <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => exec('insertOrderedList')} className={getButtonClass('insertOrderedList')} title="Numbered list">
+              <button 
+                type="button" 
+                onMouseDown={(e) => e.preventDefault()} 
+                onClick={() => exec('insertOrderedList')} 
+                className={getButtonClass('insertOrderedList')} 
+                title="Numbered list"
+              >
                 <FaListOl />
               </button>
             </div>
 
             {/* Alignment */}
             <div className="flex items-center gap-1 border-r border-gray-300 pr-3 mr-3">
-              <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => exec('justifyLeft')} className={getButtonClass('justifyLeft')} title="Align left">
+              <button 
+                type="button" 
+                onMouseDown={(e) => e.preventDefault()} 
+                onClick={() => exec('justifyLeft')} 
+                className={getButtonClass('justifyLeft')} 
+                title="Align left"
+              >
                 <FaAlignLeft />
               </button>
-              <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => exec('justifyCenter')} className={getButtonClass('justifyCenter')} title="Align center">
+              <button 
+                type="button" 
+                onMouseDown={(e) => e.preventDefault()} 
+                onClick={() => exec('justifyCenter')} 
+                className={getButtonClass('justifyCenter')} 
+                title="Align center"
+              >
                 <FaAlignCenter />
               </button>
-              <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => exec('justifyRight')} className={getButtonClass('justifyRight')} title="Align right">
+              <button 
+                type="button" 
+                onMouseDown={(e) => e.preventDefault()} 
+                onClick={() => exec('justifyRight')} 
+                className={getButtonClass('justifyRight')} 
+                title="Align right"
+              >
                 <FaAlignRight />
               </button>
             </div>
 
             {/* History */}
             <div className="flex items-center gap-1 border-r border-gray-300 pr-3 mr-3">
-              <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={undo} className={btnClass} title="Undo (Ctrl+Z)">
+              <button 
+                type="button" 
+                onMouseDown={(e) => e.preventDefault()} 
+                onClick={undo} 
+                className={btnClass} 
+                title="Undo (Ctrl+Z)"
+              >
                 <FaUndo />
               </button>
-              <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={redo} className={btnClass} title="Redo (Ctrl+Y)">
+              <button 
+                type="button" 
+                onMouseDown={(e) => e.preventDefault()} 
+                onClick={redo} 
+                className={btnClass} 
+                title="Redo (Ctrl+Y)"
+              >
                 <FaRedo />
               </button>
+            </div>
+
+            {/* View controls */}
+            <div className="flex items-center gap-1">
+              {showPreviewToggle && (
+                <button
+                  type="button"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={togglePreview}
+                  className={`${btnClass} ${isPreview ? activeBtnClass : inactiveBtnClass}`}
+                  title={isPreview ? 'Edit mode' : 'Preview mode'}
+                >
+                  {isPreview ? <FaEyeSlash /> : <FaEye />}
+                </button>
+              )}
+              {showCodeView && (
+                <button
+                  type="button"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={toggleCodeView}
+                  className={`${btnClass} ${isCodeView ? activeBtnClass : inactiveBtnClass}`}
+                  title={isCodeView ? 'Hide HTML' : 'Show HTML'}
+                >
+                  <FaCode />
+                </button>
+              )}
             </div>
           </div>
         </div>
       )}
 
-      {/* Editor */}
+      {/* Editor Content */}
       {isPreview ? (
+        // Preview mode
         <div
-          className="p-4 min-h-52 prose max-w-none overflow-auto"
+          className={`p-4 ${minHeight} prose max-w-none overflow-auto`}
           dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(value || '') }}
         />
+      ) : isCodeView ? (
+        // Code view - show raw HTML
+        <textarea
+          className={`w-full p-4 ${minHeight} font-mono text-sm focus:outline-none resize-none bg-gray-50`}
+          value={value || ''}
+          onChange={(e) => {
+            const newValue = e.target.value;
+            onChange(newValue);
+          }}
+          placeholder={placeholder}
+          spellCheck={false}
+        />
       ) : (
+        // Editor mode
         <div
           ref={editorRef}
           contentEditable
           suppressContentEditableWarning
           onInput={handleInput}
-          className="p-4 min-h-52 focus:outline-none prose max-w-none overflow-auto editor-placeholder"
+          onFocus={() => {
+            // Restore selection when focus is regained
+            if (savedRangeRef.current) {
+              restoreSelection();
+            }
+          }}
+          className={`p-4 ${minHeight} focus:outline-none prose max-w-none overflow-auto editor-placeholder`}
           data-placeholder={placeholder}
           aria-label={placeholder}
           role="textbox"
@@ -286,11 +461,90 @@ export default function CustomEditor({
         />
       )}
 
+      {/* Status bar */}
+      <div className="border-t border-gray-200 bg-gray-50 px-3 py-1.5 flex items-center justify-between text-xs text-gray-500">
+        <div className="flex items-center gap-4">
+          <span>
+            {isPreview ? 'Preview' : isCodeView ? 'HTML View' : 'Edit Mode'}
+          </span>
+          {!isPreview && !isCodeView && (
+            <span>
+              Characters: {(value || '').replace(/<[^>]*>/g, '').length}
+            </span>
+          )}
+        </div>
+        {!isPreview && !isCodeView && (
+          <div className="flex items-center gap-2">
+            <span className="flex items-center gap-1">
+              <span className="inline-block w-2 h-2 bg-green-500 rounded-full" />
+              <span>Active</span>
+            </span>
+          </div>
+        )}
+      </div>
+
       <style>{`
         .editor-placeholder:empty:before {
           content: attr(data-placeholder);
           color: #9ca3af;
           pointer-events: none;
+        }
+        .editor-placeholder:focus:empty:before {
+          content: attr(data-placeholder);
+          color: #d1d5db;
+          pointer-events: none;
+        }
+        /* Prose styles for consistent content */
+        .prose {
+          max-width: none;
+        }
+        .prose p {
+          margin-bottom: 0.75rem;
+        }
+        .prose ul, .prose ol {
+          padding-left: 1.5rem;
+          margin-bottom: 0.75rem;
+        }
+        .prose ul {
+          list-style-type: disc;
+        }
+        .prose ol {
+          list-style-type: decimal;
+        }
+        .prose blockquote {
+          border-left: 4px solid #e5e7eb;
+          padding-left: 1rem;
+          margin-left: 0;
+          color: #6b7280;
+        }
+        .prose h1, .prose h2, .prose h3, .prose h4 {
+          font-weight: 600;
+          margin-top: 1.5rem;
+          margin-bottom: 0.75rem;
+        }
+        .prose h1 { font-size: 2rem; }
+        .prose h2 { font-size: 1.5rem; }
+        .prose h3 { font-size: 1.25rem; }
+        .prose h4 { font-size: 1rem; }
+        .prose a {
+          color: #2563eb;
+          text-decoration: underline;
+        }
+        .prose img {
+          max-width: 100%;
+          height: auto;
+        }
+        .prose table {
+          border-collapse: collapse;
+          width: 100%;
+        }
+        .prose table th,
+        .prose table td {
+          border: 1px solid #e5e7eb;
+          padding: 0.5rem;
+        }
+        .prose table th {
+          background-color: #f3f4f6;
         }
       `}</style>
     </div>

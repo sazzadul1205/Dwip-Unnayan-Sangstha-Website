@@ -1,4 +1,3 @@
- 
 // resources/js/pages/Backend/JobListings/Index.jsx
 
 // React
@@ -55,7 +54,7 @@ export default function JobListingsIndex({
 }) {
   const { flash } = usePage().props;
 
-  // Use centralized auth hook
+  // Use centralized auth hook - MUST be called before any conditional returns
   const {
     user: currentUser,
     hasAnyPermission,
@@ -73,24 +72,7 @@ export default function JobListingsIndex({
   const canBulkActivateJobs = hasAnyPermission(['jobs.bulk_activate', 'jobs.manage']);
   const canBulkDeactivateJobs = hasAnyPermission(['jobs.bulk_deactivate', 'jobs.manage']);
 
-  // If user doesn't have permission to view jobs, show access denied
-  if (!canViewJobs && !isEmployer) {
-    return (
-      <AuthenticatedLayout>
-        <Head title="Access Denied" />
-        <div className="min-h-screen flex items-center justify-center">
-          <div className="text-center">
-            <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <FaShieldAlt className="w-10 h-10 text-red-500" />
-            </div>
-            <h2 className="text-xl font-semibold text-gray-900">Access Denied</h2>
-            <p className="text-gray-500 mt-2">You don't have permission to view job listings.</p>
-          </div>
-        </div>
-      </AuthenticatedLayout>
-    );
-  }
-
+  // ALL HOOKS MUST BE CALLED BEFORE ANY CONDITIONAL RETURNS
   // States
   const [deletingId, setDeletingId] = useState(null);
   const [togglingId, setTogglingId] = useState(null);
@@ -101,7 +83,6 @@ export default function JobListingsIndex({
 
   // Pagination state
   const [jobListings, setJobListings] = useState(initialJobListings);
-  const [currentPage, setCurrentPage] = useState(initialJobListings?.current_page || 1);
 
   // Filter states - synced with URL/backend
   const [filters, setFilters] = useState({
@@ -137,53 +118,7 @@ export default function JobListingsIndex({
     return null;
   }, [jobListings]);
 
-  // Apply filters whenever filters change (with pagination)
-  useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      router.get(route('backend.listing.index'), {
-        ...filters,
-        page: 1,
-      }, {
-        preserveState: true,
-        preserveScroll: true,
-        replace: true,
-        onSuccess: (page) => {
-          setJobListings(page.props.jobListings);
-          setCurrentPage(1);
-        },
-      });
-    }, 300);
-
-    return () => clearTimeout(timeoutId);
-  }, [filters]);
-
-  // Keep local job listings in sync
-  useEffect(() => {
-    setJobListings(initialJobListings);
-    setCurrentPage(initialJobListings?.current_page || 1);
-  }, [initialJobListings]);
-
-  // Handle page change
-  const handlePageChange = (page) => {
-    if (page === pagination?.currentPage) return;
-    if (page < 1 || page > pagination?.lastPage) return;
-
-    router.get(route('backend.listing.index'), {
-      ...filters,
-      page,
-    }, {
-      preserveState: true,
-      preserveScroll: true,
-      replace: true,
-      onSuccess: (page) => {
-        setJobListings(page.props.jobListings);
-        setCurrentPage(page);
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      },
-    });
-  };
-
-  // Get unique values for filters from all jobs (not just current page)
+  // Get unique values for filters from all jobs
   const uniqueJobTypes = useMemo(() => {
     const types = new Set();
     jobListingItems.forEach(job => {
@@ -192,7 +127,6 @@ export default function JobListingsIndex({
     return Array.from(types);
   }, [jobListingItems]);
 
-  // Get unique values for filters from all jobs (not just current page)
   const uniqueExperienceLevels = useMemo(() => {
     const levels = new Set();
     jobListingItems.forEach(job => {
@@ -201,7 +135,6 @@ export default function JobListingsIndex({
     return Array.from(levels);
   }, [jobListingItems]);
 
-  // Get unique values for filters from all jobs (not just current page)
   const uniqueCategories = useMemo(() => {
     const cats = new Set();
     jobListingItems.forEach(job => {
@@ -210,7 +143,6 @@ export default function JobListingsIndex({
     return Array.from(cats);
   }, [jobListingItems]);
 
-  // Get unique values for filters from all jobs (not just current page)
   const uniqueLocations = useMemo(() => {
     const locs = new Set();
     jobListingItems.forEach(job => {
@@ -223,7 +155,7 @@ export default function JobListingsIndex({
     return Array.from(locs);
   }, [jobListingItems]);
 
-  // Sort jobs for display (client-side sorting on current page)
+  // Sort jobs for display
   const sortedJobListings = useMemo(() => {
     return [...jobListingItems].sort((a, b) => {
       const aIsTrashed = a.deleted_at !== null;
@@ -246,12 +178,96 @@ export default function JobListingsIndex({
     });
   }, [jobListingItems]);
 
+  // ALL EFFECTS MUST BE CALLED BEFORE CONDITIONAL RETURNS
+  // Apply filters whenever filters change
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      router.get(route('backend.listing.index'), {
+        ...filters,
+        page: 1,
+      }, {
+        preserveState: true,
+        preserveScroll: true,
+        replace: true,
+        onSuccess: (page) => {
+          setJobListings(page.props.jobListings);
+        },
+      });
+    }, 300);
+
+    return () => clearTimeout(timeoutId);
+  }, [filters]);
+
+  // Keep local job listings in sync
+  useEffect(() => {
+    setJobListings(initialJobListings);
+  }, [initialJobListings]);
+
+  // Show flash messages
+  useEffect(() => {
+    if (flash?.success) {
+      Swal.fire({
+        icon: 'success',
+        title: 'Success!',
+        text: flash.success,
+        timer: 2000,
+        showConfirmButton: false,
+      });
+    }
+    if (flash?.error) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Error!',
+        text: flash.error,
+        confirmButtonColor: '#2563eb',
+      });
+    }
+  }, [flash]);
+
+  // NOW we can do conditional returns after all hooks
+  // If user doesn't have permission to view jobs, show access denied
+  if (!canViewJobs && !isEmployer) {
+    return (
+      <AuthenticatedLayout>
+        <Head title="Access Denied" />
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="text-center">
+            <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <FaShieldAlt className="w-10 h-10 text-red-500" />
+            </div>
+            <h2 className="text-xl font-semibold text-gray-900">Access Denied</h2>
+            <p className="text-gray-500 mt-2">You don't have permission to view job listings.</p>
+          </div>
+        </div>
+      </AuthenticatedLayout>
+    );
+  }
+
   // Count jobs by status
   const totalCount = totalJobs || 0;
   const activeCount = activeJobs || 0;
   const deletedCount = deletedJobs || 0;
   const totalViewsAll = totalViews || 0;
   const inactiveCount = inactiveJobs || 0;
+
+  // Handle page change
+  const handlePageChange = (page) => {
+    if (page === pagination?.currentPage) return;
+    if (page < 1 || page > pagination?.lastPage) return;
+
+    router.get(route('backend.listing.index'), {
+      ...filters,
+      page,
+    }, {
+      preserveState: true,
+      preserveScroll: true,
+      replace: true,
+      onSuccess: (page) => {
+        setJobListings(page.props.jobListings);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      },
+    });
+  };
 
   // Handle filter change
   const handleFilterChange = (key, value) => {
@@ -282,7 +298,7 @@ export default function JobListingsIndex({
       filters.dateRange !== 'all';
   };
 
-  // Bulk selection handlers (only for non-deleted jobs user can edit)
+  // Bulk selection handlers
   const handleSelectAll = () => {
     const selectableJobs = sortedJobListings.filter(job => !job.deleted_at && (canEditJobs || (isEmployer && job.employer_id === currentUser?.employer_id)));
     if (selectedJobs.length === selectableJobs.length) {
@@ -292,7 +308,6 @@ export default function JobListingsIndex({
     }
   };
 
-  // Handle job selection
   const handleSelectJob = (jobId) => {
     setSelectedJobs(prev =>
       prev.includes(jobId)
@@ -306,7 +321,7 @@ export default function JobListingsIndex({
   const canBulkDeactivate = canBulkDeactivateJobs && selectedJobs.length > 0;
   const canBulkDelete = canBulkDeleteJobs && selectedJobs.length > 0;
 
-  // Bulk actions 
+  // Bulk actions
   const handleBulkActivate = () => {
     if (!canBulkActivateJobs) {
       Swal.fire('Permission Denied', 'You do not have permission to bulk activate jobs.', 'error');
@@ -591,6 +606,7 @@ export default function JobListingsIndex({
             });
           },
           onError: (error) => {
+            console.error(error);
             Swal.fire({
               icon: 'error',
               title: 'Update Failed',
@@ -612,9 +628,9 @@ export default function JobListingsIndex({
   };
 
   // Check if user can delete a specific job
-  const canDeleteJob = (job) => {
+  const canDeleteJob = () => {
     if (canDeleteJobs) return true;
-    return false; // Employers cannot delete jobs (only admins)
+    return false; 
   };
 
   // Helper functions
@@ -627,7 +643,6 @@ export default function JobListingsIndex({
     });
   };
 
-  // Job Type Badges
   const getJobTypeBadge = (type) => {
     const types = {
       'full-time': 'bg-green-100 text-green-800',
@@ -640,7 +655,6 @@ export default function JobListingsIndex({
     return types[type] || 'bg-gray-100 text-gray-800';
   };
 
-  // Experience Badges
   const getExperienceBadge = (level) => {
     const levels = {
       'entry': 'bg-blue-100 text-blue-800',
@@ -653,7 +667,6 @@ export default function JobListingsIndex({
     return levels[level] || 'bg-gray-100 text-gray-800';
   };
 
-  // Salary Range
   const getSalaryRange = (job) => {
     if (job.as_per_companies_policy) {
       return 'As per company policy';
@@ -670,12 +683,20 @@ export default function JobListingsIndex({
     return null;
   };
 
-  // Format locations
   const formatLocations = (locations) => {
     if (!locations || locations.length === 0) return 'N/A';
     if (locations.length === 1) return locations[0].name;
     return `${locations[0].name} +${locations.length - 1}`;
   };
+
+  // Check if user can select a job for bulk actions
+  const canSelectJob = (job) => {
+    return !job.deleted_at && (canEditJobs || (isEmployer && job.employer_id === currentUser?.employer_id));
+  };
+
+  // Check if all selectable jobs are selected
+  const selectableJobsCount = sortedJobListings.filter(job => canSelectJob(job)).length;
+  const allSelectableSelected = selectedJobs.length === selectableJobsCount && selectableJobsCount > 0;
 
   // Pagination component
   const Pagination = () => {
@@ -767,36 +788,6 @@ export default function JobListingsIndex({
       </div>
     );
   };
-
-  // Show flash messages
-  useEffect(() => {
-    if (flash?.success) {
-      Swal.fire({
-        icon: 'success',
-        title: 'Success!',
-        text: flash.success,
-        timer: 2000,
-        showConfirmButton: false,
-      });
-    }
-    if (flash?.error) {
-      Swal.fire({
-        icon: 'error',
-        title: 'Error!',
-        text: flash.error,
-        confirmButtonColor: '#2563eb',
-      });
-    }
-  }, [flash]);
-
-  // Check if user can select a job for bulk actions
-  const canSelectJob = (job) => {
-    return !job.deleted_at && (canEditJobs || (isEmployer && job.employer_id === currentUser?.employer_id));
-  };
-
-  // Check if all selectable jobs are selected
-  const selectableJobsCount = sortedJobListings.filter(job => canSelectJob(job)).length;
-  const allSelectableSelected = selectedJobs.length === selectableJobsCount && selectableJobsCount > 0;
 
   return (
     <AuthenticatedLayout>

@@ -2,7 +2,7 @@
 // resources/js/Pages/Dashboard.jsx
 
 // React
-import { Head, usePage } from '@inertiajs/react';
+import { Head, Link, usePage } from '@inertiajs/react';
 import { useState, useEffect } from 'react';
 
 // Icons
@@ -35,8 +35,6 @@ const Dashboard = () => {
   const { role, job_seeker, admin_staff } = dashboardData || {};
 
   const [greeting, setGreeting] = useState('');
-  const [animateStats, setAnimateStats] = useState(false);
-
   useEffect(() => {
     // Set greeting based on time of day
     const hour = new Date().getHours();
@@ -44,45 +42,16 @@ const Dashboard = () => {
     else if (hour < 18) setGreeting('Good afternoon');
     else setGreeting('Good evening');
 
-    // Trigger animation after mount
-    setTimeout(() => setAnimateStats(true), 100);
   }, []);
 
-  // Animated counter component
-  const AnimatedCounter = ({ value, suffix = '' }) => {
-    const [count, setCount] = useState(0);
-
-    useEffect(() => {
-      if (animateStats) {
-        let start = 0;
-        const duration = 1000;
-        const increment = value / (duration / 16);
-
-        const timer = setInterval(() => {
-          start += increment;
-          if (start >= value) {
-            setCount(value);
-            clearInterval(timer);
-          } else {
-            setCount(Math.floor(start));
-          }
-        }, 16);
-
-        return () => clearInterval(timer);
-      }
-    }, [value]);
-
-    return <span>{count}{suffix}</span>;
-  };
-
   // Stat Card Component - Responsive
-  const StatCard = ({ title, value, icon: Icon, color, suffix = '', delay = 0 }) => (
-    <div className={`group bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl p-4 sm:p-6 shadow-lg hover:shadow-xl transition-all duration-500 transform hover:-translate-y-1 animate-fade-in-up animation-delay-${delay}`}>
+  const StatCard = ({ title, value, icon: Icon, color, suffix = '' }) => (
+    <div className="group bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl p-4 sm:p-6 shadow-lg hover:shadow-xl transition-all duration-500 transform hover:-translate-y-1">
       <div className="flex items-center justify-between">
         <div className="flex-1 min-w-0">
           <p className="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400 truncate">{title}</p>
           <p className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mt-1 sm:mt-2 truncate">
-            {animateStats ? <AnimatedCounter value={value} suffix={suffix} /> : value}
+            {value}{suffix}
           </p>
         </div>
         <div className={`p-2 sm:p-3 rounded-xl bg-linear-to-br ${color} shadow-lg transform group-hover:scale-110 transition-transform duration-300 shrink-0 ml-2 sm:ml-3`}>
@@ -300,7 +269,7 @@ const Dashboard = () => {
       <Head title="Dashboard" />
 
       {/* Welcome Section - Responsive */}
-      <div className="mb-4 sm:mb-6 md:mb-8 animate-fade-in-up px-1 sm:px-0">
+      <div className="mb-4 sm:mb-6 md:mb-8 px-1 sm:px-0">
         <div className="bg-linear-to-r from-blue-600 to-indigo-600 rounded-xl sm:rounded-2xl p-4 sm:p-6 md:p-8 text-white shadow-xl">
           <div className="flex items-center justify-between">
             <div className="flex-1 min-w-0">
@@ -333,7 +302,7 @@ const Dashboard = () => {
 
       {/* Quick Actions - Responsive */}
       {quickActions.length > 0 && (
-        <div className="mb-4 sm:mb-6 md:mb-8 animate-fade-in-up animation-delay-400">
+        <div className="mb-4 sm:mb-6 md:mb-8">
           <h2 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-3 sm:mb-4">Quick Actions</h2>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 md:gap-4">
             {quickActions.map((action, index) => (
@@ -345,12 +314,12 @@ const Dashboard = () => {
 
       {/* Recommended Jobs for Job Seekers - Responsive */}
       {role === 'job_seeker' && job_seeker?.recommended_jobs?.length > 0 && (
-        <div className="mb-4 sm:mb-6 md:mb-8 animate-fade-in-up animation-delay-500">
+        <div className="mb-4 sm:mb-6 md:mb-8">
           <div className="flex items-center justify-between mb-3 sm:mb-4">
             <h2 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">Recommended Jobs</h2>
-            <a href="/backend/seeker/jobs" className="text-xs sm:text-sm text-blue-600 hover:text-blue-700 font-medium">
+            <Link prefetch href="/backend/seeker/jobs" className="text-xs sm:text-sm text-blue-600 hover:text-blue-700 font-medium">
               View all →
-            </a>
+            </Link>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
             {job_seeker.recommended_jobs.slice(0, 3).map((job) => (
@@ -411,7 +380,7 @@ const Dashboard = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4 md:gap-6">
         {/* Activity Feed */}
         {activities.length > 0 && (
-          <div className="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl shadow-lg p-4 sm:p-6 animate-fade-in-up animation-delay-500">
+          <div className="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl shadow-lg p-4 sm:p-6">
             <div className="flex items-center justify-between mb-3 sm:mb-4">
               <h2 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">Recent Activity</h2>
               <FiActivity className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400" />
@@ -425,7 +394,7 @@ const Dashboard = () => {
         )}
 
         {/* Progress Card - Responsive */}
-        <div className="bg-linear-to-br from-purple-500 to-pink-600 rounded-xl sm:rounded-2xl shadow-lg p-4 sm:p-6 animate-fade-in-up animation-delay-600">
+        <div className="bg-linear-to-br from-purple-500 to-pink-600 rounded-xl sm:rounded-2xl shadow-lg p-4 sm:p-6">
           <div className="text-white">
             <div className="flex items-center justify-between mb-3 sm:mb-4">
               <h2 className="text-base sm:text-lg font-semibold">{progress.label}</h2>

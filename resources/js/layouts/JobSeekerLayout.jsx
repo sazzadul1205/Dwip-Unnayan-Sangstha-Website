@@ -207,7 +207,7 @@ const JobSeekerLayout = ({ children }) => {
   ];
 
   // Render menu item
-  const renderMenuItem = (item, closeDrawer = false) => {
+  const renderMenuItem = (item, shouldCloseDrawer = false) => {
     const href = safeRoute(
       item.routeName,
       item.routeParams || {}
@@ -223,11 +223,8 @@ const JobSeekerLayout = ({ children }) => {
       <Link
         key={item.name}
         href={href}
-        onClick={
-          closeDrawer
-            ? () => closeDrawer()
-            : undefined
-        }
+        prefetch
+        onClick={shouldCloseDrawer ? closeDrawer : undefined}
         className={`
           flex items-center gap-3
           px-4 py-2.5
@@ -280,6 +277,7 @@ const JobSeekerLayout = ({ children }) => {
           <div className="flex items-center justify-between gap-2">
             <Link
               href={safeRoute('home') || '/'}
+              prefetch
               className="flex items-center gap-2 group min-w-0"
             >
               <div className="w-8 h-8 shrink-0 bg-linear-to-br from-green-600 to-green-700 rounded-lg flex items-center justify-center shadow-md group-hover:shadow-lg transition-all duration-200">
@@ -430,6 +428,7 @@ const JobSeekerLayout = ({ children }) => {
           {/* Center Logo */}
           <Link
             href={safeRoute('home') || '/'}
+            prefetch
             className="flex items-center"
           >
             <div className="w-10 h-10 bg-linear-to-br from-green-600 to-green-700 rounded-lg flex items-center justify-center shadow-md">
@@ -469,6 +468,7 @@ const JobSeekerLayout = ({ children }) => {
                         null,
                     }
                   )}
+                  prefetch
                   className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
                   onClick={() =>
                     setIsSettingsOpen(

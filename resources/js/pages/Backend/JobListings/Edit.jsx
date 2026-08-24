@@ -1,7 +1,7 @@
 // resources/js/pages/Backend/JobListings/Edit.jsx
 
 // React
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 
 // Inertia
 import { Head, router } from '@inertiajs/react';
@@ -11,7 +11,6 @@ import AuthenticatedLayout from '../../../layouts/AuthenticatedLayout';
 
 // Auth
 import { useAuth } from '../../../hooks/useAuth';
-import { Can } from '../../../components/Auth/Can';
 
 // Icons
 import { FaArrowLeft, FaBriefcase, FaEdit, FaShieldAlt, FaLock } from 'react-icons/fa';
@@ -35,7 +34,6 @@ export default function Edit({ jobListing, categories, locations }) {
     user: currentUser,
     hasAnyPermission,
     hasRole,
-    isAuthenticated,
   } = useAuth();
 
   // Check permissions for job management

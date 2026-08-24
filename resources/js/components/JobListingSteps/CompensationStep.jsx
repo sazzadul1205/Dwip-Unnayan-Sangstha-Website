@@ -175,6 +175,7 @@ export const CompensationStep = ({ formData, errors, handleChange }) => {
 
     const words = plainText
       .toLowerCase()
+      // eslint-disable-next-line no-useless-escape
       .split(/[\s,;:.!?()\[\]{}"'`~@#$%^&*+=|\\/<>-]+/)
       .filter(word => word.length > 2)
       .filter(word => !STOP_WORDS.has(word))
@@ -243,7 +244,7 @@ export const CompensationStep = ({ formData, errors, handleChange }) => {
       }, 1000);
       return () => clearTimeout(timer);
     }
-  }, []);
+  }, [extractAllKeywords, formData.description, formData.keywords.length, formData.requirements, formData.skills?.length]);
 
   const handleSalaryTypeChange = (type) => {
     setSalaryType(type);
