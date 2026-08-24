@@ -29,6 +29,8 @@ import { CompensationStep } from '../../../components/JobListingSteps/Compensati
 import Swal from 'sweetalert2';
 
 export default function Edit({ jobListing, categories, locations }) {
+  // ALL HOOKS MUST BE CALLED BEFORE ANY CONDITIONAL RETURNS
+
   // Use centralized auth hook
   const {
     user: currentUser,
@@ -49,18 +51,47 @@ export default function Edit({ jobListing, categories, locations }) {
   // Check if user can edit this specific job
   const canEditThisJob = canEditJobs || isJobOwner || isSuperAdmin;
 
-  // Make data available globally for child components
-  if (typeof window !== 'undefined') {
-    window.categories = categories;
-    window.locations = locations;
-  }
-
-  // States
+  // States - MUST be called before conditional returns
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState({});
 
-  // Steps
+  // Initialize form data from existing job listing - MUST be called before conditional returns
+  const [formData, setFormData] = useState({
+    // Basic Info
+    title: jobListing?.title || '',
+    category_id: jobListing?.category_id || '',
+    job_type: jobListing?.job_type || '',
+    experience_level: jobListing?.experience_level || '',
+    description: jobListing?.description || '',
+
+    // Requirements
+    requirements: jobListing?.requirements || '',
+    skills: jobListing?.skills || [],
+    responsibilities: jobListing?.responsibilities || [],
+    benefits: jobListing?.benefits || [],
+    education_requirement: jobListing?.education_requirement || '',
+    education_details: jobListing?.education_details || '',
+
+    // Location
+    location_ids: jobListing?.location_ids || [],
+
+    // Compensation
+    salary_min: jobListing?.salary_min || '',
+    salary_max: jobListing?.salary_max || '',
+    is_salary_negotiable: jobListing?.is_salary_negotiable || false,
+    as_per_companies_policy: jobListing?.as_per_companies_policy || false,
+    keywords: jobListing?.keywords || [],
+
+    // Publishing
+    application_deadline: jobListing?.application_deadline || '',
+    publish_at: jobListing?.publish_at || '',
+    is_active: jobListing?.is_active ?? true,
+    required_linkedin_link: jobListing?.required_linkedin_link || false,
+    required_facebook_link: jobListing?.required_facebook_link || false,
+  });
+
+  // Steps - MUST be called before conditional returns
   const steps = [
     { id: 1, title: 'Basic Info', component: BasicInfoStep },
     { id: 2, title: 'Requirements', component: RequirementsStep },
@@ -70,6 +101,7 @@ export default function Edit({ jobListing, categories, locations }) {
     { id: 6, title: 'Review', component: ReviewStep },
   ];
 
+  // NOW we can do conditional returns after all hooks
   // If user doesn't have permission to edit this job, show access denied
   if (!canEditThisJob) {
     return (
@@ -100,40 +132,11 @@ export default function Edit({ jobListing, categories, locations }) {
     );
   }
 
-  // Initialize form data from existing job listing
-  const [formData, setFormData] = useState({
-    // Basic Info
-    title: jobListing.title || '',
-    category_id: jobListing.category_id || '',
-    job_type: jobListing.job_type || '',
-    experience_level: jobListing.experience_level || '',
-    description: jobListing.description || '',
-
-    // Requirements
-    requirements: jobListing.requirements || '',
-    skills: jobListing.skills || [],
-    responsibilities: jobListing.responsibilities || [],
-    benefits: jobListing.benefits || [],
-    education_requirement: jobListing.education_requirement || '',
-    education_details: jobListing.education_details || '',
-
-    // Location
-    location_ids: jobListing.location_ids || [],
-
-    // Compensation
-    salary_min: jobListing.salary_min || '',
-    salary_max: jobListing.salary_max || '',
-    is_salary_negotiable: jobListing.is_salary_negotiable || false,
-    as_per_companies_policy: jobListing.as_per_companies_policy || false,
-    keywords: jobListing.keywords || [],
-
-    // Publishing
-    application_deadline: jobListing.application_deadline || '',
-    publish_at: jobListing.publish_at || '',
-    is_active: jobListing.is_active ?? true,
-    required_linkedin_link: jobListing.required_linkedin_link || false,
-    required_facebook_link: jobListing.required_facebook_link || false,
-  });
+  // Make data available globally for child components (only if not in conditional return)
+  if (typeof window !== 'undefined') {
+    window.categories = categories;
+    window.locations = locations;
+  }
 
   // Check if any changes were made
   const hasChanges = () => {
@@ -440,7 +443,7 @@ export default function Edit({ jobListing, categories, locations }) {
       <Head title={`Edit: ${jobListing.title}`} />
 
       <div className="min-h-screen bg-linear-to-br from-blue-50 via-white to-purple-50 py-8 px-4 sm:px-6 lg:px-8">
-        <div className=" mx-auto">
+        <div className="mx-auto">
           {/* Header */}
           <div className="relative mb-8">
             {/* Back Button */}

@@ -124,18 +124,18 @@ const HomeBannerEditor = ({ section, hasData, onDataChange }) => {
     { value: 'bg-black/40 lg:bg-black/50', label: 'Light Dark Overlay' },
     { value: 'bg-black/60 lg:bg-black/70', label: 'Medium Dark Overlay' },
     { value: 'bg-black/80 lg:bg-black/90', label: 'Heavy Dark Overlay' },
-    { value: 'bg-gradient-to-r from-black/85 via-black/10 to-transparent', label: 'Gradient Left to Right' },
-    { value: 'bg-gradient-to-l from-black/85 via-black/10 to-transparent', label: 'Gradient Right to Left' },
-    { value: 'bg-gradient-to-t from-black/85 via-black/10 to-transparent', label: 'Gradient Bottom to Top' },
-    { value: 'bg-gradient-to-b from-black/85 via-black/10 to-transparent', label: 'Gradient Top to Bottom' },
+    { value: 'bg-linear-to-r from-black/85 via-black/10 to-transparent', label: 'Gradient Left to Right' },
+    { value: 'bg-linear-to-l from-black/85 via-black/10 to-transparent', label: 'Gradient Right to Left' },
+    { value: 'bg-linear-to-t from-black/85 via-black/10 to-transparent', label: 'Gradient Bottom to Top' },
+    { value: 'bg-linear-to-b from-black/85 via-black/10 to-transparent', label: 'Gradient Top to Bottom' },
   ];
 
   // Gradient options for the banner
   const gradientOptions = [
-    { value: 'bg-gradient-to-r from-black/85 via-black/10 to-transparent', label: 'Left to Right' },
-    { value: 'bg-gradient-to-l from-black/85 via-black/10 to-transparent', label: 'Right to Left' },
-    { value: 'bg-gradient-to-t from-black/85 via-black/10 to-transparent', label: 'Bottom to Top' },
-    { value: 'bg-gradient-to-b from-black/85 via-black/10 to-transparent', label: 'Top to Bottom' },
+    { value: 'bg-linear-to-r from-black/85 via-black/10 to-transparent', label: 'Left to Right' },
+    { value: 'bg-linear-to-l from-black/85 via-black/10 to-transparent', label: 'Right to Left' },
+    { value: 'bg-linear-to-t from-black/85 via-black/10 to-transparent', label: 'Bottom to Top' },
+    { value: 'bg-linear-to-b from-black/85 via-black/10 to-transparent', label: 'Top to Bottom' },
     { value: '', label: 'None' },
   ];
 

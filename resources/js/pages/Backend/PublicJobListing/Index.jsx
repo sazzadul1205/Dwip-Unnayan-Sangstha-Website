@@ -52,37 +52,37 @@ const JobSkeletonCard = () => (
           {/* Badges skeleton */}
           <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 mb-1.5 sm:mb-2">
             <div className="h-6 w-32 sm:w-40 bg-linear-to-r from-gray-200 via-gray-100 to-gray-200 rounded-lg animate-shimmer bg-size-[200%_100%]" />
-            <div className="h-5 w-16 sm:w-20 bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 rounded-full animate-shimmer bg-[length:200%_100%]" />
-            <div className="h-5 w-14 sm:w-16 bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 rounded-full animate-shimmer bg-[length:200%_100%]" />
+            <div className="h-5 w-16 sm:w-20 bg-linear-to-r from-gray-200 via-gray-100 to-gray-200 rounded-full animate-shimmer bg-size-[200%_100%]" />
+            <div className="h-5 w-14 sm:w-16 bg-linear-to-r from-gray-200 via-gray-100 to-gray-200 rounded-full animate-shimmer bg-size-[200%_100%]" />
           </div>
 
           {/* Company, location, salary skeleton */}
           <div className="flex flex-wrap gap-1.5 sm:gap-3 mb-2 sm:mb-3">
             <div className="flex items-center gap-0.5 sm:gap-1">
-              <div className="w-3 h-3 bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 rounded animate-shimmer bg-[length:200%_100%]" />
-              <div className="h-4 w-20 sm:w-28 bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 rounded animate-shimmer bg-[length:200%_100%]" />
+              <div className="w-3 h-3 bg-linear-to-r from-gray-200 via-gray-100 to-gray-200 rounded animate-shimmer bg-size-[200%_100%]" />
+              <div className="h-4 w-20 sm:w-28 bg-linear-to-r from-gray-200 via-gray-100 to-gray-200 rounded animate-shimmer bg-size-[200%_100%]" />
             </div>
             <div className="flex items-center gap-0.5 sm:gap-1">
-              <div className="w-3 h-3 bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 rounded animate-shimmer bg-[length:200%_100%]" />
-              <div className="h-4 w-24 sm:w-32 bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 rounded animate-shimmer bg-[length:200%_100%]" />
+              <div className="w-3 h-3 bg-linear-to-r from-gray-200 via-gray-100 to-gray-200 rounded animate-shimmer bg-size-[200%_100%]" />
+              <div className="h-4 w-24 sm:w-32 bg-linear-to-r from-gray-200 via-gray-100 to-gray-200 rounded animate-shimmer bg-size-[200%_100%]" />
             </div>
             <div className="flex items-center gap-0.5 sm:gap-1">
-              <div className="w-3 h-3 bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 rounded animate-shimmer bg-[length:200%_100%]" />
-              <div className="h-4 w-20 sm:w-28 bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 rounded animate-shimmer bg-[length:200%_100%]" />
+              <div className="w-3 h-3 bg-linear-to-r from-gray-200 via-gray-100 to-gray-200 rounded animate-shimmer bg-size-[200%_100%]" />
+              <div className="h-4 w-20 sm:w-28 bg-linear-to-r from-gray-200 via-gray-100 to-gray-200 rounded animate-shimmer bg-size-[200%_100%]" />
             </div>
           </div>
 
           {/* Description skeleton - 2 lines */}
           <div className="space-y-1.5 sm:space-y-2 mb-2 sm:mb-3">
-            <div className="h-3 sm:h-4 bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 rounded animate-shimmer bg-[length:200%_100%] w-full" />
-            <div className="h-3 sm:h-4 bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 rounded animate-shimmer bg-[length:200%_100%] w-3/4" />
+            <div className="h-3 sm:h-4 bg-linear-to-r from-gray-200 via-gray-100 to-gray-200 rounded animate-shimmer bg-size-[200%_100%] w-full" />
+            <div className="h-3 sm:h-4 bg-linear-to-r from-gray-200 via-gray-100 to-gray-200 rounded animate-shimmer bg-size-[200%_100%] w-3/4" />
           </div>
 
           {/* Deadline skeleton */}
           <div className="flex flex-wrap gap-1.5 sm:gap-3">
             <div className="flex items-center gap-0.5 sm:gap-1 px-1.5 sm:px-2 py-0.5 rounded-full bg-gray-100">
-              <div className="w-3 h-3 bg-gradient-to-r from-gray-300 via-gray-200 to-gray-300 rounded animate-shimmer bg-[length:200%_100%]" />
-              <div className="h-3 w-16 sm:w-20 bg-gradient-to-r from-gray-300 via-gray-200 to-gray-300 rounded animate-shimmer bg-[length:200%_100%]" />
+              <div className="w-3 h-3 bg-linear-to-r from-gray-300 via-gray-200 to-gray-300 rounded animate-shimmer bg-size-[200%_100%]" />
+              <div className="h-3 w-16 sm:w-20 bg-linear-to-r from-gray-300 via-gray-200 to-gray-300 rounded animate-shimmer bg-size-[200%_100%]" />
             </div>
           </div>
         </div>
@@ -93,25 +93,25 @@ const JobSkeletonCard = () => (
           <div className="flex gap-2 sm:gap-3">
             <div className="text-center">
               <div className="flex items-center gap-0.5 sm:gap-1">
-                <div className="w-3 h-3 bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 rounded animate-shimmer bg-[length:200%_100%]" />
-                <div className="h-4 w-6 bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 rounded animate-shimmer bg-[length:200%_100%]" />
+                <div className="w-3 h-3 bg-linear-to-r from-gray-200 via-gray-100 to-gray-200 rounded animate-shimmer bg-size-[200%_100%]" />
+                <div className="h-4 w-6 bg-linear-to-r from-gray-200 via-gray-100 to-gray-200 rounded animate-shimmer bg-size-[200%_100%]" />
               </div>
-              <div className="h-2 w-8 sm:w-10 bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 rounded animate-shimmer bg-[length:200%_100%] mt-0.5" />
+              <div className="h-2 w-8 sm:w-10 bg-linear-to-r from-gray-200 via-gray-100 to-gray-200 rounded animate-shimmer bg-size-[200%_100%] mt-0.5" />
             </div>
             <div className="text-center">
               <div className="flex items-center gap-0.5 sm:gap-1">
-                <div className="w-3 h-3 bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 rounded animate-shimmer bg-[length:200%_100%]" />
-                <div className="h-4 w-6 bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 rounded animate-shimmer bg-[length:200%_100%]" />
+                <div className="w-3 h-3 bg-linear-to-r from-gray-200 via-gray-100 to-gray-200 rounded animate-shimmer bg-size-[200%_100%]" />
+                <div className="h-4 w-6 bg-linear-to-r from-gray-200 via-gray-100 to-gray-200 rounded animate-shimmer bg-size-[200%_100%]" />
               </div>
-              <div className="h-2 w-8 sm:w-10 bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 rounded animate-shimmer bg-[length:200%_100%] mt-0.5" />
+              <div className="h-2 w-8 sm:w-10 bg-linear-to-r from-gray-200 via-gray-100 to-gray-200 rounded animate-shimmer bg-size-[200%_100%] mt-0.5" />
             </div>
           </div>
 
           {/* Action buttons skeleton */}
           <div className="flex flex-wrap items-center gap-1 sm:gap-2">
-            <div className="w-7 h-7 sm:w-9 sm:h-9 bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 rounded-lg animate-shimmer bg-[length:200%_100%]" />
-            <div className="w-7 h-7 sm:w-9 sm:h-9 bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 rounded-lg animate-shimmer bg-[length:200%_100%]" />
-            <div className="w-16 sm:w-24 h-7 sm:h-9 bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 rounded-lg animate-shimmer bg-[length:200%_100%]" />
+            <div className="w-7 h-7 sm:w-9 sm:h-9 bg-linear-to-r from-gray-200 via-gray-100 to-gray-200 rounded-lg animate-shimmer bg-size-[200%_100%]" />
+            <div className="w-7 h-7 sm:w-9 sm:h-9 bg-linear-to-r from-gray-200 via-gray-100 to-gray-200 rounded-lg animate-shimmer bg-size-[200%_100%]" />
+            <div className="w-16 sm:w-24 h-7 sm:h-9 bg-linear-to-r from-gray-200 via-gray-100 to-gray-200 rounded-lg animate-shimmer bg-size-[200%_100%]" />
           </div>
         </div>
       </div>
@@ -127,43 +127,43 @@ const JobSkeletonCardCompact = () => (
         {/* Title and badge skeleton */}
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1">
-            <div className="h-5 w-3/4 bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 rounded-lg animate-shimmer bg-[length:200%_100%] mb-1.5" />
+            <div className="h-5 w-3/4 bg-linear-to-r from-gray-200 via-gray-100 to-gray-200 rounded-lg animate-shimmer bg-size-[200%_100%] mb-1.5" />
             <div className="flex flex-wrap gap-1">
-              <div className="h-4 w-12 bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 rounded-full animate-shimmer bg-[length:200%_100%]" />
-              <div className="h-4 w-10 bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 rounded-full animate-shimmer bg-[length:200%_100%]" />
+              <div className="h-4 w-12 bg-linear-to-r from-gray-200 via-gray-100 to-gray-200 rounded-full animate-shimmer bg-size-[200%_100%]" />
+              <div className="h-4 w-10 bg-linear-to-r from-gray-200 via-gray-100 to-gray-200 rounded-full animate-shimmer bg-size-[200%_100%]" />
             </div>
           </div>
           <div className="flex gap-1.5">
-            <div className="w-7 h-7 bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 rounded-lg animate-shimmer bg-[length:200%_100%]" />
-            <div className="w-7 h-7 bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 rounded-lg animate-shimmer bg-[length:200%_100%]" />
+            <div className="w-7 h-7 bg-linear-to-r from-gray-200 via-gray-100 to-gray-200 rounded-lg animate-shimmer bg-size-[200%_100%]" />
+            <div className="w-7 h-7 bg-linear-to-r from-gray-200 via-gray-100 to-gray-200 rounded-lg animate-shimmer bg-size-[200%_100%]" />
           </div>
         </div>
 
         {/* Company and location skeleton */}
         <div className="flex flex-wrap gap-2">
           <div className="flex items-center gap-1">
-            <div className="w-3 h-3 bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 rounded animate-shimmer bg-[length:200%_100%]" />
-            <div className="h-3 w-16 bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 rounded animate-shimmer bg-[length:200%_100%]" />
+            <div className="w-3 h-3 bg-linear-to-r from-gray-200 via-gray-100 to-gray-200 rounded animate-shimmer bg-size-[200%_100%]" />
+            <div className="h-3 w-16 bg-linear-to-r from-gray-200 via-gray-100 to-gray-200 rounded animate-shimmer bg-size-[200%_100%]" />
           </div>
           <div className="flex items-center gap-1">
-            <div className="w-3 h-3 bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 rounded animate-shimmer bg-[length:200%_100%]" />
-            <div className="h-3 w-20 bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 rounded animate-shimmer bg-[length:200%_100%]" />
+            <div className="w-3 h-3 bg-linear-to-r from-gray-200 via-gray-100 to-gray-200 rounded animate-shimmer bg-size-[200%_100%]" />
+            <div className="h-3 w-20 bg-linear-to-r from-gray-200 via-gray-100 to-gray-200 rounded animate-shimmer bg-size-[200%_100%]" />
           </div>
         </div>
 
         {/* Description skeleton */}
         <div className="space-y-1">
-          <div className="h-3 bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 rounded animate-shimmer bg-[length:200%_100%] w-full" />
-          <div className="h-3 bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 rounded animate-shimmer bg-[length:200%_100%] w-2/3" />
+          <div className="h-3 bg-linear-to-r from-gray-200 via-gray-100 to-gray-200 rounded animate-shimmer bg-size-[200%_100%] w-full" />
+          <div className="h-3 bg-linear-to-r from-gray-200 via-gray-100 to-gray-200 rounded animate-shimmer bg-size-[200%_100%] w-2/3" />
         </div>
 
         {/* Footer skeleton */}
         <div className="flex items-center justify-between mt-1">
           <div className="flex items-center gap-1">
-            <div className="w-3 h-3 bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 rounded animate-shimmer bg-[length:200%_100%]" />
-            <div className="h-3 w-14 bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 rounded animate-shimmer bg-[length:200%_100%]" />
+            <div className="w-3 h-3 bg-linear-to-r from-gray-200 via-gray-100 to-gray-200 rounded animate-shimmer bg-size-[200%_100%]" />
+            <div className="h-3 w-14 bg-linear-to-r from-gray-200 via-gray-100 to-gray-200 rounded animate-shimmer bg-size-[200%_100%]" />
           </div>
-          <div className="h-6 w-20 bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 rounded-lg animate-shimmer bg-[length:200%_100%]" />
+          <div className="h-6 w-20 bg-linear-to-r from-gray-200 via-gray-100 to-gray-200 rounded-lg animate-shimmer bg-size-[200%_100%]" />
         </div>
       </div>
     </div>
@@ -189,16 +189,16 @@ const JobSkeleton = ({ count = 3, compact = false }) => (
 const FilterSkeleton = () => (
   <div className="bg-white rounded-xl shadow-md p-4 sm:p-5 space-y-4 sm:space-y-5">
     <div className="flex items-center justify-between">
-      <div className="h-5 w-16 bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 rounded animate-shimmer bg-[length:200%_100%]" />
-      <div className="h-4 w-16 bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 rounded animate-shimmer bg-[length:200%_100%]" />
+      <div className="h-5 w-16 bg-linear-to-r from-gray-200 via-gray-100 to-gray-200 rounded animate-shimmer bg-size-[200%_100%]" />
+      <div className="h-4 w-16 bg-linear-to-r from-gray-200 via-gray-100 to-gray-200 rounded animate-shimmer bg-size-[200%_100%]" />
     </div>
     {[1, 2, 3, 4].map((i) => (
       <div key={i} className="space-y-1.5">
-        <div className="h-4 w-24 bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 rounded animate-shimmer bg-[length:200%_100%]" />
-        <div className="h-9 w-full bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 rounded-lg animate-shimmer bg-[length:200%_100%]" />
+        <div className="h-4 w-24 bg-linear-to-r from-gray-200 via-gray-100 to-gray-200 rounded animate-shimmer bg-size-[200%_100%]" />
+        <div className="h-9 w-full bg-linear-to-r from-gray-200 via-gray-100 to-gray-200 rounded-lg animate-shimmer bg-size-[200%_100%]" />
       </div>
     ))}
-    <div className="h-9 w-full bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 rounded-lg animate-shimmer bg-[length:200%_100%]" />
+    <div className="h-9 w-full bg-linear-to-r from-gray-200 via-gray-100 to-gray-200 rounded-lg animate-shimmer bg-size-[200%_100%]" />
   </div>
 );
 
@@ -207,10 +207,10 @@ const SearchSkeleton = () => (
   <div className="max-w-2xl mx-auto">
     <div className="relative">
       <div className="absolute left-3 sm:left-4 top-1/2 transform -translate-y-1/2">
-        <div className="w-4 h-4 bg-gradient-to-r from-gray-300 via-gray-200 to-gray-300 rounded animate-shimmer bg-[length:200%_100%]" />
+        <div className="w-4 h-4 bg-linear-to-r from-gray-300 via-gray-200 to-gray-300 rounded animate-shimmer bg-size-[200%_100%]" />
       </div>
       <div className="w-full bg-white pl-9 sm:pl-12 pr-3 sm:pr-4 py-2.5 sm:py-3 rounded-xl shadow-lg">
-        <div className="h-5 w-full bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 rounded animate-shimmer bg-[length:200%_100%]" />
+        <div className="h-5 w-full bg-linear-to-r from-gray-200 via-gray-100 to-gray-200 rounded animate-shimmer bg-size-[200%_100%]" />
       </div>
     </div>
   </div>
@@ -219,9 +219,9 @@ const SearchSkeleton = () => (
 // Stats skeleton
 const StatsSkeleton = () => (
   <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-4">
-    <div className="h-4 w-32 bg-gradient-to-r from-gray-300 via-gray-200 to-gray-300 rounded animate-shimmer bg-[length:200%_100%]" />
-    <div className="h-4 w-36 bg-gradient-to-r from-gray-300 via-gray-200 to-gray-300 rounded animate-shimmer bg-[length:200%_100%]" />
-    <div className="h-4 w-40 bg-gradient-to-r from-gray-300 via-gray-200 to-gray-300 rounded animate-shimmer bg-[length:200%_100%]" />
+    <div className="h-4 w-32 bg-linear-to-r from-gray-300 via-gray-200 to-gray-300 rounded animate-shimmer bg-size-[200%_100%]" />
+    <div className="h-4 w-36 bg-linear-to-r from-gray-300 via-gray-200 to-gray-300 rounded animate-shimmer bg-size-[200%_100%]" />
+    <div className="h-4 w-40 bg-linear-to-r from-gray-300 via-gray-200 to-gray-300 rounded animate-shimmer bg-size-[200%_100%]" />
   </div>
 );
 

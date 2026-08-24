@@ -107,7 +107,7 @@ const HomeBanner = ({
           <div className={`absolute inset-0 ${overlay.darkOverlay}`} />
         )}
 
-        {/* Gradient overlay (e.g., 'bg-gradient-to-r from-black/80 to-transparent') */}
+        {/* Gradient overlay (e.g., 'bg-linear-to-r from-black/80 to-transparent') */}
         {hasValue(overlay.gradient) && (
           <div className={`absolute inset-0 ${overlay.gradient}`} />
         )}
