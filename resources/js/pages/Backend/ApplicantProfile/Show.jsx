@@ -1,4 +1,3 @@
- 
 // pages/Backend/ApplicantProfile/Show.jsx
 
 // React
@@ -307,11 +306,9 @@ export default function Show({ profile }) {
 
   // Go back 
   const handleGoBack = () => {
-    // Check if there's a previous page in history
     if (window.history.length > 1) {
       window.history.back();
     } else {
-      // Fallback to profiles list
       router.visit(route('backend.applicant-profile.index'));
     }
   };
@@ -357,17 +354,16 @@ export default function Show({ profile }) {
     <AuthenticatedLayout>
       <Head title={`${profile.first_name} ${profile.last_name} - Profile`} />
 
-      <div className="min-h-screen bg-gray-50 py-8">
-        <div className=" mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="min-h-screen bg-gray-50 py-4">
+        <div className="mx-auto">
 
           {/* Header with Back Button for Admin */}
-          <div className="mb-6">
-            {/* Back button for admin view */}
+          <div className="mb-4 sm:mb-6">
             {!isOwner && hasAdminRole && (
-              <div className="mb-4">
+              <div className="mb-3 sm:mb-4">
                 <button
                   onClick={handleGoBack}
-                  className="inline-flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-all duration-200 group"
+                  className="inline-flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 text-sm sm:text-base text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-all duration-200 group"
                 >
                   <FaArrowLeft className="group-hover:-translate-x-1 transition-transform duration-200" size={16} />
                   Back to Profiles
@@ -375,24 +371,28 @@ export default function Show({ profile }) {
               </div>
             )}
 
-            <div className="flex justify-between items-center flex-wrap gap-3">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4">
+
+              {/* Header */}
               <div>
-                <h1 className="text-3xl font-bold text-gray-900">
+                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 text-center">
                   {isOwner ? 'My Profile' : `${profile.first_name}'s Profile`}
                 </h1>
                 {!isOwner && (
-                  <p className="text-sm text-gray-500 mt-1 flex items-center gap-1">
+                  <p className="text-xs sm:text-sm text-gray-500 mt-1 flex items-center gap-1">
                     <FaInfoCircle size={12} />
                     Viewing profile as {isSuperAdmin ? 'Super Admin' : isAdmin ? 'Admin' : 'administrator'}
                   </p>
                 )}
               </div>
-              <div className="flex gap-3 flex-wrap">
+
+              {/* Buttons */}
+              <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
                 {/* Change Password - Only show for profile owner (non-OAuth) */}
                 {!isDeleted && !isOauthUser && isOwner && (
                   <button
                     onClick={() => openModal('change-password')}
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition"
+                    className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition text-sm sm:text-base w-full sm:w-auto"
                   >
                     <FaUser size={16} />
                     Change Password
@@ -404,7 +404,7 @@ export default function Show({ profile }) {
                   <button
                     onClick={handleRestore}
                     disabled={restoring}
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
+                    className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 text-sm sm:text-base w-full sm:w-auto"
                   >
                     {restoring ? <FaSpinner className="animate-spin" size={16} /> : <FaTrashRestore size={16} />}
                     Restore Profile
@@ -415,7 +415,7 @@ export default function Show({ profile }) {
                     {isOwner && (
                       <Link
                         href={route('backend.apply.index')}
-                        className="inline-flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition"
+                        className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition text-sm sm:text-base w-full sm:w-auto"
                       >
                         <FaFileAlt size={16} />
                         My Applications ({stats.total_applications || 0})
@@ -427,7 +427,7 @@ export default function Show({ profile }) {
                       <button
                         onClick={handleDelete}
                         disabled={deleting}
-                        className="inline-flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50"
+                        className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 text-sm sm:text-base w-full sm:w-auto"
                       >
                         {deleting ? <FaSpinner className="animate-spin" size={16} /> : <FaTrash size={16} />}
                         Delete
@@ -441,10 +441,10 @@ export default function Show({ profile }) {
 
           {/* View-Only Banner */}
           {!isOwner && !isDeleted && (
-            <div className="mb-6 bg-blue-50 border-l-4 border-blue-400 p-4 rounded-lg">
+            <div className="mb-4 sm:mb-6 bg-blue-50 border-l-4 border-blue-400 p-3 sm:p-4 rounded-lg">
               <div className="flex items-center">
-                <FaInfoCircle className="h-5 w-5 text-blue-400 mr-3" />
-                <p className="text-sm text-blue-700">
+                <FaInfoCircle className="h-5 w-5 text-blue-400 mr-3 shrink-0" />
+                <p className="text-xs sm:text-sm text-blue-700">
                   You are viewing <span className="font-semibold">{profile.first_name}'s</span> profile. Edit buttons are disabled as this is not your profile.
                 </p>
               </div>
@@ -453,10 +453,10 @@ export default function Show({ profile }) {
 
           {/* Deleted Banner */}
           {isDeleted && (
-            <div className="mb-6 bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-lg">
+            <div className="mb-4 sm:mb-6 bg-yellow-50 border-l-4 border-yellow-400 p-3 sm:p-4 rounded-lg">
               <div className="flex items-center">
-                <FaExclamationTriangle className="h-5 w-5 text-yellow-400 mr-3" />
-                <p className="text-sm text-yellow-700">
+                <FaExclamationTriangle className="h-5 w-5 text-yellow-400 mr-3 shrink-0" />
+                <p className="text-xs sm:text-sm text-yellow-700">
                   This profile has been deleted. {isOwner ? 'You can restore it to continue using your profile.' : 'Only administrators can restore it.'}
                 </p>
               </div>
@@ -467,34 +467,34 @@ export default function Show({ profile }) {
           <div className={`bg-white rounded-xl shadow-lg overflow-hidden ${isDeleted ? 'opacity-75' : ''}`}>
 
             {/* Banner */}
-            <div className={`h-32 ${isDeleted ? 'bg-gray-400' : 'bg-linear-to-r from-blue-600 to-blue-700'}`} />
+            <div className={`h-20 sm:h-32 ${isDeleted ? 'bg-gray-400' : 'bg-linear-to-r from-blue-600 to-blue-700'}`} />
 
             {/* Content */}
-            <div className="px-6 pb-6">
+            <div className="px-4 pb-4 sm:px-6 sm:pb-6">
 
               {/* Profile Photo */}
-              <div className="flex justify-center -mt-16 mb-4">
+              <div className="flex justify-center -mt-12 sm:-mt-16 mb-3 sm:mb-4">
                 {profile.photo_url && !isDeleted && !imgError ? (
                   <img
                     src={profile.photo_url}
                     alt={profile.full_name}
                     onError={() => setImgError(true)}
-                    className="w-32 h-32 rounded-full object-cover border-4 border-white shadow-lg"
+                    className="w-24 h-24 sm:w-32 sm:h-32 rounded-full object-cover border-4 border-white shadow-lg"
                   />
                 ) : (
-                  <div className="w-32 h-32 rounded-full bg-gray-200 border-4 border-white shadow-lg flex items-center justify-center">
-                    <FaUser className="text-gray-400 text-5xl" />
+                  <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-full bg-gray-200 border-4 border-white shadow-lg flex items-center justify-center">
+                    <FaUser className="text-gray-400 text-4xl sm:text-5xl" />
                   </div>
                 )}
               </div>
 
               {/* Name & Title */}
-              <div className="text-center mb-6">
-                <h2 className="text-2xl font-bold text-gray-900">{profile.full_name}</h2>
+              <div className="text-center mb-4 sm:mb-6">
+                <h2 className="text-xl sm:text-2xl font-bold text-gray-900">{profile.full_name}</h2>
                 {profile.current_job_title && (
-                  <p className="text-gray-600 text-sm mt-1">{profile.current_job_title}</p>
+                  <p className="text-gray-600 text-xs sm:text-sm mt-1">{profile.current_job_title}</p>
                 )}
-                <p className="text-gray-500 text-sm mt-1">Job Seeker</p>
+                <p className="text-gray-500 text-xs sm:text-sm mt-1">Job Seeker</p>
                 {isDeleted && (
                   <span className="inline-block mt-2 px-2 py-1 bg-red-100 text-red-600 text-xs rounded-full">
                     Deleted
@@ -508,16 +508,16 @@ export default function Show({ profile }) {
               </div>
 
               {/* Basic Information */}
-              <div className="border-t pt-6 mb-6">
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+              <div className="border-t pt-4 sm:pt-6 mb-4 sm:mb-6">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-3 sm:mb-4">
+                  <h3 className="text-base sm:text-lg font-semibold text-gray-900 flex items-center gap-2">
                     <FaUser className="text-blue-600" />
                     Basic Information
                   </h3>
                   {!isDeleted && canEditProfile && (
                     <button
                       onClick={() => openModal('basic')}
-                      className="text-blue-600 hover:text-blue-700 flex items-center gap-1 text-sm"
+                      className="text-blue-600 hover:text-blue-700 flex items-center gap-1 text-xs sm:text-sm"
                     >
                       <FaEdit size={14} /> Edit
                     </button>
@@ -526,7 +526,7 @@ export default function Show({ profile }) {
                     <div className="relative group">
                       <button
                         disabled
-                        className="text-gray-400 flex items-center gap-1 text-sm cursor-not-allowed"
+                        className="text-gray-400 flex items-center gap-1 text-xs sm:text-sm cursor-not-allowed"
                       >
                         <FaEdit size={14} /> Edit
                       </button>
@@ -539,26 +539,26 @@ export default function Show({ profile }) {
                   )}
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                    <MdEmail className="text-blue-600" size={18} />
-                    <div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+                  <div className="flex items-center gap-3 p-2 sm:p-3 bg-gray-50 rounded-lg">
+                    <MdEmail className="text-blue-600 shrink-0" size={18} />
+                    <div className="min-w-0">
                       <p className="text-xs text-gray-500">Email</p>
                       <p className="text-sm font-medium text-gray-900 break-all">{profile?.email}</p>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                    <FaPhone className="text-blue-600" size={18} />
-                    <div>
+                  <div className="flex items-center gap-3 p-2 sm:p-3 bg-gray-50 rounded-lg">
+                    <FaPhone className="text-blue-600 shrink-0" size={18} />
+                    <div className="min-w-0">
                       <p className="text-xs text-gray-500">Phone</p>
                       <p className="text-sm font-medium text-gray-900">{profile.phone || 'Not specified'}</p>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                    <FaBirthdayCake className="text-blue-600" size={18} />
-                    <div>
+                  <div className="flex items-center gap-3 p-2 sm:p-3 bg-gray-50 rounded-lg">
+                    <FaBirthdayCake className="text-blue-600 shrink-0" size={18} />
+                    <div className="min-w-0">
                       <p className="text-xs text-gray-500">Birth Date</p>
                       <p className="text-sm font-medium text-gray-900">
                         {profile.birth_date ? `${formatDate(profile.birth_date)}${age ? ` (${age} years)` : ''}` : 'Not specified'}
@@ -566,25 +566,25 @@ export default function Show({ profile }) {
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                    <FaVenusMars className="text-blue-600" size={18} />
-                    <div>
+                  <div className="flex items-center gap-3 p-2 sm:p-3 bg-gray-50 rounded-lg">
+                    <FaVenusMars className="text-blue-600 shrink-0" size={18} />
+                    <div className="min-w-0">
                       <p className="text-xs text-gray-500">Gender</p>
                       <p className="text-sm font-medium text-gray-900">{profile.gender || 'Not specified'}</p>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                    <MdOutlineBloodtype className="text-red-500" size={18} />
-                    <div>
+                  <div className="flex items-center gap-3 p-2 sm:p-3 bg-gray-50 rounded-lg">
+                    <MdOutlineBloodtype className="text-red-500 shrink-0" size={18} />
+                    <div className="min-w-0">
                       <p className="text-xs text-gray-500">Blood Type</p>
                       <p className="text-sm font-medium text-gray-900">{profile.blood_type || 'Not specified'}</p>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                    <FaMapMarkerAlt className="text-blue-600" size={18} />
-                    <div>
+                  <div className="flex items-center gap-3 p-2 sm:p-3 bg-gray-50 rounded-lg">
+                    <FaMapMarkerAlt className="text-blue-600 shrink-0" size={18} />
+                    <div className="min-w-0">
                       <p className="text-xs text-gray-500">Address</p>
                       <p className="text-sm font-medium text-gray-900">{profile.address || 'Not specified'}</p>
                     </div>
@@ -593,16 +593,16 @@ export default function Show({ profile }) {
               </div>
 
               {/* Professional Information */}
-              <div className="border-t pt-6 mb-6">
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+              <div className="border-t pt-4 sm:pt-6 mb-4 sm:mb-6">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-3 sm:mb-4">
+                  <h3 className="text-base sm:text-lg font-semibold text-gray-900 flex items-center gap-2">
                     <FaBriefcase className="text-purple-600" />
                     Professional Information
                   </h3>
                   {!isDeleted && canEditProfile && (
                     <button
                       onClick={() => openModal('professional')}
-                      className="text-purple-600 hover:text-purple-700 flex items-center gap-1 text-sm"
+                      className="text-purple-600 hover:text-purple-700 flex items-center gap-1 text-xs sm:text-sm"
                     >
                       <FaEdit size={14} /> Edit
                     </button>
@@ -611,7 +611,7 @@ export default function Show({ profile }) {
                     <div className="relative group">
                       <button
                         disabled
-                        className="text-gray-400 flex items-center gap-1 text-sm cursor-not-allowed"
+                        className="text-gray-400 flex items-center gap-1 text-xs sm:text-sm cursor-not-allowed"
                       >
                         <FaEdit size={14} /> Edit
                       </button>
@@ -625,18 +625,18 @@ export default function Show({ profile }) {
                 </div>
 
                 {(!profile.experience_years && profile.experience_years !== 0) && !profile.current_job_title && (!profile.social_links || Object.keys(profile.social_links).length === 0) ? (
-                  <div className="text-center py-8 bg-gray-50 rounded-lg">
-                    <FaBriefcase className="h-12 w-12 text-gray-300 mx-auto mb-2" />
-                    <p className="text-gray-500">No professional information added yet</p>
+                  <div className="text-center py-6 sm:py-8 bg-gray-50 rounded-lg">
+                    <FaBriefcase className="h-10 w-10 sm:h-12 sm:w-12 text-gray-300 mx-auto mb-2" />
+                    <p className="text-sm sm:text-base text-gray-500">No professional information added yet</p>
                   </div>
                 ) : (
                   <>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                      <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                        <div className="p-2 bg-purple-100 rounded-lg">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-3 sm:mb-4">
+                      <div className="flex items-center gap-3 p-2 sm:p-3 bg-gray-50 rounded-lg">
+                        <div className="p-2 bg-purple-100 rounded-lg shrink-0">
                           <FaChartLine className="text-purple-600" size={18} />
                         </div>
-                        <div>
+                        <div className="min-w-0">
                           <p className="text-xs text-gray-500">Years of Experience</p>
                           <p className="text-sm font-medium text-gray-900">
                             {profile.experience_years !== null && profile.experience_years !== undefined
@@ -646,11 +646,11 @@ export default function Show({ profile }) {
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                        <div className="p-2 bg-purple-100 rounded-lg">
+                      <div className="flex items-center gap-3 p-2 sm:p-3 bg-gray-50 rounded-lg">
+                        <div className="p-2 bg-purple-100 rounded-lg shrink-0">
                           <FaUserTie className="text-purple-600" size={18} />
                         </div>
-                        <div>
+                        <div className="min-w-0">
                           <p className="text-xs text-gray-500">Current Job Title</p>
                           <p className="text-sm font-medium text-gray-900">{profile.current_job_title || 'Not specified'}</p>
                         </div>
@@ -659,12 +659,12 @@ export default function Show({ profile }) {
 
                     {/* Social Links */}
                     {profile.social_links && Object.keys(profile.social_links).length > 0 && (
-                      <div className="mt-4">
-                        <p className="text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+                      <div className="mt-3 sm:mt-4">
+                        <p className="text-xs sm:text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
                           <FaLink className="h-4 w-4 text-gray-400" />
                           Social Links
                         </p>
-                        <div className="flex flex-wrap gap-3">
+                        <div className="flex flex-wrap gap-2 sm:gap-3">
                           {Object.entries(profile.social_links).map(([platform, url]) => {
                             const platformConfig = {
                               linkedin: { icon: FaLinkedin, color: "text-blue-600", bg: "bg-blue-50", name: "LinkedIn" },
@@ -686,10 +686,10 @@ export default function Show({ profile }) {
                                 href={url}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className={`flex items-center gap-2 px-3 py-2 ${config.bg} rounded-lg hover:shadow-md transition-all group`}
+                                className={`flex items-center gap-2 px-2 py-1.5 sm:px-3 sm:py-2 ${config.bg} rounded-lg hover:shadow-md transition-all group text-xs sm:text-sm`}
                               >
                                 <Icon className={`${config.color} transition-transform group-hover:scale-110`} size={16} />
-                                <span className="text-sm text-gray-700 capitalize font-medium">{config.name}</span>
+                                <span className="text-gray-700 capitalize font-medium">{config.name}</span>
                               </a>
                             );
                           })}
@@ -701,16 +701,16 @@ export default function Show({ profile }) {
               </div>
 
               {/* Work Experience */}
-              <div className="border-t pt-6 mb-6">
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+              <div className="border-t pt-4 sm:pt-6 mb-4 sm:mb-6">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-3 sm:mb-4">
+                  <h3 className="text-base sm:text-lg font-semibold text-gray-900 flex items-center gap-2">
                     <FaBriefcase className="text-orange-600" />
                     Work Experience ({profile.job_histories?.length || 0})
                   </h3>
                   {!isDeleted && canEditProfile && (
                     <button
                       onClick={() => openModal('work')}
-                      className="text-orange-600 hover:text-orange-700 flex items-center gap-1 text-sm"
+                      className="text-orange-600 hover:text-orange-700 flex items-center gap-1 text-xs sm:text-sm"
                     >
                       <FaEdit size={14} /> Edit
                     </button>
@@ -719,7 +719,7 @@ export default function Show({ profile }) {
                     <div className="relative group">
                       <button
                         disabled
-                        className="text-gray-400 flex items-center gap-1 text-sm cursor-not-allowed"
+                        className="text-gray-400 flex items-center gap-1 text-xs sm:text-sm cursor-not-allowed"
                       >
                         <FaEdit size={14} /> Edit
                       </button>
@@ -732,14 +732,14 @@ export default function Show({ profile }) {
                   )}
                 </div>
                 {profile.job_histories && profile.job_histories.length > 0 ? (
-                  <div className="space-y-4">
+                  <div className="space-y-3 sm:space-y-4">
                     {profile.job_histories.map((job, index) => (
-                      <div key={job.id || index} className="p-4 bg-gray-50 rounded-lg">
-                        <div className="flex justify-between items-start mb-2 flex-wrap gap-2">
+                      <div key={job.id || index} className="p-3 sm:p-4 bg-gray-50 rounded-lg">
+                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-2">
                           <div>
-                            <h4 className="font-semibold text-gray-900">{job.position}</h4>
-                            <p className="text-sm text-gray-600 flex items-center gap-1 mt-1">
-                              <FaBuilding className="h-3 w-3 text-gray-400" />
+                            <h4 className="font-semibold text-gray-900 text-sm sm:text-base">{job.position}</h4>
+                            <p className="text-xs sm:text-sm text-gray-600 flex items-center gap-1 mt-1">
+                              <FaBuilding className="h-3 w-3 text-gray-400 shrink-0" />
                               {job.company_name}
                             </p>
                           </div>
@@ -757,24 +757,24 @@ export default function Show({ profile }) {
                     ))}
                   </div>
                 ) : (
-                  <div className="text-center py-8 bg-gray-50 rounded-lg">
-                    <FaBriefcase className="h-12 w-12 text-gray-300 mx-auto mb-2" />
-                    <p className="text-gray-500">No work experience added yet</p>
+                  <div className="text-center py-6 sm:py-8 bg-gray-50 rounded-lg">
+                    <FaBriefcase className="h-10 w-10 sm:h-12 sm:w-12 text-gray-300 mx-auto mb-2" />
+                    <p className="text-sm sm:text-base text-gray-500">No work experience added yet</p>
                   </div>
                 )}
               </div>
 
               {/* Education */}
-              <div className="border-t pt-6 mb-6">
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+              <div className="border-t pt-4 sm:pt-6 mb-4 sm:mb-6">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-3 sm:mb-4">
+                  <h3 className="text-base sm:text-lg font-semibold text-gray-900 flex items-center gap-2">
                     <MdSchool className="text-green-600" />
                     Education ({profile.education_histories?.length || 0})
                   </h3>
                   {!isDeleted && canEditProfile && (
                     <button
                       onClick={() => openModal('education')}
-                      className="text-green-600 hover:text-green-700 flex items-center gap-1 text-sm"
+                      className="text-green-600 hover:text-green-700 flex items-center gap-1 text-xs sm:text-sm"
                     >
                       <FaEdit size={14} /> Edit
                     </button>
@@ -783,7 +783,7 @@ export default function Show({ profile }) {
                     <div className="relative group">
                       <button
                         disabled
-                        className="text-gray-400 flex items-center gap-1 text-sm cursor-not-allowed"
+                        className="text-gray-400 flex items-center gap-1 text-xs sm:text-sm cursor-not-allowed"
                       >
                         <FaEdit size={14} /> Edit
                       </button>
@@ -796,34 +796,34 @@ export default function Show({ profile }) {
                   )}
                 </div>
                 {profile.education_histories && profile.education_histories.length > 0 ? (
-                  <div className="space-y-4">
+                  <div className="space-y-3 sm:space-y-4">
                     {profile.education_histories.map((edu, index) => (
-                      <div key={edu.id || index} className="p-4 bg-gray-50 rounded-lg">
-                        <h4 className="font-semibold text-gray-900">{edu.degree}</h4>
-                        <p className="text-sm text-gray-600 mt-1">{edu.institution_name}</p>
+                      <div key={edu.id || index} className="p-3 sm:p-4 bg-gray-50 rounded-lg">
+                        <h4 className="font-semibold text-gray-900 text-sm sm:text-base">{edu.degree}</h4>
+                        <p className="text-xs sm:text-sm text-gray-600 mt-1">{edu.institution_name}</p>
                         <p className="text-xs text-gray-500 mt-2">Passing Year: {edu.passing_year}</p>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <div className="text-center py-8 bg-gray-50 rounded-lg">
-                    <MdSchool className="h-12 w-12 text-gray-300 mx-auto mb-2" />
-                    <p className="text-gray-500">No education added yet</p>
+                  <div className="text-center py-6 sm:py-8 bg-gray-50 rounded-lg">
+                    <MdSchool className="h-10 w-10 sm:h-12 sm:w-12 text-gray-300 mx-auto mb-2" />
+                    <p className="text-sm sm:text-base text-gray-500">No education added yet</p>
                   </div>
                 )}
               </div>
 
               {/* Achievements */}
-              <div className="border-t pt-6 mb-6">
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+              <div className="border-t pt-4 sm:pt-6 mb-4 sm:mb-6">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-3 sm:mb-4">
+                  <h3 className="text-base sm:text-lg font-semibold text-gray-900 flex items-center gap-2">
                     <FaTrophy className="text-yellow-600" />
                     Achievements & Certifications ({profile.achievements?.length || 0})
                   </h3>
                   {!isDeleted && canEditProfile && (
                     <button
                       onClick={() => openModal('achievements')}
-                      className="text-yellow-600 hover:text-yellow-700 flex items-center gap-1 text-sm"
+                      className="text-yellow-600 hover:text-yellow-700 flex items-center gap-1 text-xs sm:text-sm"
                     >
                       <FaEdit size={14} /> Edit
                     </button>
@@ -832,7 +832,7 @@ export default function Show({ profile }) {
                     <div className="relative group">
                       <button
                         disabled
-                        className="text-gray-400 flex items-center gap-1 text-sm cursor-not-allowed"
+                        className="text-gray-400 flex items-center gap-1 text-xs sm:text-sm cursor-not-allowed"
                       >
                         <FaEdit size={14} /> Edit
                       </button>
@@ -845,38 +845,38 @@ export default function Show({ profile }) {
                   )}
                 </div>
                 {profile.achievements && profile.achievements.length > 0 ? (
-                  <div className="space-y-4">
+                  <div className="space-y-3 sm:space-y-4">
                     {profile.achievements.map((achievement, index) => (
-                      <div key={achievement.id || index} className="p-4 bg-yellow-50 rounded-lg border border-yellow-100">
-                        <h4 className="font-semibold text-gray-900 flex items-center gap-2">
+                      <div key={achievement.id || index} className="p-3 sm:p-4 bg-yellow-50 rounded-lg border border-yellow-100">
+                        <h4 className="font-semibold text-gray-900 flex items-center gap-2 text-sm sm:text-base">
                           <FaTrophy className="text-yellow-600" size={16} />
                           {achievement.achievement_name}
                         </h4>
                         {achievement.achievement_details && (
-                          <p className="text-sm text-gray-600 mt-2 ml-6">{achievement.achievement_details}</p>
+                          <p className="text-xs sm:text-sm text-gray-600 mt-2 ml-6">{achievement.achievement_details}</p>
                         )}
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <div className="text-center py-8 bg-gray-50 rounded-lg">
-                    <FaTrophy className="h-12 w-12 text-gray-300 mx-auto mb-2" />
-                    <p className="text-gray-500">No achievements added yet</p>
+                  <div className="text-center py-6 sm:py-8 bg-gray-50 rounded-lg">
+                    <FaTrophy className="h-10 w-10 sm:h-12 sm:w-12 text-gray-300 mx-auto mb-2" />
+                    <p className="text-sm sm:text-base text-gray-500">No achievements added yet</p>
                   </div>
                 )}
               </div>
 
               {/* CV Section */}
-              <div className="border-t pt-6">
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+              <div className="border-t pt-4 sm:pt-6">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-3 sm:mb-4">
+                  <h3 className="text-base sm:text-lg font-semibold text-gray-900 flex items-center gap-2">
                     <FaFileAlt className="text-red-600" />
                     CV / Resume ({profile.cvs?.length || 0})
                   </h3>
                   {!isDeleted && canEditProfile && (
                     <button
                       onClick={() => openModal('cv')}
-                      className="text-red-600 hover:text-red-700 flex items-center gap-1 text-sm"
+                      className="text-red-600 hover:text-red-700 flex items-center gap-1 text-xs sm:text-sm"
                     >
                       <FaEdit size={14} /> Manage CVs
                     </button>
@@ -885,7 +885,7 @@ export default function Show({ profile }) {
                     <div className="relative group">
                       <button
                         disabled
-                        className="text-gray-400 flex items-center gap-1 text-sm cursor-not-allowed"
+                        className="text-gray-400 flex items-center gap-1 text-xs sm:text-sm cursor-not-allowed"
                       >
                         <FaEdit size={14} /> Manage CVs
                       </button>
@@ -900,12 +900,12 @@ export default function Show({ profile }) {
                 {profile.cvs && profile.cvs.length > 0 ? (
                   <div className="space-y-3">
                     {profile.cvs.map((cv) => (
-                      <div key={cv.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg flex-wrap gap-3">
-                        <div className="flex items-center gap-3">
-                          <FaFilePdf className="text-red-500" size={24} />
-                          <div>
-                            <p className="font-medium text-gray-900">{cv.original_name}</p>
-                            <p className="text-xs text-gray-500 flex items-center gap-2 flex-wrap">
+                      <div key={cv.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 sm:p-4 bg-gray-50 rounded-lg gap-3">
+                        <div className="flex items-center gap-3 w-full sm:w-auto">
+                          <FaFilePdf className="text-red-500 shrink-0" size={24} />
+                          <div className="min-w-0">
+                            <p className="font-medium text-gray-900 text-sm sm:text-base break-all">{cv.original_name}</p>
+                            <p className="text-xs text-gray-500 flex flex-wrap items-center gap-2">
                               <span>Uploaded: {new Date(cv.created_at).toLocaleDateString()}</span>
                               {cv.status === 'pending' && (
                                 <span className="inline-flex items-center gap-1 text-orange-600">
@@ -924,7 +924,7 @@ export default function Show({ profile }) {
                           href={cv.cv_url || `/storage/${cv.cv_path}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm transition"
+                          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm transition w-full sm:w-auto text-center"
                         >
                           View CV
                         </a>
@@ -932,18 +932,18 @@ export default function Show({ profile }) {
                     ))}
                   </div>
                 ) : (
-                  <div className="text-center py-8 bg-gray-50 rounded-lg">
-                    <FaFilePdf className="h-12 w-12 text-gray-300 mx-auto mb-2" />
-                    <p className="text-gray-500">No CV uploaded yet</p>
+                  <div className="text-center py-6 sm:py-8 bg-gray-50 rounded-lg">
+                    <FaFilePdf className="h-10 w-10 sm:h-12 sm:w-12 text-gray-300 mx-auto mb-2" />
+                    <p className="text-sm sm:text-base text-gray-500">No CV uploaded yet</p>
                   </div>
                 )}
               </div>
 
               {/* Member Since */}
-              <div className="border-t pt-6 mt-6">
-                <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                  <FaIdCard className="text-blue-600" size={18} />
-                  <div>
+              <div className="border-t pt-4 sm:pt-6 mt-4 sm:mt-6">
+                <div className="flex items-center gap-3 p-2 sm:p-3 bg-gray-50 rounded-lg">
+                  <FaIdCard className="text-blue-600 shrink-0" size={18} />
+                  <div className="min-w-0">
                     <p className="text-xs text-gray-500">Member Since</p>
                     <p className="text-sm font-medium text-gray-900">{formatDate(profile.created_at)}</p>
                   </div>

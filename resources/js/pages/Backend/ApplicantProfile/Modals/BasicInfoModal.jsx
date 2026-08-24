@@ -250,12 +250,12 @@ const BasicInfoModal = ({ isOpen, onClose, profile }) => {
 
   return (
     <Modal title="Edit Basic Information" onClose={onClose} onSave={handleSave} saving={saving}>
-      <div className="max-w-4xl mx-auto space-y-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="max-w-4xl mx-auto space-y-6 sm:space-y-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8">
           {/* Left Column - Profile Photo */}
           <div className="lg:col-span-1">
             <div className="sticky top-6">
-              <label className="block text-sm font-semibold text-gray-700 mb-3">
+              <label className="block text-sm font-semibold text-gray-700 mb-2 sm:mb-3">
                 Profile Photo
               </label>
 
@@ -285,7 +285,7 @@ const BasicInfoModal = ({ isOpen, onClose, profile }) => {
                   <img
                     src={imageSrc}
                     alt={profile?.full_name || 'Profile'}
-                    className="w-full h-64 object-cover rounded-2xl shadow-lg"
+                    className="w-full h-48 sm:h-56 lg:h-64 object-cover rounded-2xl shadow-lg"
                     onError={(e) => {
                       // If image fails to load, show placeholder
                       e.target.onerror = null;
@@ -293,7 +293,7 @@ const BasicInfoModal = ({ isOpen, onClose, profile }) => {
                       // Show fallback
                       const parent = e.target.parentElement;
                       const fallback = document.createElement('div');
-                      fallback.className = 'w-full h-64 flex flex-col items-center justify-center text-center';
+                      fallback.className = 'w-full h-48 sm:h-56 lg:h-64 flex flex-col items-center justify-center text-center';
                       fallback.innerHTML = `
                         <div class="flex justify-center mb-4">
                           <div class="p-4 bg-blue-100 rounded-full">
@@ -308,59 +308,59 @@ const BasicInfoModal = ({ isOpen, onClose, profile }) => {
                     }}
                   />
                 ) : (
-                  <div className="w-full h-64 flex flex-col items-center justify-center text-center">
-                    <div className="flex justify-center mb-4">
-                      <div className="p-4 bg-blue-100 rounded-full">
-                        <FaCloudUploadAlt className="h-10 w-10 text-blue-600" />
+                  <div className="w-full h-48 sm:h-56 lg:h-64 flex flex-col items-center justify-center text-center p-4">
+                    <div className="flex justify-center mb-3 sm:mb-4">
+                      <div className="p-3 sm:p-4 bg-blue-100 rounded-full">
+                        <FaCloudUploadAlt className="h-8 w-8 sm:h-10 sm:w-10 text-blue-600" />
                       </div>
                     </div>
-                    <p className="text-gray-700 font-medium mb-2">Drop your photo here</p>
-                    <p className="text-gray-400 text-sm mb-3">or click to browse</p>
-                    <div className="inline-flex items-center gap-2 px-3 py-1 bg-gray-200 rounded-full">
-                      <FaImage className="h-3 w-3 text-gray-500" />
-                      <span className="text-xs text-gray-600">JPG, PNG, GIF up to 2MB</span>
+                    <p className="text-sm sm:text-base text-gray-700 font-medium mb-1 sm:mb-2">Drop your photo here</p>
+                    <p className="text-xs sm:text-sm text-gray-400 mb-2 sm:mb-3">or click to browse</p>
+                    <div className="inline-flex items-center gap-2 px-2 py-1 sm:px-3 sm:py-1 bg-gray-200 rounded-full">
+                      <FaImage className="h-2 w-2 sm:h-3 sm:w-3 text-gray-500" />
+                      <span className="text-[10px] sm:text-xs text-gray-600">JPG, PNG, GIF up to 2MB</span>
                     </div>
                   </div>
                 )}
 
                 {/* Photo Action Overlay (Change/Delete) */}
                 {hasImage && (
-                  <div className="absolute inset-0 bg-black/30 opacity-0 hover:opacity-100 transition flex items-end justify-center pb-6 gap-3 rounded-2xl">
+                  <div className="absolute inset-0 bg-black/30 opacity-0 hover:opacity-100 transition flex items-end justify-center pb-4 sm:pb-6 gap-2 sm:gap-3 rounded-2xl">
                     <button
                       type="button"
                       onClick={(e) => {
                         e.stopPropagation();
                         fileInputRef.current?.click();
                       }}
-                      className="px-5 py-2.5 bg-white text-gray-800 rounded-xl hover:bg-gray-100 font-medium text-sm flex items-center gap-2 shadow-lg"
+                      className="px-3 py-1.5 sm:px-5 sm:py-2.5 bg-white text-gray-800 rounded-xl hover:bg-gray-100 font-medium text-xs sm:text-sm flex items-center gap-1.5 sm:gap-2 shadow-lg"
                     >
-                      <FaImage className="h-4 w-4" /> Change
+                      <FaImage className="h-3 w-3 sm:h-4 sm:w-4" /> Change
                     </button>
                     <button
                       type="button"
                       onClick={handleDeletePhoto}
-                      className="px-5 py-2.5 bg-red-600 text-white rounded-xl hover:bg-red-700 font-medium text-sm flex items-center gap-2 shadow-lg"
+                      className="px-3 py-1.5 sm:px-5 sm:py-2.5 bg-red-600 text-white rounded-xl hover:bg-red-700 font-medium text-xs sm:text-sm flex items-center gap-1.5 sm:gap-2 shadow-lg"
                     >
-                      <FaTrash size={16} /> Delete
+                      <FaTrash size={14} /> Delete
                     </button>
                   </div>
                 )}
               </div>
 
-              <p className="text-xs text-gray-400 text-center mt-3">
+              <p className="text-[10px] sm:text-xs text-gray-400 text-center mt-2 sm:mt-3">
                 Recommended: Square image, at least 200x200px
               </p>
             </div>
           </div>
 
           {/* Right Column - Form Fields */}
-          <div className="lg:col-span-2 space-y-6">
+          <div className="lg:col-span-2 space-y-4 sm:space-y-6">
             {/* Name Fields */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-5">
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">
                   <span className="flex items-center gap-2">
-                    <FaIdCard className="h-4 w-4 text-blue-500" />
+                    <FaIdCard className="h-3 w-3 sm:h-4 sm:w-4 text-blue-500" />
                     First Name
                     <span className="text-red-500">*</span>
                   </span>
@@ -370,12 +370,12 @@ const BasicInfoModal = ({ isOpen, onClose, profile }) => {
                   name="first_name"
                   value={modalData.first_name}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-white"
+                  className="w-full px-3 py-2 sm:px-4 sm:py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-white text-sm sm:text-base"
                   placeholder="Enter your first name"
                 />
               </div>
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">
                   Last Name
                   <span className="text-red-500">*</span>
                 </label>
@@ -384,64 +384,64 @@ const BasicInfoModal = ({ isOpen, onClose, profile }) => {
                   name="last_name"
                   value={modalData.last_name}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-white"
+                  className="w-full px-3 py-2 sm:px-4 sm:py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-white text-sm sm:text-base"
                   placeholder="Enter your last name"
                 />
               </div>
             </div>
 
             {/* Phone & Birth Date */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-5">
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">
                   <span className="flex items-center gap-2">
-                    <FaPhone className="h-4 w-4 text-blue-500" />
+                    <FaPhone className="h-3 w-3 sm:h-4 sm:w-4 text-blue-500" />
                     Phone Number
                     <span className="text-red-500">*</span>
                   </span>
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <FaPhone className="h-5 w-5 text-gray-400" />
+                    <FaPhone className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400" />
                   </div>
                   <input
                     type="tel"
                     name="phone"
                     value={modalData.phone}
                     onChange={handleInputChange}
-                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+                    className="w-full pl-8 sm:pl-10 pr-3 sm:pr-4 py-2 sm:py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 text-sm sm:text-base"
                     placeholder="+880 1XXX XXXXXX"
                   />
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">
                   <span className="flex items-center gap-2">
-                    <FaBirthdayCake className="h-4 w-4 text-blue-500" />
+                    <FaBirthdayCake className="h-3 w-3 sm:h-4 sm:w-4 text-blue-500" />
                     Birth Date
                   </span>
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <FaCalendarAlt className="h-5 w-5 text-gray-400" />
+                    <FaCalendarAlt className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400" />
                   </div>
                   <input
                     type="date"
                     name="birth_date"
                     value={modalData.birth_date}
                     onChange={handleInputChange}
-                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+                    className="w-full pl-8 sm:pl-10 pr-3 sm:pr-4 py-2 sm:py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 text-sm sm:text-base"
                   />
                 </div>
               </div>
             </div>
 
             {/* Gender & Blood Type */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-5">
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">
                   <span className="flex items-center gap-2">
-                    <FaVenusMars className="h-4 w-4 text-blue-500" />
+                    <FaVenusMars className="h-3 w-3 sm:h-4 sm:w-4 text-blue-500" />
                     Gender
                   </span>
                 </label>
@@ -449,7 +449,7 @@ const BasicInfoModal = ({ isOpen, onClose, profile }) => {
                   name="gender"
                   value={modalData.gender}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-white"
+                  className="w-full px-3 py-2 sm:px-4 sm:py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-white text-sm sm:text-base"
                 >
                   <option value="">Select gender</option>
                   {genders.map(g => (
@@ -458,21 +458,21 @@ const BasicInfoModal = ({ isOpen, onClose, profile }) => {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">
                   <span className="flex items-center gap-2">
-                    <MdOutlineBloodtype className="h-4 w-4 text-red-500" />
+                    <MdOutlineBloodtype className="h-3 w-3 sm:h-4 sm:w-4 text-red-500" />
                     Blood Type
                   </span>
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <FaHeartbeat className="h-5 w-5 text-red-400" />
+                    <FaHeartbeat className="h-4 w-4 sm:h-5 sm:w-5 text-red-400" />
                   </div>
                   <select
                     name="blood_type"
                     value={modalData.blood_type}
                     onChange={handleInputChange}
-                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-white"
+                    className="w-full pl-8 sm:pl-10 pr-3 sm:pr-4 py-2 sm:py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-white text-sm sm:text-base"
                   >
                     <option value="">Select blood type</option>
                     {bloodTypes.map(bt => (
@@ -485,22 +485,22 @@ const BasicInfoModal = ({ isOpen, onClose, profile }) => {
 
             {/* Address Field */}
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
+              <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">
                 <span className="flex items-center gap-2">
-                  <FaMapMarkerAlt className="h-4 w-4 text-blue-500" />
+                  <FaMapMarkerAlt className="h-3 w-3 sm:h-4 sm:w-4 text-blue-500" />
                   Address
                 </span>
               </label>
               <div className="relative">
-                <div className="absolute top-4 left-0 pl-3 pointer-events-none">
-                  <FaMapMarkerAlt className="h-5 w-5 text-gray-400" />
+                <div className="absolute top-3 sm:top-4 left-0 pl-3 pointer-events-none">
+                  <FaMapMarkerAlt className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400" />
                 </div>
                 <textarea
                   name="address"
                   value={modalData.address}
                   onChange={handleInputChange}
                   rows="3"
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 resize-none"
+                  className="w-full pl-8 sm:pl-10 pr-3 sm:pr-4 py-2 sm:py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 resize-none text-sm sm:text-base"
                   placeholder="Your full address"
                 />
               </div>
@@ -509,13 +509,13 @@ const BasicInfoModal = ({ isOpen, onClose, profile }) => {
         </div>
 
         {/* Info Note */}
-        <div className="bg-linear-to-r from-blue-50 to-indigo-50 rounded-xl p-5 border border-blue-100">
-          <div className="flex items-center justify-center gap-3 flex-wrap">
-            <div className="flex items-center gap-2">
-              <div className="p-1.5 bg-blue-100 rounded-full">
-                <FaGlobe className="h-4 w-4 text-blue-600" />
+        <div className="bg-linear-to-r from-blue-50 to-indigo-50 rounded-xl p-3 sm:p-5 border border-blue-100">
+          <div className="flex items-center justify-center gap-2 sm:gap-3 flex-wrap">
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <div className="p-1 sm:p-1.5 bg-blue-100 rounded-full">
+                <FaGlobe className="h-3 w-3 sm:h-4 sm:w-4 text-blue-600" />
               </div>
-              <p className="text-sm text-gray-700">
+              <p className="text-xs sm:text-sm text-gray-700">
                 <span className="font-semibold">Note:</span> First name, last name, and phone are required fields.
               </p>
             </div>

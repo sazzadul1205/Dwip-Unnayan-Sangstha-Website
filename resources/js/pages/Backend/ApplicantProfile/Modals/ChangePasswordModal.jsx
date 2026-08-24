@@ -125,36 +125,36 @@ const ChangePasswordModal = ({ isOpen, onClose }) => {
 
   return (
     <Modal title="Change Password" onClose={onClose} onSave={handleSubmit} saving={saving}>
-      <div className="space-y-6">
+      <div className="space-y-4 sm:space-y-6">
         {/* Header */}
-        <div className="border-b border-gray-200 pb-4">
+        <div className="border-b border-gray-200 pb-3 sm:pb-4">
           <div className="flex items-center space-x-3">
             <div className="p-2 bg-blue-100 rounded-lg">
-              <FaLock className="h-6 w-6 text-blue-600" />
+              <FaLock className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600" />
             </div>
             <div>
-              <h2 className="text-xl font-semibold text-gray-900">Change Your Password</h2>
-              <p className="text-sm text-gray-500 mt-1">Update your account password</p>
+              <h2 className="text-lg sm:text-xl font-semibold text-gray-900">Change Your Password</h2>
+              <p className="text-xs sm:text-sm text-gray-500 mt-0.5 sm:mt-1">Update your account password</p>
             </div>
           </div>
         </div>
 
-        <div className="space-y-4">
+        <div className="space-y-3 sm:space-y-4">
           {/* Current Password Field */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">
               Current Password
             </label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <FaLock className="h-5 w-5 text-gray-400" />
+                <FaLock className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400" />
               </div>
               <input
                 type={showPassword.current ? 'text' : 'password'}
                 name="current_password"
                 value={formData.current_password}
                 onChange={handleChange}
-                className={`w-full pl-10 pr-12 py-2.5 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 ${errors.current_password ? 'border-red-500' : 'border-gray-300'
+                className={`w-full pl-8 sm:pl-10 pr-10 sm:pr-12 py-2 sm:py-2.5 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 text-sm sm:text-base ${errors.current_password ? 'border-red-500' : 'border-gray-300'
                   }`}
                 placeholder="Enter your current password"
               />
@@ -164,32 +164,32 @@ const ChangePasswordModal = ({ isOpen, onClose }) => {
                 className="absolute inset-y-0 right-0 pr-3 flex items-center"
               >
                 {showPassword.current ? (
-                  <FaEyeSlash className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+                  <FaEyeSlash className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400 hover:text-gray-600" />
                 ) : (
-                  <FaEye className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+                  <FaEye className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400 hover:text-gray-600" />
                 )}
               </button>
             </div>
             {errors.current_password && (
-              <p className="mt-1 text-xs text-red-600">{errors.current_password[0]}</p>
+              <p className="mt-1 text-[10px] sm:text-xs text-red-600">{errors.current_password[0]}</p>
             )}
           </div>
 
           {/* New Password Field */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">
               New Password
             </label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <FaLock className="h-5 w-5 text-gray-400" />
+                <FaLock className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400" />
               </div>
               <input
                 type={showPassword.new ? 'text' : 'password'}
                 name="new_password"
                 value={formData.new_password}
                 onChange={handleChange}
-                className={`w-full pl-10 pr-12 py-2.5 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 ${errors.new_password ? 'border-red-500' : 'border-gray-300'
+                className={`w-full pl-8 sm:pl-10 pr-10 sm:pr-12 py-2 sm:py-2.5 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 text-sm sm:text-base ${errors.new_password ? 'border-red-500' : 'border-gray-300'
                   }`}
                 placeholder="Enter new password (min 8 characters)"
               />
@@ -199,33 +199,33 @@ const ChangePasswordModal = ({ isOpen, onClose }) => {
                 className="absolute inset-y-0 right-0 pr-3 flex items-center"
               >
                 {showPassword.new ? (
-                  <FaEyeSlash className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+                  <FaEyeSlash className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400 hover:text-gray-600" />
                 ) : (
-                  <FaEye className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+                  <FaEye className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400 hover:text-gray-600" />
                 )}
               </button>
             </div>
             {errors.new_password && (
-              <p className="mt-1 text-xs text-red-600">{errors.new_password[0]}</p>
+              <p className="mt-1 text-[10px] sm:text-xs text-red-600">{errors.new_password[0]}</p>
             )}
-            <p className="mt-1 text-xs text-gray-500">Password must be at least 8 characters long</p>
+            <p className="mt-1 text-[10px] sm:text-xs text-gray-500">Password must be at least 8 characters long</p>
           </div>
 
           {/* Confirm New Password Field */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">
               Confirm New Password
             </label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <FaLock className="h-5 w-5 text-gray-400" />
+                <FaLock className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400" />
               </div>
               <input
                 type={showPassword.confirm ? 'text' : 'password'}
                 name="new_password_confirmation"
                 value={formData.new_password_confirmation}
                 onChange={handleChange}
-                className={`w-full pl-10 pr-12 py-2.5 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 ${errors.new_password_confirmation ? 'border-red-500' : 'border-gray-300'
+                className={`w-full pl-8 sm:pl-10 pr-10 sm:pr-12 py-2 sm:py-2.5 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 text-sm sm:text-base ${errors.new_password_confirmation ? 'border-red-500' : 'border-gray-300'
                   }`}
                 placeholder="Confirm your new password"
               />
@@ -235,22 +235,22 @@ const ChangePasswordModal = ({ isOpen, onClose }) => {
                 className="absolute inset-y-0 right-0 pr-3 flex items-center"
               >
                 {showPassword.confirm ? (
-                  <FaEyeSlash className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+                  <FaEyeSlash className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400 hover:text-gray-600" />
                 ) : (
-                  <FaEye className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+                  <FaEye className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400 hover:text-gray-600" />
                 )}
               </button>
             </div>
             {errors.new_password_confirmation && (
-              <p className="mt-1 text-xs text-red-600">{errors.new_password_confirmation[0]}</p>
+              <p className="mt-1 text-[10px] sm:text-xs text-red-600">{errors.new_password_confirmation[0]}</p>
             )}
           </div>
         </div>
 
         {/* Password Requirements */}
-        <div className="bg-blue-50 rounded-xl p-4 border border-blue-100">
-          <p className="text-xs font-medium text-blue-800 mb-2">Password Requirements:</p>
-          <ul className="text-xs text-blue-700 space-y-1">
+        <div className="bg-blue-50 rounded-xl p-3 sm:p-4 border border-blue-100">
+          <p className="text-[10px] sm:text-xs font-medium text-blue-800 mb-1.5 sm:mb-2">Password Requirements:</p>
+          <ul className="text-[10px] sm:text-xs text-blue-700 space-y-0.5 sm:space-y-1">
             <li>• Minimum 8 characters long</li>
             <li>• Use a mix of letters, numbers, and symbols for better security</li>
             <li>• Avoid using common passwords or personal information</li>

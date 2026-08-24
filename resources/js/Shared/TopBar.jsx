@@ -279,8 +279,8 @@ const TopBar = ({ topBarData, storageUrl }) => {
   return (
     <>
       {/*  DESKTOP TOP BAR */}
-      <div className='hidden lg:flex justify-between items-center px-8 xl:px-16 2xl:px-25 py-4.75 bg-[#080C14] relative z-50 border-b border-white/5'>
-
+      <div className='hidden lg:flex justify-between items-center px-8 xl:px-16 2xl:px-25 py-4.75 bg-[#080C14] relative border-b border-white/5 z-40'>
+        
         {/* Left Side - Contact Info */}
         {hasContactInfo && (
           <div className='flex items-center space-x-4 xl:space-x-5'>
@@ -350,9 +350,9 @@ const TopBar = ({ topBarData, storageUrl }) => {
                 }
               </button>
 
-              {/* Language Dropdown */}
+              {/* Language Dropdown - HIGH Z-INDEX */}
               <div
-                className={`absolute top-full mt-2 right-0 bg-white rounded-lg shadow-xl py-2 w-40 z-50 transition-all duration-200 origin-top-right
+                className={`absolute top-full mt-2 right-0 bg-white rounded-lg shadow-xl py-2 w-40 transition-all duration-200 origin-top-right z-100
                   ${isLangDropdownOpen ? 'opacity-100 scale-100 visible' : 'opacity-0 scale-95 invisible'}`}
               >
                 {languagesToShow.map((lang) => (
@@ -435,9 +435,9 @@ const TopBar = ({ topBarData, storageUrl }) => {
               <FaUser className="text-lg text-white/90" />
             </button>
 
-            {/* User Dropdown */}
+            {/* User Dropdown - HIGH Z-INDEX */}
             <div
-              className={`absolute top-full mt-2 right-0 bg-white rounded-lg shadow-xl py-2 w-48 z-50 transition-all duration-200 origin-top-right
+              className={`absolute top-full mt-2 right-0 bg-white rounded-lg shadow-xl py-2 w-48 transition-all duration-200 origin-top-right z-100
                 ${isUserDropdownOpen ? 'opacity-100 scale-100 visible' : 'opacity-0 scale-95 invisible'}`}
             >
               {user ? (
@@ -517,7 +517,7 @@ const TopBar = ({ topBarData, storageUrl }) => {
       </div>
 
       {/* MOBILE TOP BAR */}
-      <div className='lg:hidden bg-[#080C14] px-4 py-2 relative z-50 border-b border-white/5'>
+      <div className='lg:hidden bg-[#080C14] px-4 py-2 relative border-b border-white/5 z-40'>
         <div className='flex justify-between items-center'>
           <button
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
@@ -649,7 +649,7 @@ const TopBar = ({ topBarData, storageUrl }) => {
                   </div>
 
                   {isLangDropdownOpen && (
-                    <div className="mt-2 bg-white rounded-lg shadow-xl py-2">
+                    <div className="mt-2 bg-white rounded-lg shadow-xl py-2 z-100 relative">
                       {languagesToShow.map((lang) => (
                         <button
                           key={lang.code}

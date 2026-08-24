@@ -136,7 +136,7 @@ const Navbar = ({ navbarData, storageUrl = '', defaultLogo = '/images/default-lo
   // RENDER
   // ============================================
   return (
-    <nav className="bg-white shadow-sm sticky top-0 z-50">
+    <nav className="bg-white shadow-sm sticky top-0 z-20">
       <div className="mx-auto px-4 sm:px-6 md:px-8 lg:px-12 xl:px-20 2xl:px-25 py-3 sm:py-4 md:py-5">
         <div className="flex justify-between items-center">
 
@@ -193,7 +193,7 @@ const Navbar = ({ navbarData, storageUrl = '', defaultLogo = '/images/default-lo
                         </button>
 
                         {openDropdowns[index] && (
-                          <div className="absolute top-full left-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-100 py-2 z-50">
+                          <div className="absolute top-full left-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-100 py-2 z-60">
                             {(link.dropdown || dropdowns[index] || []).map(
                               (dropdownItem, idx) => (
                                 <Link
