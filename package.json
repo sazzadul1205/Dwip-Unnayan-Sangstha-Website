@@ -1,15 +1,15 @@
 {
     "private": true,
     "type": "module",
- "scripts": {
-    "build": "vite build",
-    "build:ssr": "vite build && vite build --ssr",
-    "dev": "vite",
-    "format": "prettier --write resources/",
-    "format:check": "prettier --check resources/",
-    "lint": "eslint . --fix",
-    "deploy": "./deploy.sh"
-},
+     "scripts": {
+        "build": "vite build",
+        "build:ssr": "vite build && vite build --ssr",
+        "dev": "vite",
+        "format": "prettier --write resources/",
+        "format:check": "prettier --check resources/",
+        "lint": "eslint . --fix",
+        "deploy": "./deploy.sh"
+    },
     "devDependencies": {
         "@babel/plugin-transform-react-constant-elements": "^7.27.1",
         "@babel/plugin-transform-react-inline-elements": "^7.27.1",
