@@ -213,7 +213,7 @@ const PublicationsSection = ({
   // ============================================
   const renderGridView = () => (
     <div
-      className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 md:gap-6 lg:gap-7.5 items-stretch ${hasMainPublication ? "pt-8 sm:pt-10 md:pt-12 lg:pt-15" : ""
+      className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 md:gap-6 lg:gap-5 xl:gap-7.5 items-stretch ${hasMainPublication ? "pt-8 sm:pt-10 md:pt-12 lg:pt-15" : ""
         }`}
     >
       {sortedPublications.map((publication) => {
@@ -224,13 +224,13 @@ const PublicationsSection = ({
         return (
           <div
             key={publication.id}
-            className="text-black flex h-full flex-col rounded-2xl bg-white p-4 sm:p-5 md:p-6 lg:p-7.5 shadow-2xl transition-shadow duration-300 hover:shadow-3xl"
+            className="text-black flex h-full min-w-0 flex-col rounded-2xl bg-white p-4 sm:p-5 md:p-6 lg:p-5 xl:p-7.5 shadow-2xl transition-shadow duration-300 hover:shadow-3xl"
           >
             {hasValue(publication.image) && (
               <img
                 src={publication.image}
                 alt={publication.title || "Publication image"}
-                className="mb-4 sm:mb-5 h-40 sm:h-48 md:h-56 lg:h-62.5 w-full rounded-2xl object-cover object-center"
+                className="mb-4 sm:mb-5 h-40 sm:h-48 md:h-56 lg:h-52 xl:h-62.5 w-full rounded-2xl object-cover object-center"
               />
             )}
 
@@ -242,21 +242,21 @@ const PublicationsSection = ({
               )}
 
               {hasValue(publication.title) && (
-                <h3 className="mb-3 sm:mb-4 md:mb-5 text-[18px] sm:text-[20px] md:text-[22px] lg:text-[28px] xl:text-[32px] 2xl:text-[36px] font-semibold leading-tight">
+                <h3 className="mb-3 sm:mb-4 md:mb-5 text-[18px] sm:text-[20px] md:text-[22px] lg:text-[24px] xl:text-[32px] 2xl:text-[36px] font-semibold leading-tight">
                   {publication.title}
                 </h3>
               )}
 
               {hasValue(publication.excerpt) && (
-                <p className="text-[13px] sm:text-[14px] md:text-[15px] lg:text-[18px] xl:text-[20px] font-normal text-gray-600 line-clamp-4">
+                <p className="text-[13px] sm:text-[14px] md:text-[15px] lg:text-[16px] xl:text-[20px] font-normal text-gray-600 line-clamp-4">
                   {publication.excerpt}
                 </p>
               )}
             </div>
 
-            <div className="mt-5 sm:mt-6 md:mt-7 lg:mt-8 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 sm:gap-3">
+            <div className="mt-5 sm:mt-6 md:mt-7 lg:mt-6 xl:mt-8 flex flex-col sm:flex-row lg:flex-col xl:flex-row items-stretch sm:items-center justify-between gap-2 sm:gap-3">
               <button
-                className="flex items-center justify-center gap-2 rounded-xl border border-[#E8E8EB] px-3 sm:px-4 py-2 text-[12px] sm:text-[13px] md:text-[14px] font-medium transition-colors hover:bg-gray-50 cursor-pointer"
+                className="flex w-full items-center justify-center gap-2 rounded-xl border border-[#E8E8EB] px-3 sm:px-4 py-2 text-[12px] sm:text-[13px] md:text-[14px] font-medium transition-colors hover:bg-gray-50 cursor-pointer"
                 onClick={() => {
                   const url = getDetailUrl(publication);
                   if (url && url !== '#') {
@@ -270,7 +270,7 @@ const PublicationsSection = ({
 
               {hasValue(publication.pdf_url) && (
                 <button
-                  className="flex items-center justify-center gap-2 rounded-xl border border-[#009BE2] px-3 sm:px-4 py-2 text-[12px] sm:text-[13px] md:text-[14px] font-medium text-[#009BE2] transition-colors hover:bg-[#009BE2] hover:text-white cursor-pointer"
+                  className="flex w-full items-center justify-center gap-2 rounded-xl border border-[#009BE2] px-3 sm:px-4 py-2 text-[12px] sm:text-[13px] md:text-[14px] font-medium text-[#009BE2] transition-colors hover:bg-[#009BE2] hover:text-white cursor-pointer"
                   onClick={() => window.open(publication.pdf_url, "_blank")}
                 >
                   <Download size={14} />

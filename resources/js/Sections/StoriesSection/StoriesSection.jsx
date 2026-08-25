@@ -228,7 +228,7 @@ const StoriesSection = ({
       container.removeEventListener('touchend', onTouchEnd);
       container.removeEventListener('touchcancel', onTouchEnd);
     };
-  }, []);
+  }, [isLoading]);
 
   // ============================================
   // HELPER: Determine gradient colors based on bgColor

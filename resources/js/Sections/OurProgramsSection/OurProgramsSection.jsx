@@ -258,20 +258,15 @@ const OurProgramsSection = ({
                   key={program.id || index}
                   ref={(el) => (cardsRef.current[index] = el)}
                   data-id={program.id || index}
-                  className={`
-                    sticky top-20 sm:top-22 md:top-24 lg:top-25 w-full
-                    transition-all duration-700 ease-out
-                    ${visibleCards.includes(program.id || index)
+                  className={` sticky top-20 sm:top-22 md:top-24 lg:top-25 w-full transition-all duration-700 ease-out ${visibleCards.includes(program.id || index)
                       ? "translate-y-0 opacity-100"
-                      : "translate-y-16 opacity-0"
-                    }
-                  `}
+                      : "translate-y-16 opacity-0"}`}
                   style={{
                     zIndex: index + 1,
                   }}
                 >
                   <div
-                    className="flex flex-col lg:flex-row justify-between items-center gap-6 sm:gap-8 md:gap-10 lg:gap-15 xl:gap-20 2xl:gap-25 p-5 sm:p-6 md:p-8 lg:p-12 xl:p-20 2xl:p-25 rounded-3xl min-h-162.5 lg:h-187.5 shadow-lg"
+                    className="flex flex-col lg:flex-row justify-between items-center gap-6 sm:gap-8 md:gap-10 lg:gap-15 xl:gap-20 2xl:gap-25 p-5 sm:p-6 md:p-8 lg:p-12 xl:p-20 2xl:p-25 rounded-3xl min-h-162.5 lg:min-h-0 shadow-lg"
                     style={{ backgroundColor: program.bg_color || '#ffffff' }}
                   >
                     {/* Left Content */}
@@ -288,7 +283,7 @@ const OurProgramsSection = ({
                       )}
                       {hasValue(descriptionHtml) && (
                         <div
-                          className="bricolage-grotesque font-400 text-[15px] sm:text-[16px] md:text-[17px] lg:text-[18px] xl:text-[19px] 2xl:text-[20px] text-[#524B48] leading-relaxed line-clamp-5 sm:line-clamp-6 md:line-clamp-7 lg:line-clamp-8 xl:line-clamp-9 2xl:line-clamp-10"
+                          className="bricolage-grotesque font-400 text-[15px] sm:text-[16px] md:text-[17px] lg:text-[18px] xl:text-[19px] 2xl:text-[20px] text-[#524B48] leading-relaxed line-clamp-5 sm:line-clamp-6 md:line-clamp-7 lg:line-clamp-8 xl:line-clamp-5 2xl:line-clamp-10"
                           dangerouslySetInnerHTML={{ __html: sanitizeHTML(truncatedDescription) }}
                         />
                       )}
