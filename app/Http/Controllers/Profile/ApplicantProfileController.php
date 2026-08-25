@@ -904,7 +904,9 @@ class ApplicantProfileController extends Controller
             'original_name' => $cv->original_name,
             'size' => $validated['cv']->getSize(),
             'type' => $validated['cv']->getMimeType(),
-            'url' => asset('storage/' . $cv->cv_path),
+            'url' => Storage::disk('public')->exists($cv->cv_path)
+                ? asset('storage/' . $cv->cv_path)
+                : null,
             'is_primary' => $cv->is_primary,
             'status' => $cv->status,
             'order_position' => $cv->order_position,
@@ -1049,7 +1051,9 @@ class ApplicantProfileController extends Controller
             : null;
 
         foreach ($profile->cvs as $cv) {
-            $cv->cv_url = $cv->cv_path ? asset('storage/' . $cv->cv_path) : null;
+            $cv->cv_url = $cv->cv_path && Storage::disk('public')->exists($cv->cv_path)
+                ? asset('storage/' . $cv->cv_path)
+                : null;
             $cv->file_size = $cv->cv_path && Storage::disk('public')->exists($cv->cv_path)
                 ? Storage::disk('public')->size($cv->cv_path)
                 : null;
@@ -1065,7 +1069,7 @@ class ApplicantProfileController extends Controller
         $profile->completion_percentage = $profile->completionPercentage();
         $profile->email = $profile->user?->email;
         $profile->photo_url = $profile->photo_path
-            ? route('profile.photo', ['path' => $profile->photo_path])
+            ? asset('storage/' . $profile->photo_path)
             : null;
         $profile->experience_level_label = $this->getExperienceLevelLabel($profile->experience_years);
         $profile->applications_count = $profile->applications()->count();

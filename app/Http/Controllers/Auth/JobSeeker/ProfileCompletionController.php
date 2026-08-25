@@ -105,6 +105,9 @@ class ProfileCompletionController extends Controller
                 'experience_years' => $profile->experience_years,
                 'current_job_title' => $profile->current_job_title,
                 'photo_path' => $profile->photo_path ?? null,
+                'photo_url' => $profile->photo_path
+                    ? asset('storage/' . $profile->photo_path)
+                    : null,
                 'cvs' => $profile->cvs->map(function ($cv) {
                     return [
                         'id' => $cv->id,
@@ -565,7 +568,9 @@ class ProfileCompletionController extends Controller
             'original_name' => $cv->original_name,
             'size' => $validated['cv']->getSize(),
             'type' => $validated['cv']->getMimeType(),
-            'url' => asset('storage/' . $cv->cv_path),
+            'url' => Storage::disk('public')->exists($cv->cv_path)
+                ? asset('storage/' . $cv->cv_path)
+                : null,
             'is_primary' => $cv->is_primary,
             'status' => $cv->status,
             'order_position' => $cv->order_position,

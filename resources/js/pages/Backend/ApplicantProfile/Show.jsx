@@ -95,11 +95,12 @@ export default function Show({ profile }) {
 
   // State
   const [deleting, setDeleting] = useState(false);
-  const [imgError, setImgError] = useState(false);
   const [restoring, setRestoring] = useState(false);
 
   // Base path for profile images
   const baseProfilePath = '/backend/applicant/profile';
+  const profileImageUrl = profile?.photo_url
+    || (profile?.photo_path ? `/storage/${profile.photo_path}` : null);
   const [activeModal, setActiveModal] = useState(null);
   const isDeleted = profile?.deleted_at !== null;
 
@@ -474,18 +475,12 @@ export default function Show({ profile }) {
 
               {/* Profile Photo */}
               <div className="flex justify-center -mt-12 sm:-mt-16 mb-3 sm:mb-4">
-                {profile.photo_url && !isDeleted && !imgError ? (
                   <img
-                    src={profile.photo_url}
+                    src={profileImageUrl}
                     alt={profile.full_name}
-                    onError={() => setImgError(true)}
                     className="w-24 h-24 sm:w-32 sm:h-32 rounded-full object-cover border-4 border-white shadow-lg"
                   />
-                ) : (
-                  <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-full bg-gray-200 border-4 border-white shadow-lg flex items-center justify-center">
-                    <FaUser className="text-gray-400 text-4xl sm:text-5xl" />
-                  </div>
-                )}
+               
               </div>
 
               {/* Name & Title */}
@@ -921,7 +916,7 @@ export default function Show({ profile }) {
                           </div>
                         </div>
                         <a
-                          href={cv.cv_url || `/storage/${cv.cv_path}`}
+                          href={cv.cv_url || '#'}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm transition w-full sm:w-auto text-center"

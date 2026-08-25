@@ -418,8 +418,7 @@ export default function Show({ application, atsAnalysis }) {
     path = path.replace(/^\/+/, '');
     if (path.startsWith('storage/')) path = path.slice('storage/'.length);
 
-    // Use route that serves the file from the public disk (avoids storage symlink issues)
-    return route('profile.photo', { path });
+    return `/storage/${path}`;
   };
 
   // Determine which role is viewing

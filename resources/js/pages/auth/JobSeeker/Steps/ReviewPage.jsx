@@ -46,12 +46,14 @@ const ReviewPage = ({ data, onEditStep }) => {
       const url = URL.createObjectURL(data.photo);
       setPhotoUrl(url);
       return () => URL.revokeObjectURL(url);
+    } else if (data.photo_url) {
+      setPhotoUrl(data.photo_url);
     } else if (data.photo_path) {
       setPhotoUrl(`/storage/${data.photo_path}`);
     } else {
       setPhotoUrl(null);
     }
-  }, [data.photo, data.photo_path]);
+  }, [data.photo, data.photo_path, data.photo_url]);
 
   const formatDate = (date) => {
     if (!date) return 'Not provided';

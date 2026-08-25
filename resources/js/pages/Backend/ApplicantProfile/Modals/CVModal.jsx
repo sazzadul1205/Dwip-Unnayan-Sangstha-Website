@@ -613,7 +613,7 @@ const CVModal = ({ isOpen, onClose, profile }) => {
             <div className="p-2 sm:p-6">
               {!pdfError ? (
                 <Document
-                  file={previewCv.data || `/storage/${previewCv.cv_path}`}
+                  file={previewCv.data}
                   onLoadSuccess={onDocumentLoadSuccess}
                   onLoadError={onDocumentLoadError}
                   loading={
@@ -629,7 +629,7 @@ const CVModal = ({ isOpen, onClose, profile }) => {
                       <button
                         onClick={() => {
                           const link = document.createElement('a');
-                          link.href = previewCv.data || `/storage/${previewCv.cv_path}`;
+                          link.href = previewCv.data;
                           link.download = previewCv.original_name;
                           link.click();
                         }}
@@ -659,7 +659,7 @@ const CVModal = ({ isOpen, onClose, profile }) => {
                   <button
                     onClick={() => {
                       const link = document.createElement('a');
-                      link.href = previewCv.data || `/storage/${previewCv.cv_path}`;
+                      link.href = previewCv.data;
                       link.download = previewCv.original_name;
                       link.click();
                     }}
@@ -691,7 +691,7 @@ const CVModal = ({ isOpen, onClose, profile }) => {
               <button
                 onClick={() => {
                   const link = document.createElement('a');
-                  link.href = previewCv.data || `/storage/${previewCv.cv_path}`;
+                  link.href = previewCv.data;
                   link.download = previewCv.original_name;
                   link.click();
                 }}

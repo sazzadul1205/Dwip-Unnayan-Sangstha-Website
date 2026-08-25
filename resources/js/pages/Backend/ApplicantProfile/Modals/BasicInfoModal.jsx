@@ -3,6 +3,12 @@
 // React
 import { useState, useRef, useEffect } from 'react';
 
+// Inertia
+import { router } from '@inertiajs/react';
+
+// SweetAlert
+import Swal from 'sweetalert2';
+
 // Icons
 import {
   FaPhone,
@@ -19,12 +25,8 @@ import {
 } from 'react-icons/fa';
 import { MdOutlineBloodtype } from 'react-icons/md';
 
-// SweetAlert
-import Swal from 'sweetalert2';
-
 // Components
-import Modal from './Modal';
-import { router } from '@inertiajs/react';
+import Modal from './Modal';   // Make sure this file exists
 
 const BasicInfoModal = ({ isOpen, onClose, profile }) => {
   const [dragActive, setDragActive] = useState(false);
@@ -32,7 +34,9 @@ const BasicInfoModal = ({ isOpen, onClose, profile }) => {
   const [photoPreview, setPhotoPreview] = useState(null);
   const [photoFile, setPhotoFile] = useState(null);
   const [removePhoto, setRemovePhoto] = useState(false);
+  const [imageError, setImageError] = useState(false);
   const fileInputRef = useRef(null);
+  const previewUrlRef = useRef(null);
 
   const bloodTypes = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
   const genders = ['Male', 'Female', 'Other'];
@@ -62,9 +66,9 @@ const BasicInfoModal = ({ isOpen, onClose, profile }) => {
   useEffect(() => {
     if (!isOpen) return;
 
-    // Clean up any existing preview URL
-    if (photoPreview) {
-      URL.revokeObjectURL(photoPreview);
+    if (previewUrlRef.current) {
+      URL.revokeObjectURL(previewUrlRef.current);
+      previewUrlRef.current = null;
     }
 
     setModalData({
@@ -80,11 +84,12 @@ const BasicInfoModal = ({ isOpen, onClose, profile }) => {
     setPhotoPreview(null);
     setPhotoFile(null);
     setRemovePhoto(false);
+    setImageError(false);
 
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [isOpen, profile]);
 
   const handleDrag = (e) => {
@@ -134,24 +139,27 @@ const BasicInfoModal = ({ isOpen, onClose, profile }) => {
       return;
     }
 
-    // Revoke previous preview URL
-    if (photoPreview) {
-      URL.revokeObjectURL(photoPreview);
+    if (previewUrlRef.current) {
+      URL.revokeObjectURL(previewUrlRef.current);
     }
 
     const newPreviewUrl = URL.createObjectURL(file);
+    previewUrlRef.current = newPreviewUrl;
     setPhotoPreview(newPreviewUrl);
     setPhotoFile(file);
     setRemovePhoto(false);
+    setImageError(false);
   };
 
   const handleDeletePhoto = () => {
-    if (photoPreview) {
-      URL.revokeObjectURL(photoPreview);
+    if (previewUrlRef.current) {
+      URL.revokeObjectURL(previewUrlRef.current);
+      previewUrlRef.current = null;
     }
     setPhotoPreview(null);
     setPhotoFile(null);
     setRemovePhoto(true);
+    setImageError(false);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -190,9 +198,9 @@ const BasicInfoModal = ({ isOpen, onClose, profile }) => {
       const data = await response.json();
 
       if (data.success) {
-        // Clean up preview URL after successful save
-        if (photoPreview) {
-          URL.revokeObjectURL(photoPreview);
+        if (previewUrlRef.current) {
+          URL.revokeObjectURL(previewUrlRef.current);
+          previewUrlRef.current = null;
         }
 
         Swal.fire({
@@ -203,15 +211,12 @@ const BasicInfoModal = ({ isOpen, onClose, profile }) => {
           showConfirmButton: false
         });
 
-        // Close modal first, then reload
-        onClose(); // Close the modal
+        onClose();
         router.reload();
 
-        // Small delay to allow modal to close before reload
         setTimeout(() => {
           router.reload();
         }, 300);
-
 
       } else {
         throw new Error(data.message || 'Failed to update');
@@ -227,21 +232,26 @@ const BasicInfoModal = ({ isOpen, onClose, profile }) => {
     }
   };
 
-  // Clean up preview URL on unmount
   useEffect(() => {
     return () => {
-      if (photoPreview) {
-        URL.revokeObjectURL(photoPreview);
+      if (previewUrlRef.current) {
+        URL.revokeObjectURL(previewUrlRef.current);
+        previewUrlRef.current = null;
       }
     };
-  }, [photoPreview]);
+  }, []);
+
+  useEffect(() => {
+    setImageError(false);
+  }, [photoPreview, removePhoto, profile?.photo_path, profile?.photo_url]);
 
   if (!isOpen) return null;
 
-  // Determine which image to show
   const getImageSrc = () => {
     if (photoPreview) return photoPreview;
-    if (profile?.photo_url && !removePhoto) return profile.photo_url;
+    if (removePhoto) return null;
+    if (profile?.photo_url) return profile.photo_url;
+    if (profile?.photo_path) return `/storage/${profile.photo_path}`;
     return null;
   };
 
@@ -259,12 +269,12 @@ const BasicInfoModal = ({ isOpen, onClose, profile }) => {
                 Profile Photo
               </label>
 
-              {/* Photo Upload Area */}
               <div
-                className={`relative border-2 border-dashed rounded-2xl transition-all duration-200 cursor-pointer ${dragActive
-                  ? 'border-blue-500 bg-blue-50 scale-105'
-                  : 'border-gray-300 bg-gray-50 hover:bg-gray-100 hover:border-gray-400'
-                  }`}
+                className={`relative border-2 border-dashed rounded-2xl transition-all duration-200 cursor-pointer ${
+                  dragActive
+                    ? 'border-blue-500 bg-blue-50 scale-105'
+                    : 'border-gray-300 bg-gray-50 hover:bg-gray-100 hover:border-gray-400'
+                }`}
                 onDragEnter={handleDrag}
                 onDragLeave={handleDrag}
                 onDragOver={handleDrag}
@@ -280,32 +290,13 @@ const BasicInfoModal = ({ isOpen, onClose, profile }) => {
                   aria-label="Upload profile photo"
                 />
 
-                {/* Photo Preview or Placeholder */}
-                {hasImage ? (
+                {hasImage && !imageError ? (
                   <img
+                    key={imageSrc}
                     src={imageSrc}
                     alt={profile?.full_name || 'Profile'}
                     className="w-full h-48 sm:h-56 lg:h-64 object-cover rounded-2xl shadow-lg"
-                    onError={(e) => {
-                      // If image fails to load, show placeholder
-                      e.target.onerror = null;
-                      e.target.style.display = 'none';
-                      // Show fallback
-                      const parent = e.target.parentElement;
-                      const fallback = document.createElement('div');
-                      fallback.className = 'w-full h-48 sm:h-56 lg:h-64 flex flex-col items-center justify-center text-center';
-                      fallback.innerHTML = `
-                        <div class="flex justify-center mb-4">
-                          <div class="p-4 bg-blue-100 rounded-full">
-                            <svg class="h-10 w-10 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                            </svg>
-                          </div>
-                        </div>
-                        <p class="text-gray-700 font-medium mb-2">No photo available</p>
-                      `;
-                      parent.appendChild(fallback);
-                    }}
+                    onError={() => setImageError(true)}
                   />
                 ) : (
                   <div className="w-full h-48 sm:h-56 lg:h-64 flex flex-col items-center justify-center text-center p-4">
@@ -323,7 +314,6 @@ const BasicInfoModal = ({ isOpen, onClose, profile }) => {
                   </div>
                 )}
 
-                {/* Photo Action Overlay (Change/Delete) */}
                 {hasImage && (
                   <div className="absolute inset-0 bg-black/30 opacity-0 hover:opacity-100 transition flex items-end justify-center pb-4 sm:pb-6 gap-2 sm:gap-3 rounded-2xl">
                     <button
