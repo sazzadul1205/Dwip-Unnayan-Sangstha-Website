@@ -7,8 +7,10 @@ use App\Models\NewsletterSubscription;
 use App\Mail\NewsletterWelcomeEmail;
 use App\Mail\NewsletterTestEmail;
 use App\Mail\NewsletterBulkEmail;
+use App\Models\NewsletterCampaign;
 use App\Models\User;
 use App\Services\SimpleLogger;
+use Illuminate\Bus\Batch;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
@@ -18,6 +20,7 @@ use Illuminate\Support\Facades\RateLimiter;
 use Inertia\Inertia;
 use Inertia\Response;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\Bus;
 use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
 
 class NewsletterController extends Controller
@@ -599,71 +602,151 @@ class NewsletterController extends Controller
     }
   }
 
-  /**
-   * Admin: Send bulk email using queue.
-   */
-  public function sendBulkEmail(Request $request): \Illuminate\Http\JsonResponse
-  {
-    $user = Auth::user();
-    if (!$user instanceof User || !$user->hasPermission('newsletter.send')) {
-      return response()->json(['error' => 'Unauthorized'], 403);
+    /**
+     * Admin: Send bulk email using queue with batch and campaign tracking.
+     */
+    public function sendBulkEmail(Request $request): \Illuminate\Http\JsonResponse
+    {
+        $user = Auth::user();
+        if (!$user instanceof User || !$user->hasPermission('newsletter.send')) {
+            return response()->json(['error' => 'Unauthorized'], 403);
+        }
+
+        $throttleKey = 'newsletter_bulk_email|' . $user->id;
+        if (RateLimiter::tooManyAttempts($throttleKey, 2)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Too many bulk email requests. Please wait a moment.',
+            ], 429);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'ids' => 'required|array',
+            'ids.*' => 'integer|exists:newsletter_subscriptions,id',
+            'subject' => 'required|string|max:255',
+            'content' => 'required|string',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        $subscribers = NewsletterSubscription::whereIn('id', $request->ids)
+            ->where('status', NewsletterSubscription::STATUS_SUBSCRIBED)
+            ->get();
+
+        if ($subscribers->isEmpty()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No active subscribers selected.',
+            ], 400);
+        }
+
+        // Create campaign
+        $campaign = NewsletterCampaign::create([
+            'subject' => $request->subject,
+            'content' => $request->content,
+            'total_subscribers' => $subscribers->count(),
+            'created_by' => $user->id,
+            'status' => 'pending',
+        ]);
+
+        // Build batch jobs
+        $jobs = $subscribers->map(fn ($sub) => new SendNewsletterBulkEmail($sub, $campaign));
+
+        $batch = Bus::batch($jobs)
+            ->then(function (Batch $batch) use ($campaign) {
+                // All jobs completed successfully
+                $campaign->status = 'completed';
+                $campaign->sent_count = $batch->processedJobs();
+                $campaign->failed_count = 0;
+                $campaign->completed_at = now();
+                $campaign->save();
+
+                SimpleLogger::security(
+                    "Newsletter campaign completed",
+                    ['campaign_id' => $campaign->id]
+                );
+            })
+            ->catch(function (Batch $batch, \Throwable $e) use ($campaign) {
+                // Some jobs failed
+                $campaign->status = 'failed';
+                $campaign->sent_count = $batch->processedJobs() - $batch->failedJobs;
+                $campaign->failed_count = $batch->failedJobs;
+                $campaign->completed_at = now();
+                $campaign->save();
+
+                Log::error('Campaign batch failed', [
+                    'campaign_id' => $campaign->id,
+                    'error' => $e->getMessage(),
+                ]);
+            })
+            ->finally(function (Batch $batch) use ($campaign) {
+                // Always update progress
+                $campaign->sent_count = $batch->processedJobs() - $batch->failedJobs;
+                $campaign->failed_count = $batch->failedJobs;
+                $campaign->save();
+            })
+            ->dispatch();
+
+        // Store batch_id and mark as processing
+        $campaign->batch_id = $batch->id;
+        $campaign->status = 'processing';
+        $campaign->started_at = now();
+        $campaign->save();
+
+        RateLimiter::clear($throttleKey);
+
+        SimpleLogger::security(
+            "Newsletter bulk email dispatched",
+            [
+                'user_id' => $user->id,
+                'campaign_id' => $campaign->id,
+                'count' => $subscribers->count()
+            ]
+        );
+
+        return response()->json([
+            'success' => true,
+            'message' => "Campaign started. {$subscribers->count()} emails queued.",
+            'campaign_id' => $campaign->id,
+        ]);
     }
 
-    $throttleKey = 'newsletter_bulk_email|' . $user->id;
-    if (RateLimiter::tooManyAttempts($throttleKey, 2)) {
-      return response()->json([
-        'success' => false,
-        'message' => 'Too many bulk email requests. Please wait a moment.',
-      ], 429);
+    /**
+     * Admin: List all campaigns.
+     */
+    public function adminCampaigns(Request $request): Response|RedirectResponse
+    {
+        $user = Auth::user();
+        if (!$user instanceof User || !$user->hasPermission('newsletter.view')) {
+            return redirect()->route('unauthorized.access')
+                ->with('error', 'You do not have permission to view campaigns.');
+        }
+
+        $campaigns = NewsletterCampaign::with('creator')
+            ->orderBy('created_at', 'desc')
+            ->paginate(15);
+
+        return Inertia::render('Backend/Newsletter/Campaigns', [
+            'campaigns' => $campaigns,
+        ]);
     }
 
-    $validator = Validator::make($request->all(), [
-      'ids' => 'required|array',
-      'ids.*' => 'integer|exists:newsletter_subscriptions,id',
-      'subject' => 'required|string|max:255',
-      'content' => 'required|string',
-    ]);
+    /**
+     * Admin: Get single campaign status (JSON).
+     */
+    public function adminCampaignStatus(int $id): \Illuminate\Http\JsonResponse
+    {
+        $user = Auth::user();
+        if (!$user instanceof User || !$user->hasPermission('newsletter.view')) {
+            return response()->json(['error' => 'Unauthorized'], 403);
+        }
 
-    if ($validator->fails()) {
-      return response()->json([
-        'success' => false,
-        'errors' => $validator->errors(),
-      ], 422);
+        $campaign = NewsletterCampaign::with('creator')->findOrFail($id);
+        return response()->json(['campaign' => $campaign]);
     }
-
-    $subscribers = NewsletterSubscription::whereIn('id', $request->ids)
-      ->where('status', NewsletterSubscription::STATUS_SUBSCRIBED)
-      ->get();
-
-    if ($subscribers->isEmpty()) {
-      return response()->json([
-        'success' => false,
-        'message' => 'No active subscribers selected.',
-      ], 400);
-    }
-
-    // Dispatch jobs to queue
-    $dispatched = 0;
-    foreach ($subscribers as $subscriber) {
-      SendNewsletterBulkEmail::dispatch( 
-        $subscriber,
-        $request->input('subject'),
-        $request->input('content')
-      );
-      $dispatched++;
-    }
-
-    RateLimiter::clear($throttleKey);
-
-    SimpleLogger::security(
-      "Newsletter bulk email dispatched by {$user->email}",
-      ['user_id' => $user->id, 'count' => $dispatched]
-    );
-
-    return response()->json([
-      'success' => true,
-      'message' => "Dispatched {$dispatched} emails to queue.",
-      'queued' => $dispatched,
-    ]);
-  }
 }

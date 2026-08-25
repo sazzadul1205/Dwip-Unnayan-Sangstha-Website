@@ -1,6 +1,6 @@
 // resources/js/components/JobListingSteps/RequirementsStep.jsx
 
-import React from 'react';
+import React, { useCallback } from 'react';
 import { StepWrapper } from './StepWrapper';
 import CustomEditor from '../../components/CustomEditor';
 import { FaInfoCircle, FaSearch, FaTimes } from 'react-icons/fa';
@@ -240,7 +240,7 @@ export const RequirementsStep = ({ formData, errors, handleChange, handleArrayCh
   // Initialize filtered education and find selected index
   React.useEffect(() => {
     filterEducation(educationSearch);
-  }, [formData.education_requirement]);
+  }, [educationSearch, filterEducation, formData.education_requirement]);
 
   // Close dropdown when clicking outside
   React.useEffect(() => {
@@ -255,7 +255,7 @@ export const RequirementsStep = ({ formData, errors, handleChange, handleArrayCh
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const filterEducation = (searchTerm) => {
+  const filterEducation = useCallback((searchTerm) => {
     let filtered = educationRequirements;
 
     if (searchTerm.trim()) {
@@ -279,7 +279,7 @@ export const RequirementsStep = ({ formData, errors, handleChange, handleArrayCh
     } else {
       setSelectedEducationIndex(-1);
     }
-  };
+  }, [formData.education_requirement] );
 
   const handleEducationSearch = (e) => {
     const value = e.target.value;

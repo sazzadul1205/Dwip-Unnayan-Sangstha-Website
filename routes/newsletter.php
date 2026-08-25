@@ -33,4 +33,8 @@ Route::prefix('backend/newsletter')->name('backend.newsletter.')->middleware(['a
 
   // Send test email
   Route::post('send-test', [NewsletterController::class, 'adminSendTest'])->name('send-test');
+
+  // Campaign management routes
+  Route::get('campaigns', [NewsletterController::class, 'adminCampaigns'])->name('campaigns');
+  Route::get('campaign/{id}', [NewsletterController::class, 'adminCampaignStatus'])->name('campaign.status');
 });

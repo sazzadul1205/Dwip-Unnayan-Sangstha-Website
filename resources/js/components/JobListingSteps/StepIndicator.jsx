@@ -7,7 +7,6 @@ import React from 'react';
 import {
   FaCheck,
   FaBriefcase,
-  FaInfoCircle,
   FaMapMarkerAlt,
   FaClipboardList,
   FaMoneyBillWave,
@@ -53,8 +52,6 @@ export const StepIndicator = ({ currentStep, steps }) => {
               const stepNumber = index + 1;
               const isCompleted = currentStep > stepNumber;
               const isActive = currentStep === stepNumber;
-              const isPast = currentStep > stepNumber;
-              const isFuture = currentStep < stepNumber;
 
               return (
                 <div key={step.id} className="flex flex-col items-center">
