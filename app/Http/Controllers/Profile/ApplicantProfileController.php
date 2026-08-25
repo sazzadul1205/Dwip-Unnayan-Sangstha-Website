@@ -1046,9 +1046,7 @@ class ApplicantProfileController extends Controller
 
     private function enrichProfile(ApplicantProfile $profile): void
     {
-        $profile->photo_url = $profile->photo_path
-            ? asset('storage/' . $profile->photo_path)
-            : null;
+        $profile->photo_url = $this->getPublicStorageUrl($profile->photo_path);
 
         foreach ($profile->cvs as $cv) {
             $cv->cv_url = $cv->cv_path && Storage::disk('public')->exists($cv->cv_path)
@@ -1068,13 +1066,25 @@ class ApplicantProfileController extends Controller
         // Add computed attributes (full_name is an accessor, so we don't need to set it manually)
         $profile->completion_percentage = $profile->completionPercentage();
         $profile->email = $profile->user?->email;
-        $profile->photo_url = $profile->photo_path
-            ? asset('storage/' . $profile->photo_path)
-            : null;
+        $profile->photo_url = $this->getPublicStorageUrl($profile->photo_path);
         $profile->experience_level_label = $this->getExperienceLevelLabel($profile->experience_years);
         $profile->applications_count = $profile->applications()->count();
         $profile->active_cvs_count = $profile->cvs()->where('status', 'active')->count();
         return $profile;
+    }
+
+    /**
+     * Return a public storage URL only when the file exists.
+     */
+    private function getPublicStorageUrl(?string $path): ?string
+    {
+        if (!$path) {
+            return null;
+        }
+
+        return Storage::disk('public')->exists($path)
+            ? asset('storage/' . $path)
+            : null;
     }
 
     private function getExperienceLevelLabel(?int $years): string

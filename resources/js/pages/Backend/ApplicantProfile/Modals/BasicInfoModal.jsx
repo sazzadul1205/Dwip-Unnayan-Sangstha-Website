@@ -299,7 +299,7 @@ const BasicInfoModal = ({ isOpen, onClose, profile }) => {
                     onError={() => setImageError(true)}
                   />
                 ) : (
-                  <div className="w-full h-48 sm:h-56 lg:h-64 flex flex-col items-center justify-center text-center p-4">
+                  <div className="w-full h-48 sm:h-56 lg:h-64 flex flex-col items-center justify-center text-center p-4 bg-linear-to-br from-blue-50 to-slate-100 rounded-2xl">
                     <div className="flex justify-center mb-3 sm:mb-4">
                       <div className="p-3 sm:p-4 bg-blue-100 rounded-full">
                         <FaCloudUploadAlt className="h-8 w-8 sm:h-10 sm:w-10 text-blue-600" />

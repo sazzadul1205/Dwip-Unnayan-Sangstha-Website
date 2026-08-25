@@ -96,11 +96,13 @@ export default function Show({ profile }) {
   // State
   const [deleting, setDeleting] = useState(false);
   const [restoring, setRestoring] = useState(false);
+  const [photoError, setPhotoError] = useState(false);
 
   // Base path for profile images
   const baseProfilePath = '/backend/applicant/profile';
   const profileImageUrl = profile?.photo_url
     || (profile?.photo_path ? `/storage/${profile.photo_path}` : null);
+  const hasProfileImage = !!profileImageUrl && !photoError;
   const [activeModal, setActiveModal] = useState(null);
   const isDeleted = profile?.deleted_at !== null;
 
@@ -475,12 +477,18 @@ export default function Show({ profile }) {
 
               {/* Profile Photo */}
               <div className="flex justify-center -mt-12 sm:-mt-16 mb-3 sm:mb-4">
+                {hasProfileImage ? (
                   <img
                     src={profileImageUrl}
                     alt={profile.full_name}
-                    className="w-24 h-24 sm:w-32 sm:h-32 rounded-full object-cover border-4 border-white shadow-lg"
+                    className="w-24 h-24 sm:w-32 sm:h-32 rounded-full object-cover border-4 border-white shadow-lg bg-white"
+                    onError={() => setPhotoError(true)}
                   />
-               
+                ) : (
+                  <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-full border-4 border-white shadow-lg bg-gradient-to-br from-blue-100 to-slate-100 flex items-center justify-center">
+                    <FaUserCircle className="text-gray-400 w-16 h-16 sm:w-20 sm:h-20" />
+                  </div>
+                )}
               </div>
 
               {/* Name & Title */}
