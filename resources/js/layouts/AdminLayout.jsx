@@ -392,15 +392,6 @@ const AdminLayout = ({ children }) => {
         });
       }
 
-      // Newsletter
-      if (hasAnyPermission(['newsletter.view', 'newsletter.manage'])) {
-        subs.push({
-          name: 'Newsletter',
-          routeName: 'backend.newsletter.index',
-          icon: FaEnvelope,
-        });
-      }
-
       if (subs.length) {
         items.push({
           name: 'CMS Management',
@@ -410,6 +401,15 @@ const AdminLayout = ({ children }) => {
           subItems: subs,
         });
       }
+    }
+
+    // Newsletter
+    if (hasAnyPermission(['newsletter.view', 'newsletter.manage'])) {
+      items.push({
+        name: 'Newsletter',
+        routeName: 'backend.newsletter.index',
+        icon: FaEnvelope,
+      });
     }
 
     // Admin Settings
