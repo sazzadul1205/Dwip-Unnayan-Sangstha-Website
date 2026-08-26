@@ -1,6 +1,6 @@
 // js/Sections/ImageGallerySection/ImageGallerySection.jsx
 
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 
 // Generate placeholder image URL
 const getPlaceholderImage = (width = 485, height = 400, text = 'Gallery Image') => {
@@ -22,6 +22,7 @@ const ImageGallerySection = ({
 }) => {
   const [visibleCount, setVisibleCount] = useState(imagesPerPage);
   const [imageErrors, setImageErrors] = useState({});
+  const [selectedIndex, setSelectedIndex] = useState(null);
 
   // ============================================
   // RESOLVE DATA - FIXED
@@ -86,17 +87,6 @@ const ImageGallerySection = ({
   // ============================================
   const hasImages = resolvedImages.length > 0;
 
-  if (!hasImages) {
-    return null;
-  }
-
-  const handleShowMore = () => {
-    setVisibleCount(prev => Math.min(prev + imagesPerLoad, resolvedImages.length));
-  };
-
-  const isAllVisible = visibleCount >= resolvedImages.length;
-  const visibleImages = resolvedImages.slice(0, visibleCount);
-
   // ============================================
   // IMAGE HANDLING
   // ============================================
@@ -120,6 +110,43 @@ const ImageGallerySection = ({
   const getImageAlt = (image, index) => {
     return image.alt || image.title || image.caption || `Gallery image ${index + 1}`;
   };
+
+  // ============================================
+  // MODAL / LIGHTBOX HANDLING
+  // ============================================
+  const closeModal = useCallback(() => setSelectedIndex(null), []);
+
+  const showPrev = useCallback((e) => {
+    e.stopPropagation();
+    setSelectedIndex((prev) => (prev > 0 ? prev - 1 : resolvedImages.length - 1));
+  }, [resolvedImages.length]);
+
+  const showNext = useCallback((e) => {
+    e.stopPropagation();
+    setSelectedIndex((prev) => (prev < resolvedImages.length - 1 ? prev + 1 : 0));
+  }, [resolvedImages.length]);
+
+  useEffect(() => {
+    if (selectedIndex === null) return;
+    const handleKey = (e) => {
+      if (e.key === 'Escape') closeModal();
+      if (e.key === 'ArrowLeft') showPrev(e);
+      if (e.key === 'ArrowRight') showNext(e);
+    };
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, [selectedIndex, resolvedImages.length, showPrev, showNext, closeModal]);
+
+  if (!hasImages) {
+    return null;
+  }
+
+  const handleShowMore = () => {
+    setVisibleCount(prev => Math.min(prev + imagesPerLoad, resolvedImages.length));
+  };
+
+  const isAllVisible = visibleCount >= resolvedImages.length;
+  const visibleImages = resolvedImages.slice(0, visibleCount);
 
   return (
     <section
@@ -149,7 +176,8 @@ const ImageGallerySection = ({
             return (
               <div
                 key={imageId}
-                className="rounded-lg overflow-hidden shadow-md hover:shadow-xl transition-shadow duration-300"
+                className="rounded-lg overflow-hidden shadow-md hover:shadow-xl transition-shadow duration-300 cursor-pointer"
+                onClick={() => setSelectedIndex(index)}
               >
                 <img
                   src={imageSrc}
@@ -175,6 +203,49 @@ const ImageGallerySection = ({
           </div>
         )}
       </div>
+
+      {/* Lightbox Modal */}
+      {selectedIndex !== null && (
+        <div
+          className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 sm:p-8"
+          onClick={closeModal}
+        >
+          <button
+            onClick={closeModal}
+            className="absolute top-4 right-4 sm:top-6 sm:right-6 text-white text-3xl leading-none hover:opacity-70"
+            aria-label="Close"
+          >
+            &times;
+          </button>
+
+          <button
+            onClick={showPrev}
+            className="absolute left-2 sm:left-6 text-white text-4xl hover:opacity-70 px-2"
+            aria-label="Previous image"
+          >
+            &#8249;
+          </button>
+
+          <img
+            src={getImageSrc(resolvedImages[selectedIndex], selectedIndex)}
+            alt={getImageAlt(resolvedImages[selectedIndex], selectedIndex)}
+            className="max-h-[85vh] max-w-[90vw] object-contain rounded-lg"
+            onClick={(e) => e.stopPropagation()}
+          />
+
+          <button
+            onClick={showNext}
+            className="absolute right-2 sm:right-6 text-white text-4xl hover:opacity-70 px-2"
+            aria-label="Next image"
+          >
+            &#8250;
+          </button>
+
+          <p className="absolute bottom-4 sm:bottom-6 text-white/70 text-sm">
+            {selectedIndex + 1} / {resolvedImages.length}
+          </p>
+        </div>
+      )}
     </section>
   );
 };
