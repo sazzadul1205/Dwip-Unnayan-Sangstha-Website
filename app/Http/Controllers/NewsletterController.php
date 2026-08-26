@@ -318,6 +318,9 @@ class NewsletterController extends Controller
         'status' => $request->input('status', 'all'),
         'search' => $request->input('search', ''),
       ],
+      'campaigns' => NewsletterCampaign::with('creator')
+        ->orderBy('created_at', 'desc')
+        ->paginate(15),
     ]);
   }
 
@@ -709,11 +712,7 @@ class NewsletterController extends Controller
             ]
         );
 
-        return response()->json([
-            'success' => true,
-            'message' => "Campaign started. {$subscribers->count()} emails queued.",
-            'campaign_id' => $campaign->id,
-        ]);
+        return back()->with('success', "Campaign started. {$subscribers->count()} emails queued.");
     }
 
     /**
@@ -727,11 +726,23 @@ class NewsletterController extends Controller
                 ->with('error', 'You do not have permission to view campaigns.');
         }
 
-        $campaigns = NewsletterCampaign::with('creator')
-            ->orderBy('created_at', 'desc')
-            ->paginate(15);
+    $campaigns = NewsletterCampaign::with('creator')
+        ->orderBy('created_at', 'desc')
+        ->paginate(15);
 
-        return Inertia::render('Backend/Newsletter/Campaigns', [
+    return Inertia::render('Backend/Newsletter/Index', [
+            'subscribers' => NewsletterSubscription::query()->paginate(15),
+            'stats' => [
+                'total' => NewsletterSubscription::count(),
+                'subscribed' => NewsletterSubscription::subscribed()->count(),
+                'unsubscribed' => NewsletterSubscription::unsubscribed()->count(),
+                'bounced' => NewsletterSubscription::where('status', 'bounced')->count(),
+                'today' => NewsletterSubscription::whereDate('subscribed_at', today())->count(),
+            ],
+            'filters' => [
+                'status' => 'all',
+                'search' => '',
+            ],
             'campaigns' => $campaigns,
         ]);
     }

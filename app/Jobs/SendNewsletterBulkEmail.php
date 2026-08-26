@@ -6,6 +6,7 @@ namespace App\Jobs;
 use App\Mail\NewsletterBulkEmail;
 use App\Models\NewsletterCampaign;
 use App\Models\NewsletterSubscription;
+use Illuminate\Bus\Batchable;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -16,7 +17,7 @@ use Illuminate\Support\Facades\Log;
 
 class SendNewsletterBulkEmail implements ShouldQueue
 {
-    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+    use Batchable, Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     public $timeout = 60;
     public $tries = 3;

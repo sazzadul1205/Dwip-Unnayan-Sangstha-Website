@@ -22,7 +22,7 @@ import {
 } from 'react-icons/fa';
 import Swal from 'sweetalert2';
 
-// Campaigns Table Component (inner)
+// Campaigns Table Component
 const CampaignsTable = ({ campaigns }) => {
   const { data, from, to, total, links } = campaigns;
 
@@ -47,12 +47,12 @@ const CampaignsTable = ({ campaigns }) => {
         <table className="w-full">
           <thead className="bg-gray-50 border-b">
             <tr>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Subject</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Progress</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Sent / Total</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Created</th>
-              <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Subject</th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Progress</th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sent / Total</th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
+              <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
@@ -76,7 +76,7 @@ const CampaignsTable = ({ campaigns }) => {
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
-                      <div className="w-32 h-2 bg-gray-200 rounded-full overflow-hidden">
+                      <div className="w-24 sm:w-32 h-2 bg-gray-200 rounded-full overflow-hidden">
                         <div
                           className="h-full bg-blue-600 transition-all duration-500"
                           style={{ width: `${getProgress(campaign)}%` }}
@@ -96,7 +96,20 @@ const CampaignsTable = ({ campaigns }) => {
                   </td>
                   <td className="px-4 py-3 text-right">
                     <button
-                      onClick={() => router.get(route('backend.newsletter.campaign.status', campaign.id))}
+                      onClick={() => {
+                        Swal.fire({
+                          title: campaign.subject || 'Campaign Details',
+                          html: `
+                            <div style="text-align:left">
+                              <p><strong>Status:</strong> ${campaign.status || 'unknown'}</p>
+                              <p><strong>Sent:</strong> ${campaign.sent_count ?? 0}</p>
+                              <p><strong>Failed:</strong> ${campaign.failed_count ?? 0}</p>
+                              <p><strong>Total:</strong> ${campaign.total_subscribers ?? 0}</p>
+                            </div>
+                          `,
+                          confirmButtonColor: '#3b82f6',
+                        });
+                      }}
                       className="text-blue-600 hover:text-blue-800 text-sm font-medium inline-flex items-center gap-1"
                     >
                       <FaEye size={14} /> View
@@ -138,7 +151,7 @@ const CampaignsTable = ({ campaigns }) => {
   );
 };
 
-export default function NewsletterIndex({ subscribers, stats, filters }) {
+export default function NewsletterIndex({ subscribers, stats, filters, campaigns: initialCampaigns = { data: [] } }) {
   const { flash } = usePage().props;
 
   // States
@@ -153,8 +166,7 @@ export default function NewsletterIndex({ subscribers, stats, filters }) {
   const [showSendEmailModal, setShowSendEmailModal] = useState(false);
   const [statusFilter, setStatusFilter] = useState(filters.status || 'all');
   const [activeTab, setActiveTab] = useState('subscribers');
-  const [campaigns, setCampaigns] = useState({ data: [] });
-  const [pollingInterval, setPollingInterval] = useState(null);
+  const campaigns = initialCampaigns || { data: [] };
 
   // Stats cards
   const statCards = [
@@ -220,42 +232,6 @@ export default function NewsletterIndex({ subscribers, stats, filters }) {
       });
     }
   }, [flash]);
-
-  // Polling for campaigns
-  useEffect(() => {
-    if (activeTab === 'campaigns') {
-      fetchCampaigns();
-      // Start polling if there are in-progress campaigns
-      const inProgress = campaigns.data.filter(c => c.status === 'processing' || c.status === 'pending');
-      if (inProgress.length > 0 && !pollingInterval) {
-        const interval = setInterval(() => {
-          fetchCampaigns(true);
-        }, 5000);
-        setPollingInterval(interval);
-      } else if (inProgress.length === 0 && pollingInterval) {
-        clearInterval(pollingInterval);
-        setPollingInterval(null);
-      }
-    } else {
-      if (pollingInterval) {
-        clearInterval(pollingInterval);
-        setPollingInterval(null);
-      }
-    }
-    return () => {
-      if (pollingInterval) clearInterval(pollingInterval);
-    };
-  }, [activeTab, campaigns.data, pollingInterval]);
-
-  const fetchCampaigns = (replace = false) => {
-    router.get(route('backend.newsletter.campaigns'), {}, {
-      preserveState: true,
-      replace,
-      onSuccess: (page) => {
-        setCampaigns(page.props.campaigns);
-      }
-    });
-  };
 
   // Handle individual select
   const toggleSelect = (id) => {
@@ -526,245 +502,308 @@ export default function NewsletterIndex({ subscribers, stats, filters }) {
     <AuthenticatedLayout>
       <Head title="Newsletter" />
 
-      <div className="p-6">
-        {/* Header */}
-        <div className="flex justify-between items-center mb-6">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Newsletter</h1>
-            <p className="text-sm text-gray-500">
-              Manage subscribers and track email campaigns.
-            </p>
-          </div>
-          <div className="flex items-center gap-3">
-            <button
-              onClick={handleExport}
-              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition flex items-center gap-2"
-            >
-              <FaDownload size={14} />
-              Export CSV
-            </button>
-            <button
-              onClick={handleSendBulkEmail}
-              disabled={selectedIds.length === 0}
-              className={`px-4 py-2 rounded-lg transition flex items-center gap-2 ${selectedIds.length === 0
-                ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                : 'bg-blue-600 text-white hover:bg-blue-700'
-                }`}
-            >
-              <FaPaperPlane size={14} />
-              Send Email ({selectedIds.length})
-            </button>
-          </div>
-        </div>
-
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-          {statCards.map((stat) => (
-            <div
-              key={stat.key}
-              className={`${stat.bg} border ${stat.border} rounded-xl p-4 flex items-center justify-between`}
-            >
-              <div>
-                <p className="text-sm text-gray-500">{stat.label}</p>
-                <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
-              </div>
-              <div className="text-3xl">{stat.icon}</div>
+      <div className="min-h-screen bg-linear-to-br from-gray-50 to-gray-100 p-3 sm:p-6">
+        <div className="mx-auto">
+          {/* Header */}
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4 mb-4 sm:mb-6">
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-bold bg-linear-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
+                Newsletter
+              </h1>
+              <p className="text-xs sm:text-sm text-gray-500 mt-0.5 sm:mt-1">
+                Manage subscribers and track email campaigns.
+              </p>
             </div>
-          ))}
-        </div>
+            <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+              <button
+                onClick={handleExport}
+                className="flex-1 sm:flex-none px-3 sm:px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition flex items-center justify-center gap-2 text-xs sm:text-sm"
+              >
+                <FaDownload size={12} />
+                Export CSV
+              </button>
+              <button
+                onClick={handleSendBulkEmail}
+                disabled={selectedIds.length === 0}
+                className={`flex-1 sm:flex-none px-3 sm:px-4 py-2 rounded-lg transition flex items-center justify-center gap-2 text-xs sm:text-sm ${selectedIds.length === 0
+                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    : 'bg-blue-600 text-white hover:bg-blue-700'
+                  }`}
+              >
+                <FaPaperPlane size={12} />
+                Send Email ({selectedIds.length})
+              </button>
+            </div>
+          </div>
 
-        {/* Tabs */}
-        <div className="flex border-b border-gray-200 mb-4">
-          <button
-            className={`px-4 py-2 text-sm font-medium ${activeTab === 'subscribers'
-              ? 'border-b-2 border-blue-600 text-blue-600'
-              : 'text-gray-500 hover:text-gray-700'
-              }`}
-            onClick={() => setActiveTab('subscribers')}
-          >
-            Subscribers
-          </button>
-          <button
-            className={`px-4 py-2 text-sm font-medium ${activeTab === 'campaigns'
-              ? 'border-b-2 border-blue-600 text-blue-600'
-              : 'text-gray-500 hover:text-gray-700'
-              }`}
-            onClick={() => setActiveTab('campaigns')}
-          >
-            Campaigns
-          </button>
-        </div>
-
-        {/* Subscribers Tab */}
-        {activeTab === 'subscribers' && (
-          <>
-            {/* Filters */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-6">
-              <div className="flex flex-wrap items-center gap-4">
-                <form onSubmit={handleSearch} className="flex-1 min-w-56">
-                  <div className="relative">
-                    <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                    <input
-                      type="text"
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      placeholder="Search by email or name..."
-                      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
-                    />
-                  </div>
-                </form>
-
-                <div className="flex items-center gap-2">
-                  <FaFilter className="text-gray-400" />
-                  <select
-                    value={statusFilter}
-                    onChange={(e) => handleStatusFilter(e.target.value)}
-                    className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition bg-white"
-                  >
-                    <option value="all">All Status</option>
-                    <option value="subscribed">Active</option>
-                    <option value="unsubscribed">Unsubscribed</option>
-                    <option value="bounced">Bounced</option>
-                  </select>
+          {/* Stats Cards */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-4 mb-4 sm:mb-6">
+            {statCards.map((stat) => (
+              <div
+                key={stat.key}
+                className={`${stat.bg} border ${stat.border} rounded-xl p-3 sm:p-4 flex items-center justify-between`}
+              >
+                <div>
+                  <p className="text-[10px] sm:text-sm text-gray-500">{stat.label}</p>
+                  <p className="text-lg sm:text-2xl font-bold text-gray-900">{stat.value}</p>
                 </div>
-
-                {selectedIds.length > 0 && (
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-gray-500">
-                      {selectedIds.length} selected
-                    </span>
-                    <button
-                      onClick={handleBulkUnsubscribe}
-                      className="px-3 py-1.5 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition text-sm"
-                    >
-                      Unsubscribe
-                    </button>
-                    <button
-                      onClick={handleBulkDelete}
-                      className="px-3 py-1.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition text-sm"
-                    >
-                      Delete
-                    </button>
-                  </div>
-                )}
+                <div className="text-2xl sm:text-3xl">{stat.icon}</div>
               </div>
-            </div>
+            ))}
+          </div>
 
-            {/* Table */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-gray-50 border-b border-gray-200">
-                    <tr>
-                      <th className="px-4 py-3 w-10">
-                        <input
-                          type="checkbox"
-                          checked={selectAll}
-                          onChange={() => setSelectAll(!selectAll)}
-                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                        />
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        <button
-                          onClick={() => handleSort('email')}
-                          className="flex items-center gap-1 hover:text-gray-700"
-                        >
-                          Email
-                          {sortField === 'email' && (
-                            sortDirection === 'desc' ? <FaSortDown /> : <FaSortUp />
-                          )}
-                        </button>
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        <button
-                          onClick={() => handleSort('status')}
-                          className="flex items-center gap-1 hover:text-gray-700"
-                        >
-                          Status
-                          {sortField === 'status' && (
-                            sortDirection === 'desc' ? <FaSortDown /> : <FaSortUp />
-                          )}
-                        </button>
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        <button
-                          onClick={() => handleSort('subscribed_at')}
-                          className="flex items-center gap-1 hover:text-gray-700"
-                        >
-                          Subscribed
-                          {sortField === 'subscribed_at' && (
-                            sortDirection === 'desc' ? <FaSortDown /> : <FaSortUp />
-                          )}
-                        </button>
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Source</th>
-                      <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-200">
-                    {subscribers.data.length === 0 ? (
+          {/* Tabs */}
+          <div className="flex border-b border-gray-200 mb-4 sm:mb-6">
+            <button
+              className={`px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-medium ${activeTab === 'subscribers'
+                  ? 'border-b-2 border-blue-600 text-blue-600'
+                  : 'text-gray-500 hover:text-gray-700'
+                }`}
+              onClick={() => setActiveTab('subscribers')}
+            >
+              Subscribers
+            </button>
+            <button
+              className={`px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-medium ${activeTab === 'campaigns'
+                  ? 'border-b-2 border-blue-600 text-blue-600'
+                  : 'text-gray-500 hover:text-gray-700'
+                }`}
+              onClick={() => setActiveTab('campaigns')}
+            >
+              Campaigns
+            </button>
+          </div>
+
+          {/* Subscribers Tab */}
+          {activeTab === 'subscribers' && (
+            <>
+              {/* Filters */}
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-3 sm:p-4 mb-4 sm:mb-6">
+                <div className="flex flex-wrap items-center gap-2 sm:gap-4">
+                  <form onSubmit={handleSearch} className="flex-1 min-w-48 sm:min-w-56">
+                    <div className="relative">
+                      <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={12} />
+                      <input
+                        type="text"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        placeholder="Search by email or name..."
+                        className="w-full pl-8 sm:pl-10 pr-3 sm:pr-4 py-1.5 sm:py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition text-sm"
+                      />
+                    </div>
+                  </form>
+
+                  <div className="flex items-center gap-1.5 sm:gap-2">
+                    <FaFilter className="text-gray-400" size={12} />
+                    <select
+                      value={statusFilter}
+                      onChange={(e) => handleStatusFilter(e.target.value)}
+                      className="px-2 sm:px-3 py-1.5 sm:py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition bg-white text-sm"
+                    >
+                      <option value="all">All Status</option>
+                      <option value="subscribed">Active</option>
+                      <option value="unsubscribed">Unsubscribed</option>
+                      <option value="bounced">Bounced</option>
+                    </select>
+                  </div>
+
+                  {selectedIds.length > 0 && (
+                    <div className="flex items-center gap-1.5 sm:gap-2">
+                      <span className="text-xs sm:text-sm text-gray-500">
+                        {selectedIds.length} selected
+                      </span>
+                      <button
+                        onClick={handleBulkUnsubscribe}
+                        className="px-2 sm:px-3 py-1 sm:py-1.5 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition text-xs sm:text-sm"
+                      >
+                        Unsubscribe
+                      </button>
+                      <button
+                        onClick={handleBulkDelete}
+                        className="px-2 sm:px-3 py-1 sm:py-1.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition text-xs sm:text-sm"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Table */}
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="bg-gray-50 border-b border-gray-200">
                       <tr>
-                        <td colSpan="7" className="px-4 py-8 text-center text-gray-500">
-                          No subscribers found.
-                        </td>
+                        <th className="px-2 sm:px-4 py-2.5 sm:py-3 w-8 sm:w-10">
+                          <input
+                            type="checkbox"
+                            checked={selectAll}
+                            onChange={() => setSelectAll(!selectAll)}
+                            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-3.5 h-3.5 sm:w-4 sm:h-4"
+                          />
+                        </th>
+                        <th className="px-2 sm:px-4 py-2.5 sm:py-3 text-left text-[10px] sm:text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          <button
+                            onClick={() => handleSort('email')}
+                            className="flex items-center gap-0.5 sm:gap-1 hover:text-gray-700"
+                          >
+                            Email
+                            {sortField === 'email' && (
+                              sortDirection === 'desc' ? <FaSortDown size={10} /> : <FaSortUp size={10} />
+                            )}
+                          </button>
+                        </th>
+                        <th className="px-2 sm:px-4 py-2.5 sm:py-3 text-left text-[10px] sm:text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                        <th className="px-2 sm:px-4 py-2.5 sm:py-3 text-left text-[10px] sm:text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          <button
+                            onClick={() => handleSort('status')}
+                            className="flex items-center gap-0.5 sm:gap-1 hover:text-gray-700"
+                          >
+                            Status
+                            {sortField === 'status' && (
+                              sortDirection === 'desc' ? <FaSortDown size={10} /> : <FaSortUp size={10} />
+                            )}
+                          </button>
+                        </th>
+                        <th className="hidden sm:table-cell px-2 sm:px-4 py-2.5 sm:py-3 text-left text-[10px] sm:text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          <button
+                            onClick={() => handleSort('subscribed_at')}
+                            className="flex items-center gap-0.5 sm:gap-1 hover:text-gray-700"
+                          >
+                            Subscribed
+                            {sortField === 'subscribed_at' && (
+                              sortDirection === 'desc' ? <FaSortDown size={10} /> : <FaSortUp size={10} />
+                            )}
+                          </button>
+                        </th>
+                        <th className="hidden md:table-cell px-2 sm:px-4 py-2.5 sm:py-3 text-left text-[10px] sm:text-xs font-medium text-gray-500 uppercase tracking-wider">Source</th>
+                        <th className="px-2 sm:px-4 py-2.5 sm:py-3 text-right text-[10px] sm:text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                       </tr>
-                    ) : (
-                      subscribers.data.map((subscriber) => (
-                        <tr key={subscriber.id} className="hover:bg-gray-50 transition">
-                          <td className="px-4 py-3">
-                            <input
-                              type="checkbox"
-                              checked={selectedIds.includes(subscriber.id)}
-                              onChange={() => toggleSelect(subscriber.id)}
-                              className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                            />
+                    </thead>
+                    <tbody className="divide-y divide-gray-200">
+                      {subscribers.data.length === 0 ? (
+                        <tr>
+                          <td colSpan="7" className="px-4 py-8 text-center text-gray-500 text-sm">
+                            No subscribers found.
                           </td>
-                          <td className="px-4 py-3">
-                            <div className="flex items-center gap-2">
-                              <FaEnvelope className="text-gray-400" size={14} />
-                              <span className="text-sm text-gray-900">{subscriber.email}</span>
-                            </div>
-                          </td>
-                          <td className="px-4 py-3 text-sm text-gray-700">
-                            {subscriber.name || '-'}
-                          </td>
-                          <td className="px-4 py-3">
-                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${getStatusBadge(subscriber.status)}`}>
-                              {getStatusIcon(subscriber.status)}
-                              {subscriber.status.charAt(0).toUpperCase() + subscriber.status.slice(1)}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3 text-sm text-gray-500">
-                            {subscriber.subscribed_at ? new Date(subscriber.subscribed_at).toLocaleDateString() : '-'}
-                          </td>
-                          <td className="px-4 py-3 text-sm text-gray-500">
-                            {subscriber.source || 'website'}
-                          </td>
-                          <td className="px-4 py-3 text-right">
-                            <div className="flex items-center justify-end gap-2">
-                              {subscriber.status === 'subscribed' && (
+                        </tr>
+                      ) : (
+                        subscribers.data.map((subscriber) => (
+                          <tr key={subscriber.id} className="hover:bg-gray-50 transition">
+                            <td className="px-2 sm:px-4 py-2.5 sm:py-3">
+                              <input
+                                type="checkbox"
+                                checked={selectedIds.includes(subscriber.id)}
+                                onChange={() => toggleSelect(subscriber.id)}
+                                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-3.5 h-3.5 sm:w-4 sm:h-4"
+                              />
+                            </td>
+                            <td className="px-2 sm:px-4 py-2.5 sm:py-3">
+                              <div className="flex items-center gap-1.5 sm:gap-2">
+                                <FaEnvelope className="text-gray-400" size={12} />
+                                <span className="text-xs sm:text-sm text-gray-900 truncate max-w-28 sm:max-w-none">{subscriber.email}</span>
+                              </div>
+                            </td>
+                            <td className="px-2 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm text-gray-700">
+                              {subscriber.name || '-'}
+                            </td>
+                            <td className="px-2 sm:px-4 py-2.5 sm:py-3">
+                              <span className={`inline-flex items-center gap-1 sm:gap-1.5 px-1.5 sm:px-2.5 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs font-medium ${getStatusBadge(subscriber.status)}`}>
+                                {getStatusIcon(subscriber.status)}
+                                {subscriber.status.charAt(0).toUpperCase() + subscriber.status.slice(1)}
+                              </span>
+                            </td>
+                            <td className="hidden sm:table-cell px-2 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm text-gray-500">
+                              {subscriber.subscribed_at ? new Date(subscriber.subscribed_at).toLocaleDateString() : '-'}
+                            </td>
+                            <td className="hidden md:table-cell px-2 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm text-gray-500">
+                              {subscriber.source || 'website'}
+                            </td>
+                            <td className="px-2 sm:px-4 py-2.5 sm:py-3 text-right">
+                              <div className="flex items-center justify-end gap-1 sm:gap-2">
+                                {subscriber.status === 'subscribed' && (
+                                  <button
+                                    onClick={() => {
+                                      Swal.fire({
+                                        title: 'Unsubscribe?',
+                                        text: `Unsubscribe ${subscriber.email}?`,
+                                        icon: 'warning',
+                                        showCancelButton: true,
+                                        confirmButtonColor: '#ef4444',
+                                        cancelButtonColor: '#6b7280',
+                                        confirmButtonText: 'Yes, unsubscribe',
+                                      }).then((result) => {
+                                        if (result.isConfirmed) {
+                                          router.post(
+                                            route('backend.newsletter.unsubscribe', subscriber.id),
+                                            {},
+                                            {
+                                              preserveScroll: true,
+                                              onSuccess: () => {
+                                                Swal.fire({
+                                                  icon: 'success',
+                                                  title: 'Unsubscribed!',
+                                                  timer: 1500,
+                                                  showConfirmButton: false,
+                                                });
+                                              },
+                                            }
+                                          );
+                                        }
+                                      });
+                                    }}
+                                    className="p-1 sm:p-1.5 text-yellow-600 hover:bg-yellow-50 rounded transition"
+                                    title="Unsubscribe"
+                                  >
+                                    <FaTimesCircle size={12} />
+                                  </button>
+                                )}
+                                {subscriber.status === 'unsubscribed' && (
+                                  <button
+                                    onClick={() => {
+                                      router.post(
+                                        route('backend.newsletter.resubscribe', subscriber.id),
+                                        {},
+                                        {
+                                          preserveScroll: true,
+                                          onSuccess: () => {
+                                            Swal.fire({
+                                              icon: 'success',
+                                              title: 'Resubscribed!',
+                                              timer: 1500,
+                                              showConfirmButton: false,
+                                            });
+                                          },
+                                        }
+                                      );
+                                    }}
+                                    className="p-1 sm:p-1.5 text-green-600 hover:bg-green-50 rounded transition"
+                                    title="Resubscribe"
+                                  >
+                                    <FaCheckCircle size={12} />
+                                  </button>
+                                )}
                                 <button
                                   onClick={() => {
                                     Swal.fire({
-                                      title: 'Unsubscribe?',
-                                      text: `Unsubscribe ${subscriber.email}?`,
+                                      title: 'Delete Subscriber?',
+                                      text: `Delete ${subscriber.email}? This cannot be undone.`,
                                       icon: 'warning',
                                       showCancelButton: true,
                                       confirmButtonColor: '#ef4444',
                                       cancelButtonColor: '#6b7280',
-                                      confirmButtonText: 'Yes, unsubscribe',
+                                      confirmButtonText: 'Delete',
                                     }).then((result) => {
                                       if (result.isConfirmed) {
-                                        router.post(
-                                          route('backend.newsletter.unsubscribe', subscriber.id),
-                                          {},
+                                        router.delete(
+                                          route('backend.newsletter.destroy', subscriber.id),
                                           {
                                             preserveScroll: true,
                                             onSuccess: () => {
                                               Swal.fire({
                                                 icon: 'success',
-                                                title: 'Unsubscribed!',
+                                                title: 'Deleted!',
                                                 timer: 1500,
                                                 showConfirmButton: false,
                                               });
@@ -774,146 +813,87 @@ export default function NewsletterIndex({ subscribers, stats, filters }) {
                                       }
                                     });
                                   }}
-                                  className="p-1.5 text-yellow-600 hover:bg-yellow-50 rounded transition"
-                                  title="Unsubscribe"
+                                  className="p-1 sm:p-1.5 text-red-600 hover:bg-red-50 rounded transition"
+                                  title="Delete"
                                 >
-                                  <FaTimesCircle size={14} />
+                                  <FaTrash size={12} />
                                 </button>
-                              )}
-                              {subscriber.status === 'unsubscribed' && (
-                                <button
-                                  onClick={() => {
-                                    router.post(
-                                      route('backend.newsletter.resubscribe', subscriber.id),
-                                      {},
-                                      {
-                                        preserveScroll: true,
-                                        onSuccess: () => {
-                                          Swal.fire({
-                                            icon: 'success',
-                                            title: 'Resubscribed!',
-                                            timer: 1500,
-                                            showConfirmButton: false,
-                                          });
-                                        },
-                                      }
-                                    );
-                                  }}
-                                  className="p-1.5 text-green-600 hover:bg-green-50 rounded transition"
-                                  title="Resubscribe"
-                                >
-                                  <FaCheckCircle size={14} />
-                                </button>
-                              )}
-                              <button
-                                onClick={() => {
-                                  Swal.fire({
-                                    title: 'Delete Subscriber?',
-                                    text: `Delete ${subscriber.email}? This cannot be undone.`,
-                                    icon: 'warning',
-                                    showCancelButton: true,
-                                    confirmButtonColor: '#ef4444',
-                                    cancelButtonColor: '#6b7280',
-                                    confirmButtonText: 'Delete',
-                                  }).then((result) => {
-                                    if (result.isConfirmed) {
-                                      router.delete(
-                                        route('backend.newsletter.destroy', subscriber.id),
-                                        {
-                                          preserveScroll: true,
-                                          onSuccess: () => {
-                                            Swal.fire({
-                                              icon: 'success',
-                                              title: 'Deleted!',
-                                              timer: 1500,
-                                              showConfirmButton: false,
-                                            });
-                                          },
-                                        }
-                                      );
-                                    }
-                                  });
-                                }}
-                                className="p-1.5 text-red-600 hover:bg-red-50 rounded transition"
-                                title="Delete"
-                              >
-                                <FaTrash size={14} />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-
-              {/* Pagination */}
-              {subscribers.links && subscribers.links.length > 3 && (
-                <div className="px-4 py-3 border-t border-gray-200 flex items-center justify-between">
-                  <p className="text-sm text-gray-500">
-                    Showing {subscribers.from || 0} to {subscribers.to || 0} of {subscribers.total || 0} results
-                  </p>
-                  <div className="flex items-center gap-1">
-                    {subscribers.links.map((link, index) => (
-                      <button
-                        key={index}
-                        onClick={() => {
-                          if (link.url && !link.active) {
-                            router.get(link.url, {}, { preserveState: true });
-                          }
-                        }}
-                        dangerouslySetInnerHTML={{ __html: link.label }}
-                        className={`px-3 py-1 rounded text-sm ${link.active
-                          ? 'bg-blue-600 text-white'
-                          : link.url
-                            ? 'text-gray-700 hover:bg-gray-100'
-                            : 'text-gray-300 cursor-not-allowed'
-                          }`}
-                      />
-                    ))}
-                  </div>
+                              </div>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
                 </div>
-              )}
-            </div>
-          </>
-        )}
 
-        {/* Campaigns Tab */}
-        {activeTab === 'campaigns' && (
-          <CampaignsTable campaigns={campaigns} />
-        )}
+                {/* Pagination */}
+                {subscribers.links && subscribers.links.length > 3 && (
+                  <div className="px-3 sm:px-4 py-2.5 sm:py-3 border-t border-gray-200 flex flex-col sm:flex-row items-center justify-between gap-2 sm:gap-0">
+                    <p className="text-xs sm:text-sm text-gray-500">
+                      Showing {subscribers.from || 0} to {subscribers.to || 0} of {subscribers.total || 0} results
+                    </p>
+                    <div className="flex flex-wrap items-center gap-0.5 sm:gap-1">
+                      {subscribers.links.map((link, index) => (
+                        <button
+                          key={index}
+                          onClick={() => {
+                            if (link.url && !link.active) {
+                              router.get(link.url, {}, { preserveState: true });
+                            }
+                          }}
+                          dangerouslySetInnerHTML={{ __html: link.label }}
+                          className={`px-2 sm:px-3 py-0.5 sm:py-1 rounded text-xs sm:text-sm ${link.active
+                              ? 'bg-blue-600 text-white'
+                              : link.url
+                                ? 'text-gray-700 hover:bg-gray-100'
+                                : 'text-gray-300 cursor-not-allowed'
+                            }`}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+
+          {/* Campaigns Tab */}
+          {activeTab === 'campaigns' && (
+            <CampaignsTable campaigns={campaigns} />
+          )}
+        </div>
       </div>
 
       {/* Send Email Modal */}
       {showSendEmailModal && (
         <div
-          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-3 sm:p-4"
           onClick={(e) => {
             if (e.target === e.currentTarget) setShowSendEmailModal(false);
           }}
         >
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b border-gray-200 flex justify-between items-center sticky top-0 bg-white">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
+            <div className="p-4 sm:p-6 border-b border-gray-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 sm:gap-0 sticky top-0 bg-white z-10">
               <div>
-                <h2 className="text-xl font-bold">Send Bulk Email</h2>
-                <p className="text-sm text-gray-500">
+                <h2 className="text-lg sm:text-xl font-bold">Send Bulk Email</h2>
+                <p className="text-xs sm:text-sm text-gray-500">
                   Sending to {selectedIds.length} subscriber(s)
                 </p>
               </div>
               <button
                 onClick={() => setShowSendEmailModal(false)}
-                className="p-2 hover:bg-gray-100 rounded-lg transition"
+                className="p-1.5 sm:p-2 hover:bg-gray-100 rounded-lg transition self-end sm:self-center"
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
             </div>
 
-            <div className="p-6 space-y-4">
+            <div className="p-4 sm:p-6 space-y-3 sm:space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-0.5 sm:mb-1">
                   Subject <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -921,35 +901,35 @@ export default function NewsletterIndex({ subscribers, stats, filters }) {
                   value={emailSubject}
                   onChange={(e) => setEmailSubject(e.target.value)}
                   placeholder="Enter email subject..."
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
+                  className="w-full px-2.5 sm:px-3 py-1.5 sm:py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition text-sm"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-0.5 sm:mb-1">
                   Content <span className="text-red-500">*</span>
                 </label>
                 <textarea
                   value={emailContent}
                   onChange={(e) => setEmailContent(e.target.value)}
                   placeholder="Enter email content..."
-                  rows={10}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition resize-none font-mono text-sm"
+                  rows={8}
+                  className="w-full px-2.5 sm:px-3 py-1.5 sm:py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition resize-none font-mono text-xs sm:text-sm"
                 />
-                <p className="text-xs text-gray-400 mt-1">
+                <p className="text-[10px] sm:text-xs text-gray-400 mt-0.5 sm:mt-1">
                   HTML is supported. You can use basic HTML tags.
                 </p>
               </div>
 
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-sm text-yellow-700">
-                <strong>Note:</strong> This will start a background campaign. You can track progress in the <strong>Campaigns</strong> tab.
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-2.5 sm:p-3 text-xs sm:text-sm text-yellow-700">
+                <strong>Note:</strong> This will start a background campaign. You can track progress in the campaigns tab on this page.
               </div>
             </div>
 
-            <div className="p-6 border-t border-gray-200 flex justify-end gap-3 sticky bottom-0 bg-white">
+            <div className="p-4 sm:p-6 border-t border-gray-200 flex flex-col-reverse sm:flex-row justify-end gap-2 sm:gap-3 sticky bottom-0 bg-white">
               <button
                 onClick={() => setShowSendEmailModal(false)}
-                className="px-4 py-2 text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition"
+                className="w-full sm:w-auto px-3 sm:px-4 py-2 text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition text-sm"
                 disabled={sendingEmail}
               >
                 Cancel
@@ -957,9 +937,9 @@ export default function NewsletterIndex({ subscribers, stats, filters }) {
               <button
                 onClick={handleSendEmail}
                 disabled={sendingEmail || !emailSubject.trim() || !emailContent.trim()}
-                className={`px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center gap-2 ${sendingEmail || !emailSubject.trim() || !emailContent.trim()
-                  ? 'opacity-50 cursor-not-allowed'
-                  : ''
+                className={`w-full sm:w-auto px-4 sm:px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center justify-center gap-2 text-sm ${sendingEmail || !emailSubject.trim() || !emailContent.trim()
+                    ? 'opacity-50 cursor-not-allowed'
+                    : ''
                   }`}
               >
                 {sendingEmail ? (
