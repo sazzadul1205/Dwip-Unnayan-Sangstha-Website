@@ -380,9 +380,9 @@ const CVModal = ({ isOpen, onClose, profile }) => {
    */
   const getFileIcon = (fileName) => {
     const extension = fileName?.split('.').pop().toLowerCase();
-    if (extension === 'pdf') return <FaFilePdf className="h-6 w-6 sm:h-8 sm:w-8 text-red-500" />;
-    if (extension === 'doc' || extension === 'docx') return <FaFileWord className="h-6 w-6 sm:h-8 sm:w-8 text-blue-500" />;
-    return <FaFileAlt className="h-6 w-6 sm:h-8 sm:w-8 text-gray-500" />;
+    if (extension === 'pdf') return <FaFilePdf className="h-5 w-5 sm:h-6 sm:w-6 md:h-8 md:w-8 text-red-500" />;
+    if (extension === 'doc' || extension === 'docx') return <FaFileWord className="h-5 w-5 sm:h-6 sm:w-6 md:h-8 md:w-8 text-blue-500" />;
+    return <FaFileAlt className="h-5 w-5 sm:h-6 sm:w-6 md:h-8 md:w-8 text-gray-500" />;
   };
 
   /**
@@ -442,22 +442,22 @@ const CVModal = ({ isOpen, onClose, profile }) => {
   return (
     <>
       <Modal title="Manage CVs & Resumes" onClose={closeModal} onSave={handleSave} saving={saving}>
-        <div className="space-y-4 sm:space-y-6">
+        <div className="space-y-3 sm:space-y-4 md:space-y-6">
           {/* Header */}
-          <div className="border-b border-gray-200 pb-3 sm:pb-4">
-            <div className="flex items-center space-x-3">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <MdDescription className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600" />
+          <div className="border-b border-gray-200 pb-2.5 sm:pb-3 md:pb-4">
+            <div className="flex items-center space-x-2.5 sm:space-x-3">
+              <div className="p-1.5 sm:p-2 bg-blue-100 rounded-lg">
+                <MdDescription className="h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6 text-blue-600" />
               </div>
               <div>
-                <h2 className="text-lg sm:text-xl font-semibold text-gray-900">Upload Your CV/Resume</h2>
-                <p className="text-xs sm:text-sm text-gray-500 mt-0.5 sm:mt-1">Add your resume so employers can review your qualifications</p>
+                <h2 className="text-base sm:text-lg md:text-xl font-semibold text-gray-900">Upload Your CV/Resume</h2>
+                <p className="text-[10px] sm:text-xs md:text-sm text-gray-500 mt-0.5">Add your resume so employers can review your qualifications</p>
               </div>
             </div>
           </div>
 
           {/* Progress Indicator */}
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between text-xs sm:text-sm gap-1 sm:gap-0">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between text-[10px] sm:text-xs md:text-sm gap-0.5 sm:gap-1">
             <span className="text-gray-600">
               {cvs.length} of {MAX_CVS} CVs uploaded
             </span>
@@ -467,9 +467,9 @@ const CVModal = ({ isOpen, onClose, profile }) => {
           </div>
 
           {/* Progress Bar */}
-          <div className="w-full bg-gray-200 rounded-full h-1.5 sm:h-2">
+          <div className="w-full bg-gray-200 rounded-full h-1 sm:h-1.5 md:h-2">
             <div
-              className="bg-blue-600 rounded-full h-1.5 sm:h-2 transition-all duration-300"
+              className="bg-blue-600 rounded-full h-1 sm:h-1.5 md:h-2 transition-all duration-300"
               style={{ width: `${(cvs.length / MAX_CVS) * 100}%` }}
             />
           </div>
@@ -477,7 +477,7 @@ const CVModal = ({ isOpen, onClose, profile }) => {
           {/* Upload Area */}
           {cvs.length < MAX_CVS ? (
             <div
-              className={`relative border-2 border-dashed rounded-xl p-4 sm:p-8 text-center transition-all duration-200 ${dragActive ? 'border-blue-500 bg-blue-50 scale-[1.01]' : 'border-gray-300 bg-gray-50'
+              className={`relative border-2 border-dashed rounded-xl p-3 sm:p-4 md:p-8 text-center transition-all duration-200 ${dragActive ? 'border-blue-500 bg-blue-50 scale-[1.01]' : 'border-gray-300 bg-gray-50'
                 }`}
               onDragEnter={handleDrag}
               onDragLeave={handleDrag}
@@ -491,31 +491,31 @@ const CVModal = ({ isOpen, onClose, profile }) => {
                 className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
               />
               <div className="flex flex-col items-center">
-                <div className="p-3 sm:p-4 bg-white rounded-full shadow-md mb-2 sm:mb-3">
-                  <BiCloudUpload className="mx-auto h-8 w-8 sm:h-10 sm:w-10 text-blue-500" />
+                <div className="p-2.5 sm:p-3 md:p-4 bg-white rounded-full shadow-md mb-1.5 sm:mb-2 md:mb-3">
+                  <BiCloudUpload className="mx-auto h-6 w-6 sm:h-8 sm:w-8 md:h-10 md:w-10 text-blue-500" />
                 </div>
-                <p className="text-sm sm:text-base font-medium text-gray-700">
+                <p className="text-xs sm:text-sm md:text-base font-medium text-gray-700">
                   Drag & drop your CV here, or click to select
                 </p>
-                <p className="text-[10px] sm:text-xs text-gray-500 mt-1 sm:mt-2">Supports PDF, DOC, DOCX (Max 5MB)</p>
+                <p className="text-[8px] sm:text-[10px] md:text-xs text-gray-500 mt-0.5 sm:mt-1 md:mt-2">Supports PDF, DOC, DOCX (Max 5MB)</p>
                 {uploading && (
-                  <div className="mt-3 sm:mt-4 flex flex-col items-center">
-                    <FaSpinner className="animate-spin h-5 w-5 sm:h-6 sm:w-6 text-blue-500" />
-                    <p className="text-xs sm:text-sm text-gray-600 mt-1 sm:mt-2">Uploading...</p>
+                  <div className="mt-2 sm:mt-3 md:mt-4 flex flex-col items-center">
+                    <FaSpinner className="animate-spin h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6 text-blue-500" />
+                    <p className="text-[10px] sm:text-xs md:text-sm text-gray-600 mt-0.5 sm:mt-1 md:mt-2">Uploading...</p>
                   </div>
                 )}
               </div>
             </div>
           ) : (
-            <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 sm:p-6 text-center">
+            <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-3 sm:p-4 md:p-6 text-center">
               <div className="flex flex-col items-center">
-                <div className="p-2 sm:p-3 bg-yellow-100 rounded-full mb-2 sm:mb-3">
-                  <FaCloudUploadAlt className="h-6 w-6 sm:h-8 sm:w-8 text-yellow-600" />
+                <div className="p-1.5 sm:p-2 md:p-3 bg-yellow-100 rounded-full mb-1.5 sm:mb-2 md:mb-3">
+                  <FaCloudUploadAlt className="h-5 w-5 sm:h-6 sm:w-6 md:h-8 md:w-8 text-yellow-600" />
                 </div>
-                <p className="text-sm sm:text-base font-medium text-yellow-800">
+                <p className="text-xs sm:text-sm md:text-base font-medium text-yellow-800">
                   Maximum CV Limit Reached
                 </p>
-                <p className="text-xs sm:text-sm text-yellow-600 mt-1">
+                <p className="text-[10px] sm:text-xs md:text-sm text-yellow-600 mt-0.5 sm:mt-1">
                   You have reached the maximum limit of {MAX_CVS} CVs. Please remove an existing CV to upload a new one.
                 </p>
               </div>
@@ -524,61 +524,61 @@ const CVModal = ({ isOpen, onClose, profile }) => {
 
           {/* CV List */}
           {cvs.length > 0 && (
-            <div className="space-y-3">
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1 sm:gap-0">
-                <h3 className="text-sm sm:text-base font-semibold text-gray-900">Your CVs ({cvs.length}/{MAX_CVS})</h3>
-                <span className="text-[10px] sm:text-xs text-gray-500">
-                  <FaStar className="inline h-2 w-2 sm:h-3 sm:w-3 text-yellow-500 mr-1" />
+            <div className="space-y-2.5 sm:space-y-3">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-0.5 sm:gap-1">
+                <h3 className="text-xs sm:text-sm md:text-base font-semibold text-gray-900">Your CVs ({cvs.length}/{MAX_CVS})</h3>
+                <span className="text-[8px] sm:text-[10px] md:text-xs text-gray-500">
+                  <FaStar className="inline h-1.5 w-1.5 sm:h-2 sm:w-2 md:h-3 md:w-3 text-yellow-500 mr-0.5 sm:mr-1" />
                   Star indicates primary CV
                 </span>
               </div>
 
               {cvs.map((cv, index) => (
-                <div key={cv.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 sm:p-4 bg-gray-50 rounded-xl hover:shadow-md transition-all duration-200 gap-3 sm:gap-0">
-                  <div className="flex items-center space-x-3 w-full sm:w-auto">
+                <div key={cv.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-2.5 sm:p-3 md:p-4 bg-gray-50 rounded-xl hover:shadow-md transition-all duration-200 gap-2 sm:gap-3">
+                  <div className="flex items-center space-x-2.5 sm:space-x-3 w-full sm:w-auto">
                     {getFileIcon(cv.original_name)}
                     <div className="min-w-0">
-                      <p className="text-sm sm:text-base font-medium text-gray-900 break-all">{cv.original_name}</p>
-                      <p className="text-[10px] sm:text-xs text-gray-500">
+                      <p className="text-xs sm:text-sm md:text-base font-medium text-gray-900 break-all">{cv.original_name}</p>
+                      <p className="text-[8px] sm:text-[10px] md:text-xs text-gray-500">
                         {formatFileSize(cv.size)} • {new Date(cv.upload_date).toLocaleDateString()}
                       </p>
-                      <p className="text-xs sm:text-sm text-gray-500 flex items-center gap-1 mt-0.5 sm:mt-1">
+                      <p className="text-[8px] sm:text-[10px] md:text-xs text-gray-500 flex items-center gap-0.5 sm:gap-1 mt-0.5">
                         {cv.is_primary ? (
                           <>
-                            <FaStar className="h-2 w-2 sm:h-3 sm:w-3 text-yellow-500" />
+                            <FaStar className="h-1.5 w-1.5 sm:h-2 sm:w-2 md:h-3 md:w-3 text-yellow-500" />
                             <span className="text-yellow-600">Primary CV</span>
                           </>
                         ) : (
                           <>
-                            <FaRegStar className="h-2 w-2 sm:h-3 sm:w-3 text-gray-400" />
+                            <FaRegStar className="h-1.5 w-1.5 sm:h-2 sm:w-2 md:h-3 md:w-3 text-gray-400" />
                             <span>{cv.status === 'pending' ? 'Pending' : `CV ${index + 1}`}</span>
                           </>
                         )}
                       </p>
                     </div>
                   </div>
-                  <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 w-full sm:w-auto">
+                  <div className="flex flex-wrap items-center gap-1 sm:gap-1.5 md:gap-2 w-full sm:w-auto">
                     <button
                       onClick={() => previewCV(cv)}
-                      className="p-1.5 sm:p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-colors duration-200"
+                      className="p-1 sm:p-1.5 md:p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-colors duration-200"
                       title="Preview CV"
                     >
-                      <FaEye className="h-3 w-3 sm:h-4 sm:w-4" />
+                      <FaEye className="h-2.5 w-2.5 sm:h-3 sm:w-3 md:h-4 md:w-4" />
                     </button>
                     {!cv.is_primary && (
                       <button
                         onClick={() => setPrimaryCV(index)}
-                        className="flex items-center gap-1 px-2 py-1 sm:px-3 sm:py-1.5 text-[10px] sm:text-sm bg-yellow-100 text-yellow-700 rounded-lg hover:bg-yellow-200 transition-colors duration-200"
+                        className="flex items-center gap-0.5 sm:gap-1 px-1.5 py-0.5 sm:px-2 sm:py-1 md:px-3 md:py-1.5 text-[8px] sm:text-[10px] md:text-sm bg-yellow-100 text-yellow-700 rounded-lg hover:bg-yellow-200 transition-colors duration-200"
                       >
-                        <FaStar className="h-2 w-2 sm:h-3 sm:w-3" />
+                        <FaStar className="h-1.5 w-1.5 sm:h-2 sm:w-2 md:h-3 md:w-3" />
                         Set as Primary
                       </button>
                     )}
                     <button
                       onClick={() => removeCV(index)}
-                      className="p-1.5 sm:p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-colors duration-200"
+                      className="p-1 sm:p-1.5 md:p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-colors duration-200"
                     >
-                      <FaTrashAlt className="h-3 w-3 sm:h-4 sm:w-4" />
+                      <FaTrashAlt className="h-2.5 w-2.5 sm:h-3 sm:w-3 md:h-4 md:w-4" />
                     </button>
                   </div>
                 </div>
@@ -587,10 +587,10 @@ const CVModal = ({ isOpen, onClose, profile }) => {
           )}
 
           {/* Info Note */}
-          <div className="bg-linear-to-r from-blue-50 to-indigo-50 rounded-xl p-3 sm:p-4 border border-blue-100">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-center gap-1.5 sm:gap-2">
-              <FaCloudUploadAlt className="h-4 w-4 sm:h-5 sm:w-5 text-blue-500 shrink-0" />
-              <p className="text-xs sm:text-sm text-gray-600 text-center sm:text-left">
+          <div className="bg-linear-to-r from-blue-50 to-indigo-50 rounded-xl p-2.5 sm:p-3 md:p-4 border border-blue-100">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-center gap-1 sm:gap-1.5 md:gap-2">
+              <FaCloudUploadAlt className="h-3.5 w-3.5 sm:h-4 sm:w-4 md:h-5 md:w-5 text-blue-500 shrink-0" />
+              <p className="text-[10px] sm:text-xs md:text-sm text-gray-600 text-center sm:text-left">
                 You can upload up to {MAX_CVS} CVs and set one as primary. Your primary CV will be used for auto-applications.
                 Files upload immediately and stay pending until your profile is complete.
               </p>
@@ -601,31 +601,31 @@ const CVModal = ({ isOpen, onClose, profile }) => {
 
       {/* PDF Preview Modal */}
       {previewCv && previewCv.type === 'application/pdf' && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-60 p-2 sm:p-4" onClick={closePreview}>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-60 p-1.5 sm:p-2 md:p-4" onClick={closePreview}>
           <div className="bg-white rounded-xl max-w-4xl w-full max-h-[95vh] sm:max-h-[90vh] overflow-auto" onClick={(e) => e.stopPropagation()}>
-            <div className="sticky top-0 bg-white border-b border-gray-200 px-3 sm:px-6 py-3 sm:py-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 sm:gap-0">
+            <div className="sticky top-0 bg-white border-b border-gray-200 px-2.5 sm:px-3 md:px-6 py-2 sm:py-3 md:py-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-1.5 sm:gap-2">
               <div>
-                <h3 className="text-sm sm:text-base font-semibold text-gray-900 break-all">{previewCv.original_name}</h3>
-                <p className="text-[10px] sm:text-xs text-gray-500">{formatFileSize(previewCv.size)}</p>
+                <h3 className="text-xs sm:text-sm md:text-base font-semibold text-gray-900 break-all">{previewCv.original_name}</h3>
+                <p className="text-[8px] sm:text-[10px] md:text-xs text-gray-500">{formatFileSize(previewCv.size)}</p>
               </div>
-              <button onClick={closePreview} className="text-gray-500 hover:text-gray-700 text-lg sm:text-xl">✕</button>
+              <button onClick={closePreview} className="text-gray-500 hover:text-gray-700 text-base sm:text-lg md:text-xl">✕</button>
             </div>
-            <div className="p-2 sm:p-6">
+            <div className="p-1.5 sm:p-2 md:p-6">
               {!pdfError ? (
                 <Document
                   file={previewCv.data}
                   onLoadSuccess={onDocumentLoadSuccess}
                   onLoadError={onDocumentLoadError}
                   loading={
-                    <div className="flex items-center justify-center py-12 sm:py-20">
-                      <FaSpinner className="animate-spin h-6 w-6 sm:h-8 sm:w-8 text-blue-500" />
-                      <p className="ml-2 text-xs sm:text-sm text-gray-600">Loading PDF...</p>
+                    <div className="flex items-center justify-center py-8 sm:py-12 md:py-20">
+                      <FaSpinner className="animate-spin h-5 w-5 sm:h-6 sm:w-6 md:h-8 md:w-8 text-blue-500" />
+                      <p className="ml-1.5 sm:ml-2 text-[10px] sm:text-xs md:text-sm text-gray-600">Loading PDF...</p>
                     </div>
                   }
                   error={
-                    <div className="text-center py-12 sm:py-20">
-                      <FaFilePdf className="h-12 w-12 sm:h-16 sm:w-16 text-red-400 mx-auto mb-3 sm:mb-4" />
-                      <p className="text-sm sm:text-base text-red-600 font-medium mb-2">Failed to load PDF</p>
+                    <div className="text-center py-8 sm:py-12 md:py-20">
+                      <FaFilePdf className="h-10 w-10 sm:h-12 sm:w-12 md:h-16 md:w-16 text-red-400 mx-auto mb-2 sm:mb-3 md:mb-4" />
+                      <p className="text-xs sm:text-sm md:text-base text-red-600 font-medium mb-1.5 sm:mb-2">Failed to load PDF</p>
                       <button
                         onClick={() => {
                           const link = document.createElement('a');
@@ -633,7 +633,7 @@ const CVModal = ({ isOpen, onClose, profile }) => {
                           link.download = previewCv.original_name;
                           link.click();
                         }}
-                        className="mt-3 sm:mt-4 px-3 sm:px-4 py-1.5 sm:py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm"
+                        className="mt-2 sm:mt-3 md:mt-4 px-2.5 sm:px-3 md:px-4 py-1 sm:py-1.5 md:py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-[10px] sm:text-xs md:text-sm"
                       >
                         Download File Instead
                       </button>
@@ -645,17 +645,17 @@ const CVModal = ({ isOpen, onClose, profile }) => {
                       key={`page_${index + 1}`}
                       pageNumber={index + 1}
                       scale={1.0}
-                      className="mb-4 shadow-lg"
+                      className="mb-3 sm:mb-4 shadow-lg"
                       renderTextLayer={false}
                       renderAnnotationLayer={false}
-                      width={Math.min(window.innerWidth - 48, 800)}
+                      width={Math.min(window.innerWidth - 32, 800)}
                     />
                   ))}
                 </Document>
               ) : (
-                <div className="text-center py-12 sm:py-20">
-                  <FaFilePdf className="h-12 w-12 sm:h-16 sm:w-16 text-red-400 mx-auto mb-3 sm:mb-4" />
-                  <p className="text-sm sm:text-base text-red-600 font-medium mb-2">Failed to load PDF</p>
+                <div className="text-center py-8 sm:py-12 md:py-20">
+                  <FaFilePdf className="h-10 w-10 sm:h-12 sm:w-12 md:h-16 md:w-16 text-red-400 mx-auto mb-2 sm:mb-3 md:mb-4" />
+                  <p className="text-xs sm:text-sm md:text-base text-red-600 font-medium mb-1.5 sm:mb-2">Failed to load PDF</p>
                   <button
                     onClick={() => {
                       const link = document.createElement('a');
@@ -663,7 +663,7 @@ const CVModal = ({ isOpen, onClose, profile }) => {
                       link.download = previewCv.original_name;
                       link.click();
                     }}
-                    className="px-3 sm:px-4 py-1.5 sm:py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm"
+                    className="px-2.5 sm:px-3 md:px-4 py-1 sm:py-1.5 md:py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-[10px] sm:text-xs md:text-sm"
                   >
                     Download File
                   </button>
@@ -676,18 +676,18 @@ const CVModal = ({ isOpen, onClose, profile }) => {
 
       {/* Non-PDF Preview (Download only) */}
       {previewCv && previewCv.type !== 'application/pdf' && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-60 p-2 sm:p-4" onClick={closePreview}>
-          <div className="bg-white rounded-xl max-w-2xl w-full mx-2 sm:mx-0" onClick={(e) => e.stopPropagation()}>
-            <div className="border-b border-gray-200 px-3 sm:px-6 py-3 sm:py-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 sm:gap-0">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-60 p-1.5 sm:p-2 md:p-4" onClick={closePreview}>
+          <div className="bg-white rounded-xl max-w-2xl w-full mx-1 sm:mx-2 md:mx-0" onClick={(e) => e.stopPropagation()}>
+            <div className="border-b border-gray-200 px-2.5 sm:px-3 md:px-6 py-2 sm:py-3 md:py-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-1.5 sm:gap-2">
               <div>
-                <h3 className="text-sm sm:text-base font-semibold text-gray-900 break-all">{previewCv.original_name}</h3>
-                <p className="text-[10px] sm:text-xs text-gray-500">{formatFileSize(previewCv.size)}</p>
+                <h3 className="text-xs sm:text-sm md:text-base font-semibold text-gray-900 break-all">{previewCv.original_name}</h3>
+                <p className="text-[8px] sm:text-[10px] md:text-xs text-gray-500">{formatFileSize(previewCv.size)}</p>
               </div>
-              <button onClick={closePreview} className="text-gray-500 hover:text-gray-700 text-lg sm:text-xl">✕</button>
+              <button onClick={closePreview} className="text-gray-500 hover:text-gray-700 text-base sm:text-lg md:text-xl">✕</button>
             </div>
-            <div className="p-4 sm:p-6 text-center">
-              <div className="mb-3 sm:mb-4">{getFileIcon(previewCv.original_name)}</div>
-              <p className="text-xs sm:text-sm text-gray-600 mb-3 sm:mb-4">Preview not available for this file type.</p>
+            <div className="p-3 sm:p-4 md:p-6 text-center">
+              <div className="mb-2 sm:mb-3 md:mb-4">{getFileIcon(previewCv.original_name)}</div>
+              <p className="text-[10px] sm:text-xs md:text-sm text-gray-600 mb-2 sm:mb-3 md:mb-4">Preview not available for this file type.</p>
               <button
                 onClick={() => {
                   const link = document.createElement('a');
@@ -695,7 +695,7 @@ const CVModal = ({ isOpen, onClose, profile }) => {
                   link.download = previewCv.original_name;
                   link.click();
                 }}
-                className="px-3 sm:px-4 py-1.5 sm:py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm"
+                className="px-2.5 sm:px-3 md:px-4 py-1 sm:py-1.5 md:py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-[10px] sm:text-xs md:text-sm"
               >
                 Download File
               </button>
