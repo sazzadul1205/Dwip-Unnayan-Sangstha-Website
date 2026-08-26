@@ -7,18 +7,11 @@ import { FaInfoCircle, FaSearch, FaTimes } from 'react-icons/fa';
 
 // Comprehensive Education Requirements Array
 const educationRequirements = [
-  // No Formal Education
   { value: "No formal education required", label: "No Formal Education Required", category: "None" },
-
-  // Primary Education
   { value: "Class 1-4 (Primary Education)", label: "Primary Education (Class 1-4)", category: "Primary" },
   { value: "Class 5 (Primary School Certificate)", label: "PSC - Primary School Certificate (Class 5)", category: "Primary" },
-
-  // Junior Secondary
   { value: "Class 6-7 (Junior Secondary)", label: "Junior Secondary (Class 6-7)", category: "Secondary" },
   { value: "Class 8 (Junior School Certificate)", label: "JSC - Junior School Certificate (Class 8)", category: "Secondary" },
-
-  // Secondary Education
   { value: "Class 9-10 (Secondary)", label: "Secondary (Class 9-10)", category: "Secondary" },
   { value: "SSC (Secondary School Certificate)", label: "SSC - Secondary School Certificate", category: "Secondary" },
   { value: "SSC (Science)", label: "SSC - Science Group", category: "Secondary" },
@@ -27,8 +20,6 @@ const educationRequirements = [
   { value: "SSC (Vocational)", label: "SSC - Vocational", category: "Secondary" },
   { value: "O Level", label: "O Level (Cambridge/Oxford)", category: "Secondary" },
   { value: "Dakhil (Madrasah)", label: "Dakhil - Madrasah Secondary (Class 10)", category: "Secondary" },
-
-  // Higher Secondary Education
   { value: "Class 11-12 (Higher Secondary)", label: "Higher Secondary (Class 11-12)", category: "Higher Secondary" },
   { value: "HSC (Higher Secondary Certificate)", label: "HSC - Higher Secondary Certificate", category: "Higher Secondary" },
   { value: "HSC (Science)", label: "HSC - Science Group", category: "Higher Secondary" },
@@ -37,8 +28,6 @@ const educationRequirements = [
   { value: "HSC (Business Management)", label: "HSC - Business Management", category: "Higher Secondary" },
   { value: "A Level", label: "A Level (Cambridge/Oxford)", category: "Higher Secondary" },
   { value: "Alim (Madrasah)", label: "Alim - Madrasah Higher Secondary (Class 12)", category: "Higher Secondary" },
-
-  // Diploma & Technical Education
   { value: "Diploma in Engineering", label: "Diploma in Engineering (General)", category: "Diploma" },
   { value: "Diploma in Computer Science", label: "Diploma in Computer Science & Technology", category: "Diploma" },
   { value: "Diploma in Electrical Engineering", label: "Diploma in Electrical Engineering", category: "Diploma" },
@@ -56,8 +45,6 @@ const educationRequirements = [
   { value: "Diploma in Graphic Design", label: "Diploma in Graphic Design & Multimedia", category: "Diploma" },
   { value: "Diploma in Fashion Design", label: "Diploma in Fashion Design", category: "Diploma" },
   { value: "Diploma in Library Science", label: "Diploma in Library & Information Science", category: "Diploma" },
-
-  // Bachelor's Degrees
   { value: "Bachelor's degree (Pass)", label: "Bachelor's Degree (Pass - 3 Years)", category: "Bachelor's" },
   { value: "Bachelor's degree (Honours)", label: "Bachelor's Degree (Honours - 4 Years)", category: "Bachelor's" },
   { value: "BSc in Computer Science & Engineering", label: "BSc in Computer Science & Engineering (CSE)", category: "Bachelor's" },
@@ -112,8 +99,6 @@ const educationRequirements = [
   { value: "BFA (Bachelor of Fine Arts)", label: "BFA - Bachelor of Fine Arts", category: "Bachelor's" },
   { value: "BBA in E-Commerce", label: "BBA in E-Commerce & Digital Business", category: "Bachelor's" },
   { value: "BBA in Supply Chain", label: "BBA in Supply Chain Management", category: "Bachelor's" },
-
-  // Professional Certifications
   { value: "Professional Certification", label: "Professional Certification", category: "Professional" },
   { value: "Certified Public Accountant (CPA)", label: "CPA - Certified Public Accountant", category: "Professional" },
   { value: "Chartered Accountant (CA)", label: "CA - Chartered Accountant", category: "Professional" },
@@ -141,8 +126,6 @@ const educationRequirements = [
   { value: "HR Certification", label: "HRCI/SHRM Professional HR Certification", category: "Professional" },
   { value: "CFA Certification", label: "CFA - Chartered Financial Analyst", category: "Professional" },
   { value: "FRM Certification", label: "FRM - Financial Risk Manager", category: "Professional" },
-
-  // Master's Degrees
   { value: "Master's degree", label: "Master's Degree (General)", category: "Master's" },
   { value: "MBA (Master of Business Administration)", label: "MBA - Master of Business Administration", category: "Master's" },
   { value: "MBA in Finance", label: "MBA in Finance", category: "Master's" },
@@ -183,8 +166,6 @@ const educationRequirements = [
   { value: "M.Pharm (Master of Pharmacy)", label: "M.Pharm - Master of Pharmacy", category: "Master's" },
   { value: "MDS (Master of Dental Surgery)", label: "MDS - Master of Dental Surgery", category: "Master's" },
   { value: "MS in Nursing", label: "MS in Nursing & Healthcare Management", category: "Master's" },
-
-  // Post Graduate Diplomas
   { value: "Post Graduate Diploma (PGD)", label: "PGD - Post Graduate Diploma (General)", category: "PGD" },
   { value: "PGD in ICT", label: "PGD in Information & Communication Technology", category: "PGD" },
   { value: "PGD in HRM", label: "PGD in Human Resource Management", category: "PGD" },
@@ -194,8 +175,6 @@ const educationRequirements = [
   { value: "PGD in Project Management", label: "PGD in Project Management", category: "PGD" },
   { value: "PGD in Business Analytics", label: "PGD in Business Analytics & Intelligence", category: "PGD" },
   { value: "PGD in Development Studies", label: "PGD in Development Studies & NGO Management", category: "PGD" },
-
-  // Doctoral Degrees
   { value: "PhD (Doctor of Philosophy)", label: "PhD - Doctor of Philosophy (General)", category: "Doctoral" },
   { value: "PhD in Engineering", label: "PhD in Engineering & Technology", category: "Doctoral" },
   { value: "PhD in Science", label: "PhD in Natural & Applied Sciences", category: "Doctoral" },
@@ -207,8 +186,6 @@ const educationRequirements = [
   { value: "DBA (Doctor of Business Administration)", label: "DBA - Doctor of Business Administration", category: "Doctoral" },
   { value: "DLitt (Doctor of Literature)", label: "DLitt - Doctor of Literature", category: "Doctoral" },
   { value: "DSc (Doctor of Science)", label: "DSc - Doctor of Science", category: "Doctoral" },
-
-  // Vocational Training
   { value: "Vocational Training", label: "Vocational Training (General)", category: "Vocational" },
   { value: "IT Support Training", label: "IT Support & Help Desk Training", category: "Vocational" },
   { value: "Web Development Bootcamp", label: "Web Development Bootcamp/Course", category: "Vocational" },
@@ -228,7 +205,6 @@ export const RequirementsStep = ({ formData, errors, handleChange, handleArrayCh
   const [newResponsibility, setNewResponsibility] = React.useState('');
   const [newBenefit, setNewBenefit] = React.useState('');
 
-  // Education search state
   const [educationSearch, setEducationSearch] = React.useState('');
   const [showEducationDropdown, setShowEducationDropdown] = React.useState(false);
   const [filteredEducation, setFilteredEducation] = React.useState([]);
@@ -236,24 +212,6 @@ export const RequirementsStep = ({ formData, errors, handleChange, handleArrayCh
 
   const searchInputRef = React.useRef(null);
   const dropdownRef = React.useRef(null);
-
-  // Initialize filtered education and find selected index
-  React.useEffect(() => {
-    filterEducation(educationSearch);
-  }, [educationSearch, filterEducation, formData.education_requirement]);
-
-  // Close dropdown when clicking outside
-  React.useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target) &&
-        searchInputRef.current && !searchInputRef.current.contains(event.target)) {
-        setShowEducationDropdown(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
 
   const filterEducation = useCallback((searchTerm) => {
     let filtered = educationRequirements;
@@ -266,20 +224,34 @@ export const RequirementsStep = ({ formData, errors, handleChange, handleArrayCh
         edu.category.toLowerCase().includes(searchLower)
       );
     } else {
-      // Show first 15 items initially
       filtered = educationRequirements.slice(0, 15);
     }
 
     setFilteredEducation(filtered);
 
-    // Find index of currently selected education
     if (formData.education_requirement) {
       const selectedIdx = filtered.findIndex(edu => edu.value === formData.education_requirement);
       setSelectedEducationIndex(selectedIdx >= 0 ? selectedIdx : -1);
     } else {
       setSelectedEducationIndex(-1);
     }
-  }, [formData.education_requirement] );
+  }, [formData.education_requirement]);
+
+  React.useEffect(() => {
+    filterEducation(educationSearch);
+  }, [educationSearch, filterEducation, formData.education_requirement]);
+
+  React.useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target) &&
+        searchInputRef.current && !searchInputRef.current.contains(event.target)) {
+        setShowEducationDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const handleEducationSearch = (e) => {
     const value = e.target.value;
@@ -292,8 +264,6 @@ export const RequirementsStep = ({ formData, errors, handleChange, handleArrayCh
     setFormData(prev => ({ ...prev, education_requirement: eduValue }));
     setEducationSearch('');
     setShowEducationDropdown(false);
-
-    // Trigger handleChange for form validation
     handleChange({ target: { name: 'education_requirement', value: eduValue } });
   };
 
@@ -338,7 +308,6 @@ export const RequirementsStep = ({ formData, errors, handleChange, handleArrayCh
     handleChange({ target: { name: 'education_requirement', value: '' } });
   };
 
-  // Get selected education label
   const getSelectedEducationLabel = () => {
     if (!formData.education_requirement) return '';
     const selected = educationRequirements.find(edu => edu.value === formData.education_requirement);
@@ -365,10 +334,10 @@ export const RequirementsStep = ({ formData, errors, handleChange, handleArrayCh
       isActive={true}
       stepNumber={2}
     >
-      <div className="space-y-6">
-        {/* Job Requirements - Using CustomEditor */}
+      <div className="space-y-4 sm:space-y-6">
+        {/* Job Requirements */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">
             Detailed Requirements <span className="text-red-500">*</span>
           </label>
           <CustomEditor
@@ -376,56 +345,55 @@ export const RequirementsStep = ({ formData, errors, handleChange, handleArrayCh
             onChange={(html) => setFormData(prev => ({ ...prev, requirements: html }))}
             placeholder="List the qualifications, skills, experience, and any specific requirements for this role..."
           />
-          {errors.requirements && <p className="mt-1 text-sm text-red-500">{errors.requirements}</p>}
-          <p className="mt-1 text-xs text-gray-500">
-            Minimum 50 characters. Be specific about what you're looking for in a candidate.
+          {errors.requirements && <p className="mt-1 text-xs sm:text-sm text-red-500">{errors.requirements}</p>}
+          <p className="mt-1 text-[10px] sm:text-xs text-gray-500">
+            Minimum 50 characters. Be specific about what you're looking for.
           </p>
         </div>
 
-        {/* Skills - List Based */}
+        {/* Skills */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">
             Required Skills <span className="text-red-500">*</span>
           </label>
-          <div className="flex gap-2 mb-3">
+          <div className="flex flex-col sm:flex-row gap-2 mb-3">
             <input
               type="text"
               value={newSkill}
               onChange={(e) => setNewSkill(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && addItem('skills', newSkill, setNewSkill)}
-              placeholder="e.g., JavaScript, Project Management, Communication"
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="e.g., JavaScript, Project Management"
+              className="flex-1 px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
             />
             <button
               type="button"
               onClick={() => addItem('skills', newSkill, setNewSkill)}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+              className="w-full sm:w-auto px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm sm:text-base"
             >
               Add Skill
             </button>
           </div>
 
-          {/* List View instead of Tags */}
           {formData.skills.length > 0 ? (
-            <div className="border border-gray-200 rounded-lg overflow-hidden">
+            <div className="border border-gray-200 rounded-lg overflow-hidden overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">#</th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Skill Name</th>
-                    <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Action</th>
+                    <th className="px-3 sm:px-4 py-2 text-left text-[10px] sm:text-xs font-medium text-gray-500 uppercase">#</th>
+                    <th className="px-3 sm:px-4 py-2 text-left text-[10px] sm:text-xs font-medium text-gray-500 uppercase">Skill Name</th>
+                    <th className="px-3 sm:px-4 py-2 text-right text-[10px] sm:text-xs font-medium text-gray-500 uppercase">Action</th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {formData.skills.map((skill, index) => (
                     <tr key={index} className="hover:bg-gray-50">
-                      <td className="px-4 py-2 text-sm text-gray-500">{index + 1}</td>
-                      <td className="px-4 py-2 text-sm text-gray-900">{skill}</td>
-                      <td className="px-4 py-2 text-right">
+                      <td className="px-3 sm:px-4 py-2 text-xs sm:text-sm text-gray-500">{index + 1}</td>
+                      <td className="px-3 sm:px-4 py-2 text-xs sm:text-sm text-gray-900">{skill}</td>
+                      <td className="px-3 sm:px-4 py-2 text-right">
                         <button
                           type="button"
                           onClick={() => removeItem('skills', index)}
-                          className="text-red-600 hover:text-red-800 text-sm"
+                          className="text-red-600 hover:text-red-800 text-xs sm:text-sm"
                         >
                           Remove
                         </button>
@@ -442,54 +410,53 @@ export const RequirementsStep = ({ formData, errors, handleChange, handleArrayCh
             </div>
           )}
 
-          {errors.skills && <p className="mt-1 text-sm text-red-500">{errors.skills}</p>}
-          <p className="mt-1 text-xs text-gray-500">Add at least one required skill</p>
+          {errors.skills && <p className="mt-1 text-xs sm:text-sm text-red-500">{errors.skills}</p>}
+          <p className="mt-1 text-[10px] sm:text-xs text-gray-500">Add at least one required skill</p>
         </div>
 
         {/* Responsibilities */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">
             Key Responsibilities <span className="text-red-500">*</span>
           </label>
-          <div className="flex gap-2 mb-3">
+          <div className="flex flex-col sm:flex-row gap-2 mb-3">
             <input
               type="text"
               value={newResponsibility}
               onChange={(e) => setNewResponsibility(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && addItem('responsibilities', newResponsibility, setNewResponsibility)}
               placeholder="e.g., Lead development of new features"
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="flex-1 px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
             />
             <button
               type="button"
               onClick={() => addItem('responsibilities', newResponsibility, setNewResponsibility)}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+              className="w-full sm:w-auto px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm sm:text-base"
             >
               Add
             </button>
           </div>
 
-          {/* Responsibilities List */}
           {formData.responsibilities.length > 0 ? (
-            <div className="border border-gray-200 rounded-lg overflow-hidden">
+            <div className="border border-gray-200 rounded-lg overflow-hidden overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">#</th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Responsibility</th>
-                    <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Action</th>
+                    <th className="px-3 sm:px-4 py-2 text-left text-[10px] sm:text-xs font-medium text-gray-500 uppercase">#</th>
+                    <th className="px-3 sm:px-4 py-2 text-left text-[10px] sm:text-xs font-medium text-gray-500 uppercase">Responsibility</th>
+                    <th className="px-3 sm:px-4 py-2 text-right text-[10px] sm:text-xs font-medium text-gray-500 uppercase">Action</th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {formData.responsibilities.map((resp, index) => (
                     <tr key={index} className="hover:bg-gray-50">
-                      <td className="px-4 py-2 text-sm text-gray-500">{index + 1}</td>
-                      <td className="px-4 py-2 text-sm text-gray-900">{resp}</td>
-                      <td className="px-4 py-2 text-right">
+                      <td className="px-3 sm:px-4 py-2 text-xs sm:text-sm text-gray-500">{index + 1}</td>
+                      <td className="px-3 sm:px-4 py-2 text-xs sm:text-sm text-gray-900">{resp}</td>
+                      <td className="px-3 sm:px-4 py-2 text-right">
                         <button
                           type="button"
                           onClick={() => removeItem('responsibilities', index)}
-                          className="text-red-600 hover:text-red-800 text-sm"
+                          className="text-red-600 hover:text-red-800 text-xs sm:text-sm"
                         >
                           Remove
                         </button>
@@ -506,53 +473,52 @@ export const RequirementsStep = ({ formData, errors, handleChange, handleArrayCh
             </div>
           )}
 
-          {errors.responsibilities && <p className="mt-1 text-sm text-red-500">{errors.responsibilities}</p>}
+          {errors.responsibilities && <p className="mt-1 text-xs sm:text-sm text-red-500">{errors.responsibilities}</p>}
         </div>
 
-        {/* Benefits - List Based */}
+        {/* Benefits */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">
             Benefits & Perks (Optional)
           </label>
-          <div className="flex gap-2 mb-3">
+          <div className="flex flex-col sm:flex-row gap-2 mb-3">
             <input
               type="text"
               value={newBenefit}
               onChange={(e) => setNewBenefit(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && addItem('benefits', newBenefit, setNewBenefit)}
-              placeholder="e.g., Health insurance, Remote work, Flexible hours"
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="e.g., Health insurance, Remote work"
+              className="flex-1 px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
             />
             <button
               type="button"
               onClick={() => addItem('benefits', newBenefit, setNewBenefit)}
-              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
+              className="w-full sm:w-auto px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-sm sm:text-base"
             >
               Add Benefit
             </button>
           </div>
 
-          {/* Benefits List */}
           {formData.benefits.length > 0 ? (
-            <div className="border border-gray-200 rounded-lg overflow-hidden">
+            <div className="border border-gray-200 rounded-lg overflow-hidden overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">#</th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Benefit</th>
-                    <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Action</th>
+                    <th className="px-3 sm:px-4 py-2 text-left text-[10px] sm:text-xs font-medium text-gray-500 uppercase">#</th>
+                    <th className="px-3 sm:px-4 py-2 text-left text-[10px] sm:text-xs font-medium text-gray-500 uppercase">Benefit</th>
+                    <th className="px-3 sm:px-4 py-2 text-right text-[10px] sm:text-xs font-medium text-gray-500 uppercase">Action</th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {formData.benefits.map((benefit, index) => (
                     <tr key={index} className="hover:bg-gray-50">
-                      <td className="px-4 py-2 text-sm text-gray-500">{index + 1}</td>
-                      <td className="px-4 py-2 text-sm text-gray-900">{benefit}</td>
-                      <td className="px-4 py-2 text-right">
+                      <td className="px-3 sm:px-4 py-2 text-xs sm:text-sm text-gray-500">{index + 1}</td>
+                      <td className="px-3 sm:px-4 py-2 text-xs sm:text-sm text-gray-900">{benefit}</td>
+                      <td className="px-3 sm:px-4 py-2 text-right">
                         <button
                           type="button"
                           onClick={() => removeItem('benefits', index)}
-                          className="text-red-600 hover:text-red-800 text-sm"
+                          className="text-red-600 hover:text-red-800 text-xs sm:text-sm"
                         >
                           Remove
                         </button>
@@ -570,16 +536,14 @@ export const RequirementsStep = ({ formData, errors, handleChange, handleArrayCh
           )}
         </div>
 
-        {/* Education with Search */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Education */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">
               Education Requirement <span className="text-red-500">*</span>
             </label>
 
-            {/* Search Input with Selected Value Display */}
             <div className="relative" ref={dropdownRef}>
-              {/* Selected Value Display */}
               <div className="relative">
                 <input
                   ref={searchInputRef}
@@ -591,8 +555,8 @@ export const RequirementsStep = ({ formData, errors, handleChange, handleArrayCh
                     filterEducation(educationSearch);
                   }}
                   onKeyDown={handleEducationKeyDown}
-                  placeholder="Search or select education requirement..."
-                  className="w-full px-10 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent pr-10"
+                  placeholder="Search or select education..."
+                  className="w-full px-8 sm:px-10 py-2 sm:py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent pr-8 sm:pr-10 text-sm sm:text-base"
                 />
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <FaSearch className="text-gray-400" size={14} />
@@ -608,11 +572,9 @@ export const RequirementsStep = ({ formData, errors, handleChange, handleArrayCh
                 )}
               </div>
 
-              {/* Dropdown List */}
               {showEducationDropdown && (
                 <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
-                  {/* Category Filter Pills */}
-                  <div className="sticky top-0 bg-gray-50 px-3 py-2 border-b border-gray-200">
+                  <div className="sticky top-0 bg-gray-50 px-2 sm:px-3 py-2 border-b border-gray-200">
                     <div className="flex flex-wrap gap-1">
                       {['None', 'Primary', 'Secondary', 'Higher Secondary', 'Diploma', "Bachelor's", 'Professional', "Master's", 'PGD', 'Doctoral', 'Vocational'].map(category => (
                         <button
@@ -622,13 +584,13 @@ export const RequirementsStep = ({ formData, errors, handleChange, handleArrayCh
                             setEducationSearch(category);
                             filterEducation(category);
                           }}
-                          className="text-xs px-2 py-1 rounded-full bg-gray-200 hover:bg-blue-100 hover:text-blue-700 transition-colors"
+                          className="text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 rounded-full bg-gray-200 hover:bg-blue-100 hover:text-blue-700 transition-colors"
                         >
                           {category}
                         </button>
                       ))}
                     </div>
-                    <p className="text-xs text-gray-500 mt-1">
+                    <p className="text-[10px] sm:text-xs text-gray-500 mt-1">
                       {filteredEducation.length} {filteredEducation.length === 1 ? 'option' : 'options'}
                       {!educationSearch.trim() && ' (showing first 15, type to search more)'}
                     </p>
@@ -639,16 +601,16 @@ export const RequirementsStep = ({ formData, errors, handleChange, handleArrayCh
                       <div
                         key={edu.value}
                         onClick={() => handleEducationSelect(edu.value)}
-                        className={`px-4 py-2.5 cursor-pointer flex items-center justify-between hover:bg-blue-50 transition-colors ${index === selectedEducationIndex ? 'bg-blue-100 border-l-4 border-blue-600' : ''
+                        className={`px-3 sm:px-4 py-2 cursor-pointer flex items-center justify-between hover:bg-blue-50 transition-colors ${index === selectedEducationIndex ? 'bg-blue-100 border-l-4 border-blue-600' : ''
                           } ${formData.education_requirement === edu.value ? 'bg-green-50' : ''
                           }`}
                       >
                         <div className="flex-1">
-                          <p className="text-sm text-gray-900">{edu.label}</p>
-                          <p className="text-xs text-gray-500">{edu.category}</p>
+                          <p className="text-xs sm:text-sm text-gray-900">{edu.label}</p>
+                          <p className="text-[10px] sm:text-xs text-gray-500">{edu.category}</p>
                         </div>
                         {formData.education_requirement === edu.value && (
-                          <span className="text-green-600 text-xs font-medium bg-green-100 px-2 py-1 rounded-full">
+                          <span className="text-green-600 text-[10px] sm:text-xs font-medium bg-green-100 px-1.5 sm:px-2 py-0.5 rounded-full">
                             Selected
                           </span>
                         )}
@@ -664,7 +626,6 @@ export const RequirementsStep = ({ formData, errors, handleChange, handleArrayCh
               )}
             </div>
 
-            {/* Hidden select for form validation compatibility */}
             <select
               name="education_requirement"
               value={formData.education_requirement}
@@ -678,15 +639,14 @@ export const RequirementsStep = ({ formData, errors, handleChange, handleArrayCh
             </select>
 
             {errors.education_requirement && (
-              <p className="mt-1 text-sm text-red-500">{errors.education_requirement}</p>
+              <p className="mt-1 text-xs sm:text-sm text-red-500">{errors.education_requirement}</p>
             )}
 
-            {/* Selected Education Display */}
             {formData.education_requirement && (
               <div className="mt-2 p-2 bg-blue-50 rounded-lg border border-blue-200">
-                <p className="text-xs text-gray-600 mb-1">Selected Education:</p>
-                <p className="text-sm font-medium text-gray-900">{getSelectedEducationLabel()}</p>
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-[10px] sm:text-xs text-gray-600 mb-1">Selected Education:</p>
+                <p className="text-xs sm:text-sm font-medium text-gray-900">{getSelectedEducationLabel()}</p>
+                <p className="text-[10px] sm:text-xs text-gray-500 mt-1">
                   Category: {educationRequirements.find(edu => edu.value === formData.education_requirement)?.category || 'N/A'}
                 </p>
               </div>
@@ -694,7 +654,7 @@ export const RequirementsStep = ({ formData, errors, handleChange, handleArrayCh
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">
               Education Details (Optional)
             </label>
             <input
@@ -702,26 +662,25 @@ export const RequirementsStep = ({ formData, errors, handleChange, handleArrayCh
               name="education_details"
               value={formData.education_details}
               onChange={handleChange}
-              placeholder="e.g., CGPA 3.0 or equivalent, Any recognized university"
-              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="e.g., CGPA 3.0 or equivalent"
+              className="w-full px-3 sm:px-4 py-2 sm:py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
             />
-            <p className="mt-1 text-xs text-gray-500">
+            <p className="mt-1 text-[10px] sm:text-xs text-gray-500">
               Additional details like minimum GPA, university requirements, etc.
             </p>
           </div>
         </div>
 
         {/* Info Box */}
-        <div className="bg-blue-50 rounded-lg p-4 flex items-start gap-3">
-          <FaInfoCircle className="text-blue-500 mt-0.5" size={18} />
-          <div className="text-sm text-blue-800">
-            <p className="font-medium mb-1">Tips for Requirements & Responsibilities:</p>
-            <ul className="list-disc list-inside space-y-1 text-xs">
-              <li>Be specific about required qualifications and experience</li>
+        <div className="bg-blue-50 rounded-lg p-3 sm:p-4 flex items-start gap-2 sm:gap-3">
+          <FaInfoCircle className="text-blue-500 mt-0.5" size={14} />
+          <div className="text-xs sm:text-sm text-blue-800">
+            <p className="font-medium mb-1">Tips for Requirements:</p>
+            <ul className="list-disc list-inside space-y-0.5 text-[10px] sm:text-xs">
+              <li>Be specific about required qualifications</li>
               <li>List must-have vs nice-to-have skills</li>
-              <li>Clearly define day-to-day responsibilities</li>
-              <li>Include information about team structure and reporting lines</li>
-              <li>Highlight growth opportunities and learning paths</li>
+              <li>Define day-to-day responsibilities</li>
+              <li>Include team structure and reporting lines</li>
             </ul>
           </div>
         </div>

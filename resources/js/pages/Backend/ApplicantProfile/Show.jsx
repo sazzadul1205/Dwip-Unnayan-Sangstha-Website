@@ -485,7 +485,7 @@ export default function Show({ profile }) {
                     onError={() => setPhotoError(true)}
                   />
                 ) : (
-                  <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-full border-4 border-white shadow-lg bg-gradient-to-br from-blue-100 to-slate-100 flex items-center justify-center">
+                  <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-full border-4 border-white shadow-lg bg-linear-to-br from-blue-100 to-slate-100 flex items-center justify-center">
                     <FaUserCircle className="text-gray-400 w-16 h-16 sm:w-20 sm:h-20" />
                   </div>
                 )}

@@ -13,7 +13,7 @@ import AuthenticatedLayout from '../../../layouts/AuthenticatedLayout';
 import { useAuth } from '../../../hooks/useAuth';
 
 // Icons
-import { FaArrowLeft, FaBriefcase, FaShieldAlt } from 'react-icons/fa';
+import { FaArrowLeft, FaBriefcase, FaShieldAlt, FaSpinner, FaCheckCircle, FaArrowRight } from 'react-icons/fa';
 
 // Step Components
 import { ReviewStep } from '../../../components/JobListingSteps/ReviewStep';
@@ -21,7 +21,6 @@ import { LocationStep } from '../../../components/JobListingSteps/LocationStep';
 import { BasicInfoStep } from '../../../components/JobListingSteps/BasicInfoStep';
 import { StepIndicator } from '../../../components/JobListingSteps/StepIndicator';
 import { PublishingStep } from '../../../components/JobListingSteps/PublishingStep';
-import { StepNavigation } from '../../../components/JobListingSteps/StepNavigation';
 import { RequirementsStep } from '../../../components/JobListingSteps/RequirementsStep';
 import { CompensationStep } from '../../../components/JobListingSteps/CompensationStep';
 
@@ -105,8 +104,8 @@ export default function Create({ categories, locations }) {
     return (
       <AuthenticatedLayout>
         <Head title="Access Denied" />
-        <div className="min-h-screen flex items-center justify-center">
-          <div className="text-center">
+        <div className="min-h-screen flex items-center justify-center px-4">
+          <div className="text-center max-w-md">
             <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <FaShieldAlt className="w-10 h-10 text-red-500" />
             </div>
@@ -131,7 +130,7 @@ export default function Create({ categories, locations }) {
     return (
       <AuthenticatedLayout>
         <Head title="Complete Your Profile" />
-        <div className="min-h-screen flex items-center justify-center">
+        <div className="min-h-screen flex items-center justify-center px-4">
           <div className="text-center max-w-md mx-auto p-6">
             <div className="w-20 h-20 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <FaBriefcase className="w-10 h-10 text-yellow-600" />
@@ -240,7 +239,6 @@ export default function Create({ categories, locations }) {
         if (!formData.application_deadline) {
           newErrors.application_deadline = 'Please set an application deadline';
         }
-        // Validate deadline is in the future
         if (formData.application_deadline && new Date(formData.application_deadline) < new Date()) {
           newErrors.application_deadline = 'Application deadline must be in the future';
         }
@@ -261,7 +259,6 @@ export default function Create({ categories, locations }) {
       ...prev,
       [name]: type === 'checkbox' ? checked : value
     }));
-    // Clear error for this field
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: undefined }));
     }
@@ -299,9 +296,8 @@ export default function Create({ categories, locations }) {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Final submission - ONLY called when user clicks "Post Job" on review page
+  // Final submission
   const handleSubmit = () => {
-    // Additional security check before submission
     if (!canCreateJobs && !isEmployer) {
       Swal.fire({
         icon: 'error',
@@ -312,7 +308,6 @@ export default function Create({ categories, locations }) {
       return;
     }
 
-    // Prepare data for submission
     const submitData = {
       ...formData,
       salary_min: formData.salary_min ? parseFloat(formData.salary_min) : null,
@@ -359,12 +354,8 @@ export default function Create({ categories, locations }) {
             });
           },
           onError: (error) => {
-            console.error('Submission error:', error);
-
-            // Handle validation errors from server
             if (error.response?.data?.errors) {
               setErrors(error.response.data.errors);
-              // Navigate back to first step to show errors
               setCurrentStep(1);
               Swal.fire({
                 icon: 'error',
@@ -397,63 +388,49 @@ export default function Create({ categories, locations }) {
     });
   };
 
-  // Render current step component
   const CurrentStepComponent = steps[currentStep - 1].component;
-
-  // Check if current step is the review step to customize button text
   const isReviewStep = currentStep === steps.length;
-
-  // Custom submit handler for review step
-  const handleStepSubmit = () => {
-    if (isReviewStep) {
-      handleSubmit();
-    } else {
-      nextStep();
-    }
-  };
 
   return (
     <AuthenticatedLayout>
       <Head title="Create Job Listing" />
 
-      <div className="min-h-screen bg-linear-to-br from-blue-50 via-white to-purple-50 py-8 px-4 sm:px-6 lg:px-8">
-        <div className=" mx-auto">
-          {/* Header with Back Button */}
-          <div className="flex items-center justify-between mb-6">
-            {/* Header */}
-            <div className="flex justify-center items-center gap-5 mb-6">
-              <div className="inline-flex items-center justify-center w-16 h-16 bg-linear-to-br from-blue-500 to-blue-600 rounded-2xl shadow-lg">
-                <FaBriefcase className="w-8 h-8 text-white" />
+      <div className="min-h-screen bg-linear-to-br from-blue-50 via-white to-purple-50 py-4 sm:py-8 px-3 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-6xl">
+          {/* Header with Back Button - Responsive */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 mb-4 sm:mb-6">
+            <div className="flex items-center gap-3 sm:gap-5">
+              <div className="inline-flex items-center justify-center w-12 h-12 sm:w-16 sm:h-16 bg-linear-to-br from-blue-500 to-blue-600 rounded-2xl shadow-lg shrink-0">
+                <FaBriefcase className="w-5 h-5 sm:w-8 sm:h-8 text-white" />
               </div>
               <div className="text-left">
-                <h1 className="text-3xl font-bold bg-linear-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
+                <h1 className="text-xl sm:text-3xl font-bold bg-linear-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
                   Create Job Listing
                 </h1>
-                <p className="text-sm text-gray-500 max-w-md">
+                <p className="text-xs sm:text-sm text-gray-500 max-w-md hidden sm:block">
                   Fill in the details below to post a new job opportunity and find the perfect candidate
                 </p>
               </div>
             </div>
 
-            {/* Back Button */}
             <button
               onClick={handleBackToListings}
-              className="group flex items-center gap-2 text-gray-500 hover:text-gray-700 transition-all duration-200"
+              className="group flex items-center gap-1.5 sm:gap-2 text-gray-500 hover:text-gray-700 transition-all duration-200 text-xs sm:text-sm px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg hover:bg-gray-100 w-full sm:w-auto justify-center"
             >
-              <FaArrowLeft className="group-hover:-translate-x-1 transition-transform duration-200" size={14} />
-              <span className="text-sm">Back to Job Listings</span>
+              <FaArrowLeft className="group-hover:-translate-x-1 transition-transform duration-200" size={12} />
+              <span>Back to Job Listings</span>
             </button>
           </div>
 
           {/* Main Card */}
           <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100">
-            {/* Step Indicator */}
-            <div className="border-b border-gray-100 bg-gray-50/50 px-8 pt-6">
+            {/* Step Indicator - Responsive */}
+            <div className="border-b border-gray-100 bg-gray-50/50 px-3 sm:px-8 pt-4 sm:pt-6 overflow-x-auto">
               <StepIndicator currentStep={currentStep} steps={steps} />
             </div>
 
-            {/* Form Content */}
-            <div className="px-8 py-8">
+            {/* Form Content - Responsive */}
+            <div className="px-3 sm:px-8 py-4 sm:py-8">
               <CurrentStepComponent
                 formData={formData}
                 errors={errors}
@@ -466,19 +443,58 @@ export default function Create({ categories, locations }) {
               />
             </div>
 
-            {/* Navigation */}
-            <div className="border-t border-gray-100 bg-gray-50/50 px-8 py-6">
-              <StepNavigation
-                currentStep={currentStep}
-                totalSteps={steps.length}
-                onNext={handleStepSubmit}
-                onPrevious={previousStep}
-                onSubmit={handleSubmit}
-                isSubmitting={isSubmitting}
-                isValid={true}
-                isReviewStep={isReviewStep}
-              />
+            {/* Navigation - Responsive */}
+            <div className="border-t border-gray-100 bg-gray-50/50 px-3 sm:px-8 py-4 sm:py-6">
+              <div className="flex flex-col-reverse sm:flex-row items-center justify-between gap-3 sm:gap-4">
+                <div className="w-full sm:w-auto">
+                  {currentStep > 1 && (
+                    <button
+                      onClick={previousStep}
+                      className="w-full sm:w-auto px-4 sm:px-6 py-2 sm:py-2.5 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-all duration-200 text-sm font-medium border border-gray-200 hover:border-gray-300"
+                    >
+                      ← Previous
+                    </button>
+                  )}
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                  {isReviewStep ? (
+                    <button
+                      onClick={handleSubmit}
+                      disabled={isSubmitting}
+                      className="w-full sm:w-auto px-6 sm:px-8 py-2.5 sm:py-3 bg-linear-to-r from-emerald-600 to-green-600 text-white rounded-lg hover:from-emerald-700 hover:to-green-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg hover:shadow-xl font-medium text-sm"
+                    >
+                      {isSubmitting ? (
+                        <>
+                          <FaSpinner className="animate-spin" size={16} />
+                          Posting...
+                        </>
+                      ) : (
+                        <>
+                          <FaCheckCircle size={16} />
+                          Post Job
+                        </>
+                      )}
+                    </button>
+                  ) : (
+                    <button
+                      onClick={nextStep}
+                      className="w-full sm:w-auto px-6 sm:px-8 py-2.5 sm:py-3 bg-linear-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-xl font-medium text-sm"
+                    >
+                      Next Step
+                      <FaArrowRight size={14} />
+                    </button>
+                  )}
+                </div>
+              </div>
             </div>
+          </div>
+
+          {/* Step Indicator - Mobile Summary */}
+          <div className="mt-3 sm:mt-4 text-center sm:hidden">
+            <p className="text-xs text-gray-400">
+              Step {currentStep} of {steps.length}: {steps[currentStep - 1].title}
+            </p>
           </div>
         </div>
       </div>

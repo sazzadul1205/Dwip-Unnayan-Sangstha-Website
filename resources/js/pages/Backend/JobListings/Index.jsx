@@ -630,7 +630,7 @@ export default function JobListingsIndex({
   // Check if user can delete a specific job
   const canDeleteJob = () => {
     if (canDeleteJobs) return true;
-    return false; 
+    return false;
   };
 
   // Helper functions
@@ -716,35 +716,36 @@ export default function JobListingsIndex({
     }
 
     return (
-      <div className="flex items-center justify-between px-6 py-4 border-t border-gray-200 bg-gray-50">
-        <div className="text-sm text-gray-500">
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-3 sm:px-6 py-3 sm:py-4 border-t border-gray-200 bg-gray-50">
+        <div className="text-xs sm:text-sm text-gray-500 text-center sm:text-left">
           Showing <span className="font-medium">{pagination.from || 0}</span> to{' '}
           <span className="font-medium">{pagination.to || 0}</span> of{' '}
           <span className="font-medium">{pagination.total}</span> results
         </div>
 
-        <div className="flex items-center gap-1">
+        <div className="flex flex-wrap items-center justify-center gap-0.5 sm:gap-1">
           <button
             onClick={() => handlePageChange(pagination.currentPage - 1)}
             disabled={pagination.currentPage === 1}
-            className={`px-3 py-1.5 rounded-lg text-sm flex items-center gap-1 transition ${pagination.currentPage === 1
+            className={`px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-xs sm:text-sm flex items-center gap-0.5 sm:gap-1 transition ${pagination.currentPage === 1
               ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
               : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-300'
               }`}
           >
-            <FaChevronLeft size={12} />
-            Previous
+            <FaChevronLeft size={10} />
+            <span className="hidden xs:inline">Previous</span>
+            <span className="xs:hidden">Prev</span>
           </button>
 
           {startPage > 1 && (
             <>
               <button
                 onClick={() => handlePageChange(1)}
-                className="px-3 py-1.5 rounded-lg text-sm bg-white text-gray-700 hover:bg-gray-100 border border-gray-300 transition"
+                className="px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-xs sm:text-sm bg-white text-gray-700 hover:bg-gray-100 border border-gray-300 transition"
               >
                 1
               </button>
-              {startPage > 2 && <span className="px-2 text-gray-400">...</span>}
+              {startPage > 2 && <span className="px-1 text-gray-400">...</span>}
             </>
           )}
 
@@ -752,7 +753,7 @@ export default function JobListingsIndex({
             <button
               key={page}
               onClick={() => handlePageChange(page)}
-              className={`px-3 py-1.5 rounded-lg text-sm transition ${page === pagination.currentPage
+              className={`px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-xs sm:text-sm transition ${page === pagination.currentPage
                 ? 'bg-blue-600 text-white'
                 : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-300'
                 }`}
@@ -763,10 +764,10 @@ export default function JobListingsIndex({
 
           {endPage < pagination.lastPage && (
             <>
-              {endPage < pagination.lastPage - 1 && <span className="px-2 text-gray-400">...</span>}
+              {endPage < pagination.lastPage - 1 && <span className="px-1 text-gray-400">...</span>}
               <button
                 onClick={() => handlePageChange(pagination.lastPage)}
-                className="px-3 py-1.5 rounded-lg text-sm bg-white text-gray-700 hover:bg-gray-100 border border-gray-300 transition"
+                className="px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-xs sm:text-sm bg-white text-gray-700 hover:bg-gray-100 border border-gray-300 transition"
               >
                 {pagination.lastPage}
               </button>
@@ -776,13 +777,14 @@ export default function JobListingsIndex({
           <button
             onClick={() => handlePageChange(pagination.currentPage + 1)}
             disabled={pagination.currentPage === pagination.lastPage}
-            className={`px-3 py-1.5 rounded-lg text-sm flex items-center gap-1 transition ${pagination.currentPage === pagination.lastPage
+            className={`px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-xs sm:text-sm flex items-center gap-0.5 sm:gap-1 transition ${pagination.currentPage === pagination.lastPage
               ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
               : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-300'
               }`}
           >
-            Next
-            <FaChevronRight size={12} />
+            <span className="hidden xs:inline">Next</span>
+            <span className="xs:hidden">Next</span>
+            <FaChevronRight size={10} />
           </button>
         </div>
       </div>
@@ -793,73 +795,73 @@ export default function JobListingsIndex({
     <AuthenticatedLayout>
       <Head title="Job Listings" />
 
-      <div className="min-h-screen bg-linear-to-br from-gray-50 to-gray-100 p-6 text-black">
+      <div className="min-h-screen bg-linear-to-br from-gray-50 to-gray-100 p-3 text-black">
         <div className="mx-auto">
           {/* HEADER */}
-          <div className="flex justify-between items-start mb-6 animate-fade-in">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4 mb-4 sm:mb-6 animate-fade-in">
             <div>
-              <h1 className="text-3xl font-bold bg-linear-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
+              <h1 className="text-2xl sm:text-3xl font-bold bg-linear-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
                 Job Listings
               </h1>
-              <p className="text-sm text-gray-500 mt-1">
+              <p className="text-xs sm:text-sm text-gray-500 mt-0.5 sm:mt-1">
                 Manage all job postings in one place
               </p>
-              <div className="flex gap-3 mt-2 flex-wrap">
-                <span className="inline-flex items-center gap-1 text-xs">
-                  <span className="w-2 h-2 rounded-full bg-green-500" />
+              <div className="flex flex-wrap gap-2 sm:gap-3 mt-1.5 sm:mt-2">
+                <span className="inline-flex items-center gap-1 text-[10px] sm:text-xs">
+                  <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-green-500" />
                   Active: {activeCount}
                 </span>
-                <span className="inline-flex items-center gap-1 text-xs">
-                  <span className="w-2 h-2 rounded-full bg-red-500" />
+                <span className="inline-flex items-center gap-1 text-[10px] sm:text-xs">
+                  <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-red-500" />
                   Inactive: {inactiveCount}
                 </span>
-                <span className="inline-flex items-center gap-1 text-xs">
-                  <span className="w-2 h-2 rounded-full bg-gray-400" />
+                <span className="inline-flex items-center gap-1 text-[10px] sm:text-xs">
+                  <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-gray-400" />
                   Deleted: {deletedCount}
                 </span>
-                <span className="inline-flex items-center gap-1 text-xs">
-                  <FaEye className="text-blue-500" size={12} />
-                  Total Views: {totalViewsAll.toLocaleString()}
+                <span className="inline-flex items-center gap-1 text-[10px] sm:text-xs">
+                  <FaEye className="text-blue-500" size={10} />
+                  Views: {totalViewsAll.toLocaleString()}
                 </span>
                 {hasActiveFilters() && (
-                  <span className="inline-flex items-center gap-1 text-xs text-blue-600">
-                    <span className="w-2 h-2 rounded-full bg-blue-500" />
+                  <span className="inline-flex items-center gap-1 text-[10px] sm:text-xs text-blue-600">
+                    <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
                     Filtered
                   </span>
                 )}
                 {pagination && (
-                  <span className="inline-flex items-center gap-1 text-xs text-gray-500">
-                    <span className="w-2 h-2 rounded-full bg-gray-400" />
+                  <span className="inline-flex items-center gap-1 text-[10px] sm:text-xs text-gray-500">
+                    <span className="w-1.5 h-1.5 rounded-full bg-gray-400" />
                     Total: {totalCount}
                   </span>
                 )}
               </div>
             </div>
 
-            <div className="flex gap-3">
+            <div className="flex flex-wrap gap-2 w-full sm:w-auto">
               <button
                 onClick={() => setShowFilters(!showFilters)}
-                className={`px-4 py-2.5 rounded-lg flex items-center gap-2 transition-all duration-200 ${showFilters || hasActiveFilters()
+                className={`flex-1 sm:flex-none px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 text-xs sm:text-sm ${showFilters || hasActiveFilters()
                   ? 'bg-blue-600 text-white'
                   : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                   }`}
               >
-                <FaFilter size={14} />
+                <FaFilter size={12} />
                 Filters
                 {hasActiveFilters() && (
-                  <span className="ml-1 bg-white text-blue-600 rounded-full w-5 h-5 text-xs flex items-center justify-center">
+                  <span className="ml-0.5 sm:ml-1 bg-white text-blue-600 rounded-full w-4 h-4 sm:w-5 sm:h-5 text-[10px] sm:text-xs flex items-center justify-center">
                     {Object.values(filters).filter(v => v !== 'all' && v !== '').length}
                   </span>
                 )}
-                {showFilters ? <FaChevronUp size={12} /> : <FaChevronDown size={12} />}
+                {showFilters ? <FaChevronUp size={10} /> : <FaChevronDown size={10} />}
               </button>
 
               <Can permission="jobs.create" fallback={null}>
                 <a
                   href={route('backend.listing.create')}
-                  className="bg-linear-to-r from-blue-600 to-blue-700 text-white px-5 py-2.5 rounded-lg flex items-center gap-2 hover:from-blue-700 hover:to-blue-800 transition-all duration-200 transform hover:scale-105 shadow-md hover:shadow-lg"
+                  className="flex-1 sm:flex-none bg-linear-to-r from-blue-600 to-blue-700 text-white px-3 sm:px-5 py-2 sm:py-2.5 rounded-lg flex items-center justify-center gap-1.5 sm:gap-2 hover:from-blue-700 hover:to-blue-800 transition-all duration-200 transform hover:scale-105 shadow-md hover:shadow-lg text-xs sm:text-sm"
                 >
-                  <FaPlus size={16} />
+                  <FaPlus size={14} />
                   Create Job
                 </a>
               </Can>
@@ -868,50 +870,50 @@ export default function JobListingsIndex({
 
           {/* BULK ACTIONS BAR */}
           {selectedJobs.length > 0 && (
-            <div className="bg-linear-to-r from-blue-50 to-indigo-50 rounded-xl shadow-lg p-4 mb-6 animate-fade-in border border-blue-200">
-              <div className="flex items-center justify-between flex-wrap gap-3">
-                <div className="flex items-center gap-3">
-                  <FaCheckDouble className="text-blue-600" size={20} />
-                  <span className="font-semibold text-gray-900">
+            <div className="bg-linear-to-r from-blue-50 to-indigo-50 rounded-xl shadow-lg p-3 sm:p-4 mb-4 sm:mb-6 animate-fade-in border border-blue-200">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <FaCheckDouble className="text-blue-600" size={16} />
+                  <span className="font-semibold text-gray-900 text-sm sm:text-base">
                     {selectedJobs.length} job(s) selected
                   </span>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-1.5 sm:gap-2 w-full sm:w-auto">
                   {canBulkActivate && (
                     <button
                       onClick={handleBulkActivate}
                       disabled={isBulkProcessing}
-                      className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all duration-200 flex items-center gap-2 disabled:opacity-50"
+                      className="flex-1 sm:flex-none px-3 sm:px-4 py-1.5 sm:py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all duration-200 flex items-center justify-center gap-1.5 sm:gap-2 disabled:opacity-50 text-xs sm:text-sm"
                     >
-                      <FaCheckCircle size={14} />
-                      Activate All
+                      <FaCheckCircle size={12} />
+                      Activate
                     </button>
                   )}
                   {canBulkDeactivate && (
                     <button
                       onClick={handleBulkDeactivate}
                       disabled={isBulkProcessing}
-                      className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-all duration-200 flex items-center gap-2 disabled:opacity-50"
+                      className="flex-1 sm:flex-none px-3 sm:px-4 py-1.5 sm:py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-all duration-200 flex items-center justify-center gap-1.5 sm:gap-2 disabled:opacity-50 text-xs sm:text-sm"
                     >
-                      <FaBan size={14} />
-                      Deactivate All
+                      <FaBan size={12} />
+                      Deactivate
                     </button>
                   )}
                   {canBulkDelete && (
                     <button
                       onClick={handleBulkDelete}
                       disabled={isBulkProcessing}
-                      className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-all duration-200 flex items-center gap-2 disabled:opacity-50"
+                      className="flex-1 sm:flex-none px-3 sm:px-4 py-1.5 sm:py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-all duration-200 flex items-center justify-center gap-1.5 sm:gap-2 disabled:opacity-50 text-xs sm:text-sm"
                     >
-                      <FaTrash size={14} />
-                      Delete All
+                      <FaTrash size={12} />
+                      Delete
                     </button>
                   )}
                   <button
                     onClick={() => setSelectedJobs([])}
-                    className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-all duration-200"
+                    className="flex-1 sm:flex-none px-3 sm:px-4 py-1.5 sm:py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-all duration-200 text-xs sm:text-sm"
                   >
-                    Clear Selection
+                    Clear
                   </button>
                 </div>
               </div>
@@ -920,41 +922,41 @@ export default function JobListingsIndex({
 
           {/* FILTERS PANEL */}
           {showFilters && (
-            <div className="bg-white rounded-xl shadow-lg p-6 mb-6 animate-fade-in">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-semibold text-gray-900">Filter Job Listings</h3>
+            <div className="bg-white rounded-xl shadow-lg p-4 sm:p-6 mb-4 sm:mb-6 animate-fade-in">
+              <div className="flex justify-between items-center mb-3 sm:mb-4">
+                <h3 className="text-base sm:text-lg font-semibold text-gray-900">Filter Job Listings</h3>
                 <button
                   onClick={resetFilters}
-                  className="text-sm text-red-600 hover:text-red-800 flex items-center gap-1"
+                  className="text-xs sm:text-sm text-red-600 hover:text-red-800 flex items-center gap-1"
                 >
-                  <FaTimes size={12} />
+                  <FaTimes size={10} />
                   Reset all
                 </button>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                 {/* Search */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Search</label>
+                  <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">Search</label>
                   <div className="relative">
-                    <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={14} />
+                    <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={12} />
                     <input
                       type="text"
                       value={filters.search}
                       onChange={(e) => handleFilterChange('search', e.target.value)}
-                      placeholder="Search by title, category..."
-                      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="Search by title..."
+                      className="w-full pl-8 sm:pl-10 pr-3 sm:pr-4 py-1.5 sm:py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
                     />
                   </div>
                 </div>
 
                 {/* Status */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
+                  <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">Status</label>
                   <select
                     value={filters.status}
                     onChange={(e) => handleFilterChange('status', e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 sm:px-4 py-1.5 sm:py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
                   >
                     <option value="all">All Statuses</option>
                     <option value="active">Active</option>
@@ -965,11 +967,11 @@ export default function JobListingsIndex({
 
                 {/* Job Type */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Job Type</label>
+                  <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">Job Type</label>
                   <select
                     value={filters.jobType}
                     onChange={(e) => handleFilterChange('jobType', e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 sm:px-4 py-1.5 sm:py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
                   >
                     <option value="all">All Types</option>
                     {uniqueJobTypes.map(type => (
@@ -980,11 +982,11 @@ export default function JobListingsIndex({
 
                 {/* Experience Level */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Experience Level</label>
+                  <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">Experience Level</label>
                   <select
                     value={filters.experienceLevel}
                     onChange={(e) => handleFilterChange('experienceLevel', e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 sm:px-4 py-1.5 sm:py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
                   >
                     <option value="all">All Levels</option>
                     {uniqueExperienceLevels.map(level => (
@@ -995,11 +997,11 @@ export default function JobListingsIndex({
 
                 {/* Category */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
+                  <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">Category</label>
                   <select
                     value={filters.category}
                     onChange={(e) => handleFilterChange('category', e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 sm:px-4 py-1.5 sm:py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
                   >
                     <option value="all">All Categories</option>
                     {uniqueCategories.map(cat => (
@@ -1010,11 +1012,11 @@ export default function JobListingsIndex({
 
                 {/* Location */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Location</label>
+                  <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">Location</label>
                   <select
                     value={filters.location}
                     onChange={(e) => handleFilterChange('location', e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 sm:px-4 py-1.5 sm:py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
                   >
                     <option value="all">All Locations</option>
                     {uniqueLocations.map(loc => (
@@ -1025,11 +1027,11 @@ export default function JobListingsIndex({
 
                 {/* Date Range */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Application Deadline</label>
+                  <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">Deadline</label>
                   <select
                     value={filters.dateRange}
                     onChange={(e) => handleFilterChange('dateRange', e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 sm:px-4 py-1.5 sm:py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
                   >
                     <option value="all">Any Time</option>
                     <option value="today">Today</option>
@@ -1047,34 +1049,34 @@ export default function JobListingsIndex({
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-linear-to-r from-gray-50 to-gray-100">
                   <tr>
-                    <th className="px-4 py-4 text-left">
+                    <th className="px-2 sm:px-4 py-3 sm:py-4 text-left">
                       <input
                         type="checkbox"
                         checked={allSelectableSelected}
                         onChange={handleSelectAll}
-                        className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                        className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                         disabled={selectableJobsCount === 0}
                       />
                     </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                    <th className="px-3 sm:px-6 py-3 sm:py-4 text-left text-[10px] sm:text-xs font-semibold text-gray-600 uppercase tracking-wider">
                       Job Details
                     </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                    <th className="hidden md:table-cell px-3 sm:px-6 py-3 sm:py-4 text-left text-[10px] sm:text-xs font-semibold text-gray-600 uppercase tracking-wider">
                       Location(s)
                     </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                    <th className="hidden lg:table-cell px-3 sm:px-6 py-3 sm:py-4 text-left text-[10px] sm:text-xs font-semibold text-gray-600 uppercase tracking-wider">
                       Type & Level
                     </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                    <th className="hidden xl:table-cell px-3 sm:px-6 py-3 sm:py-4 text-left text-[10px] sm:text-xs font-semibold text-gray-600 uppercase tracking-wider">
                       Views & Apps
                     </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                    <th className="hidden md:table-cell px-3 sm:px-6 py-3 sm:py-4 text-left text-[10px] sm:text-xs font-semibold text-gray-600 uppercase tracking-wider">
                       Deadline
                     </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                    <th className="px-3 sm:px-6 py-3 sm:py-4 text-left text-[10px] sm:text-xs font-semibold text-gray-600 uppercase tracking-wider">
                       Status
                     </th>
-                    <th className="px-6 py-4 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                    <th className="px-3 sm:px-6 py-3 sm:py-4 text-right text-[10px] sm:text-xs font-semibold text-gray-600 uppercase tracking-wider">
                       Actions
                     </th>
                   </tr>
@@ -1083,21 +1085,21 @@ export default function JobListingsIndex({
                 <tbody className="bg-white divide-y divide-gray-200">
                   {sortedJobListings.length === 0 && (
                     <tr>
-                      <td colSpan="8" className="text-center py-16">
-                        <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                          <FaBriefcase className="h-10 w-10 text-gray-400" />
+                      <td colSpan="8" className="text-center py-12 sm:py-16">
+                        <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4">
+                          <FaBriefcase className="h-8 w-8 sm:h-10 sm:w-10 text-gray-400" />
                         </div>
-                        <h3 className="text-lg font-medium text-gray-900">No job listings found</h3>
-                        <p className="mt-1 text-sm text-gray-500">
+                        <h3 className="text-base sm:text-lg font-medium text-gray-900">No job listings found</h3>
+                        <p className="mt-1 text-xs sm:text-sm text-gray-500">
                           {hasActiveFilters() ? 'Try adjusting your filters.' : 'Get started by creating a new job posting.'}
                         </p>
                         {hasActiveFilters() && (
-                          <div className="mt-6">
+                          <div className="mt-4 sm:mt-6">
                             <button
                               onClick={resetFilters}
-                              className="inline-flex items-center px-5 py-2.5 border border-transparent shadow-sm text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700"
+                              className="inline-flex items-center px-4 sm:px-5 py-2 sm:py-2.5 border border-transparent shadow-sm text-xs sm:text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700"
                             >
-                              <FaTimes className="mr-2" size={16} />
+                              <FaTimes className="mr-1.5 sm:mr-2" size={14} />
                               Clear Filters
                             </button>
                           </div>
@@ -1122,37 +1124,37 @@ export default function JobListingsIndex({
                         className={`hover:bg-gray-50 transition-all duration-200 animate-fade-in ${trashed ? 'bg-gray-50 opacity-75' : ''} ${selectedJobs.includes(job.id) ? 'bg-blue-50' : ''}`}
                         style={{ animationDelay: `${index * 50}ms` }}
                       >
-                        <td className="px-4 py-4">
+                        <td className="px-2 sm:px-4 py-3 sm:py-4">
                           {canSelect && (
                             <input
                               type="checkbox"
                               checked={selectedJobs.includes(job.id)}
                               onChange={() => handleSelectJob(job.id)}
-                              className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                              className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                             />
                           )}
                         </td>
 
                         {/* JOB DETAILS */}
-                        <td className="px-6 py-4">
-                          <div className="flex items-center gap-3">
-                            <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${trashed ? 'bg-gray-300' : job.is_active ? 'bg-green-100' : 'bg-yellow-100'}`}>
-                              <FaBriefcase className={trashed ? 'text-gray-500' : job.is_active ? 'text-green-600' : 'text-yellow-600'} size={18} />
+                        <td className="px-3 sm:px-6 py-3 sm:py-4">
+                          <div className="flex items-center gap-2 sm:gap-3">
+                            <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center shrink-0 ${trashed ? 'bg-gray-300' : job.is_active ? 'bg-green-100' : 'bg-yellow-100'}`}>
+                              <FaBriefcase className={trashed ? 'text-gray-500' : job.is_active ? 'text-green-600' : 'text-yellow-600'} size={14} />
                             </div>
-                            <div>
-                              <div className={`font-semibold ${trashed ? 'line-through text-gray-400' : 'text-gray-900'}`}>
+                            <div className="min-w-0">
+                              <div className={`text-sm sm:text-base font-semibold truncate ${trashed ? 'line-through text-gray-400' : 'text-gray-900'}`}>
                                 {job.title}
                               </div>
-                              <div className={`text-sm mt-1 ${trashed ? 'text-gray-400' : 'text-gray-500'}`}>
+                              <div className={`text-[10px] sm:text-sm mt-0.5 sm:mt-1 truncate ${trashed ? 'text-gray-400' : 'text-gray-500'}`}>
                                 {job.category?.name || 'N/A'}
                               </div>
                               {salaryDisplay && (
-                                <div className={`text-xs mt-1 font-medium ${trashed ? 'text-gray-400' : 'text-green-600'}`}>
+                                <div className={`text-[10px] sm:text-xs mt-0.5 sm:mt-1 font-medium truncate ${trashed ? 'text-gray-400' : 'text-green-600'}`}>
                                   {salaryDisplay}
                                 </div>
                               )}
                               {!trashed && isEmployer && job.employer_id === currentUser?.employer_id && (
-                                <div className="text-xs text-blue-500 mt-1">
+                                <div className="text-[10px] sm:text-xs text-blue-500 mt-0.5 sm:mt-1">
                                   Your Job
                                 </div>
                               )}
@@ -1160,41 +1162,41 @@ export default function JobListingsIndex({
                           </div>
                         </td>
 
-                        {/* LOCATION(S) */}
-                        <td className="px-6 py-4">
-                          <div className="flex items-center gap-2">
-                            <FaMapMarkerAlt className={trashed ? 'text-gray-400' : 'text-gray-400'} size={14} />
-                            <span className={`text-sm ${trashed ? 'text-gray-400' : 'text-gray-700'}`}>
+                        {/* LOCATION(S) - hidden on mobile */}
+                        <td className="hidden md:table-cell px-3 sm:px-6 py-3 sm:py-4">
+                          <div className="flex items-center gap-1.5 sm:gap-2">
+                            <FaMapMarkerAlt className={trashed ? 'text-gray-400' : 'text-gray-400'} size={12} />
+                            <span className={`text-xs sm:text-sm ${trashed ? 'text-gray-400' : 'text-gray-700'}`}>
                               {formatLocations(job.locations)}
                             </span>
                           </div>
                           {job.locations && job.locations.length > 1 && (
-                            <div className="text-xs text-gray-400 mt-1">
+                            <div className="text-[10px] sm:text-xs text-gray-400 mt-0.5 sm:mt-1 truncate">
                               {job.locations.map(loc => loc.name).join(', ')}
                             </div>
                           )}
                         </td>
 
-                        {/* TYPE & LEVEL */}
-                        <td className="px-6 py-4">
-                          <div className="space-y-2">
+                        {/* TYPE & LEVEL - hidden on tablet */}
+                        <td className="hidden lg:table-cell px-3 sm:px-6 py-3 sm:py-4">
+                          <div className="space-y-1.5 sm:space-y-2">
                             {!trashed ? (
                               <>
-                                <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getJobTypeBadge(job.job_type)}`}>
+                                <span className={`inline-flex px-1.5 sm:px-2 py-0.5 sm:py-1 text-[10px] sm:text-xs font-semibold rounded-full ${getJobTypeBadge(job.job_type)}`}>
                                   {job.job_type?.replace('-', ' ') || 'N/A'}
                                 </span>
                                 <br />
-                                <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getExperienceBadge(job.experience_level)}`}>
+                                <span className={`inline-flex px-1.5 sm:px-2 py-0.5 sm:py-1 text-[10px] sm:text-xs font-semibold rounded-full ${getExperienceBadge(job.experience_level)}`}>
                                   {job.experience_level || 'N/A'}
                                 </span>
                               </>
                             ) : (
                               <>
-                                <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-gray-200 text-gray-500">
+                                <span className="inline-flex px-1.5 sm:px-2 py-0.5 sm:py-1 text-[10px] sm:text-xs font-semibold rounded-full bg-gray-200 text-gray-500">
                                   {job.job_type?.replace('-', ' ') || 'N/A'}
                                 </span>
                                 <br />
-                                <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-gray-200 text-gray-500">
+                                <span className="inline-flex px-1.5 sm:px-2 py-0.5 sm:py-1 text-[10px] sm:text-xs font-semibold rounded-full bg-gray-200 text-gray-500">
                                   {job.experience_level || 'N/A'}
                                 </span>
                               </>
@@ -1202,88 +1204,88 @@ export default function JobListingsIndex({
                           </div>
                         </td>
 
-                        {/* VIEWS & APPS */}
-                        <td className="px-6 py-4">
+                        {/* VIEWS & APPS - hidden on tablet */}
+                        <td className="hidden xl:table-cell px-3 sm:px-6 py-3 sm:py-4">
                           <div className="space-y-1">
-                            <div className="flex items-center gap-2">
-                              <FaEye className={`text-sm ${trashed ? 'text-gray-400' : 'text-blue-500'}`} size={14} />
-                              <span className={`text-sm font-medium ${trashed ? 'text-gray-400' : 'text-gray-700'}`}>
+                            <div className="flex items-center gap-1.5 sm:gap-2">
+                              <FaEye className={`text-xs sm:text-sm ${trashed ? 'text-gray-400' : 'text-blue-500'}`} size={12} />
+                              <span className={`text-xs sm:text-sm font-medium ${trashed ? 'text-gray-400' : 'text-gray-700'}`}>
                                 {viewsCount.toLocaleString()} views
                               </span>
                             </div>
                             {!trashed && (
                               <a
                                 href={route('backend.applications.job', job.id)}
-                                className="flex items-center gap-2 hover:text-purple-700 transition-colors"
+                                className="flex items-center gap-1.5 sm:gap-2 hover:text-purple-700 transition-colors"
                               >
-                                <FaUsers className={`text-sm ${trashed ? 'text-gray-400' : 'text-purple-500'}`} size={14} />
-                                <span className={`text-sm font-medium ${trashed ? 'text-gray-400' : 'text-gray-700'}`}>
-                                  {applicationsCount.toLocaleString()} applications
+                                <FaUsers className={`text-xs sm:text-sm ${trashed ? 'text-gray-400' : 'text-purple-500'}`} size={12} />
+                                <span className={`text-xs sm:text-sm font-medium ${trashed ? 'text-gray-400' : 'text-gray-700'}`}>
+                                  {applicationsCount.toLocaleString()} apps
                                 </span>
                               </a>
                             )}
                           </div>
                         </td>
 
-                        {/* DEADLINE */}
-                        <td className="px-6 py-4">
-                          <div className="flex items-center gap-2">
-                            <FaCalendarAlt className={trashed ? 'text-gray-400' : 'text-gray-400'} size={14} />
-                            <span className={`text-sm ${trashed ? 'text-gray-400' : 'text-gray-700'}`}>
+                        {/* DEADLINE - hidden on mobile */}
+                        <td className="hidden md:table-cell px-3 sm:px-6 py-3 sm:py-4">
+                          <div className="flex items-center gap-1.5 sm:gap-2">
+                            <FaCalendarAlt className={trashed ? 'text-gray-400' : 'text-gray-400'} size={12} />
+                            <span className={`text-xs sm:text-sm ${trashed ? 'text-gray-400' : 'text-gray-700'}`}>
                               {formatDate(job.application_deadline)}
                             </span>
                           </div>
                           {!trashed && job.application_deadline && new Date(job.application_deadline) < new Date() && job.is_active && (
-                            <span className="text-xs text-red-500 mt-1 block">
+                            <span className="text-[10px] sm:text-xs text-red-500 mt-0.5 sm:mt-1 block">
                               Expired
                             </span>
                           )}
                           {trashed && (
-                            <span className="text-xs text-gray-400 mt-1 block">
+                            <span className="text-[10px] sm:text-xs text-gray-400 mt-0.5 sm:mt-1 block">
                               Deleted: {formatDate(job.deleted_at)}
                             </span>
                           )}
                         </td>
 
                         {/* STATUS */}
-                        <td className="px-6 py-4">
+                        <td className="px-3 sm:px-6 py-3 sm:py-4">
                           {!trashed ? (
                             <button
                               onClick={() => handleToggle(job)}
                               disabled={togglingId === job.id || !canToggleThis}
-                              className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 transform hover:scale-105 flex items-center gap-2 ${job.is_active
+                              className={`px-2 sm:px-3 py-1 sm:py-1.5 rounded-full text-[10px] sm:text-xs font-semibold transition-all duration-200 transform hover:scale-105 flex items-center gap-1 sm:gap-2 ${job.is_active
                                 ? 'bg-green-100 text-green-800 hover:bg-green-200'
                                 : 'bg-red-100 text-red-800 hover:bg-red-200'
                                 } ${(togglingId === job.id || !canToggleThis) ? 'opacity-50 cursor-not-allowed' : ''}`}
                               title={!canToggleThis ? 'You do not have permission to change job status' : ''}
                             >
                               {togglingId === job.id ? (
-                                <FaSpinner className="animate-spin" size={12} />
+                                <FaSpinner className="animate-spin" size={10} />
                               ) : job.is_active ? (
-                                <FaToggleOn size={14} />
+                                <FaToggleOn size={12} />
                               ) : (
-                                <FaToggleOff size={14} />
+                                <FaToggleOff size={12} />
                               )}
-                              {job.is_active ? 'Active' : 'Inactive'}
+                              <span className="hidden xs:inline">{job.is_active ? 'Active' : 'Inactive'}</span>
                             </button>
                           ) : (
-                            <span className="px-3 py-1.5 rounded-full text-xs font-semibold bg-gray-200 text-gray-500">
+                            <span className="px-2 sm:px-3 py-1 sm:py-1.5 rounded-full text-[10px] sm:text-xs font-semibold bg-gray-200 text-gray-500">
                               Deleted
                             </span>
                           )}
                         </td>
 
                         {/* ACTIONS */}
-                        <td className="px-6 py-4 whitespace-nowrap text-right">
-                          <div className="flex justify-end gap-2">
+                        <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-right">
+                          <div className="flex justify-end gap-1 sm:gap-2">
                             <a
                               href={route('backend.applications.job', job.id)}
-                              className="relative p-2 text-purple-600 hover:text-purple-900 hover:bg-purple-50 rounded-lg transition-all duration-200"
+                              className="relative p-1.5 sm:p-2 text-purple-600 hover:text-purple-900 hover:bg-purple-50 rounded-lg transition-all duration-200"
                               title="View Applications"
                             >
-                              <FaUsers size={18} />
+                              <FaUsers size={14} />
                               {applicationsCount > 0 && (
-                                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold shadow-md">
+                                <span className="absolute -top-0.5 -right-0.5 bg-red-500 text-white text-[8px] sm:text-xs rounded-full w-4 h-4 sm:w-5 sm:h-5 flex items-center justify-center font-bold shadow-md">
                                   {applicationsCount > 99 ? '99+' : applicationsCount}
                                 </span>
                               )}
@@ -1291,22 +1293,22 @@ export default function JobListingsIndex({
 
                             <a
                               href={route('backend.listing.show', job.id)}
-                              className={`p-2 rounded-lg transition-all duration-200 ${trashed
+                              className={`p-1.5 sm:p-2 rounded-lg transition-all duration-200 ${trashed
                                 ? 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'
                                 : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
                                 }`}
                               title="View Details"
                             >
-                              <FaEye size={18} />
+                              <FaEye size={14} />
                             </a>
 
                             {!trashed && canEdit && (
                               <a
                                 href={route('backend.listing.edit', job.id)}
-                                className="p-2 text-blue-600 hover:text-blue-900 hover:bg-blue-50 rounded-lg transition-all duration-200"
+                                className="p-1.5 sm:p-2 text-blue-600 hover:text-blue-900 hover:bg-blue-50 rounded-lg transition-all duration-200"
                                 title="Edit"
                               >
-                                <FaEdit size={18} />
+                                <FaEdit size={14} />
                               </a>
                             )}
 
@@ -1314,14 +1316,14 @@ export default function JobListingsIndex({
                               <button
                                 onClick={() => handleRestore(job.id)}
                                 disabled={restoringId === job.id}
-                                className={`p-2 text-green-600 hover:text-green-900 hover:bg-green-50 rounded-lg transition-all duration-200 ${restoringId === job.id ? 'opacity-50 cursor-not-allowed' : ''
+                                className={`p-1.5 sm:p-2 text-green-600 hover:text-green-900 hover:bg-green-50 rounded-lg transition-all duration-200 ${restoringId === job.id ? 'opacity-50 cursor-not-allowed' : ''
                                   }`}
                                 title="Restore"
                               >
                                 {restoringId === job.id ? (
-                                  <FaSpinner className="animate-spin" size={18} />
+                                  <FaSpinner className="animate-spin" size={14} />
                                 ) : (
-                                  <FaTrashRestore size={18} />
+                                  <FaTrashRestore size={14} />
                                 )}
                               </button>
                             )}
@@ -1330,14 +1332,14 @@ export default function JobListingsIndex({
                               <button
                                 onClick={() => handleDelete(job.id)}
                                 disabled={deletingId === job.id}
-                                className={`p-2 text-red-600 hover:text-red-900 hover:bg-red-50 rounded-lg transition-all duration-200 ${deletingId === job.id ? 'opacity-50 cursor-not-allowed' : ''
+                                className={`p-1.5 sm:p-2 text-red-600 hover:text-red-900 hover:bg-red-50 rounded-lg transition-all duration-200 ${deletingId === job.id ? 'opacity-50 cursor-not-allowed' : ''
                                   }`}
                                 title="Delete"
                               >
                                 {deletingId === job.id ? (
-                                  <FaSpinner className="animate-spin" size={18} />
+                                  <FaSpinner className="animate-spin" size={14} />
                                 ) : (
-                                  <FaTrash size={18} />
+                                  <FaTrash size={14} />
                                 )}
                               </button>
                             )}
@@ -1370,6 +1372,21 @@ export default function JobListingsIndex({
         
         .animate-fade-in {
           animation: fade-in 0.3s ease-out;
+        }
+
+        @media (min-width: 480px) {
+          .xs\\:inline {
+            display: inline !important;-
+          }
+          .xs\\:hidden {
+            display: none !important;
+          }
+        }
+        .xs\\:inline {
+          display: none;
+        }
+        .xs\\:hidden {
+          display: inline;
         }
       `}</style>
     </AuthenticatedLayout>

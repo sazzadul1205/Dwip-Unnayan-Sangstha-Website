@@ -107,13 +107,13 @@ export default function Edit({ jobListing, categories, locations }) {
     return (
       <AuthenticatedLayout>
         <Head title="Access Denied" />
-        <div className="min-h-screen flex items-center justify-center">
-          <div className="text-center">
+        <div className="min-h-screen flex items-center justify-center px-4">
+          <div className="text-center max-w-md">
             <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <FaShieldAlt className="w-10 h-10 text-red-500" />
             </div>
             <h2 className="text-xl font-semibold text-gray-900">Access Denied</h2>
-            <p className="text-gray-500 mt-2">
+            <p className="text-gray-500 mt-2 text-sm sm:text-base">
               {isEmployer && !isJobOwner
                 ? "You can only edit your own job listings."
                 : "You don't have permission to edit this job listing."}
@@ -121,7 +121,7 @@ export default function Edit({ jobListing, categories, locations }) {
             {canViewJobs && (
               <button
                 onClick={() => router.visit(route('backend.listing.index'))}
-                className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+                className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm sm:text-base"
               >
                 Back to Job Listings
               </button>
@@ -184,7 +184,6 @@ export default function Edit({ jobListing, categories, locations }) {
         cancelButtonText: 'Stay',
       }).then((result) => {
         if (result.isConfirmed) {
-          // Go back to previous page or fallback to index
           if (window.history.length > 1) {
             window.history.back();
           } else {
@@ -193,7 +192,6 @@ export default function Edit({ jobListing, categories, locations }) {
         }
       });
     } else {
-      // Go back to previous page or fallback to index
       if (window.history.length > 1) {
         window.history.back();
       } else {
@@ -253,7 +251,6 @@ export default function Edit({ jobListing, categories, locations }) {
         if (!formData.application_deadline) {
           newErrors.application_deadline = 'Please set an application deadline';
         }
-        // Validate deadline is in the future (for active jobs)
         if (formData.is_active && formData.application_deadline && new Date(formData.application_deadline) < new Date()) {
           newErrors.application_deadline = 'Application deadline must be in the future for active jobs';
         }
@@ -274,7 +271,6 @@ export default function Edit({ jobListing, categories, locations }) {
       ...prev,
       [name]: type === 'checkbox' ? checked : value
     }));
-    // Clear error for this field
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: undefined }));
     }
@@ -314,7 +310,6 @@ export default function Edit({ jobListing, categories, locations }) {
 
   // Final submission - Update the job listing
   const handleSubmit = () => {
-    // Additional security check before submission
     if (!canEditThisJob) {
       Swal.fire({
         icon: 'error',
@@ -335,7 +330,6 @@ export default function Edit({ jobListing, categories, locations }) {
       return;
     }
 
-    // Prepare data for submission
     const submitData = {
       ...formData,
       salary_min: formData.salary_min ? parseFloat(formData.salary_min) : null,
@@ -384,10 +378,8 @@ export default function Edit({ jobListing, categories, locations }) {
           onError: (error) => {
             console.error('Update error:', error);
 
-            // Handle validation errors from server
             if (error.response?.data?.errors) {
               setErrors(error.response.data.errors);
-              // Navigate back to first step to show errors
               setCurrentStep(1);
               Swal.fire({
                 icon: 'error',
@@ -442,83 +434,80 @@ export default function Edit({ jobListing, categories, locations }) {
     <AuthenticatedLayout>
       <Head title={`Edit: ${jobListing.title}`} />
 
-      <div className="min-h-screen bg-linear-to-br from-blue-50 via-white to-purple-50 py-8 px-4 sm:px-6 lg:px-8">
-        <div className="mx-auto">
-          {/* Header */}
-          <div className="relative mb-8">
-            {/* Back Button */}
-            <button
-              onClick={handleGoBack}
-              className="group absolute left-0 top-1/2 -translate-y-1/2 flex items-center gap-2 px-4 py-2 rounded-xl border border-gray-200 bg-white text-gray-600 shadow-xs hover:bg-gray-100 hover:text-gray-900 hover:shadow-md transition-all duration-200"
-            >
-              <FaArrowLeft
-                className="transition-transform duration-200 group-hover:-translate-x-1"
-                size={14}
-              />
-              <span className="text-sm font-medium">Back</span>
-            </button>
+      <div className="min-h-screen bg-linear-to-br from-blue-50 via-white to-purple-50 py-4 sm:py-8 px-3 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-6xl">
+          {/* Header - Responsive */}
+          <div className="relative flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 mb-4 sm:mb-8">
+            {/* Back Button - Positioned differently on mobile */}
+            <div className="w-full sm:w-auto flex items-start sm:items-center gap-3">
+              <button
+                onClick={handleGoBack}
+                className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl border border-gray-200 bg-white text-gray-600 shadow-xs hover:bg-gray-100 hover:text-gray-900 hover:shadow-md transition-all duration-200 text-xs sm:text-sm"
+              >
+                <FaArrowLeft className="transition-transform duration-200 group-hover:-translate-x-1" size={12} />
+                <span className="font-medium">Back</span>
+              </button>
+            </div>
 
             {/* Center Content */}
-            <div className="flex gap-5 items-center justify-center text-center">
-              {/* Icon */}
-              <div className="inline-flex items-center justify-center w-16 h-16 bg-linear-to-br from-orange-500 to-orange-600 rounded-2xl shadow-lg">
-                <FaEdit className="w-8 h-8 text-white" />
+            <div className="flex-1 flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-5">
+              <div className="inline-flex items-center justify-center w-12 h-12 sm:w-16 sm:h-16 bg-linear-to-br from-orange-500 to-orange-600 rounded-2xl shadow-lg shrink-0">
+                <FaEdit className="w-5 h-5 sm:w-8 sm:h-8 text-white" />
               </div>
 
-              <div className='text-left'>
-                <h1 className="text-3xl font-bold bg-linear-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
+              <div className="flex-1 min-w-0">
+                <h1 className="text-xl sm:text-3xl font-bold bg-linear-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent truncate">
                   Edit Job Listing
                 </h1>
-                <p className="text-sm text-gray-500 max-w-md">
+                <p className="text-xs sm:text-sm text-gray-500 truncate">
                   Update your job listing details
                 </p>
               </div>
 
               {/* Unsaved Changes Indicator */}
               {hasUnsavedChanges && (
-                <div className="ml-4 inline-flex items-center gap-2 px-3 py-1.5 bg-yellow-100 text-yellow-800 rounded-full text-xs font-medium">
+                <div className="inline-flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-[10px] sm:text-xs font-medium shrink-0">
                   <span className="w-1.5 h-1.5 rounded-full bg-yellow-500 animate-pulse" />
-                  Unsaved changes
+                  Unsaved
                 </div>
               )}
             </div>
           </div>
 
-          {/* Job Status Banner */}
-          <div className="mb-4 flex items-center justify-between flex-wrap gap-3">
-            <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium ${jobListing.is_active
+          {/* Job Status Banner - Responsive */}
+          <div className="mb-3 sm:mb-4 flex flex-wrap items-center gap-2 sm:gap-3">
+            <div className={`inline-flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1 rounded-full text-[10px] sm:text-xs font-medium ${jobListing.is_active
                 ? 'bg-green-100 text-green-800'
                 : 'bg-gray-100 text-gray-600'
               }`}>
-              <span className={`w-1.5 h-1.5 rounded-full ${jobListing.is_active ? 'bg-green-500 animate-pulse' : 'bg-gray-400'
-                }`} />
+              <span className={`w-1.5 h-1.5 rounded-full ${jobListing.is_active ? 'bg-green-500 animate-pulse' : 'bg-gray-400'}`} />
               Status: {jobListing.is_active ? 'Active' : 'Inactive'}
             </div>
 
             {isJobOwner && (
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
-                <FaBriefcase size={12} />
-                Your Job Posting
+              <div className="inline-flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-[10px] sm:text-xs font-medium">
+                <FaBriefcase size={10} />
+                Your Job
               </div>
             )}
 
             {!canEditJobs && isJobOwner && (
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-amber-100 text-amber-800 rounded-full text-xs font-medium">
-                <FaLock size={10} />
-                Limited Access - You can only edit your own jobs
+              <div className="inline-flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1 bg-amber-100 text-amber-800 rounded-full text-[10px] sm:text-xs font-medium">
+                <FaLock size={8} />
+                Limited Access
               </div>
             )}
           </div>
 
           {/* Main Card */}
           <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100">
-            {/* Step Indicator */}
-            <div className="border-b border-gray-100 bg-gray-50/50 px-8 pt-6">
+            {/* Step Indicator - Responsive */}
+            <div className="border-b border-gray-100 bg-gray-50/50 px-3 sm:px-8 pt-4 sm:pt-6 overflow-x-auto">
               <StepIndicator currentStep={currentStep} steps={steps} />
             </div>
 
-            {/* Form Content */}
-            <div className="px-8 py-8">
+            {/* Form Content - Responsive */}
+            <div className="px-3 sm:px-8 py-4 sm:py-8">
               <CurrentStepComponent
                 formData={formData}
                 errors={errors}
@@ -533,8 +522,8 @@ export default function Edit({ jobListing, categories, locations }) {
               />
             </div>
 
-            {/* Navigation */}
-            <div className="border-t border-gray-100 bg-gray-50/50 px-8 py-6">
+            {/* Navigation - Responsive */}
+            <div className="border-t border-gray-100 bg-gray-50/50 px-3 sm:px-8 py-4 sm:py-6">
               <StepNavigation
                 currentStep={currentStep}
                 totalSteps={steps.length}
@@ -549,23 +538,40 @@ export default function Edit({ jobListing, categories, locations }) {
             </div>
           </div>
 
-          {/* Progress Indicator */}
-          <div className="mt-8 text-center">
-            <div className="inline-flex items-center gap-3 px-5 py-2.5 bg-white/80 backdrop-blur-sm rounded-full shadow-sm border border-gray-100">
+          {/* Progress Indicator - Responsive */}
+          <div className="mt-4 sm:mt-8 text-center">
+            <div className="inline-flex items-center gap-2 sm:gap-3 px-3 sm:px-5 py-2 bg-white/80 backdrop-blur-sm rounded-full shadow-sm border border-gray-100">
               <div className="relative">
-                <div className="w-2 h-2 rounded-full bg-orange-600 animate-ping opacity-75" />
-                <div className="w-2 h-2 rounded-full bg-orange-600 absolute top-0" />
+                <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-orange-600 animate-ping opacity-75" />
+                <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-orange-600 absolute top-0" />
               </div>
-              <span className="text-sm font-medium text-gray-600">
+              <span className="text-[10px] sm:text-sm font-medium text-gray-600">
                 Step {currentStep} of {steps.length}
               </span>
-              <span className="text-xs text-gray-400">
+              <span className="text-[8px] sm:text-xs text-gray-400 hidden xs:inline">
                 {Math.round((currentStep / steps.length) * 100)}% complete
               </span>
             </div>
           </div>
         </div>
       </div>
+
+      <style>{`
+        @media (min-width: 480px) {
+          .xs\\:inline {
+            display: inline !important;
+          }
+          .xs\\:hidden {
+            display: none !important;
+          }
+        }
+        .xs\\:inline {
+          display: none;
+        }
+        .xs\\:hidden {
+          display: inline;
+        }
+      `}</style>
     </AuthenticatedLayout>
   );
 }
