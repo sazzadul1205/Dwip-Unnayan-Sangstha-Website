@@ -608,19 +608,16 @@ class NewsletterController extends Controller
     /**
      * Admin: Send bulk email using queue with batch and campaign tracking.
      */
-    public function sendBulkEmail(Request $request): \Illuminate\Http\JsonResponse
+    public function sendBulkEmail(Request $request): RedirectResponse
     {
         $user = Auth::user();
         if (!$user instanceof User || !$user->hasPermission('newsletter.send')) {
-            return response()->json(['error' => 'Unauthorized'], 403);
+            return redirect()->back()->with('error', 'Unauthorized');
         }
 
         $throttleKey = 'newsletter_bulk_email|' . $user->id;
         if (RateLimiter::tooManyAttempts($throttleKey, 2)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Too many bulk email requests. Please wait a moment.',
-            ], 429);
+            return redirect()->back()->with('error', 'Too many bulk email requests. Please wait a moment.');
         }
 
         $validator = Validator::make($request->all(), [
@@ -631,10 +628,9 @@ class NewsletterController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'errors' => $validator->errors(),
-            ], 422);
+            return redirect()->back()
+                ->withErrors($validator)
+                ->withInput();
         }
 
         $subscribers = NewsletterSubscription::whereIn('id', $request->ids)
@@ -642,10 +638,7 @@ class NewsletterController extends Controller
             ->get();
 
         if ($subscribers->isEmpty()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'No active subscribers selected.',
-            ], 400);
+            return redirect()->back()->with('error', 'No active subscribers selected.');
         }
 
         // Create campaign
@@ -664,7 +657,7 @@ class NewsletterController extends Controller
             ->then(function (Batch $batch) use ($campaign) {
                 // All jobs completed successfully
                 $campaign->status = 'completed';
-                $campaign->sent_count = $batch->processedJobs();
+                $campaign->sent_count = max(0, $batch->processedJobs() - $batch->failedJobs);
                 $campaign->failed_count = 0;
                 $campaign->completed_at = now();
                 $campaign->save();
@@ -677,8 +670,8 @@ class NewsletterController extends Controller
             ->catch(function (Batch $batch, \Throwable $e) use ($campaign) {
                 // Some jobs failed
                 $campaign->status = 'failed';
-                $campaign->sent_count = $batch->processedJobs() - $batch->failedJobs;
-                $campaign->failed_count = $batch->failedJobs;
+                $campaign->sent_count = max(0, $batch->processedJobs() - $batch->failedJobs);
+                $campaign->failed_count = max(0, $batch->failedJobs);
                 $campaign->completed_at = now();
                 $campaign->save();
 
@@ -689,8 +682,8 @@ class NewsletterController extends Controller
             })
             ->finally(function (Batch $batch) use ($campaign) {
                 // Always update progress
-                $campaign->sent_count = $batch->processedJobs() - $batch->failedJobs;
-                $campaign->failed_count = $batch->failedJobs;
+                $campaign->sent_count = max(0, $batch->processedJobs() - $batch->failedJobs);
+                $campaign->failed_count = max(0, $batch->failedJobs);
                 $campaign->save();
             })
             ->dispatch();

@@ -32,9 +32,9 @@ class SendNewsletterBulkEmail implements ShouldQueue
         try {
             Mail::to($this->subscriber->email)
                 ->send(new NewsletterBulkEmail(
+                    $this->subscriber,
                     $this->campaign->subject,
-                    $this->campaign->content,
-                    $this->subscriber
+                    $this->campaign->content
                 ));
         } catch (\Exception $e) {
             Log::error('Newsletter email failed', [
