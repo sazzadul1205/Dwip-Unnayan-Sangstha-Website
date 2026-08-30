@@ -1,8 +1,7 @@
 // js/Sections/ImageGallerySection/ImageGallerySection.jsx
 
-import React, { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, useRef, useLayoutEffect } from 'react';
 
-// Generate placeholder image URL
 const getPlaceholderImage = (width = 485, height = 400, text = 'Gallery Image') => {
   return `https://via.placeholder.com/${width}x${height}/EAEAEA/999999?text=${encodeURIComponent(text)}`;
 };
@@ -23,73 +22,40 @@ const ImageGallerySection = ({
   const [visibleCount, setVisibleCount] = useState(imagesPerPage);
   const [imageErrors, setImageErrors] = useState({});
   const [selectedIndex, setSelectedIndex] = useState(null);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [thumbnailRect, setThumbnailRect] = useState(null);
+  const [modalImageStyle, setModalImageStyle] = useState({});
+  const [backdropOpacity, setBackdropOpacity] = useState(0);
+  const modalImageRef = useRef(null);
 
-  // ============================================
-  // RESOLVE DATA - FIXED
-  // ============================================
+  // Resolve data (unchanged)
   let resolvedData = galleryData || data || {};
-
-  // If resolvedData is an array, use it directly
   if (Array.isArray(resolvedData)) {
-    // It's already an array of images
     resolvedData = { images: resolvedData };
-  }
-  // If resolvedData has a 'data' property (from nested structure)
-  else if (resolvedData.data && typeof resolvedData.data === 'object') {
+  } else if (resolvedData.data && typeof resolvedData.data === 'object') {
     resolvedData = resolvedData.data;
   }
 
-  // ============================================
-  // NORMALIZE DATA STRUCTURE - FIXED
-  // ============================================
   let resolvedImages = [];
   let resolvedSectionTitle = sectionTitle;
   let resolvedImageCountLabel = imageCountLabel;
 
-  // Try to extract images from various possible locations
   if (resolvedData) {
-    // Direct images array
-    if (Array.isArray(resolvedData.images)) {
-      resolvedImages = resolvedData.images;
-    }
-    // Data is the images array itself
-    else if (Array.isArray(resolvedData)) {
-      resolvedImages = resolvedData;
-    }
-    // Items array
-    else if (Array.isArray(resolvedData.items)) {
-      resolvedImages = resolvedData.items;
-    }
-    // Gallery array
-    else if (Array.isArray(resolvedData.gallery)) {
-      resolvedImages = resolvedData.gallery;
-    }
-    // Photos array
-    else if (Array.isArray(resolvedData.photos)) {
-      resolvedImages = resolvedData.photos;
-    }
+    if (Array.isArray(resolvedData.images)) resolvedImages = resolvedData.images;
+    else if (Array.isArray(resolvedData)) resolvedImages = resolvedData;
+    else if (Array.isArray(resolvedData.items)) resolvedImages = resolvedData.items;
+    else if (Array.isArray(resolvedData.gallery)) resolvedImages = resolvedData.gallery;
+    else if (Array.isArray(resolvedData.photos)) resolvedImages = resolvedData.photos;
 
-    // Extract section title
-    if (resolvedData.sectionTitle) {
-      resolvedSectionTitle = resolvedData.sectionTitle;
-    } else if (resolvedData.title) {
-      resolvedSectionTitle = resolvedData.title;
-    }
+    if (resolvedData.sectionTitle) resolvedSectionTitle = resolvedData.sectionTitle;
+    else if (resolvedData.title) resolvedSectionTitle = resolvedData.title;
 
-    // Extract image count label
-    if (resolvedData.imageCountLabel) {
-      resolvedImageCountLabel = resolvedData.imageCountLabel;
-    }
+    if (resolvedData.imageCountLabel) resolvedImageCountLabel = resolvedData.imageCountLabel;
   }
 
-  // ============================================
-  // CHECK FOR CONTENT
-  // ============================================
   const hasImages = resolvedImages.length > 0;
 
-  // ============================================
-  // IMAGE HANDLING
-  // ============================================
+  // Image helpers
   const handleImageError = (imageId) => {
     setImageErrors(prev => ({ ...prev, [imageId]: true }));
   };
@@ -111,10 +77,41 @@ const ImageGallerySection = ({
     return image.alt || image.title || image.caption || `Gallery image ${index + 1}`;
   };
 
-  // ============================================
-  // MODAL / LIGHTBOX HANDLING
-  // ============================================
-  const closeModal = useCallback(() => setSelectedIndex(null), []);
+  // ─── MODAL HANDLERS ──────────────────────────────────────
+
+  const openModal = (e, index) => {
+    // Get the clicked <img> element’s bounding rect (not the parent div)
+    const imgElement = e.currentTarget.querySelector('img');
+    if (!imgElement) return;
+    const rect = imgElement.getBoundingClientRect();
+
+    setThumbnailRect(rect);
+    setSelectedIndex(index);
+    setModalOpen(true);
+  };
+
+  const closeModal = useCallback(() => {
+    if (thumbnailRect) {
+      const { left, top, width, height } = thumbnailRect;
+      setModalImageStyle({
+        position: 'fixed',
+        left: `${left  }px`,
+        top: `${top  }px`,
+        width: `${width  }px`,
+        height: `${height  }px`,
+        transform: 'none',
+        opacity: 1,
+        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+      });
+      setBackdropOpacity(0);
+    }
+    setTimeout(() => {
+      setModalOpen(false);
+      setThumbnailRect(null);
+      setSelectedIndex(null);
+      setModalImageStyle({});
+    }, 300);
+  }, [thumbnailRect]);
 
   const showPrev = useCallback((e) => {
     e.stopPropagation();
@@ -126,8 +123,9 @@ const ImageGallerySection = ({
     setSelectedIndex((prev) => (prev < resolvedImages.length - 1 ? prev + 1 : 0));
   }, [resolvedImages.length]);
 
+  // Keyboard events
   useEffect(() => {
-    if (selectedIndex === null) return;
+    if (!modalOpen) return;
     const handleKey = (e) => {
       if (e.key === 'Escape') closeModal();
       if (e.key === 'ArrowLeft') showPrev(e);
@@ -135,16 +133,59 @@ const ImageGallerySection = ({
     };
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
-  }, [selectedIndex, resolvedImages.length, showPrev, showNext, closeModal]);
+  }, [modalOpen, closeModal, showPrev, showNext]);
 
-  if (!hasImages) {
-    return null;
-  }
+  // ─── ANIMATE MODAL ENTRANCE (useLayoutEffect for reliable timing) ───
+
+  useLayoutEffect(() => {
+    if (!modalOpen || !thumbnailRect) return;
+
+    const { left, top, width, height } = thumbnailRect;
+
+    // 1. Start at thumbnail position (no transition)
+    setModalImageStyle({
+      position: 'fixed',
+      left: `${left  }px`,
+      top: `${top  }px`,
+      width: `${width  }px`,
+      height: `${height  }px`,
+      transform: 'none',
+      opacity: 1,
+      transition: 'none',
+    });
+
+    // 2. Force a synchronous reflow so the browser applies the above styles
+    //    This ensures the initial position is painted before we animate.
+    if (modalImageRef.current) {
+      void modalImageRef.current.offsetHeight; // forces reflow
+    }
+
+    // 3. After reflow, animate to center (with transition)
+    //    We use requestAnimationFrame to schedule the style update after the reflow.
+    requestAnimationFrame(() => {
+      setModalImageStyle({
+        position: 'fixed',
+        left: '50%',
+        top: '50%',
+        width: 'auto',
+        height: 'auto',
+        maxWidth: '95vw',
+        maxHeight: '95vh',
+        transform: 'translate(-50%, -50%)',
+        opacity: 1,
+        transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+      });
+      setBackdropOpacity(1);
+    });
+  }, [modalOpen, thumbnailRect]);
+
+  // ─── RENDER ──────────────────────────────────────────────
+
+  if (!hasImages) return null;
 
   const handleShowMore = () => {
     setVisibleCount(prev => Math.min(prev + imagesPerLoad, resolvedImages.length));
   };
-
   const isAllVisible = visibleCount >= resolvedImages.length;
   const visibleImages = resolvedImages.slice(0, visibleCount);
 
@@ -177,7 +218,7 @@ const ImageGallerySection = ({
               <div
                 key={imageId}
                 className="rounded-lg overflow-hidden shadow-md hover:shadow-xl transition-shadow duration-300 cursor-pointer"
-                onClick={() => setSelectedIndex(index)}
+                onClick={(e) => openModal(e, index)}
               >
                 <img
                   src={imageSrc}
@@ -204,46 +245,89 @@ const ImageGallerySection = ({
         )}
       </div>
 
-      {/* Lightbox Modal */}
-      {selectedIndex !== null && (
+      {/* ─── LIGHTBOX MODAL ─────────────────────────────────── */}
+      {modalOpen && (
         <div
-          className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 sm:p-8"
+          className="fixed inset-0 z-50 flex items-center justify-center"
+          style={{
+            background: 'black',
+            opacity: backdropOpacity,
+            transition: 'opacity 0.4s ease',
+          }}
           onClick={closeModal}
         >
-          <button
-            onClick={closeModal}
-            className="absolute top-4 right-4 sm:top-6 sm:right-6 text-white text-3xl leading-none hover:opacity-70"
-            aria-label="Close"
-          >
-            &times;
-          </button>
+          {/* Subtle radial glow */}
+          <div
+            className="absolute inset-0 pointer-events-none"
+            style={{
+              background: 'radial-gradient(circle at center, rgba(255,255,255,0.08) 0%, transparent 70%)',
+            }}
+          />
 
+          {/* Navigation arrows */}
           <button
             onClick={showPrev}
-            className="absolute left-2 sm:left-6 text-white text-4xl hover:opacity-70 px-2"
+            className="absolute left-2 sm:left-6 text-white text-4xl hover:opacity-70 px-2 z-10"
             aria-label="Previous image"
+            style={{ opacity: backdropOpacity }}
           >
             &#8249;
           </button>
-
-          <img
-            src={getImageSrc(resolvedImages[selectedIndex], selectedIndex)}
-            alt={getImageAlt(resolvedImages[selectedIndex], selectedIndex)}
-            className="max-h-[85vh] max-w-[90vw] object-contain rounded-lg"
-            onClick={(e) => e.stopPropagation()}
-          />
-
           <button
             onClick={showNext}
-            className="absolute right-2 sm:right-6 text-white text-4xl hover:opacity-70 px-2"
+            className="absolute right-2 sm:right-6 text-white text-4xl hover:opacity-70 px-2 z-10"
             aria-label="Next image"
+            style={{ opacity: backdropOpacity }}
           >
             &#8250;
           </button>
 
-          <p className="absolute bottom-4 sm:bottom-6 text-white/70 text-sm">
-            {selectedIndex + 1} / {resolvedImages.length}
-          </p>
+          {/* Close button */}
+          <button
+            onClick={closeModal}
+            className="absolute top-4 right-4 sm:top-6 sm:right-6 text-white text-3xl leading-none hover:opacity-70 z-10"
+            aria-label="Close"
+            style={{ opacity: backdropOpacity }}
+          >
+            &times;
+          </button>
+
+          {/* Animated image container */}
+          <div
+            ref={modalImageRef}
+            style={{
+              ...modalImageStyle,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 5,
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {selectedIndex !== null && (
+              <img
+                src={getImageSrc(resolvedImages[selectedIndex], selectedIndex)}
+                alt={getImageAlt(resolvedImages[selectedIndex], selectedIndex)}
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'contain',
+                  borderRadius: '8px',
+                  boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
+                }}
+              />
+            )}
+          </div>
+
+          {/* Image counter */}
+          {selectedIndex !== null && (
+            <p
+              className="absolute bottom-4 sm:bottom-6 text-white/70 text-sm z-10"
+              style={{ opacity: backdropOpacity }}
+            >
+              {selectedIndex + 1} / {resolvedImages.length}
+            </p>
+          )}
         </div>
       )}
     </section>
