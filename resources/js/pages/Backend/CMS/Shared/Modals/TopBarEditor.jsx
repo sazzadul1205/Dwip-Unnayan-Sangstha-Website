@@ -1,16 +1,13 @@
 // resources/js/pages/Backend/CMS/Shared/Modals/TopBarEditor.jsx
 
-// React
 import { useState } from 'react';
-
-// React Icons
-import { FiFacebook, FiTwitter, FiInstagram, FiLinkedin, FiYoutube, FiGithub, FiExternalLink } from 'react-icons/fi';
+import {
+  FiFacebook, FiTwitter, FiInstagram, FiLinkedin, FiYoutube, FiGithub, FiExternalLink
+} from 'react-icons/fi';
 import { FaPlus, FaTrash, FaGlobe, FaPhone, FaEnvelope, FaClock, FaShareAlt, FaInfoCircle } from 'react-icons/fa';
-
-// SweetAlert2
 import Swal from 'sweetalert2';
 
-// Available social icons with their display names
+// Available social icons
 const SOCIAL_ICONS = [
   { value: 'FaFacebook', label: 'Facebook', icon: FiFacebook, color: '#1877F2' },
   { value: 'FaTwitter', label: 'Twitter', icon: FiTwitter, color: '#1DA1F2' },
@@ -26,151 +23,15 @@ export default function TopBarEditor({
   addArrayItem,
   removeArrayItem,
   isLoading = false,
-  setIsLoading = null
 }) {
-  const [dragActive, setDragActive] = useState(false);
-  const [uploading, setUploading] = useState({});
+  const [uploading] = useState({});
   const isUploading = Object.values(uploading).some(status => status === true);
 
-  // ============================================
-  // FLAG UPLOAD HANDLERS
-  // ============================================
-
-  const handleDrag = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (e.type === "dragenter" || e.type === "dragover") {
-      setDragActive(true);
-    } else if (e.type === "dragleave") {
-      setDragActive(false);
-    }
-  };
-
-  const handleFlagDrop = (e, langIndex) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDragActive(false);
-
-    const files = e.dataTransfer.files;
-    if (files && files[0]) {
-      const file = files[0];
-
-      if (!file.type.startsWith('image/')) {
-        Swal.fire({
-          icon: 'error',
-          title: 'Invalid File',
-          text: 'Please drop an image file (JPEG, PNG, GIF, WebP, SVG)',
-          confirmButtonColor: '#3b82f6',
-        });
-        return;
-      }
-
-      if (file.size > 5 * 1024 * 1024) {
-        Swal.fire({
-          icon: 'error',
-          title: 'File Too Large',
-          text: 'Image size should be less than 5MB',
-          confirmButtonColor: '#3b82f6',
-        });
-        return;
-      }
-
-      setUploading(prev => ({ ...prev, [`flag_${langIndex}`]: true }));
-      if (setIsLoading) setIsLoading(true);
-
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        updateFormData(`languages.${langIndex}.flag`, event.target.result);
-        setUploading(prev => ({ ...prev, [`flag_${langIndex}`]: false }));
-        if (setIsLoading) setIsLoading(false);
-      };
-      reader.onerror = () => {
-        setUploading(prev => ({ ...prev, [`flag_${langIndex}`]: false }));
-        if (setIsLoading) setIsLoading(false);
-        Swal.fire({
-          icon: 'error',
-          title: 'Error',
-          text: 'Failed to read the image file',
-          confirmButtonColor: '#3b82f6',
-        });
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const handleFlagFileSelect = (e, langIndex) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    if (!file.type.startsWith('image/')) {
-      Swal.fire({
-        icon: 'error',
-        title: 'Invalid File',
-        text: 'Please select an image file (JPEG, PNG, GIF, WebP, SVG)',
-        confirmButtonColor: '#3b82f6',
-      });
-      e.target.value = '';
-      return;
-    }
-
-    if (file.size > 5 * 1024 * 1024) {
-      Swal.fire({
-        icon: 'error',
-        title: 'File Too Large',
-        text: 'Image size should be less than 5MB',
-        confirmButtonColor: '#3b82f6',
-      });
-      e.target.value = '';
-      return;
-    }
-
-    setUploading(prev => ({ ...prev, [`flag_${langIndex}`]: true }));
-    if (setIsLoading) setIsLoading(true);
-
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      updateFormData(`languages.${langIndex}.flag`, event.target.result);
-      setUploading(prev => ({ ...prev, [`flag_${langIndex}`]: false }));
-      if (setIsLoading) setIsLoading(false);
-    };
-    reader.onerror = () => {
-      setUploading(prev => ({ ...prev, [`flag_${langIndex}`]: false }));
-      if (setIsLoading) setIsLoading(false);
-      Swal.fire({
-        icon: 'error',
-        title: 'Error',
-        text: 'Failed to read the image file',
-        confirmButtonColor: '#3b82f6',
-      });
-    };
-    reader.readAsDataURL(file);
-    e.target.value = '';
-  };
-
-  const removeFlag = (index) => {
-    Swal.fire({
-      title: 'Remove Flag?',
-      text: 'This will remove the flag image for this language.',
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonColor: '#ef4444',
-      cancelButtonColor: '#6b7280',
-      confirmButtonText: 'Yes, remove it',
-    }).then((result) => {
-      if (result.isConfirmed) {
-        updateFormData(`languages.${index}.flag`, '');
-      }
-    });
-  };
-
-  // ============================================
-  // RENDER
-  // ============================================
   return (
     <div className="space-y-8 w-full">
 
       {/* ============================================
-          CONTACT INFO SECTION (Text Only - No Images)
+          CONTACT INFO SECTION
           ============================================ */}
       <div className="bg-linear-to-r from-blue-50 to-indigo-50 rounded-xl p-6 border border-blue-100">
         <div className="flex items-center gap-3 mb-4">
@@ -184,7 +45,6 @@ export default function TopBarEditor({
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {/* Email */}
           <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200 hover:border-blue-300 transition">
             <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
               <FaEnvelope className="text-blue-500" />
@@ -201,7 +61,6 @@ export default function TopBarEditor({
             <p className="text-xs text-gray-400 mt-1.5">Displayed as a clickable mailto link</p>
           </div>
 
-          {/* Phone */}
           <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200 hover:border-blue-300 transition">
             <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
               <FaPhone className="text-green-500" />
@@ -218,7 +77,6 @@ export default function TopBarEditor({
             <p className="text-xs text-gray-400 mt-1.5">Displayed as a clickable tel link</p>
           </div>
 
-          {/* Hours */}
           <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200 hover:border-blue-300 transition">
             <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
               <FaClock className="text-purple-500" />
@@ -238,7 +96,7 @@ export default function TopBarEditor({
       </div>
 
       {/* ============================================
-          LANGUAGES SECTION (With Flag Upload)
+          LANGUAGES SECTION – Without Flags
           ============================================ */}
       <div className="bg-linear-to-r from-purple-50 to-pink-50 rounded-xl p-6 border border-purple-100">
         <div className="flex items-center justify-between mb-4">
@@ -253,10 +111,9 @@ export default function TopBarEditor({
           </div>
           <button
             type="button"
-            disabled={true}
-            // disabled={isLoading || isUploading}
-            onClick={() => addArrayItem('languages', { code: '', name: '', flag: '' })}
+            onClick={() => addArrayItem('languages', { code: '', name: '' })}
             className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={isLoading || isUploading}
           >
             <FaPlus size={14} />
             Add Language
@@ -273,7 +130,8 @@ export default function TopBarEditor({
           <div className="space-y-3">
             {formData.languages.map((lang, index) => {
               const isCodeValid = lang.code && ['us', 'bd', 'gb', 'de', 'fr', 'es', 'it', 'pt', 'ru', 'cn', 'jp', 'kr', 'in'].includes(lang.code?.toLowerCase());
-              const hasFlag = lang.flag && lang.flag.trim().length > 0;
+              const displayName = lang.name || lang.code || '??';
+              const avatarLetters = displayName.slice(0, 2).toUpperCase();
 
               return (
                 <div
@@ -282,58 +140,13 @@ export default function TopBarEditor({
                     }`}
                 >
                   <div className="flex flex-wrap items-center gap-3">
-                    {/* Flag Upload */}
-                    <div className="relative">
-                      <div
-                        className={`relative border-2 border-dashed rounded-lg p-2 transition-all ${dragActive ? 'border-purple-500 bg-purple-50' : 'border-gray-300 hover:border-gray-400'
-                          }`}
-                        onDragEnter={handleDrag}
-                        onDragLeave={handleDrag}
-                        onDragOver={handleDrag}
-                        onDrop={(e) => handleFlagDrop(e, index)}
-                      >
-                        <div className="flex items-center gap-2 min-h-10">
-                          {hasFlag ? (
-                            <div className="flex items-center gap-2">
-                              <img
-                                src={lang.flag}
-                                alt={lang.name || 'Flag'}
-                                className="w-10 h-7 object-cover rounded"
-                              />
-                              <button
-                                type="button"
-                                onClick={() => removeFlag(index)}
-                                className="p-1 text-red-500 hover:bg-red-50 rounded transition shrink-0"
-                                title="Remove flag"
-                                disabled={isLoading || isUploading}
-                              >
-                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                </svg>
-                              </button>
-                            </div>
-                          ) : (
-                            <div className="flex items-center gap-2 text-gray-400 py-1 px-2">
-                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                              </svg>
-                              <span className="text-xs">Drop flag</span>
-                            </div>
-                          )}
-                          <input
-                            type="file"
-                            accept="image/*"
-                            onChange={(e) => handleFlagFileSelect(e, index)}
-                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                            disabled={isLoading || isUploading}
-                          />
-                        </div>
-                        {uploading[`flag_${index}`] && (
-                          <div className="absolute inset-0 flex items-center justify-center bg-white/80 rounded-lg">
-                            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-purple-600" />
-                          </div>
-                        )}
-                      </div>
+                    {/* Avatar – first two letters */}
+                    <div
+                      className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm shrink-0
+                        ${isCodeValid ? 'bg-purple-500' : 'bg-gray-400'}`}
+                      title={displayName}
+                    >
+                      {avatarLetters}
                     </div>
 
                     {/* Code */}
@@ -384,11 +197,6 @@ export default function TopBarEditor({
 
                     {/* Status & Actions */}
                     <div className="flex items-center gap-4 ml-auto">
-                      {hasFlag && (
-                        <span className="text-xs px-2 py-1 bg-green-100 text-green-700 rounded-full">
-                          📷 Flag
-                        </span>
-                      )}
                       {lang.code && (
                         <span className={`text-xs px-2 py-1 rounded-full ${isCodeValid
                           ? 'bg-green-100 text-green-700'
@@ -423,17 +231,11 @@ export default function TopBarEditor({
                     </div>
                   </div>
 
-                  {/* Help text */}
+                  {/* Help text for invalid codes */}
                   {lang.code && !isCodeValid && (
                     <p className="text-xs text-yellow-600 mt-2 flex items-center gap-1">
                       <span>💡</span>
                       Only <strong>us</strong> and <strong>bd</strong> will appear in the selector. Other codes are stored but not shown.
-                    </p>
-                  )}
-                  {!hasFlag && (
-                    <p className="text-xs text-gray-400 mt-2 flex items-center gap-1">
-                      <span>📷</span>
-                      Upload a flag image for this language (optional)
                     </p>
                   )}
                 </div>
@@ -444,7 +246,7 @@ export default function TopBarEditor({
       </div>
 
       {/* ============================================
-          SOCIAL LINKS SECTION (Unchanged)
+          SOCIAL LINKS SECTION
           ============================================ */}
       <div className="bg-linear-to-r from-cyan-50 to-teal-50 rounded-xl p-6 border border-cyan-100">
         <div className="flex items-center justify-between mb-4">
@@ -457,28 +259,13 @@ export default function TopBarEditor({
               <p className="text-xs text-gray-500">Leave URL empty to hide the social icon</p>
             </div>
           </div>
-          {/* <button
-            type="button"
-            onClick={() => addArrayItem('socialLinks', {
-              iconName: 'FaFacebook',
-              url: '',
-              name: 'Facebook',
-              hoverColor: 'hover:text-[#1877F2]'
-            })}
-            className="flex items-center gap-2 px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
-            disabled={true}
-          // disabled={isLoading || isUploading}
-          >
-            <FaPlus size={14} />
-            Add Social Link
-          </button> */}
         </div>
 
         {(!formData.socialLinks || formData.socialLinks.length === 0) ? (
           <div className="bg-white rounded-lg p-8 text-center border-2 border-dashed border-gray-300">
             <FaShareAlt className="text-gray-300 text-4xl mx-auto mb-3" />
             <p className="text-gray-400 font-medium">No social links added</p>
-            <p className="text-xs text-gray-400">Click "Add Social Link" to connect your social media</p>
+            <p className="text-xs text-gray-400">Add social links via the main CMS page</p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -494,8 +281,7 @@ export default function TopBarEditor({
                     }`}
                 >
                   <div className="flex flex-wrap items-center gap-3">
-                    {/* Icon Preview */}
-                    {/* <div className="flex items-center gap-3 min-w-30">
+                    <div className="flex items-center gap-3 min-w-30">
                       <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${hasUrl ? 'bg-cyan-50' : 'bg-gray-50'
                         }`}>
                         <IconComponent className={`text-xl ${hasUrl ? 'text-cyan-600' : 'text-gray-300'}`} />
@@ -512,9 +298,8 @@ export default function TopBarEditor({
                           </option>
                         ))}
                       </select>
-                    </div> */}
+                    </div>
 
-                    {/* URL */}
                     <div className="flex-1 min-w-45">
                       <input
                         type="url"
@@ -527,7 +312,6 @@ export default function TopBarEditor({
                       />
                     </div>
 
-                    {/* Name */}
                     <div className="min-w-25">
                       <input
                         type="text"
@@ -539,20 +323,7 @@ export default function TopBarEditor({
                       />
                     </div>
 
-                    {/* Hover Color */}
-                    {/* <div className="min-w-25">
-                      <input
-                        type="text"
-                        value={link.hoverColor || ''}
-                        onChange={(e) => updateFormData(`socialLinks.${index}.hoverColor`, e.target.value)}
-                        placeholder="hover:text-[#color]"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition outline-none text-sm font-mono"
-                        disabled={isLoading || isUploading}
-                      />
-                    </div> */}
-
-                    {/* Actions */}
-                    {/* <div className="flex items-center gap-3 ml-auto">
+                    <div className="flex items-center gap-3 ml-auto">
                       {hasUrl ? (
                         <span className="text-xs px-2 py-1 bg-green-100 text-green-700 rounded-full">🔗 Active</span>
                       ) : (
@@ -581,10 +352,9 @@ export default function TopBarEditor({
                       >
                         <FaTrash size={16} />
                       </button>
-                    </div> */}
+                    </div>
                   </div>
 
-                  {/* Preview of how it will look */}
                   {hasUrl && (
                     <div className="mt-3 pt-3 border-t border-gray-100 flex items-center gap-2 text-sm">
                       <span className="text-xs text-gray-400">Preview:</span>

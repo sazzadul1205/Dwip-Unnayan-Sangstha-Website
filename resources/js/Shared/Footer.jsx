@@ -17,7 +17,7 @@
 
 // React
 import { Link } from '@inertiajs/react';
-import  { useState, useCallback, memo } from 'react';
+import { useState, useCallback, memo } from 'react';
 
 // Icons
 import {
@@ -383,9 +383,9 @@ const Footer = ({
     : [];
 
   return (
-    <footer className="overflow-hidden rounded-t-[40px] bg-[#080C14] px-4 pt-12 text-white sm:rounded-t-[50px] sm:px-8 sm:pt-16 md:rounded-t-[70px] md:px-12 md:pt-20 lg:rounded-t-[80px] lg:px-20 lg:pt-25 xl:rounded-t-[90px] xl:px-30 xl:pt-30 2xl:rounded-t-[100px] 2xl:px-50 2xl:pt-37.5">
+    <footer className="overflow-hidden rounded-t-[40px] bg-[#080C14]  text-white sm:rounded-t-[50px]  md:rounded-t-[70px] 0 lg:rounded-t-[80px]  xl:rounded-t-[90px]  2xl:rounded-t-[100px] ">
       {/*  MAIN FOOTER */}
-      <div className="mx-auto flex max-w-[1800px] flex-col gap-12 pb-12 sm:gap-14 sm:pb-16 md:gap-16 md:pb-20 lg:gap-20 lg:pb-24 xl:flex-row xl:gap-20 xl:pb-25 2xl:gap-40">
+      <div className="mx-auto flex max-w-[1800px] flex-col gap-12 pb-12 sm:gap-14 sm:pb-16 md:gap-16 md:pb-20 lg:gap-20 lg:pb-24 xl:flex-row xl:gap-20 xl:pb-25 2xl:gap-40 px-4 pt-12 sm:px-8 sm:pt-16 md:px-12 md:pt-2 lg:px-20 lg:pt-25 xl:px-30 xl:pt-30 2xl:px-50 2xl:pt-37.5">
         {/* LEFT COLUMN */}
         <div className="w-full min-w-0 xl:w-[32%] xl:max-w-110 2xl:w-[30%] 2xl:max-w-120">
           {/* Logo */}
@@ -711,26 +711,28 @@ const Footer = ({
 
       {/*  BOTTOM FOOTER */}
       {hasBottomFooter && (
-        <div className="mx-auto flex max-w-[1800px] flex-col items-center justify-between gap-4 py-6 sm:flex-row sm:py-8 lg:py-10">
-          {/* Copyright */}
-          {hasValue(bottomFooter.copyright) && (
-            <p className="text-center text-[11px] font-400 text-white sm:text-left sm:text-[12px] lg:text-[14px]">
-              {bottomFooter.copyright}
-            </p>
-          )}
+        <div className='border-t border-[#090C40]' >
+          <div className="mx-auto flex max-w-[1800px] flex-col items-center justify-between gap-4 py-6 sm:flex-row sm:py-8 lg:py-10 px-4 md:px-12 lg:px-20 xl:px-30 2xl:px-50 ">
+            {/* Copyright */}
+            {hasValue(bottomFooter.copyright) && (
+              <p className="text-center text-[11px] font-400 text-white sm:text-left sm:text-[12px] lg:text-[14px]">
+                {bottomFooter.copyright}
+              </p>
+            )}
 
-          {/* Legal Links */}
-          {hasValue(bottomFooter.links) && (
-            <ul className="flex flex-wrap justify-center gap-3 text-[11px] font-400 text-white sm:gap-4 sm:text-[12px] lg:gap-8 lg:text-[14px]">
-              {bottomFooter.links.map((link, index) => (
-                <li key={index}>
-                  <a href={link.url} className="cursor-pointer transition-colors duration-200 hover:text-[#009BE2]">
-                    {link.text}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          )}
+            {/* Legal Links */}
+            {hasValue(bottomFooter.links) && (
+              <ul className="flex flex-wrap justify-center gap-3 text-[11px] font-400 text-white sm:gap-4 sm:text-[12px] lg:gap-8 lg:text-[14px]">
+                {bottomFooter.links.map((link, index) => (
+                  <li key={index}>
+                    <a href={link.url} className="cursor-pointer transition-colors duration-200 hover:text-[#009BE2]">
+                      {link.text}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         </div>
       )}
     </footer>

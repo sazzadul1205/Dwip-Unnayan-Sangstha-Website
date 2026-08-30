@@ -28,6 +28,8 @@ const getPlaceholderImage = (width = 1920, height = 600, text = 'Welcome') => {
  * @param {Object} props.bannerData - Banner data from API (direct prop)
  * @param {string} props.bgColor - Background color (optional)
  * @param {string} props.height - Height classes (default: 'h-64 sm:h-80 md:h-100 lg:h-150 xl:h-200 2xl:h-250')
+ * @param {string} props.paddingY - Vertical padding classes, kept consistent with AboutUsSection
+ * @param {string} props.paddingX - Horizontal padding classes, kept consistent with AboutUsSection
  * @param {string} props.sectionClassName - Additional CSS classes
  * 
  * @returns {JSX.Element} Rendered home banner
@@ -37,6 +39,8 @@ const HomeBanner = ({
   bannerData,
   bgColor = '',
   height = 'h-100 sm:h-80 md:h-100 lg:h-150 xl:h-200 2xl:h-250',
+  paddingY = 'py-12 sm:py-16 md:py-20 lg:py-25 xl:py-30 2xl:py-37.5',
+  paddingX = 'px-5 sm:px-8 md:px-12 lg:px-20 xl:px-30 2xl:px-50',
   sectionClassName = '',
 }) => {
   const [imageError, setImageError] = useState(false);
@@ -117,8 +121,8 @@ const HomeBanner = ({
 
         {/* CONTENT */}
         {hasAnyContent && (
-          <div className="absolute left-0 inset-0 flex items-center p-4 sm:p-6 md:p-8 lg:p-10 xl:p-12.5">
-            <div className="w-full px-2 sm:px-4 md:px-8 lg:px-12 xl:px-20 text-white space-y-2 sm:space-y-3 md:space-y-4 lg:space-y-5">
+          <div className={`absolute left-0 inset-0 flex items-center ${paddingX} ${paddingY}`}>
+            <div className="w-full text-white space-y-2 sm:space-y-3 md:space-y-4 lg:space-y-5">
               {/* Tagline - small text above title */}
               {hasValue(content.tagline?.text) && (
                 <p className={`bricolage-grotesque ${content.tagline.className || ''} text-white text-center md:text-left text-[12px] sm:text-[14px] md:text-[18px] lg:text-[24px] xl:text-[30px] tracking-[1px] sm:tracking-[2px] md:tracking-[3px] lg:tracking-[4px]`}>
