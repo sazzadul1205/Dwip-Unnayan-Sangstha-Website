@@ -26,7 +26,44 @@
     <meta property="og:description"
         content="Dwip Unnayan Songstha (DUS) works for sustainable development, education, healthcare, and livelihood support for island communities in Bangladesh.">
     <meta property="og:url" content="{{ url()->current() }}">
-    <meta property="og:image" content="{{ asset('storage/images/dus-logo-og.png') }}">
+
+    @php
+        // Helper to get icon URL with cache busting
+        function getIconUrl($type, $default = null)
+        {
+            $disk = Storage::disk('public');
+            $path = 'images/';
+            $prefixes = [
+                'favicon' => 'favicon',
+                'preloader' => 'preloader',
+                'og-image' => 'og-image',
+                'apple-touch' => 'apple-touch-icon',
+                'site-icon' => 'icon',
+                'logo' => 'logo',
+            ];
+            $prefix = $prefixes[$type] ?? $type;
+            $extensions = ['png', 'svg', 'ico', 'jpg', 'jpeg', 'webp'];
+            foreach ($extensions as $ext) {
+                $file = $prefix . '.' . $ext;
+                if ($disk->exists($path . $file)) {
+                    $url = asset('storage/' . $path . $file);
+                    $mtime = $disk->lastModified($path . $file);
+                    return $url . '?v=' . $mtime;
+                }
+            }
+            return $default;
+        }
+
+        $faviconUrl = getIconUrl('favicon');
+        $appleTouchUrl = getIconUrl('apple-touch');
+        $preloaderUrl = getIconUrl('preloader', asset('images/pre-loader-icon.png'));
+        $ogImageUrl = getIconUrl('og-image', asset('storage/images/dus-logo-og.png'));
+        $siteIconUrl = getIconUrl('site-icon');
+        $logoUrl = getIconUrl('logo');
+    @endphp
+
+    <!-- Open Graph image -->
+    <meta property="og:image" content="{{ $ogImageUrl }}">
     <meta property="og:site_name" content="Dwip Unnayan Songstha">
     <meta property="og:locale" content="bn_BD">
 
@@ -35,7 +72,7 @@
     <meta name="twitter:title" content="Dwip Unnayan Songstha - Empowering Island Communities">
     <meta name="twitter:description"
         content="Dwip Unnayan Songstha (DUS) works for sustainable development, education, healthcare, and livelihood support for island communities in Bangladesh.">
-    <meta name="twitter:image" content="{{ asset('storage/images/dus-logo-og.png') }}">
+    <meta name="twitter:image" content="{{ $ogImageUrl }}">
 
     <!-- Theme detection -->
     <script>
@@ -55,6 +92,7 @@
 
     <!-- Critical CSS -->
     <style>
+        /* ... your existing styles (unchanged) ... */
         html {
             background-color: oklch(1 0 0);
             color-scheme: light;
@@ -83,10 +121,6 @@
             --dus-teal: #2A9D8F;
         }
 
-        /* ─── LOADER (matches Figma "loader design" node exactly) ───
-           Intentionally NOT theme-aware: this is a fixed splash asset
-           shown before the app/theme exists, so it always renders in
-           the Figma-specified light palette regardless of html.dark. */
         #app-loading {
             position: fixed;
             inset: 0;
@@ -112,7 +146,6 @@
             padding: 1rem;
         }
 
-        /* Logo */
         .loader-logo {
             position: relative;
             flex-shrink: 0;
@@ -130,7 +163,6 @@
             object-fit: contain;
         }
 
-        /* Title / Subtitle */
         .loader-text {
             display: flex;
             flex-direction: column;
@@ -157,19 +189,6 @@
             line-height: 1.4;
         }
 
-        /* Progress Bar — grows like a real loading bar (per Figma),
-           not a sliding/bouncing shimmer. Eases up to ~92% and holds;
-           JS snaps it to 100% right before the loader is hidden. */
-        .loader-progress-track {
-            position: relative;
-            height: 6px;
-            width: 100%;
-            max-width: 400px;
-            border-radius: 7px;
-            background: #eaeaea;
-            overflow: hidden;
-        }
-
         .loader-progress-track {
             position: relative;
             height: 6px;
@@ -178,13 +197,8 @@
             border-radius: 7px;
             overflow: hidden;
             background: linear-gradient(90deg,
-                #b76ef0 0%,
-                #4fc3f7 18%,
-                #34d399 36%,
-                #fbbf24 54%,
-                #fb923c 68%,
-                #f43f5e 82%,
-                #ec4899 100%);
+                    #b76ef0 0%, #4fc3f7 18%, #34d399 36%, #fbbf24 54%,
+                    #fb923c 68%, #f43f5e 82%, #ec4899 100%);
         }
 
         .loader-progress-cover {
@@ -204,12 +218,19 @@
         }
 
         @keyframes loader-progress-reveal {
-            0%   { width: 99.75%; }
-            60%  { width: 25%; }
-            100% { width: 8%; }
+            0% {
+                width: 99.75%;
+            }
+
+            60% {
+                width: 25%;
+            }
+
+            100% {
+                width: 8%;
+            }
         }
 
-        /* Responsive */
         @media (max-width: 480px) {
             .loader-logo {
                 width: 80px;
@@ -235,6 +256,64 @@
             }
         }
 
+        @media (min-width: 1024px) {
+            .loader-container {
+                gap: 1rem;
+            }
+
+            .loader-logo {
+                width: 130px;
+                height: 130px;
+            }
+
+            .loader-logo img {
+                width: 81px;
+                height: 118px;
+            }
+
+            .loader-title {
+                font-size: 26px;
+            }
+
+            .loader-subtitle {
+                font-size: 14px;
+            }
+
+            .loader-progress-track {
+                max-width: 480px;
+                height: 7px;
+            }
+        }
+
+        @media (min-width: 1440px) {
+            .loader-container {
+                gap: 1.25rem;
+            }
+
+            .loader-logo {
+                width: 150px;
+                height: 150px;
+            }
+
+            .loader-logo img {
+                width: 93px;
+                height: 137px;
+            }
+
+            .loader-title {
+                font-size: 30px;
+            }
+
+            .loader-subtitle {
+                font-size: 16px;
+            }
+
+            .loader-progress-track {
+                max-width: 560px;
+                height: 8px;
+            }
+        }
+
         @media (prefers-reduced-motion: reduce) {
             .loader-progress-cover {
                 animation: none !important;
@@ -249,32 +328,37 @@
     <!-- CSRF Token -->
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
-    <!-- Favicon -->
-    @php
-        $storagePath = storage_path('app/public/images');
-        $iconPngPath = $storagePath . '/dus-icon.png';
-        $iconSvgPath = $storagePath . '/dus-icon.svg';
-        $iconIcoPath = $storagePath . '/dus-icon.ico';
-
-        use Illuminate\Support\Facades\Storage;
-        $disk = Storage::disk('public');
-        $hasIconPng = $disk->exists('images/dus-icon.png');
-        $hasIconSvg = $disk->exists('images/dus-icon.svg');
-        $hasIconIco = $disk->exists('images/dus-icon.ico');
-    @endphp
-
-    @if ($hasIconSvg)
-        <link rel="icon" href="{{ asset('storage/images/dus-icon.svg') }}" type="image/svg+xml">
-    @endif
-    @if ($hasIconPng)
-        <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('storage/images/dus-icon.png') }}">
-        <link rel="icon" type="image/png" sizes="16x16" href="{{ asset('storage/images/dus-icon.png') }}">
-        <link rel="apple-touch-icon" href="{{ asset('storage/images/dus-icon.png') }}">
-    @elseif($hasIconIco)
-        <link rel="icon" href="{{ asset('storage/images/dus-icon.ico') }}" type="image/x-icon">
-        <link rel="shortcut icon" href="{{ asset('storage/images/dus-icon.ico') }}" type="image/x-icon">
+    <!-- ─── DYNAMIC FAVICONS ─── -->
+    @if ($faviconUrl)
+        <link rel="icon" href="{{ $faviconUrl }}" type="image/x-icon">
+        <link rel="shortcut icon" href="{{ $faviconUrl }}" type="image/x-icon">
+        <!-- Also provide PNG/SVG variants if available -->
+        @php
+            $disk = Storage::disk('public');
+            $faviconPng = $disk->exists('images/favicon.png')
+                ? asset('storage/images/favicon.png?v=' . $disk->lastModified('images/favicon.png'))
+                : null;
+            $faviconSvg = $disk->exists('images/favicon.svg')
+                ? asset('storage/images/favicon.svg?v=' . $disk->lastModified('images/favicon.svg'))
+                : null;
+        @endphp
+        @if ($faviconPng)
+            <link rel="icon" type="image/png" sizes="32x32" href="{{ $faviconPng }}">
+            <link rel="icon" type="image/png" sizes="16x16" href="{{ $faviconPng }}">
+        @endif
+        @if ($faviconSvg)
+            <link rel="icon" href="{{ $faviconSvg }}" type="image/svg+xml">
+        @endif
     @else
+        <!-- Default fallback -->
         <link rel="icon" href="{{ asset('images/dus-default-icon.png') }}" type="image/png">
+    @endif
+
+    <!-- Apple Touch Icon -->
+    @if ($appleTouchUrl)
+        <link rel="apple-touch-icon" href="{{ $appleTouchUrl }}">
+    @else
+        <link rel="apple-touch-icon" href="{{ asset('images/dus-default-icon.png') }}">
     @endif
 
     <link rel="manifest" href="{{ asset('manifest.json') }}" crossorigin="use-credentials">
@@ -314,29 +398,24 @@
 
 <body class="font-sans antialiased">
 
-    <!-- ─── SKIP LINK ─── -->
+    <!-- SKIP LINK -->
     <a href="#main"
         class="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-white focus:text-black focus:rounded focus:shadow-lg">
         Skip to main content
     </a>
 
-    <!-- ─── LOADER ─── (fixed light splash, matches Figma "loader design" node) -->
+    <!-- ─── LOADER ─── uses dynamic preloader icon -->
     <div id="app-loading" role="status" aria-label="Loading Dwip Unnayan Songstha" aria-busy="true">
         <div class="loader-container">
-            <!-- Logo -->
             <div class="loader-logo" aria-hidden="true">
-                <img src="{{ asset('images/icon.png') }}"
+                <img src="{{ $preloaderUrl }}"
                     onerror="this.onerror=null;this.src='https://www.figma.com/api/mcp/asset/8a275104-bf1c-4422-93b3-43790ebc5f2f.svg';"
                     alt="Dwip Unnayan Songstha logo" />
             </div>
-
-            <!-- Title / Subtitle -->
             <div class="loader-text">
                 <p class="loader-title">Dwip Unnayan Songstha</p>
                 <p class="loader-subtitle">Island Development Association</p>
             </div>
-
-            <!-- Progress Bar -->
             <div class="loader-progress-track">
                 <div class="loader-progress-cover" id="loader-progress-cover"></div>
             </div>
@@ -348,7 +427,7 @@
         @inertia
     </main>
 
-    <!-- ─── LOADER HIDE SCRIPT ─── -->
+    <!-- ─── LOADER HIDE SCRIPT (unchanged) ─── -->
     <script>
         (function() {
             const loading = document.getElementById('app-loading');
@@ -367,8 +446,6 @@
                 }, 250);
             }
 
-            // Hide once Inertia has actually mounted content into #main,
-            // instead of guessing with DOMContentLoaded/setTimeout.
             const appRoot = document.getElementById('app');
             if (appRoot && appRoot.children.length > 0) {
                 hideLoader();
@@ -379,10 +456,11 @@
                         hideLoader();
                     }
                 });
-                observer.observe(appRoot, { childList: true });
+                observer.observe(appRoot, {
+                    childList: true
+                });
             }
 
-            // Fallback safety net so the loader never gets stuck.
             window.addEventListener('load', function() {
                 setTimeout(hideLoader, 1200);
             });

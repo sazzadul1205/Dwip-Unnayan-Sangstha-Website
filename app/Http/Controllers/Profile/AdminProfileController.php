@@ -1,5 +1,5 @@
 <?php
-
+// app/Http/Controllers/Profile/AdminProfileController.php
 namespace App\Http\Controllers\Profile;
 
 use App\Http\Controllers\Controller;
@@ -20,8 +20,38 @@ class AdminProfileController extends Controller
 {
   protected \Illuminate\Contracts\Filesystem\Filesystem $disk;
   protected string $iconPath = 'images';
-  protected array $allowedIconExtensions = ['png', 'ico', 'jpg', 'jpeg', 'svg', 'webp'];
-  protected array $iconFileNames = ['icon.png', 'icon.ico', 'icon.svg', 'icon.jpg', 'icon.jpeg', 'icon.webp', 'icon.gif'];
+
+  /**
+   * Define all icon types this controller manages.
+   * Each type has a filename prefix and allowed extensions.
+   */
+  protected array $iconTypes = [
+    'site_icon' => [
+      'prefix' => 'icon',
+      'extensions' => ['png', 'ico', 'jpg', 'jpeg', 'svg', 'webp'],
+    ],
+    'favicon' => [
+      'prefix' => 'favicon',
+      'extensions' => ['png', 'ico', 'svg'],
+    ],
+    'preloader' => [
+      'prefix' => 'preloader',
+      'extensions' => ['png', 'svg', 'gif'],
+    ],
+    'logo' => [
+      'prefix' => 'logo',
+      'extensions' => ['png', 'svg', 'jpg', 'jpeg'],
+    ],
+    'apple_touch' => [
+      'prefix' => 'apple-touch-icon',
+      'extensions' => ['png'],
+    ],
+    'og_image' => [
+      'prefix' => 'og-image',
+      'extensions' => ['png', 'jpg', 'jpeg'],
+    ],
+    // You can add more as needed
+  ];
 
   public function __construct()
   {
@@ -29,7 +59,7 @@ class AdminProfileController extends Controller
   }
 
   /**
-   * Show the admin profile edit form.
+   * Show the admin profile edit form with all icon types.
    */
   public function edit(): Response|JsonResponse
   {
@@ -41,6 +71,15 @@ class AdminProfileController extends Controller
 
     $primaryRole = $user->roles()->orderBy('level', 'desc')->first();
 
+    // Gather current icons for all types
+    $allIcons = [];
+    foreach (array_keys($this->iconTypes) as $type) {
+      $allIcons[$type] = [
+        'current' => $this->getCurrentIconForType($type),
+        'available' => $this->getAvailableIconsForType($type),
+      ];
+    }
+
     return Inertia::render('Backend/Profile/Admin/Edit', [
       'user' => [
         'id' => $user->id,
@@ -48,8 +87,10 @@ class AdminProfileController extends Controller
         'email' => $user->email,
         'primary_role' => $primaryRole ? $primaryRole->name : 'Admin',
       ],
-      'currentIcon' => $this->getCurrentIcon(),
-      'availableIcons' => $this->getAvailableIcons(),
+      'icons' => $allIcons, // all types with current & available
+      // Keep old keys for backward compatibility (will be deprecated)
+      'currentIcon' => $this->getCurrentIconForType('site_icon'),
+      'availableIcons' => $this->getAvailableIconsForType('site_icon'),
     ]);
   }
 
@@ -123,7 +164,7 @@ class AdminProfileController extends Controller
   }
 
   /**
-   * Update the site icon – with rate limiting.
+   * Update a specific icon type – with rate limiting.
    */
   public function updateIcon(Request $request): JsonResponse
   {
@@ -133,10 +174,19 @@ class AdminProfileController extends Controller
       return $this->jsonError('You do not have permission to update the icon.', 403);
     }
 
-    // Rate limiting: 5 uploads per minute per user
+    // Validate type
+    $type = $request->input('type', 'site_icon');
+    if (!isset($this->iconTypes[$type])) {
+      return $this->jsonError('Invalid icon type.', 422);
+    }
+    $typeConfig = $this->iconTypes[$type];
+    $prefix = $typeConfig['prefix'];
+    $allowedExtensions = $typeConfig['extensions'];
+
+    // Rate limiting: 5 uploads per minute per user (per type? we use global for simplicity)
     $throttleKey = 'icon_upload|' . $user->id;
     if (RateLimiter::tooManyAttempts($throttleKey, 5)) {
-      Log::warning('Icon upload rate limit exceeded', ['user_id' => $user->id]);
+      Log::warning('Icon upload rate limit exceeded', ['user_id' => $user->id, 'type' => $type]);
       return $this->jsonError('Too many upload attempts. Please wait a moment.', 429);
     }
 
@@ -156,23 +206,23 @@ class AdminProfileController extends Controller
 
       $extension = strtolower($file->getClientOriginalExtension());
 
-      if (!in_array($extension, $this->allowedIconExtensions)) {
+      if (!in_array($extension, $allowedExtensions)) {
         return $this->jsonError(
-          'Invalid file type. Allowed: ' . implode(', ', $this->allowedIconExtensions),
+          'Invalid file type. Allowed: ' . implode(', ', $allowedExtensions),
           422
         );
       }
 
-      // Delete old icons
-      $this->deleteOldIcons();
+      // Delete old files for this type
+      $this->deleteIconsForType($type);
 
       // Ensure directory exists
       if (!$this->disk->exists($this->iconPath)) {
         $this->disk->makeDirectory($this->iconPath);
       }
 
-      // Store the file
-      $filename = 'icon.' . $extension;
+      // Store the file with the type's prefix
+      $filename = $prefix . '.' . $extension;
       $path = $this->disk->putFileAs($this->iconPath, $file, $filename);
 
       if (!$path) {
@@ -189,6 +239,7 @@ class AdminProfileController extends Controller
         "Site icon updated by {$user->email}",
         [
           'user_id' => $user->id,
+          'type' => $type,
           'filename' => $filename,
           'extension' => $extension,
           'ip' => $request->ip(),
@@ -197,14 +248,16 @@ class AdminProfileController extends Controller
 
       return response()->json([
         'success' => true,
-        'message' => 'Icon updated successfully!',
+        'message' => ucfirst(str_replace('_', ' ', $type)) . ' icon updated successfully!',
         'data' => [
           'icon' => $this->getIconUrl($filename),
+          'type' => $type,
         ],
       ]);
     } catch (\Exception $e) {
       Log::error('Icon update failed: ' . $e->getMessage(), [
         'user_id' => $user->id,
+        'type' => $type,
         'trace' => $e->getTraceAsString(),
       ]);
       return $this->jsonError('Failed to update icon: ' . $e->getMessage(), 500);
@@ -212,7 +265,7 @@ class AdminProfileController extends Controller
   }
 
   /**
-   * Reset icon to default.
+   * Reset a specific icon type to default (delete all files for that type).
    */
   public function resetIcon(Request $request): JsonResponse
   {
@@ -222,59 +275,83 @@ class AdminProfileController extends Controller
       return $this->jsonError('You do not have permission to reset the icon.', 403);
     }
 
+    $type = $request->input('type', 'site_icon');
+    if (!isset($this->iconTypes[$type])) {
+      return $this->jsonError('Invalid icon type.', 422);
+    }
+
     try {
-      $this->deleteOldIcons();
+      $this->deleteIconsForType($type);
 
       SimpleLogger::security(
         "Site icon reset to default by {$user->email}",
         [
           'user_id' => $user->id,
+          'type' => $type,
           'ip' => $request->ip(),
         ]
       );
 
       return response()->json([
         'success' => true,
-        'message' => 'Icon reset to default successfully!',
+        'message' => ucfirst(str_replace('_', ' ', $type)) . ' icon reset to default successfully!',
       ]);
     } catch (\Exception $e) {
       Log::error('Icon reset failed: ' . $e->getMessage(), [
         'user_id' => $user->id,
+        'type' => $type,
       ]);
       return $this->jsonError('Failed to reset icon: ' . $e->getMessage(), 500);
     }
   }
 
+    // ---------- Helper Methods ----------
+
   /**
-   * Get current icon info.
+   * Get the current icon info for a given type.
    */
-  protected function getCurrentIcon(): ?array
+  protected function getCurrentIconForType(string $type): ?array
   {
+    if (!isset($this->iconTypes[$type])) {
+      return null;
+    }
+    $prefix = $this->iconTypes[$type]['prefix'];
+    $allowedExtensions = $this->iconTypes[$type]['extensions'];
+
     try {
-      foreach ($this->iconFileNames as $file) {
-        $path = $this->iconPath . '/' . $file;
+      // Try each allowed extension
+      foreach ($allowedExtensions as $ext) {
+        $filename = $prefix . '.' . $ext;
+        $path = $this->iconPath . '/' . $filename;
         if ($this->disk->exists($path)) {
           return [
-            'name' => $file,
-            'url' => $this->getIconUrl($file),
+            'name' => $filename,
+            'url' => $this->getIconUrl($filename),
             'size' => $this->formatBytes($this->disk->size($path)),
             'last_modified' => date('Y-m-d H:i:s', $this->disk->lastModified($path)),
-            'extension' => pathinfo($file, PATHINFO_EXTENSION),
+            'extension' => $ext,
+            'type' => $type,
           ];
         }
       }
     } catch (\Exception $e) {
-      Log::error('Failed to get current icon: ' . $e->getMessage());
+      Log::error("Failed to get current icon for type {$type}: " . $e->getMessage());
     }
 
     return null;
   }
 
   /**
-   * Get available icons.
+   * Get all available icon files for a given type (all extensions).
    */
-  protected function getAvailableIcons(): array
+  protected function getAvailableIconsForType(string $type): array
   {
+    if (!isset($this->iconTypes[$type])) {
+      return [];
+    }
+    $prefix = $this->iconTypes[$type]['prefix'];
+    $allowedExtensions = $this->iconTypes[$type]['extensions'];
+
     try {
       if (!$this->disk->exists($this->iconPath)) {
         return [];
@@ -285,38 +362,48 @@ class AdminProfileController extends Controller
 
       foreach ($files as $file) {
         $name = basename($file);
-        if (str_starts_with($name, 'icon.')) {
+        // Check if file starts with prefix and has allowed extension
+        $ext = pathinfo($name, PATHINFO_EXTENSION);
+        if (str_starts_with($name, $prefix . '.') && in_array($ext, $allowedExtensions)) {
           $icons[] = [
             'name' => $name,
             'url' => $this->getIconUrl($name),
             'size' => $this->formatBytes($this->disk->size($file)),
-            'extension' => pathinfo($name, PATHINFO_EXTENSION),
+            'extension' => $ext,
             'last_modified' => date('Y-m-d H:i:s', $this->disk->lastModified($file)),
+            'type' => $type,
           ];
         }
       }
 
       return $icons;
     } catch (\Exception $e) {
-      Log::error('Failed to get available icons: ' . $e->getMessage());
+      Log::error("Failed to get available icons for type {$type}: " . $e->getMessage());
       return [];
     }
   }
 
   /**
-   * Delete all old icon files.
+   * Delete all files belonging to a specific icon type.
    */
-  protected function deleteOldIcons(): void
+  protected function deleteIconsForType(string $type): void
   {
+    if (!isset($this->iconTypes[$type])) {
+      return;
+    }
+    $prefix = $this->iconTypes[$type]['prefix'];
+    $allowedExtensions = $this->iconTypes[$type]['extensions'];
+
     try {
-      foreach ($this->iconFileNames as $file) {
-        $path = $this->iconPath . '/' . $file;
+      foreach ($allowedExtensions as $ext) {
+        $filename = $prefix . '.' . $ext;
+        $path = $this->iconPath . '/' . $filename;
         if ($this->disk->exists($path)) {
           $this->disk->delete($path);
         }
       }
     } catch (\Exception $e) {
-      Log::error('Failed to delete old icons: ' . $e->getMessage());
+      Log::error("Failed to delete icons for type {$type}: " . $e->getMessage());
     }
   }
 
@@ -347,7 +434,7 @@ class AdminProfileController extends Controller
   }
 
   /**
-   * Get URL for an icon.
+   * Get URL for an icon file.
    */
   protected function getIconUrl(string $filename): string
   {
@@ -396,7 +483,7 @@ class AdminProfileController extends Controller
   }
 
   /**
-   * Return an unauthorized redirect response.
+   * Return an unauthorized JSON response.
    */
   protected function unauthorizedResponse(string $message): JsonResponse
   {
