@@ -148,6 +148,19 @@ class PagesTableSeeder extends Seeder
                 'created_at' => '2024-01-01 00:00:00',
                 'updated_at' => '2024-01-01 00:00:00',
             ],
+            // ============================================
+            // NEW: SITEMAP PAGE
+            // ============================================
+            [
+                'id' => 14,
+                'slug' => 'sitemap',
+                'name' => 'Sitemap',
+                'title' => 'Sitemap - DUS',
+                'description' => 'Website sitemap with all important pages',
+                'is_active' => 1,
+                'created_at' => '2024-01-01 00:00:00',
+                'updated_at' => '2024-01-01 00:00:00',
+            ],
         ];
 
         DB::table('pages')->insert($pages);

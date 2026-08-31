@@ -174,6 +174,8 @@ class PermissionsSeeder extends Seeder
       ['name' => 'Delete Page', 'slug' => 'pages.destroy', 'module' => 'pages', 'action' => 'destroy'],
       ['name' => 'Restore Page', 'slug' => 'pages.restore', 'module' => 'pages', 'action' => 'restore'],
       ['name' => 'Manage Pages', 'slug' => 'pages.manage', 'module' => 'pages', 'action' => 'manage'],
+      // Sitemap page permission (public access)
+      ['name' => 'View Sitemap', 'slug' => 'pages.sitemap', 'module' => 'pages', 'action' => 'sitemap'],
       // CMS Pages aliases
       ['name' => 'CMS View Pages', 'slug' => 'cms.pages.view', 'module' => 'cms', 'action' => 'pages_view'],
       ['name' => 'CMS Create Page', 'slug' => 'cms.pages.create', 'module' => 'cms', 'action' => 'pages_create'],
