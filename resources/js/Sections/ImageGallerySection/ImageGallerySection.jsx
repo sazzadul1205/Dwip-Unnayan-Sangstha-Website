@@ -1,6 +1,7 @@
 // js/Sections/ImageGallerySection/ImageGallerySection.jsx
 
 import { useCallback, useEffect, useState, useRef, useLayoutEffect } from 'react';
+import { usePage, router } from '@inertiajs/react';
 
 const getPlaceholderImage = (width = 485, height = 400, text = 'Gallery Image') => {
   return `https://via.placeholder.com/${width}x${height}/EAEAEA/999999?text=${encodeURIComponent(text)}`;
@@ -19,6 +20,10 @@ const ImageGallerySection = ({
   sectionClassName = '',
   sectionId = 'image-gallery-section',
 }) => {
+  const { url } = usePage();
+  const currentQuery = new URLSearchParams(url.split('?')[1] || '');
+  const filterTag = currentQuery.get('tag') || '';
+
   const [visibleCount, setVisibleCount] = useState(imagesPerPage);
   const [imageErrors, setImageErrors] = useState({});
   const [selectedIndex, setSelectedIndex] = useState(null);
@@ -28,7 +33,7 @@ const ImageGallerySection = ({
   const [backdropOpacity, setBackdropOpacity] = useState(0);
   const modalImageRef = useRef(null);
 
-  // Resolve data (unchanged)
+  // Resolve data
   let resolvedData = galleryData || data || {};
   if (Array.isArray(resolvedData)) {
     resolvedData = { images: resolvedData };
@@ -53,7 +58,24 @@ const ImageGallerySection = ({
     if (resolvedData.imageCountLabel) resolvedImageCountLabel = resolvedData.imageCountLabel;
   }
 
-  const hasImages = resolvedImages.length > 0;
+  // ─── FILTER IMAGES BY TAG ───────────────────────────────
+  const getImageTag = (image) => {
+    return image.tag || image.tags || '';
+  };
+
+  const filteredImages = filterTag
+    ? resolvedImages.filter(img => {
+      const tag = getImageTag(img).toLowerCase();
+      return tag.includes(filterTag.toLowerCase());
+    })
+    : resolvedImages;
+
+  const hasFilteredImages = filteredImages.length > 0;
+
+  // Reset visible count when filter changes
+  useEffect(() => {
+    setVisibleCount(imagesPerPage);
+  }, [filterTag, imagesPerPage]);
 
   // Image helpers
   const handleImageError = (imageId) => {
@@ -77,14 +99,13 @@ const ImageGallerySection = ({
     return image.alt || image.title || image.caption || `Gallery image ${index + 1}`;
   };
 
-  // ─── MODAL HANDLERS ──────────────────────────────────────
+  // ─── MODAL HANDLERS (only used when there are images) ────
+  // We'll conditionally render the modal only if there are images.
 
   const openModal = (e, index) => {
-    // Get the clicked <img> element’s bounding rect (not the parent div)
     const imgElement = e.currentTarget.querySelector('img');
     if (!imgElement) return;
     const rect = imgElement.getBoundingClientRect();
-
     setThumbnailRect(rect);
     setSelectedIndex(index);
     setModalOpen(true);
@@ -95,10 +116,10 @@ const ImageGallerySection = ({
       const { left, top, width, height } = thumbnailRect;
       setModalImageStyle({
         position: 'fixed',
-        left: `${left  }px`,
-        top: `${top  }px`,
-        width: `${width  }px`,
-        height: `${height  }px`,
+        left: `${left}px`,
+        top: `${top}px`,
+        width: `${width}px`,
+        height: `${height}px`,
         transform: 'none',
         opacity: 1,
         transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
@@ -115,13 +136,13 @@ const ImageGallerySection = ({
 
   const showPrev = useCallback((e) => {
     e.stopPropagation();
-    setSelectedIndex((prev) => (prev > 0 ? prev - 1 : resolvedImages.length - 1));
-  }, [resolvedImages.length]);
+    setSelectedIndex((prev) => (prev > 0 ? prev - 1 : filteredImages.length - 1));
+  }, [filteredImages.length]);
 
   const showNext = useCallback((e) => {
     e.stopPropagation();
-    setSelectedIndex((prev) => (prev < resolvedImages.length - 1 ? prev + 1 : 0));
-  }, [resolvedImages.length]);
+    setSelectedIndex((prev) => (prev < filteredImages.length - 1 ? prev + 1 : 0));
+  }, [filteredImages.length]);
 
   // Keyboard events
   useEffect(() => {
@@ -135,33 +156,27 @@ const ImageGallerySection = ({
     return () => window.removeEventListener('keydown', handleKey);
   }, [modalOpen, closeModal, showPrev, showNext]);
 
-  // ─── ANIMATE MODAL ENTRANCE (useLayoutEffect for reliable timing) ───
-
+  // ─── ANIMATE MODAL ENTRANCE ─────────────────────────────
   useLayoutEffect(() => {
     if (!modalOpen || !thumbnailRect) return;
 
     const { left, top, width, height } = thumbnailRect;
 
-    // 1. Start at thumbnail position (no transition)
     setModalImageStyle({
       position: 'fixed',
-      left: `${left  }px`,
-      top: `${top  }px`,
-      width: `${width  }px`,
-      height: `${height  }px`,
+      left: `${left}px`,
+      top: `${top}px`,
+      width: `${width}px`,
+      height: `${height}px`,
       transform: 'none',
       opacity: 1,
       transition: 'none',
     });
 
-    // 2. Force a synchronous reflow so the browser applies the above styles
-    //    This ensures the initial position is painted before we animate.
     if (modalImageRef.current) {
-      void modalImageRef.current.offsetHeight; // forces reflow
+      void modalImageRef.current.offsetHeight; // force reflow
     }
 
-    // 3. After reflow, animate to center (with transition)
-    //    We use requestAnimationFrame to schedule the style update after the reflow.
     requestAnimationFrame(() => {
       setModalImageStyle({
         position: 'fixed',
@@ -179,15 +194,18 @@ const ImageGallerySection = ({
     });
   }, [modalOpen, thumbnailRect]);
 
+  // If there are no images at all, return null
+  if (resolvedImages.length === 0) {
+    return null;
+  }
+
   // ─── RENDER ──────────────────────────────────────────────
 
-  if (!hasImages) return null;
-
   const handleShowMore = () => {
-    setVisibleCount(prev => Math.min(prev + imagesPerLoad, resolvedImages.length));
+    setVisibleCount(prev => Math.min(prev + imagesPerLoad, filteredImages.length));
   };
-  const isAllVisible = visibleCount >= resolvedImages.length;
-  const visibleImages = resolvedImages.slice(0, visibleCount);
+  const isAllVisible = visibleCount >= filteredImages.length;
+  const visibleImages = filteredImages.slice(0, visibleCount);
 
   return (
     <section
@@ -199,54 +217,94 @@ const ImageGallerySection = ({
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between flex-wrap gap-3 sm:gap-4">
           <h3 className="text-[#171D38] text-[24px] sm:text-[28px] md:text-[32px] lg:text-[36px] font-semibold">
             {resolvedSectionTitle}
+            {filterTag && (
+              <span className="ml-2 text-sm font-normal text-[#2781BD]">
+                (filtered: {filterTag})
+              </span>
+            )}
           </h3>
           <div className="bg-[#EAF6FF] px-3 sm:px-4 md:px-5 py-1.5 sm:py-2 md:py-2.5 rounded-lg">
             <p className="text-[12px] sm:text-[13px] md:text-[14px] lg:text-[16px] font-normal text-[#2781BD]">
-              {resolvedImageCountLabel}: {resolvedImages.length}
+              {resolvedImageCountLabel}: {filteredImages.length}
             </p>
           </div>
         </div>
 
-        {/* Image Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 md:gap-6 lg:gap-7.5">
-          {visibleImages.map((image, index) => {
-            const imageId = image.id || index;
-            const imageSrc = getImageSrc(image, index);
-            const imageAlt = getImageAlt(image, index);
-
-            return (
-              <div
-                key={imageId}
-                className="rounded-lg overflow-hidden shadow-md hover:shadow-xl transition-shadow duration-300 cursor-pointer"
-                onClick={(e) => openModal(e, index)}
-              >
-                <img
-                  src={imageSrc}
-                  alt={imageAlt}
-                  className="w-full h-48 sm:h-52 md:h-60 lg:h-80 xl:h-90 2xl:h-100 object-cover hover:scale-105 transition-transform duration-300"
-                  loading="lazy"
-                  onError={() => handleImageError(imageId)}
-                />
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Show More Button */}
-        {!isAllVisible && (
-          <div className="flex justify-center pt-2 sm:pt-3 md:pt-4">
+        {/* ─── FALLBACK: No images for this tag ────────────── */}
+        {!hasFilteredImages ? (
+          <div className="flex flex-col items-center justify-center py-12 sm:py-16 md:py-20 text-center">
+            <div className="text-5xl mb-4">🔍</div>
+            <h4 className="text-xl sm:text-2xl font-semibold text-gray-700">
+              No images found
+            </h4>
+            <p className="text-gray-500 mt-2 max-w-md">
+              We couldn't find any images related to the tag "{filterTag}". Try selecting a different tag or view all images.
+            </p>
             <button
-              onClick={handleShowMore}
-              className="px-4 sm:px-5 md:px-6 py-2.5 sm:py-3 md:py-3.5 lg:py-3.75 border border-[#2781BD] rounded-lg text-[13px] sm:text-[14px] md:text-[15px] lg:text-[16px] font-semibold text-[#2781BD] hover:bg-[#2781BD] hover:text-white transition-colors duration-200 cursor-pointer"
+              onClick={() => {
+                const params = new URLSearchParams(window.location.search);
+                params.delete('tag');
+                router.get(`${window.location.pathname  }?${  params.toString()}`, {}, {
+                  preserveState: true,
+                  preserveScroll: true,
+                  replace: true,
+                });
+              }}
+              className="mt-4 px-6 py-2 bg-[#2781BD] text-white rounded-lg hover:bg-[#1e6a9e] transition-colors"
             >
-              Show More
+              View All Images
             </button>
           </div>
+        ) : (
+          <>
+            {/* Image Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 md:gap-6 lg:gap-7.5">
+              {visibleImages.map((image, index) => {
+                const imageId = image.id || index;
+                const imageSrc = getImageSrc(image, index);
+                const imageAlt = getImageAlt(image, index);
+                const tag = getImageTag(image);
+
+                return (
+                  <div
+                    key={imageId}
+                    className="rounded-lg overflow-hidden shadow-md hover:shadow-xl transition-shadow duration-300 cursor-pointer relative group"
+                    onClick={(e) => openModal(e, index)}
+                  >
+                    <img
+                      src={imageSrc}
+                      alt={imageAlt}
+                      className="w-full h-48 sm:h-52 md:h-60 lg:h-80 xl:h-90 2xl:h-100 object-cover hover:scale-105 transition-transform duration-300"
+                      loading="lazy"
+                      onError={() => handleImageError(imageId)}
+                    />
+                    {tag && (
+                      <div className="absolute bottom-2 left-2 bg-black/70 backdrop-blur-sm text-white text-[10px] sm:text-xs px-2 py-1 rounded-full max-w-[80%] truncate">
+                        {tag}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Show More Button */}
+            {!isAllVisible && (
+              <div className="flex justify-center pt-2 sm:pt-3 md:pt-4">
+                <button
+                  onClick={handleShowMore}
+                  className="px-4 sm:px-5 md:px-6 py-2.5 sm:py-3 md:py-3.5 lg:py-3.75 border border-[#2781BD] rounded-lg text-[13px] sm:text-[14px] md:text-[15px] lg:text-[16px] font-semibold text-[#2781BD] hover:bg-[#2781BD] hover:text-white transition-colors duration-200 cursor-pointer"
+                >
+                  Show More
+                </button>
+              </div>
+            )}
+          </>
         )}
       </div>
 
       {/* ─── LIGHTBOX MODAL ─────────────────────────────────── */}
-      {modalOpen && (
+      {modalOpen && hasFilteredImages && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center"
           style={{
@@ -306,8 +364,8 @@ const ImageGallerySection = ({
           >
             {selectedIndex !== null && (
               <img
-                src={getImageSrc(resolvedImages[selectedIndex], selectedIndex)}
-                alt={getImageAlt(resolvedImages[selectedIndex], selectedIndex)}
+                src={getImageSrc(filteredImages[selectedIndex], selectedIndex)}
+                alt={getImageAlt(filteredImages[selectedIndex], selectedIndex)}
                 style={{
                   width: '100%',
                   height: '100%',
@@ -319,14 +377,19 @@ const ImageGallerySection = ({
             )}
           </div>
 
-          {/* Image counter */}
+          {/* Image counter and tag */}
           {selectedIndex !== null && (
-            <p
-              className="absolute bottom-4 sm:bottom-6 text-white/70 text-sm z-10"
+            <div
+              className="absolute bottom-4 sm:bottom-6 text-white/70 text-sm z-10 text-center"
               style={{ opacity: backdropOpacity }}
             >
-              {selectedIndex + 1} / {resolvedImages.length}
-            </p>
+              <p>{selectedIndex + 1} / {filteredImages.length}</p>
+              {getImageTag(filteredImages[selectedIndex]) && (
+                <p className="mt-1 text-xs bg-white/20 inline-block px-3 py-1 rounded-full">
+                  {getImageTag(filteredImages[selectedIndex])}
+                </p>
+              )}
+            </div>
           )}
         </div>
       )}
