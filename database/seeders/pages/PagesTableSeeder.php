@@ -163,6 +163,19 @@ class PagesTableSeeder extends Seeder
             ],
         ];
 
-        DB::table('pages')->insert($pages);
+        foreach ($pages as $page) {
+            DB::table('pages')->updateOrInsert(
+                ['slug' => $page['slug']],
+                [
+                    'name' => $page['name'],
+                    'title' => $page['title'],
+                    'description' => $page['description'],
+                    'is_active' => $page['is_active'],
+                    'created_at' => $page['created_at'],
+                    'updated_at' => $page['updated_at'],
+                    'deleted_at' => null, // restore the default page if it was soft-deleted
+                ]
+            );
+        }
     }
 }
