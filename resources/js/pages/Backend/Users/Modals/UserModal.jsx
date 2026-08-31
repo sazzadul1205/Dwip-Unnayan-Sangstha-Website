@@ -112,7 +112,6 @@ export default function UserModal({ isOpen, onClose, editingUser, roles, onSucce
       });
     } catch (err) {
       console.error(err);
-
       Swal.fire({
         icon: 'error',
         title: 'Failed to Copy',
@@ -241,42 +240,42 @@ export default function UserModal({ isOpen, onClose, editingUser, roles, onSucce
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 animate-fade-in">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 transform transition-all duration-300 animate-slide-up">
-        <div className="flex justify-between items-center p-6 border-b">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-linear-to-br from-blue-600 to-blue-700 rounded-xl flex items-center justify-center">
-              <FaUsers className="text-white" size={18} />
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 animate-fade-in p-3 sm:p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-auto transform transition-all duration-300 animate-slide-up max-h-[95vh] overflow-y-auto">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 sm:gap-0 p-4 sm:p-6 border-b sticky top-0 bg-white z-10">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-linear-to-br from-blue-600 to-blue-700 rounded-xl flex items-center justify-center shrink-0">
+              <FaUsers className="text-white" size={14} />
             </div>
             <div>
-              <h2 className="text-xl font-semibold text-gray-900">
+              <h2 className="text-base sm:text-xl font-semibold text-gray-900">
                 {editingUser ? 'Edit User' : 'Add User'}
               </h2>
-              <p className="text-xs text-gray-500 mt-0.5">
+              <p className="text-[10px] sm:text-xs text-gray-500 mt-0.5">
                 {editingUser ? 'Update user information' : 'Create a new system user'}
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors duration-200 hover:rotate-90 transform"
+            className="text-gray-400 hover:text-gray-600 transition-colors duration-200 hover:rotate-90 transform self-end sm:self-center"
           >
-            <FaTimes size={20} />
+            <FaTimes size={18} />
           </button>
         </div>
 
         <form onSubmit={handleSubmit}>
-          <div className="p-6 space-y-5">
+          <div className="p-4 sm:p-6 space-y-4 sm:space-y-5">
             {/* Name Field */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">
                 Full Name <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                className="w-full px-3 sm:px-4 py-2 sm:py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-sm sm:text-base"
                 placeholder="John Doe"
                 required
                 autoFocus
@@ -285,14 +284,14 @@ export default function UserModal({ isOpen, onClose, editingUser, roles, onSucce
 
             {/* Email Field */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">
                 Email Address <span className="text-red-500">*</span>
               </label>
               <input
                 type="email"
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                className="w-full px-3 sm:px-4 py-2 sm:py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-sm sm:text-base"
                 placeholder="john@example.com"
                 required
               />
@@ -300,9 +299,9 @@ export default function UserModal({ isOpen, onClose, editingUser, roles, onSucce
 
             {/* Password Field */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">
                 Password {!editingUser && <span className="text-red-500">*</span>}
-                {editingUser && <span className="text-gray-400 text-xs"> (Optional - leave empty to keep current)</span>}
+                {editingUser && <span className="text-gray-400 text-[10px] sm:text-xs"> (Optional - leave empty to keep current)</span>}
               </label>
               <div className="relative">
                 <input
@@ -312,45 +311,45 @@ export default function UserModal({ isOpen, onClose, editingUser, roles, onSucce
                     setFormData({ ...formData, password: e.target.value });
                     setPasswordCopied(false);
                   }}
-                  className="w-full px-4 py-2.5 pr-24 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                  className="w-full px-3 sm:px-4 py-2 sm:py-2.5 pr-20 sm:pr-24 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-sm sm:text-base"
                   placeholder={editingUser ? 'Leave empty to keep current password' : 'Enter password'}
                   minLength={8}
                 />
-                <div className="absolute right-2 top-1/2 -translate-y-1/2 flex gap-1">
+                <div className="absolute right-1.5 sm:right-2 top-1/2 -translate-y-1/2 flex gap-0.5 sm:gap-1">
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="p-1.5 text-gray-500 hover:text-gray-700 rounded-lg transition-colors"
+                    className="p-1 sm:p-1.5 text-gray-500 hover:text-gray-700 rounded-lg transition-colors"
                     title={showPassword ? "Hide password" : "Show password"}
                   >
-                    {showPassword ? <FaEyeSlash size={16} /> : <FaEye size={16} />}
+                    {showPassword ? <FaEyeSlash size={14} /> : <FaEye size={14} />}
                   </button>
                   <button
                     type="button"
                     onClick={generatePassword}
-                    className="p-1.5 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors"
+                    className="p-1 sm:p-1.5 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors"
                     title="Generate strong password"
                   >
-                    <FaSyncAlt size={14} />
+                    <FaSyncAlt size={12} />
                   </button>
                 </div>
               </div>
               {formData.password && (
-                <div className="mt-2 flex items-center justify-between bg-gray-50 p-2 rounded-lg">
-                  <div className="flex items-center gap-2">
-                    <code className="text-xs font-mono text-gray-700">{formData.password}</code>
+                <div className="mt-1.5 sm:mt-2 flex flex-col sm:flex-row items-start sm:items-center justify-between bg-gray-50 p-2 sm:p-3 rounded-lg gap-1.5 sm:gap-0">
+                  <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 w-full sm:w-auto">
+                    <code className="text-[10px] sm:text-xs font-mono text-gray-700 break-all">{formData.password}</code>
                     <button
                       type="button"
                       onClick={copyPassword}
                       className={`p-1 rounded transition-colors ${passwordCopied ? 'text-green-600' : 'text-gray-500 hover:text-gray-700'}`}
                       title="Copy password"
                     >
-                      <FaCopy size={14} />
+                      <FaCopy size={12} />
                     </button>
                   </div>
                   {passwordCopied && (
-                    <span className="text-xs text-green-600 flex items-center gap-1">
-                      <FaCheckCircle size={12} />
+                    <span className="text-[10px] sm:text-xs text-green-600 flex items-center gap-0.5 sm:gap-1">
+                      <FaCheckCircle size={10} />
                       Copied!
                     </span>
                   )}
@@ -361,7 +360,7 @@ export default function UserModal({ isOpen, onClose, editingUser, roles, onSucce
             {/* Confirm Password Field */}
             {formData.password && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">
                   Confirm Password <span className="text-red-500">*</span>
                 </label>
                 <div className="relative">
@@ -369,27 +368,27 @@ export default function UserModal({ isOpen, onClose, editingUser, roles, onSucce
                     type={showConfirmPassword ? "text" : "password"}
                     value={formData.password_confirmation}
                     onChange={(e) => setFormData({ ...formData, password_confirmation: e.target.value })}
-                    className="w-full px-4 py-2.5 pr-10 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                    className="w-full px-3 sm:px-4 py-2 sm:py-2.5 pr-10 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-sm sm:text-base"
                     placeholder="Confirm password"
                     required={!!formData.password}
                   />
                   <button
                     type="button"
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-gray-500 hover:text-gray-700 rounded-lg transition-colors"
+                    className="absolute right-2.5 sm:right-3 top-1/2 -translate-y-1/2 p-1 text-gray-500 hover:text-gray-700 rounded-lg transition-colors"
                   >
-                    {showConfirmPassword ? <FaEyeSlash size={16} /> : <FaEye size={16} />}
+                    {showConfirmPassword ? <FaEyeSlash size={14} /> : <FaEye size={14} />}
                   </button>
                 </div>
                 {formData.password && formData.password_confirmation && formData.password !== formData.password_confirmation && (
-                  <p className="text-xs text-red-500 mt-1 flex items-center gap-1">
-                    <FaExclamationTriangle size={10} />
+                  <p className="text-[10px] sm:text-xs text-red-500 mt-1 flex items-center gap-0.5 sm:gap-1">
+                    <FaExclamationTriangle size={8} />
                     Passwords do not match
                   </p>
                 )}
                 {formData.password && formData.password === formData.password_confirmation && formData.password_confirmation && (
-                  <p className="text-xs text-green-500 mt-1 flex items-center gap-1">
-                    <FaCheckCircle size={10} />
+                  <p className="text-[10px] sm:text-xs text-green-500 mt-1 flex items-center gap-0.5 sm:gap-1">
+                    <FaCheckCircle size={8} />
                     Passwords match
                   </p>
                 )}
@@ -398,15 +397,15 @@ export default function UserModal({ isOpen, onClose, editingUser, roles, onSucce
 
             {/* Password Copy Confirmation for new users */}
             {!editingUser && formData.password && !passwordCopied && (
-              <div className="flex items-center gap-3 p-3 bg-yellow-50 rounded-lg border border-yellow-200">
+              <div className="flex items-start gap-2 sm:gap-3 p-2.5 sm:p-3 bg-yellow-50 rounded-lg border border-yellow-200">
                 <input
                   type="checkbox"
                   id="passwordCopied"
                   checked={passwordCopied}
                   onChange={(e) => setPasswordCopied(e.target.checked)}
-                  className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                  className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 mt-0.5"
                 />
-                <label htmlFor="passwordCopied" className="text-sm text-gray-700 cursor-pointer">
+                <label htmlFor="passwordCopied" className="text-[10px] sm:text-sm text-gray-700 cursor-pointer">
                   I have copied the password to a secure location
                 </label>
               </div>
@@ -414,13 +413,13 @@ export default function UserModal({ isOpen, onClose, editingUser, roles, onSucce
 
             {/* Role Field */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">
                 Role <span className="text-red-500">*</span>
               </label>
               <select
                 value={formData.role_slug}
                 onChange={(e) => setFormData({ ...formData, role_slug: e.target.value })}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                className="w-full px-3 sm:px-4 py-2 sm:py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-sm sm:text-base"
                 required
               >
                 <option value="">Select a role</option>
@@ -431,10 +430,10 @@ export default function UserModal({ isOpen, onClose, editingUser, roles, onSucce
                 ))}
               </select>
               {formData.role_slug && (
-                <div className="mt-2 p-2 bg-blue-50 rounded-lg">
-                  <div className="flex items-center gap-2">
-                    <FaUserTag className="text-blue-500" size={12} />
-                    <p className="text-xs text-gray-600">
+                <div className="mt-1.5 sm:mt-2 p-2 sm:p-3 bg-blue-50 rounded-lg">
+                  <div className="flex items-center gap-1.5 sm:gap-2">
+                    <FaUserTag className="text-blue-500" size={10} />
+                    <p className="text-[10px] sm:text-xs text-gray-600">
                       {getRoleDescription(formData.role_slug)}
                     </p>
                   </div>
@@ -443,20 +442,20 @@ export default function UserModal({ isOpen, onClose, editingUser, roles, onSucce
             </div>
           </div>
 
-          <div className="flex justify-end gap-3 p-6 border-t bg-gray-50 rounded-b-2xl">
+          <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 sm:gap-3 p-4 sm:p-6 border-t bg-gray-50 rounded-b-2xl sticky bottom-0">
             <button
               type="button"
               onClick={onClose}
-              className="px-5 py-2.5 border border-gray-300 rounded-xl text-gray-700 hover:bg-gray-100 transition-all duration-200 font-medium"
+              className="w-full sm:w-auto px-4 sm:px-5 py-2 sm:py-2.5 border border-gray-300 rounded-xl text-gray-700 hover:bg-gray-100 transition-all duration-200 font-medium text-sm sm:text-base"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSubmitting || (!editingUser && !passwordCopied && !!formData.password)}
-              className="px-6 py-2.5 bg-linear-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all duration-200 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 flex items-center gap-2 font-medium shadow-md"
+              className="w-full sm:w-auto px-4 sm:px-6 py-2 sm:py-2.5 bg-linear-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all duration-200 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 flex items-center justify-center gap-2 font-medium shadow-md text-sm sm:text-base"
             >
-              {isSubmitting && <FaSpinner className="animate-spin" size={16} />}
+              {isSubmitting && <FaSpinner className="animate-spin" size={14} />}
               {editingUser ? (isSubmitting ? 'Updating...' : 'Update User') : (isSubmitting ? 'Creating...' : 'Create User')}
             </button>
           </div>

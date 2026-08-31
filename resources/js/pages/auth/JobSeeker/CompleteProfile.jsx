@@ -50,6 +50,7 @@ const CompleteProfile = ({ applicantProfile = null }) => {
     address: '',
     photo: null,
     photo_path: null,
+    photo_url: null,
 
     // Professional Info
     experience_years: '',
@@ -114,6 +115,7 @@ const CompleteProfile = ({ applicantProfile = null }) => {
         address: applicantProfile.address || '',
         photo: null,
         photo_path: applicantProfile.photo_path || null,
+        photo_url: applicantProfile.photo_url || null,
         experience_years: applicantProfile.experience_years || '',
         current_job_title: applicantProfile.current_job_title || '',
         social_links: applicantProfile.social_links || {},

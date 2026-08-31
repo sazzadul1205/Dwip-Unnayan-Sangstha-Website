@@ -21,13 +21,11 @@ import { FaListCheck } from "react-icons/fa6";
 
 export const ReviewStep = ({ formData, locations, categories, onNavigateToStep, isEdit = false, originalJob = null }) => {
 
-  // Helper to get category name
   const getCategoryName = () => {
     const category = categories?.find(c => c.id === parseInt(formData.category_id));
     return category?.name || 'Not selected';
   };
 
-  // Helper to get location names
   const getLocationNames = () => {
     if (!formData.location_ids?.length) return [];
     return locations
@@ -35,7 +33,6 @@ export const ReviewStep = ({ formData, locations, categories, onNavigateToStep, 
       .map(loc => loc.name);
   };
 
-  // Helper to format job type
   const getJobTypeLabel = (type) => {
     const types = {
       'full-time': 'Full Time',
@@ -48,7 +45,6 @@ export const ReviewStep = ({ formData, locations, categories, onNavigateToStep, 
     return types[type] || type;
   };
 
-  // Helper to format experience level
   const getExperienceLabel = (level) => {
     const levels = {
       'entry': 'Entry Level',
@@ -61,7 +57,6 @@ export const ReviewStep = ({ formData, locations, categories, onNavigateToStep, 
     return levels[level] || level;
   };
 
-  // Helper to format salary
   const getSalaryDisplay = () => {
     if (formData.as_per_companies_policy) {
       return 'As per company policy';
@@ -78,7 +73,6 @@ export const ReviewStep = ({ formData, locations, categories, onNavigateToStep, 
     return 'Not specified';
   };
 
-  // Helper to format date
   const formatDate = (date) => {
     if (!date) return 'Not set';
     return new Date(date).toLocaleDateString('en-US', {
@@ -88,7 +82,6 @@ export const ReviewStep = ({ formData, locations, categories, onNavigateToStep, 
     });
   };
 
-  // Strip HTML tags for preview (use for comparison only, not for display)
   const stripHtml = (html) => {
     if (!html) return '';
     const tmp = document.createElement('div');
@@ -96,22 +89,18 @@ export const ReviewStep = ({ formData, locations, categories, onNavigateToStep, 
     return tmp.textContent || tmp.innerText || '';
   };
 
-  // Get full HTML content for display
   const getFullHtmlContent = (html) => {
     if (!html) return 'Not provided';
     return html;
   };
 
-  // Check if a field has changed (for edit mode)
   const hasFieldChanged = (field, currentValue, originalValue) => {
     if (!isEdit || !originalJob) return false;
 
-    // Handle arrays
     if (Array.isArray(currentValue) && Array.isArray(originalValue)) {
       return JSON.stringify(currentValue) !== JSON.stringify(originalValue);
     }
 
-    // Handle HTML content (strip tags for comparison)
     if (typeof currentValue === 'string' && typeof originalValue === 'string') {
       const cleanCurrent = stripHtml(currentValue).trim();
       const cleanOriginal = stripHtml(originalValue).trim();
@@ -121,7 +110,6 @@ export const ReviewStep = ({ formData, locations, categories, onNavigateToStep, 
     return currentValue !== originalValue;
   };
 
-  // Get changed fields summary
   const getChangedFieldsSummary = () => {
     if (!isEdit || !originalJob) return [];
 
@@ -166,13 +154,13 @@ export const ReviewStep = ({ formData, locations, categories, onNavigateToStep, 
   };
 
   const InfoSection = ({ title, icon: Icon, children, step, hasChanges = false }) => (
-    <div className={`border rounded-lg overflow-hidden mb-6 transition-all duration-200 ${hasChanges ? 'border-yellow-400 shadow-md' : 'border-gray-200'}`}>
-      <div className={`flex justify-between items-center px-4 py-3 border-b ${hasChanges ? 'bg-yellow-50 border-yellow-400' : 'bg-gray-50 border-gray-200'}`}>
+    <div className={`border rounded-lg overflow-hidden mb-4 sm:mb-6 transition-all duration-200 ${hasChanges ? 'border-yellow-400 shadow-md' : 'border-gray-200'}`}>
+      <div className={`flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 px-3 sm:px-4 py-2.5 sm:py-3 border-b ${hasChanges ? 'bg-yellow-50 border-yellow-400' : 'bg-gray-50 border-gray-200'}`}>
         <div className="flex items-center gap-2">
-          <Icon className={hasChanges ? 'text-yellow-600' : 'text-blue-600'} size={18} />
-          <h3 className="font-semibold text-gray-900">{title}</h3>
+          <Icon className={hasChanges ? 'text-yellow-600' : 'text-blue-600'} size={16} />
+          <h3 className="text-xs sm:text-sm md:text-base font-semibold text-gray-900">{title}</h3>
           {hasChanges && (
-            <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-200 text-yellow-800">
+            <span className="ml-1 sm:ml-2 inline-flex items-center px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-medium bg-yellow-200 text-yellow-800">
               Changed
             </span>
           )}
@@ -180,30 +168,30 @@ export const ReviewStep = ({ formData, locations, categories, onNavigateToStep, 
         <button
           type="button"
           onClick={() => onNavigateToStep(step)}
-          className="text-blue-600 hover:text-blue-800 text-sm flex items-center gap-1 transition-colors"
+          className="text-blue-600 hover:text-blue-800 text-xs sm:text-sm flex items-center gap-1 transition-colors"
         >
-          <FaPen size={12} />
+          <FaPen size={10} />
           Edit
         </button>
       </div>
-      <div className="p-4 bg-white">
+      <div className="p-3 sm:p-4 bg-white">
         {children}
       </div>
     </div>
   );
 
   const InfoRow = ({ label, value, isHtml = false, hasChanged = false, fullHeight = false }) => (
-    <div className={`py-3 border-b border-gray-100 last:border-0 ${hasChanged ? 'bg-yellow-50 -mx-2 px-2 rounded' : ''}`}>
-      <dt className="text-sm font-medium text-gray-500 mb-2 flex items-center gap-2">
+    <div className={`py-2 sm:py-3 border-b border-gray-100 last:border-0 ${hasChanged ? 'bg-yellow-50 -mx-2 px-2 rounded' : ''}`}>
+      <dt className="text-xs sm:text-sm font-medium text-gray-500 mb-1 sm:mb-2 flex flex-wrap items-center gap-1 sm:gap-2">
         {label}
         {hasChanged && (
-          <span className="inline-flex items-center gap-1 text-xs text-yellow-700">
-            <FaArrowRight size={10} />
+          <span className="inline-flex items-center gap-1 text-[10px] sm:text-xs text-yellow-700">
+            <FaArrowRight size={8} />
             Changed
           </span>
         )}
       </dt>
-      <dd className={`text-gray-900 ${fullHeight ? '' : 'max-h-96 overflow-y-auto'}`}>
+      <dd className={`text-xs sm:text-sm md:text-base text-gray-900 ${fullHeight ? '' : 'max-h-48 sm:max-h-96 overflow-y-auto'}`}>
         {isHtml ? (
           <div
             className="prose prose-sm max-w-none"
@@ -220,21 +208,21 @@ export const ReviewStep = ({ formData, locations, categories, onNavigateToStep, 
     const hasChanges = isEdit && originalItems && JSON.stringify(items) !== JSON.stringify(originalItems);
 
     return (
-      <div className="flex flex-wrap gap-2 mt-1">
+      <div className="flex flex-wrap gap-1.5 sm:gap-2 mt-1">
         {items?.length > 0 ? (
           items.map((item, index) => (
             <span
               key={index}
-              className={`inline-flex px-2 py-1 text-xs font-medium rounded-full bg-${color}-100 text-${color}-800`}
+              className={`inline-flex px-1.5 sm:px-2 py-0.5 text-[10px] sm:text-xs font-medium rounded-full bg-${color}-100 text-${color}-800`}
             >
               {item}
             </span>
           ))
         ) : (
-          <span className="text-gray-400 text-sm">None provided</span>
+          <span className="text-gray-400 text-xs sm:text-sm">None provided</span>
         )}
         {hasChanges && (
-          <span className="text-xs text-yellow-600 ml-2">(Updated)</span>
+          <span className="text-[10px] sm:text-xs text-yellow-600 ml-1 sm:ml-2">(Updated)</span>
         )}
       </div>
     );
@@ -252,35 +240,35 @@ export const ReviewStep = ({ formData, locations, categories, onNavigateToStep, 
       isActive={true}
       stepNumber={6}
     >
-      <div className="space-y-6">
+      <div className="space-y-4 sm:space-y-6">
         {/* Warning Message */}
-        <div className="bg-yellow-50 border-l-4 border-yellow-400 rounded-lg p-4">
-          <div className="flex items-start gap-3">
-            <FaExclamationTriangle className="text-yellow-500 mt-0.5" size={18} />
+        <div className="bg-yellow-50 border-l-4 border-yellow-400 rounded-lg p-3 sm:p-4">
+          <div className="flex items-start gap-2 sm:gap-3">
+            <FaExclamationTriangle className="text-yellow-500 mt-0.5" size={16} />
             <div>
-              <p className="text-sm font-medium text-yellow-800">
+              <p className="text-xs sm:text-sm font-medium text-yellow-800">
                 {isEdit ? 'Please review your changes carefully' : 'Please review carefully'}
               </p>
-              <p className="text-xs text-yellow-700 mt-1">
+              <p className="text-[10px] sm:text-xs text-yellow-700 mt-0.5 sm:mt-1">
                 {isEdit
                   ? 'Review all changes before updating. Changes will be visible to applicants immediately.'
-                  : 'Once you post this job, it will be visible to applicants. Make sure all information is correct. You can edit the job later, but changes may affect active applications.'
+                  : 'Once you post this job, it will be visible to applicants. Make sure all information is correct.'
                 }
               </p>
             </div>
           </div>
         </div>
 
-        {/* Changes Summary for Edit Mode */}
+        {/* Changes Summary */}
         {isEdit && hasAnyChanges && (
-          <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
-            <div className="flex items-start gap-3">
-              <FaInfoCircle className="text-blue-500 mt-0.5" size={18} />
+          <div className="bg-blue-50 rounded-lg p-3 sm:p-4 border border-blue-200">
+            <div className="flex items-start gap-2 sm:gap-3">
+              <FaInfoCircle className="text-blue-500 mt-0.5" size={14} />
               <div className="flex-1">
-                <p className="text-sm font-medium text-blue-900">Summary of Changes</p>
-                <div className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-2">
+                <p className="text-xs sm:text-sm font-medium text-blue-900">Summary of Changes</p>
+                <div className="mt-1.5 sm:mt-2 grid grid-cols-1 sm:grid-cols-2 gap-1 sm:gap-2">
                   {changedFields.slice(0, 6).map((change, idx) => (
-                    <div key={idx} className="text-xs">
+                    <div key={idx} className="text-[10px] sm:text-xs">
                       <span className="font-medium text-blue-800">{change.field}:</span>
                       {change.old && change.new ? (
                         <span className="text-blue-700 ml-1">
@@ -294,7 +282,7 @@ export const ReviewStep = ({ formData, locations, categories, onNavigateToStep, 
                     </div>
                   ))}
                   {changedFields.length > 6 && (
-                    <div className="text-xs text-blue-600">
+                    <div className="text-[10px] sm:text-xs text-blue-600">
                       + {changedFields.length - 6} more change(s)
                     </div>
                   )}
@@ -304,14 +292,14 @@ export const ReviewStep = ({ formData, locations, categories, onNavigateToStep, 
           </div>
         )}
 
-        {/* No Changes Message for Edit Mode */}
+        {/* No Changes Message */}
         {isEdit && !hasAnyChanges && (
-          <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-            <div className="flex items-start gap-3">
-              <FaInfoCircle className="text-gray-500 mt-0.5" size={18} />
+          <div className="bg-gray-50 rounded-lg p-3 sm:p-4 border border-gray-200">
+            <div className="flex items-start gap-2 sm:gap-3">
+              <FaInfoCircle className="text-gray-500 mt-0.5" size={14} />
               <div>
-                <p className="text-sm font-medium text-gray-700">No Changes Detected</p>
-                <p className="text-xs text-gray-600 mt-1">
+                <p className="text-xs sm:text-sm font-medium text-gray-700">No Changes Detected</p>
+                <p className="text-[10px] sm:text-xs text-gray-600 mt-0.5 sm:mt-1">
                   You haven't made any changes to this job listing. Click "Cancel" to go back or make some changes to update.
                 </p>
               </div>
@@ -397,9 +385,9 @@ export const ReviewStep = ({ formData, locations, categories, onNavigateToStep, 
               label="Key Responsibilities"
               value={
                 formData.responsibilities?.length > 0 ? (
-                  <ul className="list-disc list-inside space-y-1">
+                  <ul className="list-disc list-inside space-y-0.5 sm:space-y-1">
                     {formData.responsibilities.map((resp, idx) => (
-                      <li key={idx} className="text-gray-900 text-sm">{resp}</li>
+                      <li key={idx} className="text-xs sm:text-sm text-gray-900">{resp}</li>
                     ))}
                   </ul>
                 ) : (
@@ -447,11 +435,11 @@ export const ReviewStep = ({ formData, locations, categories, onNavigateToStep, 
               label="Job Locations"
               value={
                 locationNames.length > 0 ? (
-                  <div className="space-y-1">
+                  <div className="space-y-0.5 sm:space-y-1">
                     {locationNames.map((loc, idx) => (
-                      <div key={idx} className="flex items-center gap-2">
-                        <FaMapMarkerAlt size={12} className="text-gray-400" />
-                        <span className="text-gray-900">{loc}</span>
+                      <div key={idx} className="flex flex-col sm:flex-row items-start sm:items-center gap-1 sm:gap-2">
+                        <FaMapMarkerAlt size={10} className="text-gray-400" />
+                        <span className="text-xs sm:text-sm text-gray-900">{loc}</span>
                       </div>
                     ))}
                   </div>
@@ -507,9 +495,9 @@ export const ReviewStep = ({ formData, locations, categories, onNavigateToStep, 
             <InfoRow
               label="Application Deadline"
               value={
-                <div className="flex items-center gap-2">
-                  <FaCalendarAlt size={14} className="text-red-500" />
-                  <span className="font-medium text-gray-900">{formatDate(formData.application_deadline)}</span>
+                <div className="flex items-center gap-1.5 sm:gap-2">
+                  <FaCalendarAlt size={12} className="text-red-500" />
+                  <span className="font-medium text-xs sm:text-sm text-gray-900">{formatDate(formData.application_deadline)}</span>
                 </div>
               }
               hasChanged={isEdit && hasFieldChanged('application_deadline', formData.application_deadline, originalJob?.application_deadline)}
@@ -518,9 +506,9 @@ export const ReviewStep = ({ formData, locations, categories, onNavigateToStep, 
               label="Publish Date"
               value={
                 formData.publish_at ? (
-                  <div className="flex items-center gap-2">
-                    <FaClock size={14} className="text-blue-500" />
-                    <span>{formatDate(formData.publish_at)}</span>
+                  <div className="flex items-center gap-1.5 sm:gap-2">
+                    <FaClock size={12} className="text-blue-500" />
+                    <span className="text-xs sm:text-sm">{formatDate(formData.publish_at)}</span>
                   </div>
                 ) : 'Immediately (upon posting)'
               }
@@ -529,7 +517,7 @@ export const ReviewStep = ({ formData, locations, categories, onNavigateToStep, 
             <InfoRow
               label="Status"
               value={
-                <span className={`inline-flex items-center gap-2 px-2 py-1 rounded-full text-xs font-medium ${formData.is_active
+                <span className={`inline-flex items-center gap-1.5 sm:gap-2 px-2 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs font-medium ${formData.is_active
                   ? 'bg-green-100 text-green-800'
                   : 'bg-yellow-100 text-yellow-800'
                   }`}>
@@ -541,7 +529,7 @@ export const ReviewStep = ({ formData, locations, categories, onNavigateToStep, 
           </dl>
         </InfoSection>
 
-        {/* Social & External Options Section */}
+        {/* Social & External Options */}
         {(hasRequiredLinks) && (
           <InfoSection title="Additional Options" icon={FaGlobe} step={5}>
             <dl className="divide-y divide-gray-100">
@@ -549,9 +537,9 @@ export const ReviewStep = ({ formData, locations, categories, onNavigateToStep, 
                 <InfoRow
                   label="Social Requirements"
                   value={
-                    <div className="flex items-center gap-3">
-                      <FaLinkedin className="text-blue-700" size={16} />
-                      <span className="text-sm">Require LinkedIn profile</span>
+                    <div className="flex items-center gap-2 sm:gap-3">
+                      <FaLinkedin className="text-blue-700" size={14} />
+                      <span className="text-xs sm:text-sm">Require LinkedIn profile</span>
                     </div>
                   }
                 />
@@ -560,9 +548,9 @@ export const ReviewStep = ({ formData, locations, categories, onNavigateToStep, 
                 <InfoRow
                   label=""
                   value={
-                    <div className="flex items-center gap-3">
-                      <FaFacebook className="text-blue-600" size={16} />
-                      <span className="text-sm">Require Facebook profile</span>
+                    <div className="flex items-center gap-2 sm:gap-3">
+                      <FaFacebook className="text-blue-600" size={14} />
+                      <span className="text-xs sm:text-sm">Require Facebook profile</span>
                     </div>
                   }
                 />
@@ -572,19 +560,19 @@ export const ReviewStep = ({ formData, locations, categories, onNavigateToStep, 
         )}
 
         {/* Completion Status */}
-        <div className={`rounded-lg p-4 border ${isEdit && !hasAnyChanges
+        <div className={`rounded-lg p-3 sm:p-4 border ${isEdit && !hasAnyChanges
           ? 'bg-gray-50 border-gray-200'
           : 'bg-green-50 border-green-200'
           }`}>
-          <div className="flex items-start gap-3">
-            <FaCheckCircle className={`mt-0.5 ${isEdit && !hasAnyChanges ? 'text-gray-400' : 'text-green-600'}`} size={20} />
+          <div className="flex items-start gap-2 sm:gap-3">
+            <FaCheckCircle className={`mt-0.5 ${isEdit && !hasAnyChanges ? 'text-gray-400' : 'text-green-600'}`} size={16} />
             <div>
-              <p className={`text-sm font-medium ${isEdit && !hasAnyChanges ? 'text-gray-700' : 'text-green-900'}`}>
+              <p className={`text-xs sm:text-sm font-medium ${isEdit && !hasAnyChanges ? 'text-gray-700' : 'text-green-900'}`}>
                 {isEdit
                   ? (hasAnyChanges ? 'Ready to Update' : 'No Changes to Apply')
                   : 'Ready to Post'}
               </p>
-              <p className={`text-xs ${isEdit && !hasAnyChanges ? 'text-gray-600' : 'text-green-700'} mt-1`}>
+              <p className={`text-[10px] sm:text-xs ${isEdit && !hasAnyChanges ? 'text-gray-600' : 'text-green-700'} mt-0.5`}>
                 {isEdit
                   ? (hasAnyChanges
                     ? 'Review all changes above and click "Update Job" to apply them.'
@@ -596,7 +584,7 @@ export const ReviewStep = ({ formData, locations, categories, onNavigateToStep, 
         </div>
 
         {/* Quick Navigation Help */}
-        <div className="text-center text-xs text-gray-500 pt-4">
+        <div className="text-center text-[10px] sm:text-xs text-gray-500 pt-2 sm:pt-4">
           <p>Need to change something? Click the <FaPen className="inline mx-1" size={10} /> Edit button next to any section to jump directly to that step.</p>
         </div>
       </div>

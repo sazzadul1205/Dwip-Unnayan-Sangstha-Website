@@ -48,7 +48,7 @@ const PublicationBannerSection = ({ bannerData, publicationData, notFound }) => 
     },
     overlay: {
       darkOverlay: 'bg-black/60',
-      gradient: 'bg-gradient-to-r from-black/85 via-black/10 to-transparent'
+      gradient: 'bg-linear-to-r from-black/85 via-black/10 to-transparent'
     }
   };
 

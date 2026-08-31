@@ -21,9 +21,6 @@ use Inertia\Response;
 
 class SharedDataController extends Controller
 {
-  /**
-   * Max image size in bytes (5MB).
-   */
   protected int $maxImageSize = 5 * 1024 * 1024;
 
   /**
@@ -133,13 +130,10 @@ class SharedDataController extends Controller
     }
   }
 
-    // ==========================================
-    // PRIVATE HELPER METHODS
-    // ==========================================
+  // ==========================================
+  // PRIVATE HELPER METHODS
+  // ==========================================
 
-  /**
-   * Get the authenticated user.
-   */
   private function getAuthUser(): User
   {
     $user = Auth::user();
@@ -149,9 +143,6 @@ class SharedDataController extends Controller
     return $user;
   }
 
-  /**
-   * Check rate limit for admin actions.
-   */
   private function checkRateLimit(string $action, int $userId, int $maxAttempts = 10, int $decaySeconds = 3600): void
   {
     $key = $this->getThrottleKey($action, $userId);
@@ -164,29 +155,19 @@ class SharedDataController extends Controller
     RateLimiter::hit($key, $decaySeconds);
   }
 
-  /**
-   * Get throttle key.
-   */
   private function getThrottleKey(string $action, int $userId): string
   {
     return "shared_{$action}|{$userId}";
   }
 
-  /**
-   * Clear cache for a specific type and the main list.
-   */
   private function clearCache(string $type): void
   {
     Cache::forget('shared.' . $type);
     Cache::forget('shared_data_' . $type);
     Cache::forget('shared_data_list');
-    // Clear frontend content service cache
     app(\App\Services\ContentService::class)->clearCache();
   }
 
-  /**
-   * Decode shared data from stored format.
-   */
   private function decodeData(mixed $data): array
   {
     if (is_string($data)) {
@@ -196,19 +177,16 @@ class SharedDataController extends Controller
     return is_array($data) ? $data : [];
   }
 
-  /**
-   * Process data – main entry point.
-   */
   private function processData(array $newData, array $oldData, string $type): array
   {
     $processed = match ($type) {
       'navbar' => $this->processNavbarData($newData, $oldData),
       'footer' => $this->processFooterData($newData, $oldData),
       'upcoming-events' => $this->processUpcomingEventsData($newData, $oldData),
+      'topbar' => $this->processTopbarData($newData, $oldData),
       default => $this->processArrayRecursive($newData, $oldData),
     };
 
-    // Specifically handle link icons for footer type
     if ($type === 'footer') {
       $processed = $this->processLinkIcons($newData, $oldData, $processed);
     }
@@ -217,11 +195,43 @@ class SharedDataController extends Controller
   }
 
   /**
-   * Process navbar data with special logo handling.
+   * Process topbar data – no image uploads needed since flags removed
    */
+  private function processTopbarData(array $newData, array $oldData): array
+  {
+    // Process contactInfo (text only)
+    if (isset($newData['contactInfo']) && is_array($newData['contactInfo'])) {
+      $oldContact = $oldData['contactInfo'] ?? [];
+      $newData['contactInfo'] = $this->processArrayRecursive($newData['contactInfo'], $oldContact);
+    }
+
+    // Process languages (text only - no flags)
+    if (isset($newData['languages']) && is_array($newData['languages'])) {
+      $oldLanguages = $oldData['languages'] ?? [];
+      foreach ($newData['languages'] as $index => $lang) {
+        if (is_array($lang)) {
+          $oldLang = $oldLanguages[$index] ?? [];
+          $newData['languages'][$index] = $this->processArrayRecursive($lang, $oldLang);
+        }
+      }
+    }
+
+    // Process socialLinks (text only)
+    if (isset($newData['socialLinks']) && is_array($newData['socialLinks'])) {
+      $oldLinks = $oldData['socialLinks'] ?? [];
+      foreach ($newData['socialLinks'] as $index => $link) {
+        if (is_array($link)) {
+          $oldLink = $oldLinks[$index] ?? [];
+          $newData['socialLinks'][$index] = $this->processArrayRecursive($link, $oldLink);
+        }
+      }
+    }
+
+    return $newData;
+  }
+
   private function processNavbarData(array $newData, array $oldData): array
   {
-    // Handle logo image
     if (isset($newData['logo']['src']) && $this->isBase64Image($newData['logo']['src'])) {
       if (!empty($oldData['logo']['src'] ?? '')) {
         $this->deleteImage($oldData['logo']['src']);
@@ -233,7 +243,6 @@ class SharedDataController extends Controller
       }
     }
 
-    // Process other nested arrays
     foreach ($newData as $key => $value) {
       if (is_array($value) && $key !== 'logo') {
         $oldValue = $oldData[$key] ?? [];
@@ -244,12 +253,8 @@ class SharedDataController extends Controller
     return $newData;
   }
 
-  /**
-   * Process footer data with special logo handling.
-   */
   private function processFooterData(array $newData, array $oldData): array
   {
-    // Handle logo image
     if (isset($newData['logo']['src']) && $this->isBase64Image($newData['logo']['src'])) {
       if (!empty($oldData['logo']['src'] ?? '')) {
         $this->deleteImage($oldData['logo']['src']);
@@ -261,7 +266,6 @@ class SharedDataController extends Controller
       }
     }
 
-    // Process other nested arrays
     foreach ($newData as $key => $value) {
       if (is_array($value) && $key !== 'logo') {
         $oldValue = $oldData[$key] ?? [];
@@ -272,9 +276,6 @@ class SharedDataController extends Controller
     return $newData;
   }
 
-  /**
-   * Process link icons for footer.
-   */
   private function processLinkIcons(array $newData, array $oldData, array $processed): array
   {
     $iconFields = [
@@ -301,18 +302,13 @@ class SharedDataController extends Controller
     return $processed;
   }
 
-  /**
-   * Process upcoming events data.
-   */
   private function processUpcomingEventsData(array $newData, array $oldData): array
   {
-    // Process section data
     if (isset($newData['section']) && is_array($newData['section'])) {
       $oldSection = $oldData['section'] ?? [];
       $newData['section'] = $this->processArrayRecursive($newData['section'], $oldSection);
     }
 
-    // Process main image
     if (isset($newData['image']) && is_array($newData['image'])) {
       if (isset($newData['image']['src']) && $this->isBase64Image($newData['image']['src'])) {
         if (!empty($oldData['image']['src'] ?? '')) {
@@ -322,7 +318,6 @@ class SharedDataController extends Controller
       }
     }
 
-    // Process events array
     if (isset($newData['events']) && is_array($newData['events'])) {
       $oldEvents = $oldData['events'] ?? [];
 
@@ -351,9 +346,6 @@ class SharedDataController extends Controller
     return $newData;
   }
 
-  /**
-   * Upload logo image.
-   */
   private function uploadLogo(string $base64String, string $type): string
   {
     try {
@@ -371,9 +363,6 @@ class SharedDataController extends Controller
     }
   }
 
-  /**
-   * Upload event image.
-   */
   private function uploadEventImage(string $base64String, string $prefix = 'event'): string
   {
     try {
@@ -391,9 +380,6 @@ class SharedDataController extends Controller
     }
   }
 
-  /**
-   * Upload link icon.
-   */
   private function uploadLinkIcon(string $base64String): string
   {
     try {
@@ -411,9 +397,6 @@ class SharedDataController extends Controller
     }
   }
 
-  /**
-   * Upload generic image.
-   */
   private function uploadGenericImage(string $base64String): string
   {
     try {
@@ -431,9 +414,6 @@ class SharedDataController extends Controller
     }
   }
 
-  /**
-   * Process array recursively for image uploads.
-   */
   private function processArrayRecursive(array $data, array $oldData): array
   {
     foreach ($data as $key => $value) {
@@ -451,9 +431,6 @@ class SharedDataController extends Controller
     return $data;
   }
 
-  /**
-   * Decode base64 image and return raw data.
-   */
   private function decodeBase64Image(string $base64String): string
   {
     $imageData = explode(',', $base64String);
@@ -471,9 +448,6 @@ class SharedDataController extends Controller
     return $decoded;
   }
 
-  /**
-   * Delete image from storage.
-   */
   private function deleteImage(string $imagePath): bool
   {
     if (empty($imagePath)) {
@@ -502,17 +476,11 @@ class SharedDataController extends Controller
     return false;
   }
 
-  /**
-   * Check if string is a base64 image.
-   */
   private function isBase64Image(string $string): bool
   {
     return str_starts_with($string, 'data:image/');
   }
 
-  /**
-   * Get image extension from base64 string.
-   */
   private function getImageExtension(string $base64String): ?string
   {
     $mimeMap = [

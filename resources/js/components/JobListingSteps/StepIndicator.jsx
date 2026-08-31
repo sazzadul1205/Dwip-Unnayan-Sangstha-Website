@@ -1,13 +1,9 @@
 // resources/js/components/JobListingSteps/StepIndicator.jsx
 
-// React
 import React from 'react';
-
-// Icons
 import {
   FaCheck,
   FaBriefcase,
-  FaInfoCircle,
   FaMapMarkerAlt,
   FaClipboardList,
   FaMoneyBillWave,
@@ -17,25 +13,23 @@ import {
 
 export const StepIndicator = ({ currentStep, steps }) => {
   const getStepIcon = (stepId, isActive, isCompleted) => {
-    // Return check icon for completed steps
     if (isCompleted) {
-      return <FaCheck size={16} />;
+      return <FaCheck size={14} />;
     }
 
-    // Return appropriate icon based on step ID
     const icons = {
-      1: <FaBriefcase size={16} />,
-      2: <FaClipboardList size={16} />,
-      3: <FaMapMarkerAlt size={16} />,
-      4: <FaMoneyBillWave size={16} />,
-      5: <FaCalendarAlt size={16} />,
-      6: <FaEye size={16} />,
+      1: <FaBriefcase size={14} />,
+      2: <FaClipboardList size={14} />,
+      3: <FaMapMarkerAlt size={14} />,
+      4: <FaMoneyBillWave size={14} />,
+      5: <FaCalendarAlt size={14} />,
+      6: <FaEye size={14} />,
     };
-    return icons[stepId] || <FaBriefcase size={16} />;
+    return icons[stepId] || <FaBriefcase size={14} />;
   };
 
   return (
-    <div className="py-4">
+    <div className="py-3 sm:py-4">
       {/* Desktop View */}
       <div className="hidden md:block">
         <div className="relative">
@@ -53,15 +47,13 @@ export const StepIndicator = ({ currentStep, steps }) => {
               const stepNumber = index + 1;
               const isCompleted = currentStep > stepNumber;
               const isActive = currentStep === stepNumber;
-              const isPast = currentStep > stepNumber;
-              const isFuture = currentStep < stepNumber;
 
               return (
                 <div key={step.id} className="flex flex-col items-center">
                   {/* Step Circle */}
                   <div
                     className={`
-                      relative z-10 w-12 h-12 rounded-full flex items-center justify-center transition-all duration-300
+                      relative z-10 w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center transition-all duration-300
                       ${isCompleted
                         ? 'bg-linear-to-r from-green-500 to-green-600 text-white shadow-lg'
                         : isActive
@@ -79,15 +71,15 @@ export const StepIndicator = ({ currentStep, steps }) => {
                   </div>
 
                   {/* Step Label */}
-                  <div className="mt-3 text-center">
+                  <div className="mt-2 sm:mt-3 text-center">
                     <div className={`
-                      text-xs font-medium mb-1
+                      text-[10px] sm:text-xs font-medium mb-0.5 sm:mb-1
                       ${isActive ? 'text-blue-600' : isCompleted ? 'text-green-600' : 'text-gray-400'}
                     `}>
                       Step {stepNumber}
                     </div>
                     <div className={`
-                      text-sm font-semibold whitespace-nowrap
+                      text-xs sm:text-sm font-semibold whitespace-nowrap
                       ${isActive ? 'text-gray-900' : isCompleted ? 'text-gray-700' : 'text-gray-500'}
                     `}>
                       {step.title}
@@ -102,7 +94,7 @@ export const StepIndicator = ({ currentStep, steps }) => {
 
       {/* Mobile View - Horizontal Scroll */}
       <div className="md:hidden">
-        <div className="flex overflow-x-auto pb-4 space-x-4 scrollbar-thin scrollbar-thumb-gray-300">
+        <div className="flex overflow-x-auto pb-3 sm:pb-4 space-x-3 sm:space-x-4 scrollbar-thin scrollbar-thumb-gray-300">
           {steps.map((step, index) => {
             const stepNumber = index + 1;
             const isCompleted = currentStep > stepNumber;
@@ -110,11 +102,11 @@ export const StepIndicator = ({ currentStep, steps }) => {
 
             return (
               <div key={step.id} className="shrink-0">
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 sm:gap-3">
                   {/* Step Circle */}
                   <div
                     className={`
-                      w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300
+                      w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-all duration-300
                       ${isCompleted
                         ? 'bg-linear-to-r from-green-500 to-green-600 text-white'
                         : isActive
@@ -127,15 +119,15 @@ export const StepIndicator = ({ currentStep, steps }) => {
                   </div>
 
                   {/* Step Label */}
-                  <div className="min-w-20">
+                  <div className="min-w-16 sm:min-w-20">
                     <div className={`
-                      text-xs font-medium
+                      text-[10px] sm:text-xs font-medium
                       ${isActive ? 'text-blue-600' : isCompleted ? 'text-green-600' : 'text-gray-400'}
                     `}>
                       Step {stepNumber}
                     </div>
                     <div className={`
-                      text-sm font-semibold
+                      text-xs sm:text-sm font-semibold
                       ${isActive ? 'text-gray-900' : isCompleted ? 'text-gray-700' : 'text-gray-500'}
                     `}>
                       {step.title}
@@ -144,8 +136,8 @@ export const StepIndicator = ({ currentStep, steps }) => {
 
                   {/* Connector for mobile */}
                   {index < steps.length - 1 && (
-                    <div className="w-6">
-                      <div className={`h-0.5 w-6 rounded-full ${currentStep > stepNumber ? 'bg-green-500' : 'bg-gray-300'}`} />
+                    <div className="w-4 sm:w-6">
+                      <div className={`h-0.5 w-4 sm:w-6 rounded-full ${currentStep > stepNumber ? 'bg-green-500' : 'bg-gray-300'}`} />
                     </div>
                   )}
                 </div>
@@ -155,14 +147,14 @@ export const StepIndicator = ({ currentStep, steps }) => {
         </div>
 
         {/* Mobile Progress Indicator */}
-        <div className="mt-4">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs text-gray-500">Progress</span>
-            <span className="text-xs font-medium text-blue-600">
+        <div className="mt-3 sm:mt-4">
+          <div className="flex items-center justify-between mb-1.5 sm:mb-2">
+            <span className="text-[10px] sm:text-xs text-gray-500">Progress</span>
+            <span className="text-[10px] sm:text-xs font-medium text-blue-600">
               {Math.round((currentStep / steps.length) * 100)}%
             </span>
           </div>
-          <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+          <div className="h-1.5 sm:h-2 bg-gray-200 rounded-full overflow-hidden">
             <div
               className="h-full rounded-full transition-all duration-500 bg-linear-to-r from-blue-500 to-green-500"
               style={{ width: `${((currentStep - 1) / (steps.length - 1)) * 100}%` }}
@@ -172,8 +164,8 @@ export const StepIndicator = ({ currentStep, steps }) => {
       </div>
 
       {/* Current Step Info - Compact */}
-      <div className="mt-4 pt-3 border-t border-gray-100 md:hidden">
-        <div className="flex items-center justify-between text-sm">
+      <div className="mt-3 sm:mt-4 pt-2 sm:pt-3 border-t border-gray-100 md:hidden">
+        <div className="flex items-center justify-between text-xs sm:text-sm">
           <span className="text-gray-500">Current:</span>
           <span className="font-semibold text-blue-600">
             Step {currentStep}: {steps[currentStep - 1]?.title}

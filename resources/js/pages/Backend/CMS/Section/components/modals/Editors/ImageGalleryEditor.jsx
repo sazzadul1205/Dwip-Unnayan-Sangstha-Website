@@ -1,42 +1,100 @@
 // resources/js/pages/Backend/CMS/Section/components/modals/Editors/ImageGalleryEditor.jsx
 
-// React
 import React, { useState, useEffect } from 'react';
-
-// Icons
 import { FaTrash, FaPlus, FaTimes, FaImage } from 'react-icons/fa';
-
-// Sweetalert
 import Swal from 'sweetalert2';
-
-// Shared Components
 import { TextField } from './shared/Fields';
 
+// ─── ADVANCED TAG INPUT COMPONENT ──────────────────────
+const TagInput = ({ value, onChange, placeholder = 'Add tag...' }) => {
+  const [inputValue, setInputValue] = useState('');
+  const [tags, setTags] = useState(() => {
+    if (!value) return [];
+    return value.split(',').map(t => t.trim()).filter(t => t.length > 0);
+  });
+
+  // Update parent when tags change
+  useEffect(() => {
+    onChange(tags.join(', '));
+  }, [tags, onChange]);
+
+  const addTag = (newTag) => {
+    const trimmed = newTag.trim();
+    if (!trimmed) return;
+    if (tags.includes(trimmed)) return; // prevent duplicates
+    setTags(prev => [...prev, trimmed]);
+    setInputValue('');
+  };
+
+  const removeTag = (index) => {
+    setTags(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' || e.key === ',') {
+      e.preventDefault();
+      addTag(inputValue);
+    }
+  };
+
+  const handleBlur = () => {
+    if (inputValue.trim()) {
+      addTag(inputValue);
+    }
+  };
+
+  return (
+    <div className="w-full">
+      <div className="flex flex-wrap gap-1.5 p-1.5 border border-gray-300 rounded-lg focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent transition bg-white">
+        {tags.map((tag, idx) => (
+          <span
+            key={idx}
+            className="inline-flex items-center gap-1 bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded-full"
+          >
+            {tag}
+            <button
+              type="button"
+              onClick={() => removeTag(idx)}
+              className="text-blue-600 hover:text-blue-800 focus:outline-none"
+            >
+              <FaTimes size={10} />
+            </button>
+          </span>
+        ))}
+        <input
+          type="text"
+          value={inputValue}
+          onChange={(e) => setInputValue(e.target.value)}
+          onKeyDown={handleKeyDown}
+          onBlur={handleBlur}
+          placeholder={tags.length === 0 ? placeholder : ''}
+          className="flex-1 min-w-15 border-0 outline-none p-0 text-sm bg-transparent"
+        />
+      </div>
+      <p className="text-[10px] text-gray-400 mt-1">Press Enter or comma to add a tag</p>
+    </div>
+  );
+};
+
+// ─── MAIN EDITOR ──────────────────────────────────────────
+
 const ImageGalleryEditor = ({ section, hasData, onDataChange }) => {
-  // ===== STATE MANAGEMENT =====
   const initialData = section?.data?.data || section?.data || {};
   const [formData, setFormData] = useState(initialData);
-
-  // Track image changes for deletion tracking
   const [imageChanges, setImageChanges] = useState({});
   const [oldImagePaths, setOldImagePaths] = useState({});
   const [uploadingImage, setUploadingImage] = useState({});
 
-  // Notify parent when form data changes
   useEffect(() => {
     if (onDataChange) {
       onDataChange(formData);
     }
   }, [formData, onDataChange]);
 
-  // ===== HELPER FUNCTIONS =====
-
-  // Update top-level fields
   const updateField = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  // Update a field in an array item
   const updateArrayItem = (index, field, value) => {
     const newData = { ...formData };
     if (!newData.images) newData.images = [];
@@ -45,9 +103,6 @@ const ImageGalleryEditor = ({ section, hasData, onDataChange }) => {
     setFormData(newData);
   };
 
-  // ===== IMAGE MANAGEMENT FUNCTIONS =====
-
-  // Add a new image with default values
   const addImage = () => {
     const newData = { ...formData };
     if (!newData.images) newData.images = [];
@@ -56,19 +111,16 @@ const ImageGalleryEditor = ({ section, hasData, onDataChange }) => {
       id: newId,
       src: '',
       alt: '',
-      title: ''
+      title: '',
+      tag: '',
     });
     setFormData(newData);
   };
 
-  // Remove an image and track it for deletion
   const removeImage = (index) => {
     const items = formData.images || [];
     if (items[index]?.src) {
-      setOldImagePaths(prev => ({
-        ...prev,
-        [index]: items[index].src
-      }));
+      setOldImagePaths(prev => ({ ...prev, [index]: items[index].src }));
       setImageChanges(prev => ({ ...prev, [index]: true }));
     }
     const newData = { ...formData };
@@ -76,19 +128,15 @@ const ImageGalleryEditor = ({ section, hasData, onDataChange }) => {
     setFormData(newData);
   };
 
-  // Handle image drop from drag & drop
   const handleImageDrop = (e, index) => {
     e.preventDefault();
     e.stopPropagation();
-
     const files = e.dataTransfer.files;
     if (files && files[0]) {
-      const file = files[0];
-      processImageFile(file, index);
+      processImageFile(files[0], index);
     }
   };
 
-  // Handle image selection via file input
   const handleImageSelect = (e, index) => {
     const file = e.target.files[0];
     if (file) {
@@ -97,9 +145,7 @@ const ImageGalleryEditor = ({ section, hasData, onDataChange }) => {
     e.target.value = '';
   };
 
-  // Process and upload the image file
   const processImageFile = (file, index) => {
-    // Validate file type
     if (!file.type.startsWith('image/')) {
       Swal.fire({
         icon: 'error',
@@ -109,8 +155,6 @@ const ImageGalleryEditor = ({ section, hasData, onDataChange }) => {
       });
       return;
     }
-
-    // Validate file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
       Swal.fire({
         icon: 'error',
@@ -121,21 +165,15 @@ const ImageGalleryEditor = ({ section, hasData, onDataChange }) => {
       return;
     }
 
-    // Store old image path if it exists
     const items = formData.images || [];
     if (items[index]?.src && !imageChanges[index]) {
-      setOldImagePaths(prev => ({
-        ...prev,
-        [index]: items[index].src
-      }));
+      setOldImagePaths(prev => ({ ...prev, [index]: items[index].src }));
     }
 
-    // Read and convert image to base64
     setUploadingImage(prev => ({ ...prev, [index]: true }));
     const reader = new FileReader();
     reader.onload = (event) => {
-      const imageUrl = event.target.result;
-      updateArrayItem(index, 'src', imageUrl);
+      updateArrayItem(index, 'src', event.target.result);
       setImageChanges(prev => ({ ...prev, [index]: true }));
       setUploadingImage(prev => ({ ...prev, [index]: false }));
     };
@@ -151,20 +189,15 @@ const ImageGalleryEditor = ({ section, hasData, onDataChange }) => {
     reader.readAsDataURL(file);
   };
 
-  // Remove image from a specific slot
   const removeImageSrc = (index) => {
     const items = formData.images || [];
     if (items[index]?.src) {
-      setOldImagePaths(prev => ({
-        ...prev,
-        [index]: items[index].src
-      }));
+      setOldImagePaths(prev => ({ ...prev, [index]: items[index].src }));
     }
     updateArrayItem(index, 'src', '');
     setImageChanges(prev => ({ ...prev, [index]: true }));
   };
 
-  // Display path for image
   const getDisplayPath = (src) => {
     if (!src) return '';
     if (src.startsWith('data:image')) {
@@ -173,7 +206,6 @@ const ImageGalleryEditor = ({ section, hasData, onDataChange }) => {
     return src;
   };
 
-  // ===== EMPTY STATE =====
   if (!hasData || !formData || Object.keys(formData).length === 0) {
     return (
       <div className="bg-white rounded-lg border border-gray-200 p-4">
@@ -198,12 +230,10 @@ const ImageGalleryEditor = ({ section, hasData, onDataChange }) => {
 
   const images = formData.images || [];
 
-  // ===== MAIN RENDER =====
   return (
     <div className="bg-white rounded-lg border border-gray-200 p-4">
       <h3 className="text-sm font-semibold text-gray-700 mb-3">Edit Image Gallery Data</h3>
 
-      {/* Section Title */}
       <div className="mb-4">
         <h4 className="text-sm font-medium text-gray-600 mb-2">Section Settings</h4>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -222,7 +252,6 @@ const ImageGalleryEditor = ({ section, hasData, onDataChange }) => {
         </div>
       </div>
 
-      {/* Images List */}
       <div>
         <div className="flex items-center justify-between mb-2">
           <h4 className="text-sm font-medium text-gray-600">Images ({images.length})</h4>
@@ -238,7 +267,6 @@ const ImageGalleryEditor = ({ section, hasData, onDataChange }) => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {images.map((image, index) => (
             <div key={image.id || index} className="p-4 bg-gray-50 rounded-lg border border-gray-200">
-              {/* Header */}
               <div className="flex items-center justify-between mb-3">
                 <span className="text-xs font-medium text-gray-500">Image #{index + 1}</span>
                 <button
@@ -302,7 +330,7 @@ const ImageGalleryEditor = ({ section, hasData, onDataChange }) => {
                 )}
               </div>
 
-              {/* Image Details */}
+              {/* Image Details – with advanced TagInput */}
               <div className="mt-2 space-y-2">
                 <TextField
                   label="Title"
@@ -316,6 +344,14 @@ const ImageGalleryEditor = ({ section, hasData, onDataChange }) => {
                   onChange={(e) => updateArrayItem(index, 'alt', e.target.value)}
                   placeholder="Gallery image description"
                 />
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Tags</label>
+                  <TagInput
+                    value={image.tag || ''}
+                    onChange={(newValue) => updateArrayItem(index, 'tag', newValue)}
+                    placeholder="Add tags..."
+                  />
+                </div>
               </div>
             </div>
           ))}
@@ -328,7 +364,6 @@ const ImageGalleryEditor = ({ section, hasData, onDataChange }) => {
         )}
       </div>
 
-      {/* Data Information */}
       <div className="mt-4 bg-gray-50 rounded-lg p-4 border border-gray-200">
         <div className="grid grid-cols-2 gap-3 text-sm">
           <div>

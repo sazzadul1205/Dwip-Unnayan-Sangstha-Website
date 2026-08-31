@@ -62,7 +62,6 @@ export default function Index({
   filters: initialFilters = {},
   statusCounts,
   totalApplications,
-  filterOptions = {}
 }) {
   const { flash } = usePage().props;
 
@@ -143,20 +142,20 @@ export default function Index({
   const canDeleteApplications = hasAnyPermission(['applications.destroy', 'applications.manage']);
   const canRestoreApplications = hasAnyPermission(['applications.restore', 'applications.manage']);
   const canDownloadResumes = hasAnyPermission(['applications.download_resume', 'applications.manage']);
-  const canUpdateApplications = hasAnyPermission(['applications..status.update', 'applications.manage']);
+  const canUpdateApplications = hasAnyPermission(['applications.status.update', 'applications.manage']);
 
   // If user doesn't have permission to view applications, show access denied
   if (!canViewApplications) {
     return (
       <AuthenticatedLayout>
         <Head title="Access Denied" />
-        <div className="min-h-screen flex items-center justify-center">
-          <div className="text-center">
+        <div className="min-h-screen flex items-center justify-center px-4">
+          <div className="text-center max-w-md">
             <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <FaShieldAlt className="w-10 h-10 text-red-500" />
             </div>
             <h2 className="text-xl font-semibold text-gray-900">Access Denied</h2>
-            <p className="text-gray-500 mt-2">You don't have permission to view applications.</p>
+            <p className="text-gray-500 mt-2 text-sm sm:text-base">You don't have permission to view applications.</p>
           </div>
         </div>
       </AuthenticatedLayout>
@@ -236,7 +235,6 @@ export default function Index({
       ...additionalParams
     };
 
-    // Add all filters that have values
     Object.keys(filters).forEach(key => {
       if (filters[key] !== '' && filters[key] !== null && filters[key] !== undefined) {
         params[key] = filters[key];
@@ -800,12 +798,12 @@ export default function Index({
   // Get status icon
   const getStatusIcon = (status) => {
     const icons = {
-      pending: <FaHourglassHalf className="text-yellow-500" size={14} />,
-      shortlisted: <FaUserCheck className="text-blue-500" size={14} />,
-      rejected: <FaUserSlash className="text-red-500" size={14} />,
-      hired: <FaCheckCircle className="text-green-500" size={14} />
+      pending: <FaHourglassHalf className="text-yellow-500" size={12} />,
+      shortlisted: <FaUserCheck className="text-blue-500" size={12} />,
+      rejected: <FaUserSlash className="text-red-500" size={12} />,
+      hired: <FaCheckCircle className="text-green-500" size={12} />
     };
-    return icons[status] || <FaBriefcase className="text-gray-500" size={14} />;
+    return icons[status] || <FaBriefcase className="text-gray-500" size={12} />;
   };
 
   // Get status text
@@ -867,10 +865,10 @@ export default function Index({
 
   // Get sort icon
   const getSortIcon = (field) => {
-    if (sortField !== field) return <FaSort className="text-gray-400 ml-1" size={12} />;
+    if (sortField !== field) return <FaSort className="text-gray-400 ml-1" size={10} />;
     return sortDirection === 'asc' ?
-      <FaSortUp className="text-blue-600 ml-1" size={12} /> :
-      <FaSortDown className="text-blue-600 ml-1" size={12} />;
+      <FaSortUp className="text-blue-600 ml-1" size={10} /> :
+      <FaSortDown className="text-blue-600 ml-1" size={10} />;
   };
 
   // Check if any bulk action is possible
@@ -880,7 +878,7 @@ export default function Index({
   const canBulkDelete = canDeleteApplications && selectedApps.length > 0;
   const canBulkRestore = canRestoreApplications && selectedApps.length > 0 && filters.trashed === 'only';
 
-  // Pagination component
+  // Pagination component - Responsive
   const Pagination = () => {
     if (!pagination || pagination.lastPage <= 1) return null;
 
@@ -898,19 +896,19 @@ export default function Index({
     }
 
     return (
-      <div className="flex items-center justify-between px-6 py-4 border-t border-gray-200 bg-gray-50">
-        <div className="flex items-center gap-4">
-          <div className="text-sm text-gray-500">
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-3 sm:px-6 py-3 sm:py-4 border-t border-gray-200 bg-gray-50">
+        <div className="flex flex-col sm:flex-row items-center gap-1 sm:gap-4 text-xs sm:text-sm text-gray-500 text-center sm:text-left">
+          <span>
             Showing <span className="font-medium">{pagination.from || 0}</span> to{' '}
             <span className="font-medium">{pagination.to || 0}</span> of{' '}
             <span className="font-medium">{pagination.total}</span> applications
-          </div>
-          <div className="flex items-center gap-2">
-            <label className="text-sm text-gray-500">Show:</label>
+          </span>
+          <div className="flex items-center gap-1 sm:gap-2">
+            <label className="text-[10px] sm:text-sm text-gray-500">Show:</label>
             <select
               value={filters.per_page}
               onChange={handlePerPageChange}
-              className="px-2 py-1 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              className="px-1.5 sm:px-2 py-0.5 sm:py-1 text-[10px] sm:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
             >
               <option value="7">7</option>
               <option value="10">10</option>
@@ -921,28 +919,29 @@ export default function Index({
           </div>
         </div>
 
-        <div className="flex items-center gap-1">
+        <div className="flex flex-wrap items-center justify-center gap-0.5 sm:gap-1">
           <button
             onClick={() => handlePageChange(pagination.currentPage - 1)}
             disabled={pagination.currentPage === 1}
-            className={`px-3 py-1.5 rounded-lg text-sm flex items-center gap-1 transition ${pagination.currentPage === 1
+            className={`px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-xs sm:text-sm flex items-center gap-0.5 sm:gap-1 transition ${pagination.currentPage === 1
               ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
               : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-300'
               }`}
           >
-            <FaChevronLeft size={12} />
-            Previous
+            <FaChevronLeft size={10} />
+            <span className="hidden xs:inline">Previous</span>
+            <span className="xs:hidden">Prev</span>
           </button>
 
           {startPage > 1 && (
             <>
               <button
                 onClick={() => handlePageChange(1)}
-                className="px-3 py-1.5 rounded-lg text-sm bg-white text-gray-700 hover:bg-gray-100 border border-gray-300 transition"
+                className="px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-xs sm:text-sm bg-white text-gray-700 hover:bg-gray-100 border border-gray-300 transition"
               >
                 1
               </button>
-              {startPage > 2 && <span className="px-2 text-gray-400">...</span>}
+              {startPage > 2 && <span className="px-1 text-gray-400">...</span>}
             </>
           )}
 
@@ -950,7 +949,7 @@ export default function Index({
             <button
               key={page}
               onClick={() => handlePageChange(page)}
-              className={`px-3 py-1.5 rounded-lg text-sm transition ${page === pagination.currentPage
+              className={`px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-xs sm:text-sm transition ${page === pagination.currentPage
                 ? 'bg-blue-600 text-white'
                 : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-300'
                 }`}
@@ -961,10 +960,10 @@ export default function Index({
 
           {endPage < pagination.lastPage && (
             <>
-              {endPage < pagination.lastPage - 1 && <span className="px-2 text-gray-400">...</span>}
+              {endPage < pagination.lastPage - 1 && <span className="px-1 text-gray-400">...</span>}
               <button
                 onClick={() => handlePageChange(pagination.lastPage)}
-                className="px-3 py-1.5 rounded-lg text-sm bg-white text-gray-700 hover:bg-gray-100 border border-gray-300 transition"
+                className="px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-xs sm:text-sm bg-white text-gray-700 hover:bg-gray-100 border border-gray-300 transition"
               >
                 {pagination.lastPage}
               </button>
@@ -974,13 +973,14 @@ export default function Index({
           <button
             onClick={() => handlePageChange(pagination.currentPage + 1)}
             disabled={pagination.currentPage === pagination.lastPage}
-            className={`px-3 py-1.5 rounded-lg text-sm flex items-center gap-1 transition ${pagination.currentPage === pagination.lastPage
+            className={`px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-xs sm:text-sm flex items-center gap-0.5 sm:gap-1 transition ${pagination.currentPage === pagination.lastPage
               ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
               : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-300'
               }`}
           >
-            Next
-            <FaChevronRight size={12} />
+            <span className="hidden xs:inline">Next</span>
+            <span className="xs:hidden">Next</span>
+            <FaChevronRight size={10} />
           </button>
         </div>
       </div>
@@ -991,91 +991,90 @@ export default function Index({
     <AuthenticatedLayout>
       <Head title="All Applications" />
 
-      <div className="min-h-screen bg-linear-to-br from-gray-50 to-gray-100 p-6">
+      <div className="min-h-screen bg-linear-to-br from-gray-50 to-gray-100 p-3 sm:p-6">
         <div className="mx-auto">
-          {/* HEADER */}
-          <div className="flex justify-between items-start mb-6 animate-fade-in">
+          {/* HEADER - Responsive */}
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4 mb-4 sm:mb-6 animate-fade-in">
             <div>
-              <h1 className="text-3xl font-bold bg-linear-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
+              <h1 className="text-2xl sm:text-3xl font-bold bg-linear-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
                 All Applications
               </h1>
-              <p className="text-sm text-gray-500 mt-1">
+              <p className="text-xs sm:text-sm text-gray-500 mt-0.5 sm:mt-1">
                 Manage and review all job applications across all listings
               </p>
-              <div className="flex gap-3 mt-2 flex-wrap">
-                <span className="inline-flex items-center gap-1 text-xs">
-                  <span className="w-2 h-2 rounded-full bg-yellow-500" />
+              <div className="flex flex-wrap gap-1.5 sm:gap-3 mt-1.5 sm:mt-2">
+                <span className="inline-flex items-center gap-0.5 sm:gap-1 text-[10px] sm:text-xs">
+                  <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-yellow-500" />
                   Pending: {pendingCount}
                 </span>
-                <span className="inline-flex items-center gap-1 text-xs">
-                  <span className="w-2 h-2 rounded-full bg-blue-500" />
+                <span className="inline-flex items-center gap-0.5 sm:gap-1 text-[10px] sm:text-xs">
+                  <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-blue-500" />
                   Shortlisted: {shortlistedCount}
                 </span>
-                <span className="inline-flex items-center gap-1 text-xs">
-                  <span className="w-2 h-2 rounded-full bg-red-500" />
+                <span className="inline-flex items-center gap-0.5 sm:gap-1 text-[10px] sm:text-xs">
+                  <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-red-500" />
                   Rejected: {rejectedCount}
                 </span>
-                <span className="inline-flex items-center gap-1 text-xs">
-                  <span className="w-2 h-2 rounded-full bg-green-500" />
+                <span className="inline-flex items-center gap-0.5 sm:gap-1 text-[10px] sm:text-xs">
+                  <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-green-500" />
                   Hired: {hiredCount}
                 </span>
-                <span className="inline-flex items-center gap-1 text-xs">
-                  <span className="w-2 h-2 rounded-full bg-gray-400" />
+                <span className="inline-flex items-center gap-0.5 sm:gap-1 text-[10px] sm:text-xs">
+                  <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-gray-400" />
                   Deleted: {deletedCount}
                 </span>
                 {hasActiveFilters() && (
-                  <span className="inline-flex items-center gap-1 text-xs text-blue-600">
-                    <span className="w-2 h-2 rounded-full bg-blue-500" />
+                  <span className="inline-flex items-center gap-0.5 sm:gap-1 text-[10px] sm:text-xs text-blue-600">
+                    <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-blue-500" />
                     Filtered ({getActiveFilterCount()})
                   </span>
                 )}
                 {pagination && (
-                  <span className="inline-flex items-center gap-1 text-xs text-gray-500">
-                    <span className="w-2 h-2 rounded-full bg-gray-400" />
+                  <span className="inline-flex items-center gap-0.5 sm:gap-1 text-[10px] sm:text-xs text-gray-500">
+                    <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-gray-400" />
                     Total: {totalCount}
                   </span>
                 )}
               </div>
             </div>
 
-            <div className="flex gap-3">
+            <div className="flex flex-wrap gap-2 w-full sm:w-auto">
               <button
                 onClick={() => setShowFilters(!showFilters)}
-                className={`px-4 py-2.5 rounded-lg flex items-center gap-2 transition-all duration-200 ${showFilters || hasActiveFilters()
+                className={`flex-1 sm:flex-none px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 text-xs sm:text-sm ${showFilters || hasActiveFilters()
                   ? 'bg-blue-600 text-white'
                   : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                   }`}
               >
-                <FaFilter size={14} />
+                <FaFilter size={12} />
                 Filters
                 {hasActiveFilters() && (
-                  <span className="ml-1 bg-white text-blue-600 rounded-full w-5 h-5 text-xs flex items-center justify-center">
+                  <span className="ml-0.5 sm:ml-1 bg-white text-blue-600 rounded-full w-4 h-4 sm:w-5 sm:h-5 text-[10px] sm:text-xs flex items-center justify-center">
                     {getActiveFilterCount()}
                   </span>
                 )}
-                {showFilters ? <FaChevronUp size={12} /> : <FaChevronDown size={12} />}
+                {showFilters ? <FaChevronUp size={10} /> : <FaChevronDown size={10} />}
               </button>
             </div>
           </div>
 
-          {/* BULK ACTIONS BAR */}
+          {/* BULK ACTIONS BAR - Responsive */}
           {selectedApps.length > 0 && (
-            <div className="bg-linear-to-r from-blue-50 to-indigo-50 rounded-xl shadow-lg p-4 mb-6 animate-fade-in border border-blue-200">
-              <div className="flex items-center justify-between flex-wrap gap-3">
-                <div className="flex items-center gap-3">
-                  <FaCheckDouble className="text-blue-600" size={20} />
-                  <span className="font-semibold text-gray-900">
+            <div className="bg-linear-to-r from-blue-50 to-indigo-50 rounded-xl shadow-lg p-3 sm:p-4 mb-4 sm:mb-6 animate-fade-in border border-blue-200">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <FaCheckDouble className="text-blue-600" size={16} />
+                  <span className="font-semibold text-gray-900 text-sm sm:text-base">
                     {selectedApps.length} application(s) selected
                   </span>
                 </div>
-                <div className="flex gap-2 flex-wrap">
-                  {/* Email Button */}
+                <div className="flex flex-wrap gap-1.5 sm:gap-2 w-full sm:w-auto">
                   {canBulkEmail && (
                     <button
                       onClick={handleOpenBulkEmail}
-                      className="px-4 py-2 bg-green-600 text-white rounded-lg text-sm flex items-center gap-2 hover:bg-green-700 transition-all duration-200"
+                      className="flex-1 sm:flex-none px-3 sm:px-4 py-1.5 sm:py-2 bg-green-600 text-white rounded-lg text-xs sm:text-sm flex items-center justify-center gap-1.5 sm:gap-2 hover:bg-green-700 transition-all duration-200"
                     >
-                      <FaEnvelope size={14} />
+                      <FaEnvelope size={12} />
                       Send Email
                     </button>
                   )}
@@ -1084,9 +1083,9 @@ export default function Index({
                     <button
                       onClick={handleBulkRestore}
                       disabled={isRestoring}
-                      className="px-4 py-2 bg-green-600 text-white rounded-lg text-sm flex items-center gap-2 hover:bg-green-700 transition-all duration-200 disabled:opacity-50"
+                      className="flex-1 sm:flex-none px-3 sm:px-4 py-1.5 sm:py-2 bg-green-600 text-white rounded-lg text-xs sm:text-sm flex items-center justify-center gap-1.5 sm:gap-2 hover:bg-green-700 transition-all duration-200 disabled:opacity-50"
                     >
-                      {isRestoring ? <FaSpinner className="animate-spin" size={14} /> : <FaTrashRestore size={14} />}
+                      {isRestoring ? <FaSpinner className="animate-spin" size={12} /> : <FaTrashRestore size={12} />}
                       Restore All
                     </button>
                   ) : (
@@ -1094,10 +1093,10 @@ export default function Index({
                       <select
                         onChange={(e) => handleBulkStatusUpdate(e.target.value)}
                         disabled={isUpdatingStatus}
-                        className="px-4 py-2 text-sm border border-blue-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500"
+                        className="flex-1 sm:flex-none px-2 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm border border-blue-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500"
                         defaultValue=""
                       >
-                        <option value="" disabled>Bulk Update Status</option>
+                        <option value="" disabled>Bulk Update</option>
                         {statuses.map(status => (
                           <option key={status} value={status}>
                             Mark as {getStatusText(status)}
@@ -1111,10 +1110,10 @@ export default function Index({
                     <button
                       onClick={handleBulkDownload}
                       disabled={isDownloading}
-                      className="px-4 py-2 bg-purple-600 text-white rounded-lg text-sm flex items-center gap-2 hover:bg-purple-700 transition-all duration-200 disabled:opacity-50"
+                      className="flex-1 sm:flex-none px-3 sm:px-4 py-1.5 sm:py-2 bg-purple-600 text-white rounded-lg text-xs sm:text-sm flex items-center justify-center gap-1.5 sm:gap-2 hover:bg-purple-700 transition-all duration-200 disabled:opacity-50"
                     >
-                      {isDownloading ? <FaSpinner className="animate-spin" size={14} /> : <FaDownload size={14} />}
-                      Download Resumes
+                      {isDownloading ? <FaSpinner className="animate-spin" size={12} /> : <FaDownload size={12} />}
+                      Download
                     </button>
                   )}
 
@@ -1122,61 +1121,61 @@ export default function Index({
                     <button
                       onClick={handleBulkDelete}
                       disabled={isDeleting}
-                      className="px-4 py-2 bg-red-600 text-white rounded-lg text-sm flex items-center gap-2 hover:bg-red-700 transition-all duration-200 disabled:opacity-50"
+                      className="flex-1 sm:flex-none px-3 sm:px-4 py-1.5 sm:py-2 bg-red-600 text-white rounded-lg text-xs sm:text-sm flex items-center justify-center gap-1.5 sm:gap-2 hover:bg-red-700 transition-all duration-200 disabled:opacity-50"
                     >
-                      {isDeleting ? <FaSpinner className="animate-spin" size={14} /> : <FaTrash size={14} />}
-                      Delete All
+                      {isDeleting ? <FaSpinner className="animate-spin" size={12} /> : <FaTrash size={12} />}
+                      Delete
                     </button>
                   )}
 
                   <button
                     onClick={() => setSelectedApps([])}
-                    className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-all duration-200"
+                    className="flex-1 sm:flex-none px-3 sm:px-4 py-1.5 sm:py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-all duration-200 text-xs sm:text-sm"
                   >
-                    Clear Selection
+                    Clear
                   </button>
                 </div>
               </div>
             </div>
           )}
 
-          {/* FILTERS PANEL */}
+          {/* FILTERS PANEL - Responsive */}
           {showFilters && (
-            <div className="bg-white rounded-xl shadow-lg p-6 mb-6 animate-fade-in">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-semibold text-gray-900">Filter Applications</h3>
+            <div className="bg-white rounded-xl shadow-lg p-4 sm:p-6 mb-4 sm:mb-6 animate-fade-in">
+              <div className="flex justify-between items-center mb-3 sm:mb-4">
+                <h3 className="text-base sm:text-lg font-semibold text-gray-900">Filter Applications</h3>
                 <button
                   onClick={resetFilters}
-                  className="text-sm text-red-600 hover:text-red-800 flex items-center gap-1"
+                  className="text-xs sm:text-sm text-red-600 hover:text-red-800 flex items-center gap-1"
                 >
-                  <FaTimes size={12} />
+                  <FaTimes size={10} />
                   Reset all
                 </button>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                 {/* Search */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Search</label>
+                  <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">Search</label>
                   <div className="relative">
-                    <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={14} />
+                    <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={12} />
                     <input
                       type="text"
                       value={filters.search}
                       onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
                       placeholder="Name, email, or phone..."
-                      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      className="w-full pl-8 sm:pl-10 pr-3 sm:pr-4 py-1.5 sm:py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
                     />
                   </div>
                 </div>
 
                 {/* Status */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
+                  <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">Status</label>
                   <select
                     value={filters.status}
                     onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value }))}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 sm:px-4 py-1.5 sm:py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
                   >
                     <option value="">All Statuses</option>
                     {statuses.map(status => (
@@ -1189,11 +1188,11 @@ export default function Index({
 
                 {/* Job */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Job</label>
+                  <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">Job</label>
                   <select
                     value={filters.job_id}
                     onChange={(e) => setFilters(prev => ({ ...prev, job_id: e.target.value }))}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 sm:px-4 py-1.5 sm:py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
                   >
                     <option value="">All Jobs</option>
                     {jobs?.map(job => (
@@ -1206,11 +1205,11 @@ export default function Index({
 
                 {/* Category */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
+                  <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">Category</label>
                   <select
                     value={filters.category_id}
                     onChange={(e) => setFilters(prev => ({ ...prev, category_id: e.target.value }))}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 sm:px-4 py-1.5 sm:py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
                   >
                     <option value="">All Categories</option>
                     {categories?.map(category => (
@@ -1223,11 +1222,11 @@ export default function Index({
 
                 {/* Job Type */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Job Type</label>
+                  <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">Job Type</label>
                   <select
                     value={filters.job_type}
                     onChange={(e) => setFilters(prev => ({ ...prev, job_type: e.target.value }))}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 sm:px-4 py-1.5 sm:py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
                   >
                     <option value="">All Types</option>
                     {jobTypes?.map(type => (
@@ -1240,11 +1239,11 @@ export default function Index({
 
                 {/* Location */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Location</label>
+                  <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">Location</label>
                   <select
                     value={filters.location_id}
                     onChange={(e) => setFilters(prev => ({ ...prev, location_id: e.target.value }))}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 sm:px-4 py-1.5 sm:py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
                   >
                     <option value="">All Locations</option>
                     {locations?.map(location => (
@@ -1257,11 +1256,11 @@ export default function Index({
 
                 {/* Education Level */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Education</label>
+                  <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">Education</label>
                   <select
                     value={filters.education_level}
                     onChange={(e) => setFilters(prev => ({ ...prev, education_level: e.target.value }))}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 sm:px-4 py-1.5 sm:py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
                   >
                     <option value="">All Levels</option>
                     {Object.entries(educationLevels || {}).map(([key, label]) => (
@@ -1274,82 +1273,74 @@ export default function Index({
 
                 {/* ATS Score Range */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">ATS Score Range</label>
-                  <div className="flex gap-2">
+                  <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">ATS Score Range</label>
+                  <div className="flex gap-1.5 sm:gap-2">
                     <input
                       type="number"
                       value={filters.min_ats_score}
                       onChange={(e) => setFilters(prev => ({ ...prev, min_ats_score: e.target.value }))}
-                      placeholder={`Min (${filterOptions?.ats?.min || 0})`}
-                      className="w-1/2 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                      min={filterOptions?.ats?.min || 0}
-                      max={filterOptions?.ats?.max || 100}
+                      placeholder="Min"
+                      className="w-1/2 px-2 sm:px-3 py-1.5 sm:py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
                     />
                     <input
                       type="number"
                       value={filters.max_ats_score}
                       onChange={(e) => setFilters(prev => ({ ...prev, max_ats_score: e.target.value }))}
-                      placeholder={`Max (${filterOptions?.ats?.max || 100})`}
-                      className="w-1/2 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                      min={filterOptions?.ats?.min || 0}
-                      max={filterOptions?.ats?.max || 100}
+                      placeholder="Max"
+                      className="w-1/2 px-2 sm:px-3 py-1.5 sm:py-2 border border-gray-300 rounded-lg text-sm"
                     />
                   </div>
                 </div>
 
                 {/* Experience Range */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Experience (years)</label>
-                  <div className="flex gap-2">
+                  <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">Experience (years)</label>
+                  <div className="flex gap-1.5 sm:gap-2">
                     <input
                       type="number"
                       value={filters.min_experience}
                       onChange={(e) => setFilters(prev => ({ ...prev, min_experience: e.target.value }))}
-                      placeholder={`Min (${filterOptions?.experience?.min || 0})`}
-                      className="w-1/2 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                      min={filterOptions?.experience?.min || 0}
-                      max={filterOptions?.experience?.max || 30}
+                      placeholder="Min"
+                      className="w-1/2 px-2 sm:px-3 py-1.5 sm:py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
                     />
                     <input
                       type="number"
                       value={filters.max_experience}
                       onChange={(e) => setFilters(prev => ({ ...prev, max_experience: e.target.value }))}
-                      placeholder={`Max (${filterOptions?.experience?.max || 30})`}
-                      className="w-1/2 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                      min={filterOptions?.experience?.min || 0}
-                      max={filterOptions?.experience?.max || 30}
+                      placeholder="Max"
+                      className="w-1/2 px-2 sm:px-3 py-1.5 sm:py-2 border border-gray-300 rounded-lg text-sm"
                     />
                   </div>
                 </div>
 
                 {/* Salary Range */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Expected Salary (BDT)</label>
-                  <div className="flex gap-2">
+                  <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">Expected Salary (BDT)</label>
+                  <div className="flex gap-1.5 sm:gap-2">
                     <input
                       type="number"
                       value={filters.min_salary}
                       onChange={(e) => setFilters(prev => ({ ...prev, min_salary: e.target.value }))}
-                      placeholder={`Min (${(filterOptions?.salary?.min || 0).toLocaleString()})`}
-                      className="w-1/2 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      placeholder="Min"
+                      className="w-1/2 px-2 sm:px-3 py-1.5 sm:py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
                     />
                     <input
                       type="number"
                       value={filters.max_salary}
                       onChange={(e) => setFilters(prev => ({ ...prev, max_salary: e.target.value }))}
-                      placeholder={`Max (${(filterOptions?.salary?.max || 500000).toLocaleString()})`}
-                      className="w-1/2 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      placeholder="Max"
+                      className="w-1/2 px-2 sm:px-3 py-1.5 sm:py-2 border border-gray-300 rounded-lg text-sm"
                     />
                   </div>
                 </div>
 
                 {/* Date Range Preset */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Date Range</label>
+                  <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">Date Range</label>
                   <select
                     value={filters.date_range}
                     onChange={(e) => setFilters(prev => ({ ...prev, date_range: e.target.value, date_from: '', date_to: '' }))}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 sm:px-4 py-1.5 sm:py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
                   >
                     {dateRangeOptions.map(option => (
                       <option key={option.value} value={option.value}>
@@ -1361,30 +1352,30 @@ export default function Index({
 
                 {/* Custom Date Range */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Custom Date Range</label>
-                  <div className="flex gap-2">
+                  <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">Custom Date Range</label>
+                  <div className="flex gap-1.5 sm:gap-2">
                     <input
                       type="date"
                       value={filters.date_from}
                       onChange={(e) => setFilters(prev => ({ ...prev, date_from: e.target.value, date_range: '' }))}
-                      className="w-1/2 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      className="w-1/2 px-2 sm:px-3 py-1.5 sm:py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
                     />
                     <input
                       type="date"
                       value={filters.date_to}
                       onChange={(e) => setFilters(prev => ({ ...prev, date_to: e.target.value, date_range: '' }))}
-                      className="w-1/2 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      className="w-1/2 px-2 sm:px-3 py-1.5 sm:py-2 border border-gray-300 rounded-lg text-sm"
                     />
                   </div>
                 </div>
 
                 {/* Trash Filter */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Show</label>
+                  <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">Show</label>
                   <select
                     value={filters.trashed}
                     onChange={(e) => setFilters(prev => ({ ...prev, trashed: e.target.value }))}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 sm:px-4 py-1.5 sm:py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
                   >
                     {trashOptions.map(option => (
                       <option key={option.value} value={option.value}>
@@ -1395,16 +1386,16 @@ export default function Index({
                 </div>
               </div>
 
-              <div className="flex justify-end gap-3 mt-6">
+              <div className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-3 mt-4 sm:mt-6">
                 <button
                   onClick={resetFilters}
-                  className="px-4 py-2 text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition"
+                  className="w-full sm:w-auto px-4 py-2 text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition text-sm"
                 >
                   Reset
                 </button>
                 <button
                   onClick={applyFilters}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+                  className="w-full sm:w-auto px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm"
                 >
                   Apply Filters
                 </button>
@@ -1412,73 +1403,69 @@ export default function Index({
             </div>
           )}
 
-          {/* TABLE CARD */}
+          {/* TABLE CARD - Responsive */}
           <div className="bg-white rounded-xl shadow-lg overflow-hidden transition-all duration-300 hover:shadow-xl">
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-linear-to-r from-gray-50 to-gray-100">
                   <tr>
-                    <th className="px-4 py-4 text-left">
+                    <th className="px-2 sm:px-4 py-3 sm:py-4 text-left">
                       <input
                         type="checkbox"
                         checked={applicationItems.length > 0 && selectedApps.length === applicationItems.filter(app => !app.deleted_at && canUpdateApplications).length}
                         onChange={handleSelectAll}
-                        className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                        className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                         disabled={applicationItems.filter(app => !app.deleted_at && canUpdateApplications).length === 0}
                       />
                     </th>
                     <th
-                      className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider cursor-pointer hover:text-gray-900"
+                      className="px-3 sm:px-6 py-3 sm:py-4 text-left text-[10px] sm:text-xs font-semibold text-gray-600 uppercase tracking-wider cursor-pointer hover:text-gray-900"
                       onClick={() => handleSort('name')}
                     >
-                      <div className="flex items-center">
+                      <div className="flex items-center gap-0.5 sm:gap-1">
                         Applicant
                         {getSortIcon('name')}
                       </div>
                     </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                    <th className="hidden md:table-cell px-3 sm:px-6 py-3 sm:py-4 text-left text-[10px] sm:text-xs font-semibold text-gray-600 uppercase tracking-wider">
                       Job Details
                     </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                    <th className="hidden lg:table-cell px-3 sm:px-6 py-3 sm:py-4 text-left text-[10px] sm:text-xs font-semibold text-gray-600 uppercase tracking-wider">
                       Contact
                     </th>
-                    <th
-                      className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider cursor-pointer hover:text-gray-900"
+                    <th className="hidden xl:table-cell px-3 sm:px-6 py-3 sm:py-4 text-left text-[10px] sm:text-xs font-semibold text-gray-600 uppercase tracking-wider cursor-pointer hover:text-gray-900"
                       onClick={() => handleSort('ats_score')}
                     >
-                      <div className="flex items-center">
+                      <div className="flex items-center gap-0.5 sm:gap-1">
                         ATS Score
                         {getSortIcon('ats_score')}
                       </div>
                     </th>
-                    <th
-                      className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider cursor-pointer hover:text-gray-900"
+                    <th className="hidden 2xl:table-cell px-3 sm:px-6 py-3 sm:py-4 text-left text-[10px] sm:text-xs font-semibold text-gray-600 uppercase tracking-wider cursor-pointer hover:text-gray-900"
                       onClick={() => handleSort('expected_salary')}
                     >
-                      <div className="flex items-center">
-                        Expected Salary
+                      <div className="flex items-center gap-0.5 sm:gap-1">
+                        Salary
                         {getSortIcon('expected_salary')}
                       </div>
                     </th>
-                    <th
-                      className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider cursor-pointer hover:text-gray-900"
+                    <th className="hidden md:table-cell px-3 sm:px-6 py-3 sm:py-4 text-left text-[10px] sm:text-xs font-semibold text-gray-600 uppercase tracking-wider cursor-pointer hover:text-gray-900"
                       onClick={() => handleSort('created_at')}
                     >
-                      <div className="flex items-center">
+                      <div className="flex items-center gap-0.5 sm:gap-1">
                         Applied On
                         {getSortIcon('created_at')}
                       </div>
                     </th>
-                    <th
-                      className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider cursor-pointer hover:text-gray-900"
+                    <th className="px-3 sm:px-6 py-3 sm:py-4 text-left text-[10px] sm:text-xs font-semibold text-gray-600 uppercase tracking-wider cursor-pointer hover:text-gray-900"
                       onClick={() => handleSort('status')}
                     >
-                      <div className="flex items-center">
+                      <div className="flex items-center gap-0.5 sm:gap-1">
                         Status
                         {getSortIcon('status')}
                       </div>
                     </th>
-                    <th className="px-6 py-4 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                    <th className="px-3 sm:px-6 py-3 sm:py-4 text-right text-[10px] sm:text-xs font-semibold text-gray-600 uppercase tracking-wider">
                       Actions
                     </th>
                   </tr>
@@ -1487,21 +1474,21 @@ export default function Index({
                 <tbody className="bg-white divide-y divide-gray-200">
                   {applicationItems.length === 0 && (
                     <tr>
-                      <td colSpan="9" className="text-center py-16">
-                        <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                          <FaBriefcase className="h-10 w-10 text-gray-400" />
+                      <td colSpan="9" className="text-center py-12 sm:py-16">
+                        <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4">
+                          <FaBriefcase className="h-8 w-8 sm:h-10 sm:w-10 text-gray-400" />
                         </div>
-                        <h3 className="text-lg font-medium text-gray-900">No applications found</h3>
-                        <p className="mt-1 text-sm text-gray-500">
+                        <h3 className="text-base sm:text-lg font-medium text-gray-900">No applications found</h3>
+                        <p className="mt-1 text-xs sm:text-sm text-gray-500">
                           {hasActiveFilters() ? 'Try adjusting your filters.' : 'No applications have been submitted yet.'}
                         </p>
                         {hasActiveFilters() && (
-                          <div className="mt-6">
+                          <div className="mt-4 sm:mt-6">
                             <button
                               onClick={resetFilters}
-                              className="inline-flex items-center px-5 py-2.5 border border-transparent shadow-sm text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700"
+                              className="inline-flex items-center px-4 sm:px-5 py-2 sm:py-2.5 border border-transparent shadow-sm text-xs sm:text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700"
                             >
-                              <FaTimes className="mr-2" size={16} />
+                              <FaTimes className="mr-1.5 sm:mr-2" size={14} />
                               Clear Filters
                             </button>
                           </div>
@@ -1520,127 +1507,126 @@ export default function Index({
                         className={`hover:bg-gray-50 transition-all duration-200 animate-fade-in ${trashed ? 'bg-gray-50 opacity-75' : ''} ${selectedApps.includes(app.id) ? 'bg-blue-50' : ''}`}
                         style={{ animationDelay: `${index * 50}ms` }}
                       >
-                        <td className="px-4 py-4">
+                        <td className="px-2 sm:px-4 py-3 sm:py-4">
                           {!trashed && canUpdateApplications && (
                             <input
                               type="checkbox"
                               checked={selectedApps.includes(app.id)}
                               onChange={() => handleSelectApp(app.id)}
-                              className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                              className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                             />
                           )}
                         </td>
 
                         {/* APPLICANT */}
-                        <td className="px-6 py-4">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-medium text-sm">
+                        <td className="px-3 sm:px-6 py-3 sm:py-4">
+                          <div className="flex items-center gap-2 sm:gap-3">
+                            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-medium text-xs sm:text-sm shrink-0">
                               {app.name?.charAt(0)?.toUpperCase() || '?'}
                             </div>
-                            <div>
-                              <div className={`font-semibold ${trashed ? 'line-through text-gray-400' : 'text-gray-900'}`}>
+                            <div className="min-w-0">
+                              <div className={`text-sm sm:text-base font-semibold truncate ${trashed ? 'line-through text-gray-400' : 'text-gray-900'}`}>
                                 {app.name}
                               </div>
-                              <div className={`text-xs mt-0.5 ${trashed ? 'text-gray-400' : 'text-gray-500'}`}>
+                              <div className={`text-[10px] sm:text-xs mt-0.5 truncate ${trashed ? 'text-gray-400' : 'text-gray-500'}`}>
                                 {app.years_of_experience ? `${app.years_of_experience} yrs exp` : 'Experience N/A'}
                               </div>
                             </div>
                           </div>
                         </td>
 
-                        {/* JOB DETAILS */}
-                        <td className="px-6 py-4">
+                        {/* JOB DETAILS - Hidden on mobile */}
+                        <td className="hidden md:table-cell px-3 sm:px-6 py-3 sm:py-4">
                           <div>
-                            <div className={`font-medium ${trashed ? 'text-gray-400' : 'text-gray-900'}`}>
+                            <div className={`text-sm sm:text-base font-medium truncate max-w-36 sm:max-w-48 ${trashed ? 'text-gray-400' : 'text-gray-900'}`}>
                               {app.job_listing?.title}
                             </div>
-                            <div className={`text-xs mt-0.5 flex items-center gap-1 ${trashed ? 'text-gray-400' : 'text-gray-500'}`}>
-                              <FaRegBuilding size={10} />
+                            <div className={`text-[10px] sm:text-xs mt-0.5 flex items-center gap-0.5 sm:gap-1 truncate ${trashed ? 'text-gray-400' : 'text-gray-500'}`}>
+                              <FaRegBuilding size={8} />
                               {app.job_listing?.employer?.name || 'Company'}
                             </div>
                             {app.job_listing?.job_type && (
-                              <div className={`text-xs mt-0.5 ${trashed ? 'text-gray-400' : 'text-gray-400'}`}>
+                              <div className={`text-[10px] sm:text-xs mt-0.5 truncate ${trashed ? 'text-gray-400' : 'text-gray-400'}`}>
                                 {app.job_listing.job_type?.replace(/-/g, ' ')}
                               </div>
                             )}
                           </div>
                         </td>
 
-                        {/* CONTACT */}
-                        <td className="px-6 py-4">
-                          <div className="space-y-1">
-                            <div className={`flex items-center gap-1 text-sm ${trashed ? 'text-gray-400' : 'text-gray-600'}`}>
-                              <FaEnvelope size={12} className="text-gray-400" />
-                              <a href={`mailto:${app.email}`} className={`hover:text-blue-600 truncate max-w-36 ${trashed ? 'pointer-events-none' : ''}`}>
+                        {/* CONTACT - Hidden on tablet */}
+                        <td className="hidden lg:table-cell px-3 sm:px-6 py-3 sm:py-4">
+                          <div className="space-y-0.5 sm:space-y-1">
+                            <div className={`flex items-center gap-0.5 sm:gap-1 text-xs sm:text-sm ${trashed ? 'text-gray-400' : 'text-gray-600'}`}>
+                              <FaEnvelope size={10} className="text-gray-400" />
+                              <a href={`mailto:${app.email}`} className={`hover:text-blue-600 truncate max-w-24 sm:max-w-36 ${trashed ? 'pointer-events-none' : ''}`}>
                                 {app.email}
                               </a>
                             </div>
                             {app.phone && (
-                              <div className={`flex items-center gap-1 text-sm ${trashed ? 'text-gray-400' : 'text-gray-600'}`}>
-                                <FaPhone size={12} className="text-gray-400" />
+                              <div className={`flex items-center gap-0.5 sm:gap-1 text-xs sm:text-sm ${trashed ? 'text-gray-400' : 'text-gray-600'}`}>
+                                <FaPhone size={10} className="text-gray-400" />
                                 {app.phone}
                               </div>
                             )}
                           </div>
                         </td>
 
-                        {/* ATS SCORE */}
-                        <td className="px-6 py-4">
+                        {/* ATS SCORE - Hidden on tablet */}
+                        <td className="hidden xl:table-cell px-3 sm:px-6 py-3 sm:py-4">
                           {atsPercentage !== undefined && atsPercentage !== null ? (
-                            <div className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${getAtsScoreBg(atsPercentage)} ${getAtsScoreColor(atsPercentage)}`}>
-                              <FaChartLine size={10} />
+                            <div className={`inline-flex items-center gap-0.5 sm:gap-1 px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-medium ${getAtsScoreBg(atsPercentage)} ${getAtsScoreColor(atsPercentage)}`}>
+                              <FaChartLine size={8} />
                               {Math.round(atsPercentage)}%
                             </div>
                           ) : (
-                            <span className="text-xs text-gray-400">Not calculated</span>
+                            <span className="text-[10px] sm:text-xs text-gray-400">N/A</span>
                           )}
                         </td>
 
-                        {/* EXPECTED SALARY */}
-                        <td className="px-6 py-4">
+                        {/* EXPECTED SALARY - Hidden on large screens */}
+                        <td className="hidden 2xl:table-cell px-3 sm:px-6 py-3 sm:py-4">
                           {app.expected_salary ? (
-                            <span className={`text-sm font-medium ${trashed ? 'text-gray-400' : 'text-green-600'}`}>
+                            <span className={`text-xs sm:text-sm font-medium ${trashed ? 'text-gray-400' : 'text-green-600'}`}>
                               {formatSalary(app.expected_salary)}
                             </span>
                           ) : (
-                            <span className={`text-sm ${trashed ? 'text-gray-400' : 'text-gray-400'}`}>
-                              Not specified
+                            <span className={`text-xs sm:text-sm ${trashed ? 'text-gray-400' : 'text-gray-400'}`}>
+                              N/A
                             </span>
                           )}
                         </td>
 
-                        {/* APPLIED ON */}
-                        <td className="px-6 py-4">
-                          <div className={`text-sm ${trashed ? 'text-gray-400' : 'text-gray-600'}`}>
+                        {/* APPLIED ON - Hidden on mobile */}
+                        <td className="hidden md:table-cell px-3 sm:px-6 py-3 sm:py-4">
+                          <div className={`text-xs sm:text-sm ${trashed ? 'text-gray-400' : 'text-gray-600'}`}>
                             {formatDate(app.created_at)}
                           </div>
                           {trashed && app.deleted_at && (
-                            <div className="text-xs text-red-500 mt-1">
+                            <div className="text-[10px] sm:text-xs text-red-500 mt-0.5">
                               Deleted: {formatDate(app.deleted_at)}
                             </div>
                           )}
                         </td>
 
                         {/* STATUS */}
-                        <td className="px-6 py-4">
+                        <td className="px-3 sm:px-6 py-3 sm:py-4">
                           {!trashed ? (
-                            <div className="flex items-center gap-2">
+                            <div className="flex flex-wrap items-center gap-1 sm:gap-2">
                               {getStatusIcon(app.status)}
-                              <span className={`text-xs font-medium rounded-full px-2 py-1 ${getStatusBadge(app.status)}`}>
+                              <span className={`text-[10px] sm:text-xs font-medium rounded-full px-1.5 sm:px-2 py-0.5 ${getStatusBadge(app.status)}`}>
                                 {getStatusText(app.status)}
                               </span>
                             </div>
                           ) : (
-                            <span className="px-3 py-1.5 rounded-full text-xs font-semibold bg-gray-200 text-gray-500">
+                            <span className="px-1.5 sm:px-3 py-0.5 sm:py-1.5 rounded-full text-[10px] sm:text-xs font-semibold bg-gray-200 text-gray-500">
                               Deleted
                             </span>
                           )}
                         </td>
 
                         {/* ACTIONS */}
-                        <td className="px-6 py-4 whitespace-nowrap text-right">
-                          <div className="flex justify-end gap-2">
-                            {/* Email Button - Individual */}
+                        <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-right">
+                          <div className="flex justify-end gap-1 sm:gap-2">
                             {!trashed && canEmailApplicants && (
                               <button
                                 onClick={() => {
@@ -1652,50 +1638,50 @@ export default function Index({
                                   };
                                   openEmailModal(applicant, `Send Email to ${app.name}`);
                                 }}
-                                className="p-2 text-green-600 hover:text-green-900 hover:bg-green-50 rounded-lg transition-all duration-200"
+                                className="p-1.5 sm:p-2 text-green-600 hover:text-green-900 hover:bg-green-50 rounded-lg transition-all duration-200"
                                 title="Send Email"
                               >
-                                <FaEnvelope size={16} />
+                                <FaEnvelope size={12} />
                               </button>
                             )}
 
                             {!trashed && (
                               <Link
                                 href={route('backend.applications.show', app.id)}
-                                className="p-2 rounded-lg transition-all duration-200 text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                                className="p-1.5 sm:p-2 rounded-lg transition-all duration-200 text-gray-600 hover:text-gray-900 hover:bg-gray-50"
                                 title="View Details"
                               >
-                                <FaEye size={18} />
+                                <FaEye size={14} />
                               </Link>
                             )}
 
                             {!trashed && canDownloadResumes && (
                               <button
                                 onClick={() => handleDownloadResume(app.id)}
-                                className="p-2 text-purple-600 hover:text-purple-900 hover:bg-purple-50 rounded-lg transition-all duration-200"
+                                className="p-1.5 sm:p-2 text-purple-600 hover:text-purple-900 hover:bg-purple-50 rounded-lg transition-all duration-200"
                                 title="Download Resume"
                               >
-                                <FaFilePdf size={18} />
+                                <FaFilePdf size={14} />
                               </button>
                             )}
 
                             {trashed && canRestoreApplications && (
                               <button
                                 onClick={() => handleRestore(app.id, app.name)}
-                                className="p-2 text-green-600 hover:text-green-900 hover:bg-green-50 rounded-lg transition-all duration-200"
+                                className="p-1.5 sm:p-2 text-green-600 hover:text-green-900 hover:bg-green-50 rounded-lg transition-all duration-200"
                                 title="Restore"
                               >
-                                <FaTrashRestore size={18} />
+                                <FaTrashRestore size={14} />
                               </button>
                             )}
 
                             {!trashed && canDeleteApplications && (
                               <button
                                 onClick={() => handleDelete(app.id, app.name)}
-                                className="p-2 text-red-600 hover:text-red-900 hover:bg-red-50 rounded-lg transition-all duration-200"
+                                className="p-1.5 sm:p-2 text-red-600 hover:text-red-900 hover:bg-red-50 rounded-lg transition-all duration-200"
                                 title="Delete"
                               >
-                                <FaTrash size={18} />
+                                <FaTrash size={14} />
                               </button>
                             )}
                           </div>
@@ -1748,6 +1734,21 @@ export default function Index({
           
           .animate-fade-in {
             animation: fade-in 0.3s ease-out;
+          }
+
+          @media (min-width: 480px) {
+            .xs\\:inline {
+              display: inline !important;
+            }
+            .xs\\:hidden {
+              display: none !important;
+            }
+          }
+          .xs\\:inline {
+            display: none;
+          }
+          .xs\\:hidden {
+            display: inline;
           }
         `}
       </style>

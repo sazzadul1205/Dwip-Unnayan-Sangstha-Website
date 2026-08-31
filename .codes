@@ -1,0 +1,247 @@
+export PATH=/opt/alt/alt-nodejs22/root/usr/bin:$PATH
+
+chmod -R u+rwX node_modules
+chmod +x node_modules/.bin/vite
+
+npm run build
+
+The fix
+
+This is the command you want to remember:
+
+chmod 755 /home/sixonici/dus.sixonicit.com
+
+Then verify:
+
+ls -ld /home/sixonici/dus.sixonicit.com
+
+Great! Your build completed successfully. Now you need to complete the deployment process. Here's what to do next:
+
+## 1. Clear and Cache Everything
+
+```bash
+# Clear all caches
+php artisan optimize:clear
+
+# Or individually:
+php artisan cache:clear
+php artisan config:clear
+php artisan view:clear
+php artisan route:clear
+php artisan event:clear
+php artisan clear-compiled
+```
+
+## 2. Cache for Production
+
+```bash
+# Cache configurations for production
+php artisan config:cache
+php artisan route:cache
+php artisan view:cache
+php artisan event:cache
+
+# Or use optimize (combines all caches)
+php artisan optimize
+```
+
+## 3. Run Database Migrations (if any)
+
+```bash
+# Check if there are pending migrations
+php artisan migrate --pretend
+
+# If there are migrations, run them
+php artisan migrate --force
+
+# Or if you need to seed
+php artisan db:seed --force
+```
+
+## 4. Set Proper Permissions
+
+```bash
+# Set proper permissions for storage and bootstrap/cache
+chmod -R 775 storage
+chmod -R 775 bootstrap/cache
+chmod -R 775 public/build
+
+# Set ownership (adjust user:group as needed)
+chown -R $(whoami):$(whoami) storage
+chown -R $(whoami):$(whoami) bootstrap/cache
+```
+
+## 5. Bring Site Back Online
+
+```bash
+# Bring the application out of maintenance mode
+php artisan up
+```
+
+## 6. Verify Everything is Working
+
+```bash
+# Check PHP version
+php -v
+
+# Check installed packages
+composer show
+
+# Check routes
+php artisan route:list
+
+# Test the application
+curl -I https://dus.sixonicit.com
+```
+
+## Complete Command Sequence
+
+Here's the complete sequence to run:
+
+```bash
+# 1. Clear all caches
+php artisan optimize:clear
+
+# 2. Cache for production
+php artisan config:cache
+php artisan route:cache
+php artisan view:cache
+php artisan event:cache
+
+# 3. Run migrations if needed
+php artisan migrate --force
+
+# 4. Set permissions
+chmod -R 775 storage bootstrap/cache public/build
+
+# 5. Bring site back online
+php artisan up
+
+# 6. Check if site is accessible
+curl -I https://dus.sixonicit.com
+```
+
+## Additional Checks
+
+### Check the Maintenance Page
+Visit your site to see the custom maintenance page you created:
+
+```
+https://dus.sixonicit.com
+```
+
+### Verify the Build Files
+
+```bash
+# Check if build files exist
+ls -la public/build/assets/
+
+# Check if the maintenance view was created
+ls -la resources/views/errors/maintenance.blade.php
+```
+
+### Check for Errors in Logs
+
+```bash
+# Check Laravel logs
+tail -f storage/logs/laravel.log
+
+# Check PHP error logs
+tail -f /path/to/php-error.log
+```
+
+## Troubleshooting
+
+### If the site still shows maintenance mode:
+
+```bash
+# Force remove maintenance mode
+rm -f storage/framework/down
+
+# Or
+php artisan up --force
+```
+
+### If you see 500 errors:
+
+```bash
+# Check the logs
+cat storage/logs/laravel.log
+
+# Check file permissions
+ls -la storage/framework/cache/
+ls -la storage/framework/views/
+ls -la bootstrap/cache/
+```
+
+### If assets are not loading:
+
+```bash
+# Rebuild assets
+npm run build
+
+# Or clear Vite cache
+rm -rf node_modules/.vite
+npm run build
+```
+
+### If you need to rollback:
+
+```bash
+# Put site back in maintenance mode
+php artisan down
+
+# Rollback the last deployment
+git reset --hard HEAD~1
+
+# Clear caches
+php artisan optimize:clear
+
+# Rebuild assets
+npm run build
+
+# Bring site back up
+php artisan up
+```
+
+## Quick Reference Card
+
+```bash
+# === DEPLOYMENT CHECKLIST ===
+
+# 1. Build completed ✓
+npm run build  # Already done
+
+# 2. Clear and cache
+php artisan optimize:clear
+php artisan config:cache
+php artisan route:cache
+php artisan view:cache
+
+# 3. Migrate (if needed)
+php artisan migrate --force
+
+# 4. Permissions
+chmod -R 775 storage bootstrap/cache public/build
+
+# 5. Bring online
+php artisan up
+
+# 6. Verify
+curl -I https://dus.sixonicit.com
+```
+
+## Monitor After Deployment
+
+```bash
+# Watch logs in real-time
+tail -f storage/logs/laravel.log
+
+# Check server status
+top -u $(whoami)
+
+# Check disk space
+df -h
+```
+
+Once you've run these commands, your site should be live with the custom maintenance page showing when you're in maintenance mode, and the BackToTop and CookieConsent features working correctly.

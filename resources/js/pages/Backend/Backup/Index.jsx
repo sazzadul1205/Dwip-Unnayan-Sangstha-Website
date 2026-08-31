@@ -45,7 +45,7 @@ export default function BackupIndex({ backups, backupLogs, storageInfo, config }
 
   // Get trigger icon
   const getTriggerIcon = (trigger) => {
-    return trigger === 'auto' ? <FaRobot className="text-blue-500" /> : <FaUser className="text-green-500" />;
+    return trigger === 'auto' ? <FaRobot className="text-blue-500" size={14} /> : <FaUser className="text-green-500" size={14} />;
   };
 
   // Get trigger label
@@ -280,90 +280,90 @@ export default function BackupIndex({ backups, backupLogs, storageInfo, config }
     <AdminLayout>
       <Head title="Backup Manager" />
 
-      <div className="min-h-screen bg-linear-to-br from-gray-50 to-gray-100 p-6">
-        <div className=" mx-auto">
-          {/* Header */}
-          <div className="flex justify-between items-start mb-6 flex-wrap gap-4">
+      <div className="min-h-screen bg-linear-to-br from-gray-50 to-gray-100 p-3 sm:p-6">
+        <div className="mx-auto">
+          {/* Header - Responsive */}
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4 mb-4 sm:mb-6 flex-wrap">
             <div>
-              <h1 className="text-3xl font-bold bg-linear-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
+              <h1 className="text-2xl sm:text-3xl font-bold bg-linear-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
                 Backup Manager
               </h1>
-              <p className="text-sm text-gray-500 mt-1">
+              <p className="text-xs sm:text-sm text-gray-500 mt-0.5 sm:mt-1">
                 Create, manage, and restore backups of your application
               </p>
             </div>
-            <div className="flex gap-3">
+            <div className="flex flex-wrap gap-2 w-full sm:w-auto">
               <button
                 onClick={createAutoBackup}
                 disabled={loading}
-                className="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all duration-200 flex items-center gap-2 font-medium shadow-md disabled:opacity-50"
+                className="flex-1 sm:flex-none px-3 sm:px-6 py-2 sm:py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all duration-200 flex items-center justify-center gap-1.5 sm:gap-2 font-medium shadow-md disabled:opacity-50 text-xs sm:text-sm"
               >
-                <FaClock size={16} />
+                <FaClock size={12} />
                 Auto Backup
               </button>
               <button
                 onClick={createManualBackup}
                 disabled={loading}
-                className="px-6 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all duration-200 flex items-center gap-2 font-medium shadow-md disabled:opacity-50"
+                className="flex-1 sm:flex-none px-3 sm:px-6 py-2 sm:py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all duration-200 flex items-center justify-center gap-1.5 sm:gap-2 font-medium shadow-md disabled:opacity-50 text-xs sm:text-sm"
               >
-                <FaPlus size={16} />
+                <FaPlus size={12} />
                 Manual Backup
               </button>
             </div>
           </div>
 
-          {/* Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-            <div className="bg-white rounded-xl shadow-lg p-6">
-              <div className="flex items-center gap-3">
-                <div className="p-3 bg-blue-100 rounded-lg">
-                  <FaFileArchive className="text-blue-600" size={20} />
+          {/* Stats Cards - Responsive */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-4 mb-4 sm:mb-6">
+            <div className="bg-white rounded-xl shadow-lg p-3 sm:p-6">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="p-2 sm:p-3 bg-blue-100 rounded-lg">
+                  <FaFileArchive className="text-blue-600" size={16} />
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500">Total Backups</p>
-                  <p className="text-2xl font-bold text-gray-900">{storageInfo?.total_backups || 0}</p>
+                  <p className="text-[10px] sm:text-sm text-gray-500">Total Backups</p>
+                  <p className="text-lg sm:text-2xl font-bold text-gray-900">{storageInfo?.total_backups || 0}</p>
                 </div>
               </div>
             </div>
-            <div className="bg-white rounded-xl shadow-lg p-6">
-              <div className="flex items-center gap-3">
-                <div className="p-3 bg-purple-100 rounded-lg">
-                  <FaHdd className="text-purple-600" size={20} />
+            <div className="bg-white rounded-xl shadow-lg p-3 sm:p-6">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="p-2 sm:p-3 bg-purple-100 rounded-lg">
+                  <FaHdd className="text-purple-600" size={16} />
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500">Total Size</p>
-                  <p className="text-2xl font-bold text-gray-900">{storageInfo?.total_size_formatted || '0 B'}</p>
+                  <p className="text-[10px] sm:text-sm text-gray-500">Total Size</p>
+                  <p className="text-lg sm:text-2xl font-bold text-gray-900">{storageInfo?.total_size_formatted || '0 B'}</p>
                 </div>
               </div>
             </div>
-            <div className="bg-white rounded-xl shadow-lg p-6">
-              <div className="flex items-center gap-3">
-                <div className="p-3 bg-green-100 rounded-lg">
-                  <FaCheckCircle className="text-green-600" size={20} />
+            <div className="bg-white rounded-xl shadow-lg p-3 sm:p-6">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="p-2 sm:p-3 bg-green-100 rounded-lg">
+                  <FaCheckCircle className="text-green-600" size={16} />
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500">Max Backups</p>
-                  <p className="text-2xl font-bold text-gray-900">{config?.maxBackups || 10}</p>
+                  <p className="text-[10px] sm:text-sm text-gray-500">Max Backups</p>
+                  <p className="text-lg sm:text-2xl font-bold text-gray-900">{config?.maxBackups || 10}</p>
                 </div>
               </div>
             </div>
-            <div className="bg-white rounded-xl shadow-lg p-6">
-              <div className="flex items-center gap-3">
-                <div className="p-3 bg-yellow-100 rounded-lg">
-                  <FaInfoCircle className="text-yellow-600" size={20} />
+            <div className="bg-white rounded-xl shadow-lg p-3 sm:p-6">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="p-2 sm:p-3 bg-yellow-100 rounded-lg">
+                  <FaInfoCircle className="text-yellow-600" size={16} />
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500">Disk Free</p>
-                  <p className="text-2xl font-bold text-gray-900">{storageInfo?.disk_free || 'Unknown'}</p>
+                  <p className="text-[10px] sm:text-sm text-gray-500">Disk Free</p>
+                  <p className="text-lg sm:text-2xl font-bold text-gray-900">{storageInfo?.disk_free || 'Unknown'}</p>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Backup List */}
-          <div className="bg-white rounded-2xl shadow-xl overflow-hidden mb-6">
-            <div className="p-6 border-b border-gray-200">
-              <h2 className="text-xl font-bold text-gray-900">Backup History</h2>
+          {/* Backup List - Responsive */}
+          <div className="bg-white rounded-2xl shadow-xl overflow-hidden mb-4 sm:mb-6">
+            <div className="p-4 sm:p-6 border-b border-gray-200">
+              <h2 className="text-lg sm:text-xl font-bold text-gray-900">Backup History</h2>
             </div>
 
             {backups && backups.length > 0 ? (
@@ -371,69 +371,69 @@ export default function BackupIndex({ backups, backupLogs, storageInfo, config }
                 <table className="w-full">
                   <thead className="bg-gray-50">
                     <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Backup ID</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Trigger</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Size</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                      <th className="px-3 sm:px-6 py-2.5 sm:py-3 text-left text-[10px] sm:text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                      <th className="px-3 sm:px-6 py-2.5 sm:py-3 text-left text-[10px] sm:text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                      <th className="hidden sm:table-cell px-3 sm:px-6 py-2.5 sm:py-3 text-left text-[10px] sm:text-xs font-medium text-gray-500 uppercase tracking-wider">Trigger</th>
+                      <th className="hidden md:table-cell px-3 sm:px-6 py-2.5 sm:py-3 text-left text-[10px] sm:text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
+                      <th className="hidden lg:table-cell px-3 sm:px-6 py-2.5 sm:py-3 text-left text-[10px] sm:text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
+                      <th className="px-3 sm:px-6 py-2.5 sm:py-3 text-left text-[10px] sm:text-xs font-medium text-gray-500 uppercase tracking-wider">Size</th>
+                      <th className="px-3 sm:px-6 py-2.5 sm:py-3 text-left text-[10px] sm:text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
                     {backups.map((backup) => (
                       <tr key={backup.id} className="hover:bg-gray-50 transition-colors">
-                        <td className="px-6 py-4 text-sm font-medium text-gray-900">{backup.id}</td>
-                        <td className="px-6 py-4">
-                          <span className={`px-2 py-1 text-xs rounded-full ${getTypeColor(backup.type)}`}>
+                        <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm font-medium text-gray-900">{backup.id}</td>
+                        <td className="px-3 sm:px-6 py-3 sm:py-4">
+                          <span className={`px-1.5 sm:px-2 py-0.5 text-[8px] sm:text-xs rounded-full ${getTypeColor(backup.type)}`}>
                             {backup.type.toUpperCase()}
                           </span>
                           {backup.database && (
-                            <span className="ml-1 px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800">
+                            <span className="ml-0.5 sm:ml-1 px-1.5 sm:px-2 py-0.5 text-[8px] sm:text-xs rounded-full bg-blue-100 text-blue-800">
                               DB
                             </span>
                           )}
                         </td>
-                        <td className="px-6 py-4">
-                          <div className="flex items-center gap-2">
+                        <td className="hidden sm:table-cell px-3 sm:px-6 py-3 sm:py-4">
+                          <div className="flex items-center gap-1.5 sm:gap-2">
                             {getTriggerIcon(backup.trigger)}
-                            <span className="text-sm text-gray-600">{getTriggerLabel(backup.trigger)}</span>
+                            <span className="text-xs sm:text-sm text-gray-600">{getTriggerLabel(backup.trigger)}</span>
                           </div>
                         </td>
-                        <td className="px-6 py-4 text-sm text-gray-600 max-w-xs truncate">
+                        <td className="hidden md:table-cell px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-gray-600 max-w-xs truncate">
                           {backup.description}
                         </td>
-                        <td className="px-6 py-4 text-sm text-gray-600">
-                          <div className="flex items-center gap-2">
-                            <FaCalendarAlt size={12} className="text-gray-400" />
+                        <td className="hidden lg:table-cell px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-gray-600">
+                          <div className="flex items-center gap-1.5 sm:gap-2">
+                            <FaCalendarAlt size={10} className="text-gray-400" />
                             {formatDate(backup.created_at)}
                           </div>
                         </td>
-                        <td className="px-6 py-4 text-sm font-medium text-gray-700">
+                        <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm font-medium text-gray-700">
                           {backup.size_formatted}
                         </td>
-                        <td className="px-6 py-4">
-                          <div className="flex gap-2">
+                        <td className="px-3 sm:px-6 py-3 sm:py-4">
+                          <div className="flex flex-wrap gap-1 sm:gap-2">
                             <button
                               onClick={() => downloadBackup(backup.id)}
-                              className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                              className="p-1.5 sm:p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                               title="Download"
                             >
-                              <FaDownload size={16} />
+                              <FaDownload size={14} />
                             </button>
                             <button
                               onClick={() => restoreBackup(backup.id)}
-                              className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                              className="p-1.5 sm:p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
                               title="Restore"
                             >
-                              <FaUndo size={16} />
+                              <FaUndo size={14} />
                             </button>
                             <button
                               onClick={() => deleteBackup(backup.id)}
-                              className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                              className="p-1.5 sm:p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                               title="Delete"
                             >
-                              <FaTrash size={16} />
+                              <FaTrash size={14} />
                             </button>
                           </div>
                         </td>
@@ -443,23 +443,23 @@ export default function BackupIndex({ backups, backupLogs, storageInfo, config }
                 </table>
               </div>
             ) : (
-              <div className="p-12 text-center">
-                <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-gray-100 flex items-center justify-center">
-                  <FaFileArchive className="text-gray-400" size={32} />
+              <div className="p-8 sm:p-12 text-center">
+                <div className="w-16 h-16 sm:w-20 sm:h-20 mx-auto mb-3 sm:mb-4 rounded-full bg-gray-100 flex items-center justify-center">
+                  <FaFileArchive className="text-gray-400" size={24} />
                 </div>
-                <h3 className="text-lg font-medium text-gray-900">No Backups Found</h3>
-                <p className="text-sm text-gray-500 mt-2">
+                <h3 className="text-base sm:text-lg font-medium text-gray-900">No Backups Found</h3>
+                <p className="text-xs sm:text-sm text-gray-500 mt-1 sm:mt-2">
                   Create your first backup using the "Manual Backup" or "Auto Backup" button above.
                 </p>
               </div>
             )}
           </div>
 
-          {/* Backup Logs */}
+          {/* Backup Logs - Responsive */}
           <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
-            <div className="p-6 border-b border-gray-200">
-              <h2 className="text-xl font-bold text-gray-900">Backup Logs</h2>
-              <p className="text-sm text-gray-500 mt-1">Recent backup activities</p>
+            <div className="p-4 sm:p-6 border-b border-gray-200">
+              <h2 className="text-lg sm:text-xl font-bold text-gray-900">Backup Logs</h2>
+              <p className="text-xs sm:text-sm text-gray-500 mt-0.5 sm:mt-1">Recent backup activities</p>
             </div>
 
             {backupLogs && backupLogs.length > 0 ? (
@@ -467,40 +467,40 @@ export default function BackupIndex({ backups, backupLogs, storageInfo, config }
                 <table className="w-full">
                   <thead className="bg-gray-50">
                     <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Timestamp</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Level</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Backup ID</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Message</th>
+                      <th className="px-3 sm:px-6 py-2.5 sm:py-3 text-left text-[10px] sm:text-xs font-medium text-gray-500 uppercase tracking-wider">Timestamp</th>
+                      <th className="px-3 sm:px-6 py-2.5 sm:py-3 text-left text-[10px] sm:text-xs font-medium text-gray-500 uppercase tracking-wider">Level</th>
+                      <th className="hidden sm:table-cell px-3 sm:px-6 py-2.5 sm:py-3 text-left text-[10px] sm:text-xs font-medium text-gray-500 uppercase tracking-wider">Backup ID</th>
+                      <th className="hidden md:table-cell px-3 sm:px-6 py-2.5 sm:py-3 text-left text-[10px] sm:text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                      <th className="px-3 sm:px-6 py-2.5 sm:py-3 text-left text-[10px] sm:text-xs font-medium text-gray-500 uppercase tracking-wider">Message</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
                     {backupLogs.map((log, index) => (
                       <tr key={index} className="hover:bg-gray-50 transition-colors">
-                        <td className="px-6 py-4 text-sm text-gray-600">{log.timestamp}</td>
-                        <td className="px-6 py-4">
-                          <span className={`px-2 py-1 text-xs rounded-full ${log.level === 'success' ? 'bg-green-100 text-green-800' :
+                        <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-gray-600">{log.timestamp}</td>
+                        <td className="px-3 sm:px-6 py-3 sm:py-4">
+                          <span className={`px-1.5 sm:px-2 py-0.5 text-[8px] sm:text-xs rounded-full ${log.level === 'success' ? 'bg-green-100 text-green-800' :
                             log.level === 'failed' ? 'bg-red-100 text-red-800' :
                               'bg-gray-100 text-gray-800'
                             }`}>
                             {log.level.toUpperCase()}
                           </span>
                         </td>
-                        <td className="px-6 py-4 text-sm font-medium text-gray-900">{log.backup_id}</td>
-                        <td className="px-6 py-4">
-                          <span className={`px-2 py-1 text-xs rounded-full ${getTypeColor(log.type)}`}>
+                        <td className="hidden sm:table-cell px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm font-medium text-gray-900">{log.backup_id}</td>
+                        <td className="hidden md:table-cell px-3 sm:px-6 py-3 sm:py-4">
+                          <span className={`px-1.5 sm:px-2 py-0.5 text-[8px] sm:text-xs rounded-full ${getTypeColor(log.type)}`}>
                             {log.type.toUpperCase()}
                           </span>
                         </td>
-                        <td className="px-6 py-4 text-sm text-gray-600 max-w-md truncate">{log.message}</td>
+                        <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-gray-600 max-w-xs truncate">{log.message}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
             ) : (
-              <div className="p-12 text-center">
-                <p className="text-gray-500">No backup logs available</p>
+              <div className="p-8 sm:p-12 text-center">
+                <p className="text-xs sm:text-sm text-gray-500">No backup logs available</p>
               </div>
             )}
           </div>
@@ -508,9 +508,9 @@ export default function BackupIndex({ backups, backupLogs, storageInfo, config }
           {/* Loading Overlay */}
           {loading && (
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-              <div className="bg-white rounded-xl p-8 flex flex-col items-center">
-                <FaSpinner className="animate-spin text-blue-600" size={48} />
-                <p className="mt-4 text-gray-700 font-medium">Processing...</p>
+              <div className="bg-white rounded-xl p-6 sm:p-8 flex flex-col items-center">
+                <FaSpinner className="animate-spin text-blue-600" size={36} />
+                <p className="mt-3 sm:mt-4 text-gray-700 font-medium text-sm sm:text-base">Processing...</p>
               </div>
             </div>
           )}

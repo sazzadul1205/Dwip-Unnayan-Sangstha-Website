@@ -75,8 +75,8 @@ const JobsSection = ({
   limit: propLimit,
   filterPlaceholder: propFilterPlaceholder,
   bgColor = 'bg-[#F5F5F5]',
-  paddingY = 'py-12 sm:py-16 md:py-25 lg:py-37.5',
-  paddingX = 'px-5 sm:px-10 md:px-20 lg:px-75',
+  paddingY = 'py-12 sm:py-16 md:py-20 lg:py-25 xl:py-30 2xl:py-37.5',
+  paddingX = 'px-5 sm:px-8 md:px-12 lg:px-20 xl:px-30 2xl:px-50',
   sectionClassName = '',
   apiEndpoint = '/api/jobs',
   apiParams = {},
@@ -524,21 +524,22 @@ const JobsSection = ({
   const title = titleRef.current;
   const description = descriptionRef.current;
 
-
   return (
     <section id="jobs" className={`${bgColor} ${paddingX} ${paddingY} ${sectionClassName}`}>
       {/* Header */}
       {(hasValue(title) || hasValue(description) || hasValue(filterOptions)) && (
-        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center pb-8 sm:pb-10 lg:pb-15 flex-wrap gap-5">
+        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center pb-6 sm:pb-8 md:pb-10 lg:pb-12 xl:pb-15 flex-wrap gap-4 sm:gap-5">
 
           {/* Title and Description */}
           {(hasValue(title) || hasValue(description)) && (
             <div>
               {hasValue(title) && (
-                <h1 className="bricolage-grotesque text-[#080C14] font-semibold text-[36px] pb-2.5">{title}</h1>
+                <h1 className="bricolage-grotesque text-[#080C14] font-semibold text-[28px] sm:text-[32px] md:text-[36px] lg:text-[40px] xl:text-[42px] 2xl:text-[46px] pb-1 sm:pb-2">
+                  {title}
+                </h1>
               )}
               {hasValue(description) && (
-                <p className="bricolage-grotesque text-[#524B48] font-normal text-[16px] sm:text-[18px] lg:text-[20px]">
+                <p className="bricolage-grotesque text-[#524B48] font-normal text-[15px] sm:text-[16px] md:text-[17px] lg:text-[18px] xl:text-[19px] 2xl:text-[20px]">
                   {description}
                 </p>
               )}
@@ -548,7 +549,7 @@ const JobsSection = ({
           {/* Search and Filter */}
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 w-full lg:w-auto">
             {/* Search Input */}
-            <div className="relative w-full lg:min-w-80" ref={searchRef}>
+            <div className="relative w-full lg:min-w-72 xl:min-w-80 2xl:min-w-96" ref={searchRef}>
               <div className="relative">
                 <input
                   type="text"
@@ -556,9 +557,9 @@ const JobsSection = ({
                   value={searchTerm}
                   onChange={handleSearchChange}
                   onFocus={() => setIsSearchOpen(true)}
-                  className="w-full pl-10 pr-4 py-3 sm:py-4 border border-[#A3A3A3] rounded-[14px] bg-white text-[14px] sm:text-[16px] font-400 text-[#515151] outline-none focus:border-[#009BE2] focus:ring-1 focus:ring-[#009BE2] transition-all duration-300"
+                  className="w-full pl-10 pr-4 py-2.5 sm:py-3 md:py-3.5 border border-[#A3A3A3] rounded-[14px] bg-white text-[13px] sm:text-[14px] md:text-[15px] lg:text-[16px] font-400 text-[#515151] outline-none focus:border-[#009BE2] focus:ring-1 focus:ring-[#009BE2] transition-all duration-300"
                 />
-                <HiOutlineSearch className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 text-[#A3A3A3] text-[18px] sm:text-[20px]" />
+                <HiOutlineSearch className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 text-[#A3A3A3] text-[16px] sm:text-[18px] md:text-[20px]" />
               </div>
 
               {isSearchOpen && searchSuggestions.length > 0 && (
@@ -569,8 +570,8 @@ const JobsSection = ({
                       onClick={() => handleSearchSelect(job)}
                       className="w-full text-left px-4 py-3 hover:bg-[#F5F5F5] transition-colors duration-200 border-b border-[#F5F5F5] last:border-b-0"
                     >
-                      <div className="font-500 text-[#080C14] text-[14px] sm:text-[16px]">{job.title}</div>
-                      <div className="flex items-center gap-2 mt-1 text-[12px] sm:text-[14px] text-[#524B48]">
+                      <div className="font-500 text-[#080C14] text-[13px] sm:text-[14px] md:text-[15px] lg:text-[16px]">{job.title}</div>
+                      <div className="flex items-center gap-2 mt-1 text-[11px] sm:text-[12px] md:text-[13px] lg:text-[14px] text-[#524B48]">
                         {job.type && <span>{job.type}</span>}
                         {job.type && job.location && <span>•</span>}
                         {job.location && <span>{job.location}</span>}
@@ -581,7 +582,7 @@ const JobsSection = ({
               )}
 
               {isSearchOpen && searchTerm.trim() !== "" && searchSuggestions.length === 0 && (
-                <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-[#E5E5E5] rounded-xl shadow-lg z-50 p-4 text-center text-[#524B48] text-[14px]">
+                <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-[#E5E5E5] rounded-xl shadow-lg z-50 p-4 text-center text-[#524B48] text-[13px] sm:text-[14px]">
                   No jobs found matching "{searchTerm}"
                 </div>
               )}
@@ -607,7 +608,7 @@ const JobsSection = ({
       {/* No jobs */}
       {!loading && jobs.length === 0 && (
         <div className="text-center py-12">
-          <p className="text-[#524B48] text-[18px]">No jobs available at the moment.</p>
+          <p className="text-[#524B48] text-[16px] sm:text-[17px] lg:text-[18px]">No jobs available at the moment.</p>
         </div>
       )}
 
@@ -621,16 +622,16 @@ const JobsSection = ({
               key={job.id || `job-${index}`}
               id={`job-${job.id}`}
               data-job-id={job.id}
-              className="bg-white p-5 sm:p-6 md:p-8 lg:p-10 rounded-2xl hover:shadow-lg transition-all duration-300"
+              className="bg-white p-4 sm:p-5 md:p-6 lg:p-8 xl:p-10 rounded-2xl hover:shadow-lg transition-all duration-300"
             >
-              <div className="flex flex-col md:flex-row items-start justify-between gap-5">
+              <div className="flex flex-col md:flex-row items-start justify-between gap-4 sm:gap-5">
                 <div className="flex-1 w-full">
                   {(hasValue(job.type) || hasValue(job.department) || hasValue(job.location)) && (
-                    <div className="flex items-center gap-2 sm:gap-3 text-[#524B48] text-[12px] sm:text-[14px] font-400 uppercase mb-3 flex-wrap">
+                    <div className="flex items-center gap-2 sm:gap-3 text-[#524B48] text-[11px] sm:text-[12px] md:text-[13px] lg:text-[14px] font-400 uppercase mb-2 sm:mb-3 flex-wrap">
                       {hasValue(job.type) && (
                         <>
                           <p className="flex items-center gap-1 sm:gap-1.5">
-                            <LuClock4 className="text-[12px] sm:text-[14px]" /> {job.type}
+                            <LuClock4 className="text-[11px] sm:text-[12px] md:text-[13px] lg:text-[14px]" /> {job.type}
                           </p>
                           {(hasValue(job.department) || hasValue(job.location)) && (
                             <span className="w-1 h-px bg-[#524B48] block" />
@@ -640,30 +641,30 @@ const JobsSection = ({
                       {hasValue(job.department) && (
                         <>
                           <p className="flex items-center gap-1 sm:gap-1.5">
-                            <LuBriefcaseBusiness className="text-[12px] sm:text-[14px]" /> {job.department}
+                            <LuBriefcaseBusiness className="text-[11px] sm:text-[12px] md:text-[13px] lg:text-[14px]" /> {job.department}
                           </p>
                           {hasValue(job.location) && <span className="w-1 h-px bg-[#524B48] block" />}
                         </>
                       )}
                       {hasValue(job.location) && (
                         <p className="flex items-center gap-1 sm:gap-1.5">
-                          <HiOutlineLocationMarker className="text-[12px] sm:text-[14px]" /> {job.location}
+                          <HiOutlineLocationMarker className="text-[11px] sm:text-[12px] md:text-[13px] lg:text-[14px]" /> {job.location}
                         </p>
                       )}
                     </div>
                   )}
                   {hasValue(job.title) && (
-                    <h3 className="text-[#080C14] text-[22px] sm:text-[26px] md:text-[28px] lg:text-[32px] font-600 mb-2 sm:mb-3 leading-tight">
+                    <h3 className="text-[#080C14] text-[18px] sm:text-[20px] md:text-[22px] lg:text-[26px] xl:text-[28px] 2xl:text-[32px] font-600 mb-1.5 sm:mb-2 md:mb-2.5 lg:mb-3 leading-tight">
                       {job.title}
                     </h3>
                   )}
                   {hasValue(job.description) && (
-                    <p className="text-[#524B48] text-[15px] sm:text-[16px] md:text-[17px] lg:text-[18px] font-400 leading-relaxed line-clamp-3">
+                    <p className="text-[#524B48] text-[14px] sm:text-[15px] md:text-[16px] lg:text-[17px] xl:text-[18px] font-400 leading-relaxed line-clamp-3">
                       {job.description}
                     </p>
                   )}
                   {(job.salary_min || job.salary_max) && (
-                    <div className="mt-3 flex items-center gap-2 text-[#009BE2] font-500 text-[14px]">
+                    <div className="mt-2 sm:mt-2.5 md:mt-3 flex items-center gap-2 text-[#009BE2] font-500 text-[13px] sm:text-[14px]">
                       {job.salary_min && job.salary_max && (
                         <span>${job.salary_min.toLocaleString()} - ${job.salary_max.toLocaleString()}</span>
                       )}
@@ -672,10 +673,10 @@ const JobsSection = ({
                     </div>
                   )}
                 </div>
-                <div className="w-full md:w-auto mt-4 md:mt-0">
+                <div className="w-full md:w-auto mt-3 md:mt-0">
                   <Link
                     href={job.link}
-                    className="bricolage-grotesque border border-[#009BE2] rounded-md text-[#009BE2] px-5 sm:px-6 lg:px-7.5 py-3 sm:py-3.5 lg:py-4 font-600 text-[14px] sm:text-[15px] lg:text-[16px] inline-flex items-center justify-center gap-2 sm:gap-3 group hover:bg-[#009BE2] hover:text-white transition-all duration-300 whitespace-nowrap w-full md:w-auto"
+                    className="bricolage-grotesque border border-[#009BE2] rounded-md text-[#009BE2] px-4 sm:px-5 md:px-6 lg:px-7.5 py-2.5 sm:py-3 md:py-3.5 lg:py-4 font-600 text-[13px] sm:text-[14px] md:text-[15px] lg:text-[16px] inline-flex items-center justify-center gap-2 sm:gap-3 group hover:bg-[#009BE2] hover:text-white transition-all duration-300 whitespace-nowrap w-full md:w-auto"
                   >
                     Apply Now
                     <ArrowIcon className="group-hover:translate-x-1 group-hover:-translate-y-1 transition-all duration-300" />
@@ -694,8 +695,8 @@ const JobsSection = ({
 
           {/* No more jobs */}
           {filteredJobs.length === 0 && jobs.length > 0 && (
-            <div className="bg-white p-8 sm:p-10 lg:p-12 rounded-2xl text-center">
-              <p className="text-[#515151] text-[16px] sm:text-[17px] lg:text-[18px] font-400">
+            <div className="bg-white p-6 sm:p-8 md:p-10 lg:p-12 rounded-2xl text-center">
+              <p className="text-[#515151] text-[15px] sm:text-[16px] md:text-[17px] lg:text-[18px] font-400">
                 No jobs found matching your search.
               </p>
               <button

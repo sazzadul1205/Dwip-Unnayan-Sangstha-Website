@@ -46,8 +46,8 @@ const FollowUSSection = ({
   socialItems = [],
   title = "Follow Us",
   bgColor = 'bg-white',
-  paddingY = 'py-10 sm:py-14 lg:py-37.5',
-  paddingX = 'px-4 sm:px-6 lg:px-8 xl:px-50',
+  paddingY = 'py-12 sm:py-16 md:py-20 lg:py-25 xl:py-30 2xl:py-37.5',
+  paddingX = 'px-5 sm:px-8 md:px-12 lg:px-20 xl:px-30 2xl:px-50',
   sectionClassName = '',
   sectionId = 'follow-us',
 }) => {
@@ -106,7 +106,7 @@ const FollowUSSection = ({
       console.warn(`Icon "${iconName}" not found in mapping`);
       return null;
     }
-    return <IconComponent className="text-[66px]" />;
+    return <IconComponent className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 lg:w-16.5 lg:h-16.5" />;
   };
 
   // ============================================
@@ -119,36 +119,37 @@ const FollowUSSection = ({
     >
       <div className={`${paddingX} ${paddingY}`}>
         {hasValue(resolvedTitle) && (
-          <h2 className="text-[#1D2566] font-bold text-[28px] sm:text-[32px] lg:text-[36px] leading-tight pb-6 sm:pb-8 lg:pb-12.5 text-center sm:text-left">
+          <h2 className="text-[#1D2566] font-bold text-[24px] sm:text-[28px] md:text-[32px] lg:text-[36px] xl:text-[40px] leading-tight pb-4 sm:pb-6 md:pb-8 lg:pb-10 xl:pb-12.5 text-center sm:text-left">
             {resolvedTitle}
           </h2>
         )}
 
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 border border-[#EFEFEF] bg-white rounded-lg overflow-hidden">
-          {socialItemsArray.map((item, index) => (
-            <a
-              key={item.label || index}
-              href={item.url || '#'}
-              target={item.url?.startsWith('http') ? '_blank' : '_self'}
-              rel={item.url?.startsWith('http') ? 'noopener noreferrer' : ''}
-              aria-label={item.label}
-              className={`flex items-center justify-center py-12 sm:py-16 lg:py-22.5 px-4 sm:px-6 lg:px-30 text-[#1D2566] transition-all duration-300 hover:bg-[#F7F8FC] hover:scale-105 ${index !== socialItemsArray.length - 1 &&
-                (index % 2 === 0 || (index % 2 === 1 && index < socialItemsArray.length - 1))
-                ? 'border-r border-[#EFEFEF]'
-                : ''
-                } ${index < socialItemsArray.length - 2 && index % 2 === 0
-                  ? 'border-b border-[#EFEFEF] md:border-b-0'
-                  : index < socialItemsArray.length - 1 && index % 2 === 1 && socialItemsArray.length > 2
-                    ? 'border-b border-[#EFEFEF] md:border-b-0'
-                    : ''
-                } ${index % 2 === 1 && index !== socialItemsArray.length - 1
-                  ? 'border-r-0 sm:border-r md:border-r border-[#EFEFEF]'
-                  : ''
-                }`}
-            >
-              {renderIcon(item.icon)}
-            </a>
-          ))}
+          {socialItemsArray.map((item, index) => {
+            const isLastItem = index === socialItemsArray.length - 1;
+
+            return (
+              <a
+                key={item.label || index}
+                href={item.url || '#'}
+                target={item.url?.startsWith('http') ? '_blank' : '_self'}
+                rel={item.url?.startsWith('http') ? 'noopener noreferrer' : ''}
+                aria-label={item.label}
+                className={`
+                  flex items-center justify-center 
+                  py-8 sm:py-10 md:py-12 lg:py-16 xl:py-20 2xl:py-22.5 
+                  px-4 sm:px-6 lg:px-20 xl:px-25 2xl:px-30 
+                  text-[#1D2566] transition-all duration-300 hover:bg-[#F7F8FC] hover:scale-105
+                  ${!isLastItem && 'border-r border-[#EFEFEF]'}
+                  ${index < socialItemsArray.length - 2 && 'border-b border-[#EFEFEF]'}
+                  ${(index === 2 || index === 3) && 'sm:border-b-0 md:border-b'}
+                  ${index === 4 && 'md:border-b-0'}
+                `}
+              >
+                {renderIcon(item.icon)}
+              </a>
+            );
+          })}
         </div>
       </div>
     </section>

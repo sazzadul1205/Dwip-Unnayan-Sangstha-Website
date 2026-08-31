@@ -159,9 +159,11 @@ class ApplicantCv extends Model
     /**
      * Get full CV URL
      */
-    public function getUrlAttribute(): string
+    public function getUrlAttribute(): ?string
     {
-        return asset('storage/' . $this->cv_path);
+        return $this->cv_path && \Illuminate\Support\Facades\Storage::disk('public')->exists($this->cv_path)
+            ? asset('storage/' . $this->cv_path)
+            : null;
     }
 
     /* ==========================================

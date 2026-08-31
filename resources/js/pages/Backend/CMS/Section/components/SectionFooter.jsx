@@ -1,6 +1,5 @@
 // resources/js/pages/Backend/CMS/Section/components/SectionFooter.jsx
 
-import React from 'react';
 import {
   FaGripVertical,
   FaHashtag,

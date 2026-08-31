@@ -140,9 +140,9 @@ function EmailModal({ isOpen, onClose, applications, onSend, isBulk = false, can
         if (!res.ok) throw new Error('Failed to send email');
         return res.json();
       })
-      .then(data => {
+      .then((responseData) => {
         setSending(false);
-        onSend(true);
+        onSend(true, responseData);
         onClose();
       })
       .catch(err => {
@@ -260,18 +260,21 @@ export default function Applications({ jobListing, applications, filters: initia
     user: currentUser,
     hasAnyPermission,
     hasRole,
-    isAuthenticated,
   } = useAuth();
 
-  // Check permissions for application management
-  const isSuperAdmin = hasRole('super-admin');
-  const isEmployer = hasRole('employer') || hasRole('employer-admin');
-  const isHRManager = hasRole('hr-manager');
+  // Check permissions
   const canSendEmails = hasAnyPermission(['applications.email', 'applications.manage']);
   const canViewApplications = hasAnyPermission(['applications.view', 'applications.manage']);
   const canDownloadResumes = hasAnyPermission(['applications.download', 'applications.manage']);
   const canUpdateApplications = hasAnyPermission(['applications.update', 'applications.manage']);
   const canDeleteApplications = hasAnyPermission(['applications.destroy', 'applications.manage']);
+
+  // Check if user is employer or admin
+  const isEmployer = hasRole('employer') || hasRole('employer-admin');
+  const isHRManager = hasRole('hr-manager');
+  
+  // Check if user owns this job listing
+  const isJobOwner = (isEmployer || isHRManager) && currentUser?.employer_id === jobListing?.employer_id;
 
   // State
   const [showFilters, setShowFilters] = useState(false);
@@ -719,7 +722,7 @@ export default function Applications({ jobListing, applications, filters: initia
       <Head title={`Applications - ${jobListing.title}`} />
 
       <div className="min-h-screen bg-gray-50 py-8">
-        <div className=" mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="mx-auto px-4 sm:px-6 lg:px-8">
           {/* Header */}
           <div className="mb-6">
             <Link
@@ -1123,6 +1126,6 @@ export default function Applications({ jobListing, applications, filters: initia
           }
         }}
       />
-    </AuthenticatedLayout >
+    </AuthenticatedLayout>
   );
 }

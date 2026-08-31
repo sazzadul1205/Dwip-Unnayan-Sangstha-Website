@@ -796,16 +796,12 @@ class SectionController extends Controller
 
   /**
    * Normalize color values in the data array.
+   * Now stores raw hex values instead of Tailwind classes
    */
   private function normalizeColorValues(array $data): array
   {
-    foreach ($data as $key => $value) {
-      if (is_array($value)) {
-        $data[$key] = $this->normalizeColorValues($value);
-      } elseif (is_string($value) && preg_match('/^#[0-9a-fA-F]{6}$/', $value)) {
-        $data[$key] = 'bg-[' . $value . ']';
-      }
-    }
+    // We're no longer converting hex to Tailwind classes
+    // Colors are stored as raw hex values for use with inline styles
     return $data;
   }
 

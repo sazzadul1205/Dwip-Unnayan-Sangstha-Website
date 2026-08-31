@@ -20,8 +20,8 @@ const HeroFigureSection = ({
   bgColor = 'bg-white',
   bgImage = null,
   bgOverlay = null,
-  paddingY = 'py-10 sm:py-15 md:py-25 lg:py-37.5',
-  paddingX = 'px-5 sm:px-10 md:px-20 lg:px-50',
+  paddingY = 'py-12 sm:py-16 md:py-20 lg:py-25 xl:py-30 2xl:py-37.5',
+  paddingX = 'px-5 sm:px-8 md:px-12 lg:px-20 xl:px-30 2xl:px-50',
   sectionClassName = '',
 }) => {
   // ============================================
@@ -114,7 +114,7 @@ const HeroFigureSection = ({
   const TextContent = () => (
     <div className='w-full lg:w-1/2 flex flex-col justify-between relative z-10'>
       {hasTitle && (
-        <h1 className='bricolage-grotesque font-700 text-[32px] sm:text-[36px] lg:text-[40px] text-black pb-2'>
+        <h1 className='bricolage-grotesque font-700 text-[28px] sm:text-[32px] md:text-[36px] lg:text-[40px] xl:text-[44px] 2xl:text-[48px] text-black pb-2 sm:pb-3'>
           {section.title}
         </h1>
       )}
@@ -122,7 +122,7 @@ const HeroFigureSection = ({
       {hasContent && (
         <div className="relative">
           <div
-            className='bricolage-grotesque text-[16px] sm:text-[18px] lg:text-[20px] text-[#333333] leading-snug overflow-hidden'
+            className='bricolage-grotesque text-[15px] sm:text-[16px] md:text-[17px] lg:text-[18px] xl:text-[19px] 2xl:text-[20px] text-[#333333] leading-snug overflow-hidden'
             style={{
               maxHeight: '730px',
               display: '-webkit-box',
@@ -137,10 +137,10 @@ const HeroFigureSection = ({
       )}
 
       {hasButton && (
-        <div className='pt-8'>
+        <div className='pt-4 sm:pt-5 md:pt-6 lg:pt-7 xl:pt-8'>
           <button
             onClick={() => window.location.href = btn.link}
-            className='bricolage-grotesque border border-[#009BE2] rounded-md text-[#009BE2] px-4 py-3 sm:px-5 sm:py-3.5 lg:p-4 font-600 text-[14px] sm:text-[15px] lg:text-[16px] inline-flex items-center gap-3 group hover:bg-[#009BE2] hover:text-white transition-all duration-300'
+            className='bricolage-grotesque border border-[#009BE2] rounded-md text-[#009BE2] px-4 sm:px-5 lg:px-6 xl:px-7 py-2.5 sm:py-3 lg:py-3.5 xl:py-4 font-600 text-[13px] sm:text-[14px] md:text-[15px] lg:text-[16px] inline-flex items-center gap-2 sm:gap-3 group hover:bg-[#009BE2] hover:text-white transition-all duration-300'
           >
             <span>{btn.text}</span>
             <ArrowIcon className="group-hover:translate-x-1 group-hover:-translate-y-1 transition-all duration-300" />
@@ -152,13 +152,15 @@ const HeroFigureSection = ({
 
   // Image component
   const ImageComponent = () => (
-    <div className='w-full lg:w-1/2 flex mt-8 lg:mt-0 relative z-10'>
-      <img
-        src={imageSrc}
-        alt={imageAlt}
-        className={image.className || 'w-full h-auto lg:h-full object-cover rounded-2xl sm:rounded-3xl lg:rounded-4xl'}
-        onError={handleImageError}
-      />
+    <div className='w-full lg:w-1/2 flex items-center mt-6 sm:mt-8 lg:mt-0 relative z-10'>
+      <div className='w-full h-full min-h-50 sm:min-h-62.5 md:min-h-75 lg:min-h-87.5 xl:min-h-100 2xl:min-h-112.5'>
+        <img
+          src={imageSrc}
+          alt={imageAlt}
+          className={image.className || 'w-full h-full object-cover rounded-2xl sm:rounded-3xl lg:rounded-4xl'}
+          onError={handleImageError}
+        />
+      </div>
     </div>
   );
 
@@ -168,14 +170,14 @@ const HeroFigureSection = ({
   return (
     <section
       id={sectionId}
-      className={`relative ${bgColor} ${paddingY} ${paddingX} ${sectionClassName}`}
+      className={`relative ${bgColor} ${paddingX} ${paddingY} ${sectionClassName}`}
       style={getBackgroundStyle()}
     >
       {hasValue(bgImage) && hasValue(bgOverlay) && (
         <div className={`absolute inset-0 ${bgOverlay}`} />
       )}
 
-      <div className="flex flex-col lg:flex-row justify-between items-stretch gap-8 lg:gap-15 relative z-10">
+      <div className="flex flex-col lg:flex-row justify-between items-stretch gap-6 sm:gap-8 md:gap-10 lg:gap-12 xl:gap-15 relative z-10">
         {isImageLeft ? (
           <>
             <ImageComponent />

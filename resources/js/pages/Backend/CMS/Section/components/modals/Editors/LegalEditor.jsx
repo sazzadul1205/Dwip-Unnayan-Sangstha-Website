@@ -49,8 +49,8 @@ const LegalEditor = ({ section, hasData, onDataChange }) => {
     { value: 'bg-black/60', label: 'Dark Overlay' },
     { value: 'bg-black/70', label: 'Heavy Dark Overlay' },
     { value: 'bg-black/80', label: 'Very Heavy Dark Overlay' },
-    { value: 'bg-gradient-to-r from-black/85 via-black/10 to-transparent', label: 'Gradient Left to Right' },
-    { value: 'bg-gradient-to-l from-black/85 via-black/10 to-transparent', label: 'Gradient Right to Left' },
+    { value: 'bg-linear-to-r from-black/85 via-black/10 to-transparent', label: 'Gradient Left to Right' },
+    { value: 'bg-linear-to-l from-black/85 via-black/10 to-transparent', label: 'Gradient Right to Left' },
   ];
 
   // ===== EMPTY STATE =====

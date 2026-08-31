@@ -18,6 +18,10 @@ Route::prefix('backend/newsletter')->name('backend.newsletter.')->middleware(['a
   // List all subscribers
   Route::get('/', [NewsletterController::class, 'adminIndex'])->name('index');
 
+  // Campaign management routes
+  Route::get('campaigns', [NewsletterController::class, 'adminCampaigns'])->name('campaigns');
+  Route::get('campaign/{id}', [NewsletterController::class, 'adminCampaignStatus'])->name('campaign.status');
+
   // Export subscribers
   Route::post('export', [NewsletterController::class, 'adminExport'])->name('export');
 
