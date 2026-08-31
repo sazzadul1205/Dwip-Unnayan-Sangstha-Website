@@ -87,6 +87,16 @@ const PageTagBannerSection = ({
     return color;
   };
 
+  // ─── CHECK IF A TAG IS ACTIVE ──────────────────────────
+  // For "All" tag: active when no filter is applied (currentTagFromUrl is empty)
+  // For other tags: active when it matches the URL parameter
+  const isTagActive = (tagLabel) => {
+    if (tagLabel.toLowerCase() === 'all') {
+      return currentTagFromUrl === '' || currentTagFromUrl.toLowerCase() === 'all';
+    }
+    return tagLabel === currentTagFromUrl;
+  };
+
   // ─── HANDLE TAG CLICK ──────────────────────────────────
   const handleTagClick = (tagLabel) => {
     const currentUrl = new URL(window.location.href);
@@ -122,7 +132,7 @@ const PageTagBannerSection = ({
             ? tag.color
             : defaultColors[index % defaultColors.length];
           const tagColor = extractColorValue(rawColor) || defaultColors[index % defaultColors.length];
-          const isActive = tagLabel === currentTagFromUrl;
+          const active = isTagActive(tagLabel);
 
           return (
             <button
@@ -131,7 +141,7 @@ const PageTagBannerSection = ({
               className={`
                 group flex items-center gap-2 sm:gap-2.5 px-3.5 sm:px-4.5 md:px-5.5 py-1.5 sm:py-2 md:py-2.75 rounded-lg font-semibold text-[13px] sm:text-[14px] md:text-[15px] lg:text-[16px]
                 transition-all duration-300 cursor-pointer
-                ${isActive
+                ${active
                   ? 'bg-[#009BE2] text-white hover:bg-[#0080C4]'
                   : 'bg-white/90 text-black hover:bg-[#009BE2] hover:text-white'
                 }
@@ -141,7 +151,7 @@ const PageTagBannerSection = ({
               <span
                 className={`
                   w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full transition-all duration-300 shrink-0
-                  ${isActive ? 'bg-white' : ''}
+                  ${active ? 'bg-white' : ''}
                   group-hover:bg-white
                 `}
                 style={{ backgroundColor: tagColor }}
