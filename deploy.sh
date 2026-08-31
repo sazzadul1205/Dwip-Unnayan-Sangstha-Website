@@ -13,6 +13,11 @@ set -e
 PROJECT_DIR="$(pwd)"
 NODE_PATH="/opt/alt/alt-nodejs22/root/usr/bin"
 
+# Limit Go/esbuild concurrency for shared hosting.
+# Required because the server fails to create additional
+# OS threads when esbuild uses normal parallelism.
+export GOMAXPROCS=1
+
 # ------------------------------------------------------------
 # Helper Functions
 # ------------------------------------------------------------
@@ -32,6 +37,34 @@ error() {
     echo "============================================================"
     echo ""
 }
+
+# ------------------------------------------------------------
+# Error Handler
+# ------------------------------------------------------------
+
+cleanup_on_error() {
+    EXIT_CODE=$?
+
+    echo ""
+    echo "============================================================"
+    echo "DEPLOYMENT FAILED"
+    echo "============================================================"
+    echo ""
+    echo "The deployment encountered an error."
+    echo "Bringing Laravel back online..."
+    echo ""
+
+    php artisan up || true
+
+    echo ""
+    echo "Laravel has been brought back online."
+    echo "Exit code: $EXIT_CODE"
+    echo ""
+
+    exit "$EXIT_CODE"
+}
+
+trap cleanup_on_error ERR
 
 # ------------------------------------------------------------
 # Move to project directory
@@ -91,8 +124,6 @@ echo "STEP 3: Checking Node.js..."
 if command -v node >/dev/null 2>&1; then
 
     echo "Node.js found."
-    echo "Node version:"
-    node -v
 
 else
 
@@ -120,6 +151,10 @@ echo ""
 echo "NPM version:"
 npm -v
 
+echo ""
+echo "GOMAXPROCS:"
+echo "$GOMAXPROCS"
+
 success "Node.js environment is ready."
 
 # ------------------------------------------------------------
@@ -142,7 +177,6 @@ if [ -d "node_modules" ]; then
 else
 
     echo "node_modules does not exist."
-
     echo "Installing npm dependencies..."
 
     npm install
@@ -162,6 +196,8 @@ success "Node modules permissions checked."
 # ------------------------------------------------------------
 
 echo "STEP 5: Building frontend..."
+
+echo "Using GOMAXPROCS=$GOMAXPROCS to limit esbuild concurrency."
 
 npm run build
 
@@ -192,4 +228,3 @@ echo "============================================================"
 echo " DEPLOYMENT FINISHED SUCCESSFULLY"
 echo "============================================================"
 echo ""
-
