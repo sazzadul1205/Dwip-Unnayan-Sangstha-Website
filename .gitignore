@@ -1,29 +1,32 @@
-.DS_Store
+```
+# Dependency directories
+/vendor/
+/node_modules/
+
+# Laravel specific
+/bootstrap/cache/
+/storage/logs/
+/storage/framework/
+/public/storage/
+
+# Environment files
 .env
-.env.backup
-.env.production
-.phpactor.json
-.phpunit.result.cache
-/.fleet
-/.idea
-/.nova
-/.phpunit.cache
-/.vscode
-/.zed
-/bootstrap/cache/*.php
-/bootstrap/ssr
-/node_modules
-/public/build
-/public/hot
-/public/storage
-/storage/*.key
-/storage/pail
-/vendor
-auth.json
-Homestead.json
-Homestead.yaml
-npm-debug.log
-yarn-error.log
-*.zip
-build
-.codes
+.env.local
+.env.*
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+```
