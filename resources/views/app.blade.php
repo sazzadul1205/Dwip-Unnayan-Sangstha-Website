@@ -439,6 +439,7 @@
             function hideLoader() {
                 if (hidden) return;
                 hidden = true;
+                loading.setAttribute('aria-busy', 'false');
                 if (cover) cover.classList.add('done');
                 loading.classList.add('hidden');
                 setTimeout(function() {
@@ -446,7 +447,16 @@
                 }, 250);
             }
 
-            window.addEventListener('app:ready', hideLoader, { once: true });
+            function showLoader() {
+                hidden = false;
+                loading.style.display = 'flex';
+                loading.setAttribute('aria-busy', 'true');
+                if (cover) cover.classList.remove('done');
+                loading.classList.remove('hidden');
+            }
+
+            window.addEventListener('app:loading', showLoader);
+            window.addEventListener('app:ready', hideLoader);
         })();
     </script>
 

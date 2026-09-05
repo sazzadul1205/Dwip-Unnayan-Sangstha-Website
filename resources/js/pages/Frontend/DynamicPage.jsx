@@ -25,6 +25,7 @@ const DynamicPage = ({
     let readyFrame = null;
 
     root.dataset.frontendPage = 'true';
+    root.dataset.frontendReady = 'false';
 
     const signalReady = () => {
       if (cancelled || root.dataset.frontendReady === 'true') return;

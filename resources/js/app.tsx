@@ -1,6 +1,6 @@
 import '../css/app.css';
 
-import { createInertiaApp } from '@inertiajs/react';
+import { createInertiaApp, router } from '@inertiajs/react';
 import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import { StrictMode, useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
@@ -33,7 +33,7 @@ const resolvePage = (name: string) => {
     return resolvePageComponent(pagePath, pageFiles);
 };
 
-function AppReady({ children }: { children: React.ReactNode }) {
+export function AppReady({ children }: { children: React.ReactNode }) {
     useEffect(() => {
         let cancelled = false;
 
@@ -41,7 +41,7 @@ function AppReady({ children }: { children: React.ReactNode }) {
             await document.fonts.ready;
 
             await new Promise<void>((resolve) => {
-                requestAnimationFrame(resolve);
+                requestAnimationFrame(() => resolve());
             });
 
             if (document.documentElement.dataset.frontendPage === 'true') {
@@ -54,7 +54,7 @@ function AppReady({ children }: { children: React.ReactNode }) {
 
             await new Promise<void>((resolve) => {
                 requestAnimationFrame(() => {
-                    requestAnimationFrame(resolve);
+                    requestAnimationFrame(() => resolve());
                 });
             });
 
@@ -76,8 +76,15 @@ function AppReady({ children }: { children: React.ReactNode }) {
 
         void signalReady();
 
+        const handlePageFinished = () => {
+            void signalReady();
+        };
+
+        window.addEventListener('app:page-finished', handlePageFinished);
+
         return () => {
             cancelled = true;
+            window.removeEventListener('app:page-finished', handlePageFinished);
         };
     }, []);
 
@@ -89,6 +96,27 @@ createInertiaApp({
     resolve: (name: string) => resolvePage(name),
     setup({ el, App, props }) {
         const root = createRoot(el);
+        let loadingTimer: number | null = null;
+
+        router.on('start', () => {
+            delete document.documentElement.dataset.frontendPage;
+            document.documentElement.dataset.frontendReady = 'false';
+
+            loadingTimer = window.setTimeout(() => {
+                window.dispatchEvent(new Event('app:loading'));
+            }, 150);
+        });
+
+        router.on('finish', () => {
+            if (loadingTimer !== null) {
+                window.clearTimeout(loadingTimer);
+                loadingTimer = null;
+            }
+
+            requestAnimationFrame(() => {
+                window.dispatchEvent(new Event('app:page-finished'));
+            });
+        });
 
         root.render(
             <StrictMode>
