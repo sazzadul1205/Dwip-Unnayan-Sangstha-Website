@@ -5,6 +5,7 @@ import { Link, usePage, router } from '@inertiajs/react';
 import { FiSearch } from "react-icons/fi";
 import { FaAngleDown, FaAngleUp } from "react-icons/fa";
 import { FaFacebook, FaInstagram, FaLinkedin, FaXTwitter, FaUser } from "react-icons/fa6";
+import createContactImage from '../utils/createContactImage';
 
 // SVG Icons
 const EmailIcon = () => (
@@ -51,6 +52,10 @@ const TopBar = ({ topBarData }) => {
   const [isLangDropdownOpen, setIsLangDropdownOpen] = useState(false);
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  // State for generated contact images
+  const [emailImageHtml, setEmailImageHtml] = useState(null);
+  const [phoneImageHtml, setPhoneImageHtml] = useState(null);
 
   const langRef = useRef(null);
   const userRef = useRef(null);
@@ -102,6 +107,65 @@ const TopBar = ({ topBarData }) => {
   };
 
   const finalUserMenu = hasValue(userMenu) ? userMenu : defaultUserMenu;
+
+  // Generate contact images using createContactImage
+  useEffect(() => {
+    // Generate email image
+    if (contactInfo.email?.text) {
+      try {
+        const emailLink = createContactImage({
+          type: 'email',
+          value: contactInfo.email.text,
+          alt: 'Email us',
+          fontSize: 14,
+          fontFamily: 'Arial',
+          textColor: '#FFFFFF',
+          backgroundColor: 'transparent',
+          padding: 0,
+        });
+        // Extract the image element HTML
+        const imgElement = emailLink.querySelector('img');
+        if (imgElement) {
+          setEmailImageHtml(imgElement.outerHTML);
+        } else {
+          setEmailImageHtml(null);
+        }
+      } catch (error) {
+        console.error('Error creating email image:', error);
+        setEmailImageHtml(null);
+      }
+    } else {
+      setEmailImageHtml(null);
+    }
+
+    // Generate phone image
+    if (contactInfo.phone?.text) {
+      try {
+        const phoneLink = createContactImage({
+          type: 'phone',
+          value: contactInfo.phone.text,
+          alt: 'Call us',
+          fontSize: 14,
+          fontFamily: 'Arial',
+          textColor: '#FFFFFF',
+          backgroundColor: 'transparent',
+          padding: 0,
+        });
+        // Extract the image element HTML
+        const imgElement = phoneLink.querySelector('img');
+        if (imgElement) {
+          setPhoneImageHtml(imgElement.outerHTML);
+        } else {
+          setPhoneImageHtml(null);
+        }
+      } catch (error) {
+        console.error('Error creating phone image:', error);
+        setPhoneImageHtml(null);
+      }
+    } else {
+      setPhoneImageHtml(null);
+    }
+  }, [contactInfo]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -165,12 +229,20 @@ const TopBar = ({ topBarData }) => {
             {hasValue(contactInfo.email?.text) && (
               <div className='flex items-center space-x-2'>
                 <EmailIcon />
-                <a
-                  href={`mailto:${contactInfo.email.text}`}
-                  className='text-white/90 text-[10px] xl:text-[16px] font-normal hover:text-[#009BE2] transition-colors duration-200'
-                >
-                  {contactInfo.email.text}
-                </a>
+                {emailImageHtml ? (
+                  <a
+                    href={`mailto:${contactInfo.email.text}`}
+                    className="hover:opacity-80 transition-opacity duration-200 inline-block"
+                    dangerouslySetInnerHTML={{ __html: emailImageHtml }}
+                  />
+                ) : (
+                  <a
+                    href={`mailto:${contactInfo.email.text}`}
+                    className='text-white/90 text-[10px] xl:text-[16px] font-normal hover:text-[#009BE2] transition-colors duration-200'
+                  >
+                    {contactInfo.email.text}
+                  </a>
+                )}
               </div>
             )}
 
@@ -181,10 +253,20 @@ const TopBar = ({ topBarData }) => {
             {hasValue(contactInfo.phone?.text) && (
               <div className='flex items-center space-x-2'>
                 <PhoneIcon />
-                <a href={`tel:${contactInfo.phone.text.replace(/\s/g, '')}`}
-                  className='text-white/90 text-[10px] xl:text-[16px] font-normal hover:text-[#009BE2] transition-colors duration-200'>
-                  {contactInfo.phone.text}
-                </a>
+                {phoneImageHtml ? (
+                  <a
+                    href={`tel:${contactInfo.phone.text.replace(/\s/g, '')}`}
+                    className="hover:opacity-80 transition-opacity duration-200 inline-block"
+                    dangerouslySetInnerHTML={{ __html: phoneImageHtml }}
+                  />
+                ) : (
+                  <a
+                    href={`tel:${contactInfo.phone.text.replace(/\s/g, '')}`}
+                    className='text-white/90 text-[10px] xl:text-[16px] font-normal hover:text-[#009BE2] transition-colors duration-200'
+                  >
+                    {contactInfo.phone.text}
+                  </a>
+                )}
               </div>
             )}
 
@@ -455,19 +537,43 @@ const TopBar = ({ topBarData }) => {
             {hasContactInfo && (
               <div className="space-y-3 p-2">
                 {hasValue(contactInfo.email?.text) && (
-                  <a href={`mailto:${contactInfo.email.text}`}
-                    className="flex items-center gap-2 text-white/90 text-sm hover:text-[#009BE2] transition-colors duration-200">
+                  <div className="flex items-center gap-2">
                     <EmailIcon />
-                    <span>{contactInfo.email.text}</span>
-                  </a>
+                    {emailImageHtml ? (
+                      <a
+                        href={`mailto:${contactInfo.email.text}`}
+                        className="hover:opacity-80 transition-opacity duration-200 inline-block"
+                        dangerouslySetInnerHTML={{ __html: emailImageHtml }}
+                      />
+                    ) : (
+                      <a
+                        href={`mailto:${contactInfo.email.text}`}
+                        className="text-white/90 text-sm hover:text-[#009BE2] transition-colors duration-200"
+                      >
+                        {contactInfo.email.text}
+                      </a>
+                    )}
+                  </div>
                 )}
 
                 {hasValue(contactInfo.phone?.text) && (
-                  <a href={`tel:${contactInfo.phone.text.replace(/\s/g, '')}`}
-                    className="flex items-center gap-2 text-white/90 text-sm hover:text-[#009BE2] transition-colors duration-200">
+                  <div className="flex items-center gap-2">
                     <PhoneIcon />
-                    <span>{contactInfo.phone.text}</span>
-                  </a>
+                    {phoneImageHtml ? (
+                      <a
+                        href={`tel:${contactInfo.phone.text.replace(/\s/g, '')}`}
+                        className="hover:opacity-80 transition-opacity duration-200 inline-block"
+                        dangerouslySetInnerHTML={{ __html: phoneImageHtml }}
+                      />
+                    ) : (
+                      <a
+                        href={`tel:${contactInfo.phone.text.replace(/\s/g, '')}`}
+                        className="text-white/90 text-sm hover:text-[#009BE2] transition-colors duration-200"
+                      >
+                        {contactInfo.phone.text}
+                      </a>
+                    )}
+                  </div>
                 )}
 
                 {hasValue(contactInfo.hours?.text) && (
@@ -575,6 +681,12 @@ const TopBar = ({ topBarData }) => {
         }
         .animate-slideIn {
           animation: slideIn 0.3s ease-out;
+        }
+        
+        /* Style for contact images */
+        .topbar-contact-image {
+          display: inline-block;
+          vertical-align: middle;
         }
       `}</style>
     </>

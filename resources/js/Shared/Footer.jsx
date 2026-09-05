@@ -17,7 +17,7 @@
 
 // React
 import { Link } from '@inertiajs/react';
-import { useState, useCallback, memo } from 'react';
+import { useState, useCallback, memo, useEffect } from 'react';
 
 // Icons
 import {
@@ -32,6 +32,7 @@ import {
   FaTelegram,
 } from 'react-icons/fa6';
 import ArrowIcon from './ArrowIcon';
+import createContactImage from '../utils/createContactImage';
 
 /**
  * UTILITY: Check if value exists
@@ -115,6 +116,110 @@ const Footer = ({
     quickLinks: false,
     programs: false,
   });
+
+  // State for generated contact images
+  const [contactImageHtmls, setContactImageHtmls] = useState({});
+
+  // ====
+  // DATA
+  // ====
+
+  const {
+    logo = {},
+    description = '',
+    socialLinks = [],
+    address = {},
+    contact = {},
+    email: emailInfo = {},
+    quickLinks = [],
+    programs = [],
+    newsletter = {},
+    bottomFooter = {},
+    quickLinkLinkIcon = '',
+    OurProgramLinkIcon = '',
+  } = footerData;
+
+  // ====
+  // CONTENT CHECKS
+  // ====
+
+  const hasLogo = hasValue(logo.src);
+  const hasPrograms = hasValue(programs);
+  const hasQuickLinks = hasValue(quickLinks);
+  const hasDescription = hasValue(description);
+  const hasSocialLinks = hasValue(socialLinks);
+  const hasNewsletter = hasValue(newsletter.title);
+
+  const hasAddress =
+    hasValue(address.title) || hasValue(address.details);
+
+  const hasContact =
+    hasValue(contact.title) || hasValue(contact.numbers);
+
+  const hasEmailInfo =
+    hasValue(emailInfo.title) ||
+    hasValue(emailInfo.addresses);
+
+  const hasBottomFooter =
+    hasValue(bottomFooter.copyright) ||
+    hasValue(bottomFooter.links);
+
+  // Generate contact images for emails and phone numbers
+  useEffect(() => {
+    const newContactImages = {};
+
+    // Generate images for email addresses
+    if (hasEmailInfo && hasValue(emailInfo.addresses)) {
+      emailInfo.addresses.forEach((emailAddr, index) => {
+        try {
+          const emailLink = createContactImage({
+            type: 'email',
+            value: emailAddr,
+            alt: `Email ${index + 1}`,
+            fontSize: 14,
+            fontFamily: 'Arial',
+            textColor: '#FFFFFF',
+            backgroundColor: 'transparent',
+            padding: 0,
+          });
+          const imgElement = emailLink.querySelector('img');
+          if (imgElement) {
+            const key = `email_${index}`;
+            newContactImages[key] = imgElement.outerHTML;
+          }
+        } catch (error) {
+          console.error(`Error creating email image for ${emailAddr}:`, error);
+        }
+      });
+    }
+
+    // Generate images for phone numbers
+    if (hasContact && hasValue(contact.numbers)) {
+      contact.numbers.forEach((number, index) => {
+        try {
+          const phoneLink = createContactImage({
+            type: 'phone',
+            value: number,
+            alt: `Phone ${index + 1}`,
+            fontSize: 14,
+            fontFamily: 'Arial',
+            textColor: '#FFFFFF',
+            backgroundColor: 'transparent',
+            padding: 0,
+          });
+          const imgElement = phoneLink.querySelector('img');
+          if (imgElement) {
+            const key = `phone_${index}`;
+            newContactImages[key] = imgElement.outerHTML;
+          }
+        } catch (error) {
+          console.error(`Error creating phone image for ${number}:`, error);
+        }
+      });
+    }
+
+    setContactImageHtmls(newContactImages);
+  }, [emailInfo, contact, hasEmailInfo, hasContact]);
 
   /**
    * Build image URL with storage path
@@ -296,6 +401,48 @@ const Footer = ({
     [getImageSrc],
   );
 
+  /**
+   * Render contact item (email or phone) with optional image
+   */
+  const renderContactItem = useCallback((type, value, href, index) => {
+    const key = `${type}_${index}`;
+    const imageHtml = contactImageHtmls[key];
+
+    if (imageHtml) {
+      return (
+        <a
+          key={index}
+          href={href}
+          className="mb-1 block transition-opacity hover:opacity-80"
+          dangerouslySetInnerHTML={{ __html: imageHtml }}
+        />
+      );
+    }
+
+    // Fallback to plain text
+    if (type === 'email') {
+      return (
+        <a
+          key={index}
+          href={href}
+          className="mb-1 block break-all text-sm text-white transition-colors hover:text-[#009BE2] sm:text-base"
+        >
+          {value}
+        </a>
+      );
+    }
+
+    return (
+      <a
+        key={index}
+        href={href}
+        className="mb-1 block text-sm text-white transition-colors hover:text-[#009BE2] sm:text-base"
+      >
+        {value}
+      </a>
+    );
+  }, [contactImageHtmls]);
+
   // ====
   // EARLY RETURN
   // ====
@@ -303,50 +450,6 @@ const Footer = ({
   if (!hasValue(footerData)) {
     return null;
   }
-
-  // ====
-  // DATA
-  // ====
-
-  const {
-    logo = {},
-    description = '',
-    socialLinks = [],
-    address = {},
-    contact = {},
-    email: emailInfo = {},
-    quickLinks = [],
-    programs = [],
-    newsletter = {},
-    bottomFooter = {},
-    quickLinkLinkIcon = '',
-    OurProgramLinkIcon = '',
-  } = footerData;
-
-  // ====
-  // CONTENT CHECKS
-  // ====
-
-  const hasLogo = hasValue(logo.src);
-  const hasPrograms = hasValue(programs);
-  const hasQuickLinks = hasValue(quickLinks);
-  const hasDescription = hasValue(description);
-  const hasSocialLinks = hasValue(socialLinks);
-  const hasNewsletter = hasValue(newsletter.title);
-
-  const hasAddress =
-    hasValue(address.title) || hasValue(address.details);
-
-  const hasContact =
-    hasValue(contact.title) || hasValue(contact.numbers);
-
-  const hasEmailInfo =
-    hasValue(emailInfo.title) ||
-    hasValue(emailInfo.addresses);
-
-  const hasBottomFooter =
-    hasValue(bottomFooter.copyright) ||
-    hasValue(bottomFooter.links);
 
   if (
     !hasLogo &&
@@ -456,15 +559,10 @@ const Footer = ({
                     {contact.title || 'Contact'}
                   </h2>
 
-                  {contact.numbers.map((number, index) => (
-                    <a
-                      key={index}
-                      href={`tel:${number.replace(/\D/g, '')}`}
-                      className="mb-1 block text-sm text-white transition-colors hover:text-[#009BE2] sm:text-base"
-                    >
-                      {number}
-                    </a>
-                  ))}
+                  {contact.numbers.map((number, index) => {
+                    const href = `tel:${number.replace(/\D/g, '')}`;
+                    return renderContactItem('phone', number, href, index);
+                  })}
                 </div>
               )}
 
@@ -475,15 +573,10 @@ const Footer = ({
                     {emailInfo.title || 'Email'}
                   </h2>
 
-                  {emailInfo.addresses.map((emailAddr, index) => (
-                    <a
-                      key={index}
-                      href={`mailto:${emailAddr}`}
-                      className="mb-1 block break-all text-sm text-white transition-colors hover:text-[#009BE2] sm:text-base"
-                    >
-                      {emailAddr}
-                    </a>
-                  ))}
+                  {emailInfo.addresses.map((emailAddr, index) => {
+                    const href = `mailto:${emailAddr}`;
+                    return renderContactItem('email', emailAddr, href, index);
+                  })}
                 </div>
               )}
             </div>
