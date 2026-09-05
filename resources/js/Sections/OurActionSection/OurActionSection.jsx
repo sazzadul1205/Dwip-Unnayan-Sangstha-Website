@@ -12,9 +12,11 @@ const hasValue = (value) => {
   return true;
 };
 
-// Generate placeholder image URL for icons
+// Generate placeholder icon URL (inline SVG — avoids external placeholder services)
 const getPlaceholderIcon = (text = 'Icon') => {
-  return `https://via.placeholder.com/50x50/009BE2/FFFFFF?text=${encodeURIComponent(text.substring(0, 3))}`;
+  const safeText = text.substring(0, 3).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="50" height="50" viewBox="0 0 50 50"><rect width="100%" height="100%" fill="#009BE2"/><text x="50%" y="50%" fill="#FFFFFF" font-family="Arial, Helvetica, sans-serif" font-size="14" text-anchor="middle" dominant-baseline="middle">${safeText}</text></svg>`;
+  return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
 };
 
 /**

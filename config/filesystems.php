@@ -33,7 +33,6 @@ return [
         'local' => [
             'driver' => 'local',
             'root' => storage_path('app/private'),
-            'serve' => true,
             'throw' => false,
         ],
 
@@ -42,6 +41,10 @@ return [
             'root' => storage_path('app/public'),
             'url' => env('APP_URL').'/storage',
             'visibility' => 'public',
+            // Serve public files through Laravel when the web server cannot
+            // resolve them directly (e.g. the public/storage symlink is
+            // missing). Safe because this disk is publicly visible.
+            'serve' => true,
             'throw' => false,
         ],
 

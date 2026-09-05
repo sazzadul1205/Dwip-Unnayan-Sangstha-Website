@@ -755,7 +755,12 @@ tests/
    php artisan migrate --force
    ```
 
-4. **Optimize the application**
+4. **Create the storage symlink** (required — `/storage/*` URLs 404 without it)
+   ```bash
+   php artisan storage:link
+   ```
+
+5. **Optimize the application**
    ```bash
    php artisan optimize
    php artisan view:cache
@@ -764,20 +769,20 @@ tests/
    php artisan event:cache
    ```
 
-5. **Set permissions**
+6. **Set permissions**
    ```bash
    chmod -R 775 storage bootstrap/cache
    chown -R www-data:www-data .
    ```
 
-6. **Set up the queue worker**
+7. **Set up the queue worker**
    ```bash
    sudo supervisorctl reread
    sudo supervisorctl update
    sudo supervisorctl start all
    ```
 
-7. **Set up the cron job**
+8. **Set up the cron job**
    ```bash
    * * * * * cd /var/www/dus && php artisan schedule:run >> /dev/null 2>&1
    ```

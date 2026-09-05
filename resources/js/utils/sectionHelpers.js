@@ -14,10 +14,19 @@ export const hasValue = (value) => {
 };
 
 /**
- * Generate placeholder image URL
+ * Generate placeholder image URL (inline SVG — avoids external placeholder services)
  */
-export const getPlaceholderImage = (width = 800, height = 600, text = 'Image') => {
-  return `https://via.placeholder.com/${width}x${height}/009BE2/FFFFFF?text=${encodeURIComponent(text)}`;
+export const getPlaceholderImage = (
+  width = 800,
+  height = 600,
+  text = 'Image',
+  bgColor = '#009BE2',
+  textColor = '#FFFFFF',
+) => {
+  const safeText = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const fontSize = Math.max(14, Math.round(Math.min(width, height) / 12));
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><rect width="100%" height="100%" fill="${bgColor}"/><text x="50%" y="50%" fill="${textColor}" font-family="Arial, Helvetica, sans-serif" font-size="${fontSize}" text-anchor="middle" dominant-baseline="middle">${safeText}</text></svg>`;
+  return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
 };
 
 /**

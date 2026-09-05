@@ -3,8 +3,12 @@
 import { useCallback, useEffect, useState, useRef, useLayoutEffect } from 'react';
 import { usePage, router } from '@inertiajs/react';
 
+// Generate placeholder image URL (inline SVG — avoids external placeholder services)
 const getPlaceholderImage = (width = 485, height = 400, text = 'Gallery Image') => {
-  return `https://via.placeholder.com/${width}x${height}/EAEAEA/999999?text=${encodeURIComponent(text)}`;
+  const safeText = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const fontSize = Math.max(14, Math.round(Math.min(width, height) / 12));
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><rect width="100%" height="100%" fill="#EAEAEA"/><text x="50%" y="50%" fill="#999999" font-family="Arial, Helvetica, sans-serif" font-size="${fontSize}" text-anchor="middle" dominant-baseline="middle">${safeText}</text></svg>`;
+  return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
 };
 
 const ImageGallerySection = ({

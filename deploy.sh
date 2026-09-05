@@ -214,6 +214,21 @@ php artisan optimize:clear
 success "Laravel caches cleared."
 
 # ------------------------------------------------------------
+# STEP 6.5 - Ensure the public storage symlink exists
+# ------------------------------------------------------------
+
+echo "STEP 6.5: Ensuring public/storage symlink..."
+
+if [ -L public/storage ] || [ -e public/storage ]; then
+    echo "public/storage already exists."
+else
+    php artisan storage:link
+    success "Storage symlink created."
+fi
+
+success "Storage symlink checked."
+
+# ------------------------------------------------------------
 # STEP 7 - Bring Laravel back online
 # ------------------------------------------------------------
 
