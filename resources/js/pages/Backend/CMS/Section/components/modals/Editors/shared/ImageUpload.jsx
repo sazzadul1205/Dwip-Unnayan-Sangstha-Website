@@ -1,6 +1,6 @@
 // resources/js/pages/Backend/CMS/Section/components/modals/Editors/shared/ImageUpload.jsx
 
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { FaUpload, FaTimes, FaSpinner } from 'react-icons/fa';
 import Swal from 'sweetalert2';
 
@@ -21,6 +21,10 @@ const ImageUpload = ({
   const [dragActive, setDragActive] = useState(false);
   const [previewError, setPreviewError] = useState(false);
   const fileInputRef = useRef(null);
+
+  useEffect(() => {
+    setPreviewError(false);
+  }, [imageSrc]);
 
   // Define processFile BEFORE it's used in callbacks
   const processFile = useCallback((file) => {
