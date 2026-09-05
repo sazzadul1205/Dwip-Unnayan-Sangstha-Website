@@ -120,20 +120,13 @@ const HeroFigureSection = ({
       )}
 
       {hasContent && (
-        <div className="relative">
-          <div
-            className='bricolage-grotesque text-[15px] sm:text-[16px] md:text-[17px] lg:text-[18px] xl:text-[19px] 2xl:text-[20px] text-[#333333] leading-snug overflow-hidden'
-            style={{
-              maxHeight: '730px',
-              display: '-webkit-box',
-              WebkitLineClamp: 'unset',
-              WebkitBoxOrient: 'vertical',
-              wordBreak: 'break-word'
-            }}
-            dangerouslySetInnerHTML={renderHTML(content.html)}
-          />
-          <div className="absolute bottom-0 left-0 right-0 h-8 bg-linear-to-t from-white to-transparent pointer-events-none" />
-        </div>
+        <div
+          className='bricolage-grotesque text-[15px] sm:text-[16px] md:text-[17px] lg:text-[18px] xl:text-[19px] 2xl:text-[20px] text-[#333333] leading-snug overflow-hidden'
+          style={{
+            wordBreak: 'break-word'
+          }}
+          dangerouslySetInnerHTML={renderHTML(content.html)}
+        />
       )}
 
       {hasButton && (
