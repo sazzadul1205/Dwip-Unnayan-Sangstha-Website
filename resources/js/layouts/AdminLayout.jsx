@@ -10,7 +10,7 @@ import {
   FiHome, FiBell, FiBriefcase, FiFileText, FiSettings, FiLogOut,
   FiChevronDown, FiChevronRight, FiPlusCircle, FiUsers, FiBarChart2,
   FiStar, FiClock, FiXCircle, FiAward, FiList, FiShield, FiKey, FiTrash2,
-  FiMenu, FiX,
+  FiMenu, FiX, FiUser,
 } from 'react-icons/fi';
 import { MdCategory } from "react-icons/md";
 
@@ -537,9 +537,9 @@ const AdminLayout = ({ children }) => {
           <div className="flex items-center justify-between">
             <Link href={route('home')} className="flex items-center gap-2 group">
               <div className={`w-8 h-8 bg-linear-to-br ${colors.light} rounded-lg flex items-center justify-center shadow-md`}>
-                <FiBriefcase className="w-5 h-5 text-white" />
+                <FiUser className="w-5 h-5 text-white" />
               </div>
-              {!isCollapsed && <span className="text-xl font-bold bg-linear-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">JobMatch</span>}
+              {!isCollapsed && <span className="text-xl font-bold bg-linear-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">Staff Panel</span>}
             </Link>
             <button
               onClick={() => setIsCollapsed(!isCollapsed)}
@@ -555,7 +555,7 @@ const AdminLayout = ({ children }) => {
         <nav className="flex-1 overflow-y-auto py-4 px-3 scrollbar-thin scrollbar-thumb-gray-300">
           {!isCollapsed && (
             <p className="px-4 mb-3 text-xs font-semibold text-gray-400 uppercase tracking-wider">
-              {primaryRole === 'admin' ? 'Administration' : 'Employer Portal'}
+              {primaryRole === 'admin' ? 'Administration' : 'Staff Portal'}
             </p>
           )}
           <div className="space-y-1">{menuItems.map(item => renderMenuItem(item))}</div>
@@ -635,7 +635,7 @@ const AdminLayout = ({ children }) => {
           {/* Center Logo */}
           <Link href={route('home')} className="flex items-center">
             <div className={`w-10 h-10 bg-linear-to-br ${colors.light} rounded-lg flex items-center justify-center shadow-md`}>
-              <FiBriefcase className="w-6 h-6 text-white" />
+              <FiUser className="w-6 h-6 text-white" />
             </div>
           </Link>
 
@@ -680,9 +680,9 @@ const AdminLayout = ({ children }) => {
             <div className="flex items-center justify-between p-4 border-b border-gray-200">
               <Link href={route('home')} onClick={closeDrawer} className="flex items-center gap-2 min-w-0">
                 <div className={`w-8 h-8 bg-linear-to-br ${colors.light} rounded-lg flex items-center justify-center shadow-md shrink-0`}>
-                  <FiBriefcase className="w-5 h-5 text-white" />
+                  <FiUser className="w-5 h-5 text-white" />
                 </div>
-                <span className="text-xl font-bold bg-linear-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent truncate">JobMatch</span>
+                <span className="text-xl font-bold bg-linear-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent truncate">Staff Panel</span>
               </Link>
               <button
                 onClick={closeDrawer}
@@ -697,7 +697,7 @@ const AdminLayout = ({ children }) => {
             <nav className="flex-1 overflow-y-auto py-4 px-3">
               <div className="px-4 mb-3">
                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                  {primaryRole === 'admin' ? 'Administration' : 'Employer Portal'}
+                  {primaryRole === 'admin' ? 'Administration' : 'Staff Portal'}
                 </p>
               </div>
               <div className="space-y-1">

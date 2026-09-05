@@ -125,7 +125,7 @@ const JobSeekerLayout = ({ children }) => {
 
         const specialCases = {
           'backend.applicant.profile.show':
-          'backend.applicant.profile.',
+            'backend.applicant.profile.',
           'backend.apply.index': 'backend.apply.',
           'backend.notifications.index': 'backend.notifications.',
           'public.jobs.index': 'public.jobs.',
@@ -270,8 +270,7 @@ const JobSeekerLayout = ({ children }) => {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* DESKTOP SIDEBAR */}
-      <aside className={` fixed left-0 top-0 h-full bg-white border-r border-gray-200 flex-col shadow-xl transition-all duration-300 hidden lg:flex z-50 ${isCollapsed   ? 'w-20'   : 'w-64' }`}
-      >
+      <aside className={`fixed left-0 top-0 h-full bg-white border-r border-gray-200 flex-col shadow-xl transition-all duration-300 hidden lg:flex z-50 ${isCollapsed ? 'w-20' : 'w-64'}`}>
         {/* Logo Section */}
         <div className="p-4 border-b border-gray-200">
           <div className="flex items-center justify-between gap-2">
@@ -286,7 +285,7 @@ const JobSeekerLayout = ({ children }) => {
 
               {!isCollapsed && (
                 <span className="text-xl font-bold bg-linear-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent truncate">
-                  JobMatch
+                  Seeker Panel
                 </span>
               )}
             </Link>
@@ -500,7 +499,7 @@ const JobSeekerLayout = ({ children }) => {
         </div>
       </div>
 
-      {/* MOBILE DRAWER  */}
+      {/* MOBILE DRAWER */}
       <>
         {/* Backdrop - Fade in/out */}
         <div
@@ -553,7 +552,7 @@ const JobSeekerLayout = ({ children }) => {
                 </div>
 
                 <span className="text-xl font-bold bg-linear-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent truncate">
-                  JobMatch
+                  Job Seeker Panel
                 </span>
               </Link>
 
@@ -599,7 +598,7 @@ const JobSeekerLayout = ({ children }) => {
 
             {/* Drawer User Info - Slides in from bottom */}
             <div
-              className={`p-4 border-t border-gray-200 bg-gray-50transition-all duration-400 ease-out${isDrawerOpen  ? 'opacity-100 translate-y-0'  : 'opacity-0 translate-y-8'}`}
+              className={`p-4 border-t border-gray-200 bg-gray-50 transition-all duration-400 ease-out ${isDrawerOpen ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
               style={{
                 transitionDelay: isDrawerOpen
                   ? '150ms'
@@ -637,7 +636,7 @@ const JobSeekerLayout = ({ children }) => {
 
       {/* MAIN CONTENT */}
       <main
-        className={`min-h-screen w-full min-w-0 transition-all duration-300 px-4 py-4 sm:px-6 sm:py-6 pb-24 lg:pb-6 text-black ${isCollapsed  ? 'lg:ml-20 lg:w-[calc(100%-5rem)]'  : 'lg:ml-64 lg:w-[calc(100%-16rem)]'}`}
+        className={`min-h-screen w-full min-w-0 transition-all duration-300 px-4 py-4 sm:px-6 sm:py-6 pb-24 lg:pb-6 text-black ${isCollapsed ? 'lg:ml-20 lg:w-[calc(100%-5rem)]' : 'lg:ml-64 lg:w-[calc(100%-16rem)]'}`}
       >
         {children}
       </main>

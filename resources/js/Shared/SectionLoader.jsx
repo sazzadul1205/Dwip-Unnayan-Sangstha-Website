@@ -34,7 +34,7 @@
  */
 const SectionLoader = ({ message = "Loading Pages..." }) => {
   return (
-    <div className="w-full py-20 flex justify-center items-center min-h-screen">
+    <div data-frontend-loader="true" className="w-full py-20 flex justify-center items-center min-h-screen">
       <div className="animate-pulse flex flex-col items-center">
         {/* Spinning border - brand color with transparent top */}
         <div className="w-12 h-12 border-4 border-[#009BE2] border-t-transparent rounded-full animate-spin" />

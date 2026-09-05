@@ -2,7 +2,7 @@ import '../css/app.css';
 
 import { createInertiaApp } from '@inertiajs/react';
 import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
-import { StrictMode } from 'react';
+import { StrictMode, useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
 import { type route as routeFn } from 'ziggy-js';
 import { initializeTheme } from './hooks/use-appearance';
@@ -33,6 +33,57 @@ const resolvePage = (name: string) => {
     return resolvePageComponent(pagePath, pageFiles);
 };
 
+function AppReady({ children }: { children: React.ReactNode }) {
+    useEffect(() => {
+        let cancelled = false;
+
+        const signalReady = async () => {
+            await document.fonts.ready;
+
+            await new Promise<void>((resolve) => {
+                requestAnimationFrame(resolve);
+            });
+
+            if (document.documentElement.dataset.frontendPage === 'true') {
+                if (document.documentElement.dataset.frontendReady !== 'true') {
+                    await new Promise<void>((resolve) => {
+                        window.addEventListener('frontend:ready', () => resolve(), { once: true });
+                    });
+                }
+            }
+
+            await new Promise<void>((resolve) => {
+                requestAnimationFrame(() => {
+                    requestAnimationFrame(resolve);
+                });
+            });
+
+            const visibleImages = Array.from(document.images).filter((image) => {
+                const rect = image.getBoundingClientRect();
+                return rect.width > 0 && rect.height > 0 && rect.top < window.innerHeight;
+            });
+
+            await Promise.all(
+                visibleImages.map((image) =>
+                    image.complete ? Promise.resolve() : image.decode().catch(() => undefined),
+                ),
+            );
+
+            if (!cancelled) {
+                window.dispatchEvent(new Event('app:ready'));
+            }
+        };
+
+        void signalReady();
+
+        return () => {
+            cancelled = true;
+        };
+    }, []);
+
+    return children;
+}
+
 createInertiaApp({
     title: (title) => `${title} - ${appName}`,
     resolve: (name: string) => resolvePage(name),
@@ -41,7 +92,9 @@ createInertiaApp({
 
         root.render(
             <StrictMode>
-                <App {...props} />
+                <AppReady>
+                    <App {...props} />
+                </AppReady>
             </StrictMode>,
         );
     },

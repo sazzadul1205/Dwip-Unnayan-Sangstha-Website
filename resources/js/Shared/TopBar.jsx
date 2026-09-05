@@ -297,7 +297,7 @@ const TopBar = ({ topBarData }) => {
                 className="flex items-center gap-2 hover:opacity-80 transition-opacity duration-200"
                 aria-label="Select language"
               >
-                <div className="w-6 h-6 rounded-full bg-purple-600 flex items-center justify-center text-white text-xs font-bold">
+                <div className="w-6 h-6 rounded-full bg-[#009BE2] flex items-center justify-center text-white text-xs font-bold">
                   {avatarLetters}
                 </div>
                 {isLangDropdownOpen ?
@@ -320,15 +320,15 @@ const TopBar = ({ topBarData }) => {
                       className={`flex items-center gap-3 px-4 py-2 hover:bg-gray-50 w-full text-left transition-colors duration-150 cursor-pointer ${selectedLanguage.code === lang.code ? 'bg-purple-50' : ''
                         }`}
                     >
-                      <div className={`w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-bold ${selectedLanguage.code === lang.code ? 'bg-purple-600' : 'bg-gray-400'
+                      <div className={`w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-bold ${selectedLanguage.code === lang.code ? 'bg-[#009BE2]' : 'bg-gray-400'
                         }`}>
                         {langAvatar}
                       </div>
-                      <span className={`text-sm ${selectedLanguage.code === lang.code ? 'text-purple-600 font-medium' : 'text-gray-700'}`}>
+                      <span className={`text-sm ${selectedLanguage.code === lang.code ? 'text-[#009BE2] font-medium' : 'text-gray-700'}`}>
                         {lang.name}
                       </span>
                       {selectedLanguage.code === lang.code && (
-                        <span className="ml-auto text-purple-600">✓</span>
+                        <span className="ml-auto text-[#009BE2]">✓</span>
                       )}
                     </button>
                   );
@@ -597,7 +597,7 @@ const TopBar = ({ topBarData }) => {
                       onClick={() => setIsLangDropdownOpen(!isLangDropdownOpen)}
                       className="flex items-center gap-2 hover:opacity-80 transition-opacity duration-200"
                     >
-                      <div className="w-6 h-6 rounded-full bg-purple-600 flex items-center justify-center text-white text-xs font-bold">
+                      <div className="w-6 h-6 rounded-full bg-[#009BE2] flex items-center justify-center text-white text-xs font-bold">
                         {avatarLetters}
                       </div>
                       <span className="text-white/90 text-sm">{selectedLanguage.name}</span>
@@ -619,15 +619,15 @@ const TopBar = ({ topBarData }) => {
                             className={`flex items-center gap-3 px-4 py-2 hover:bg-gray-50 w-full text-left transition-colors duration-150 ${selectedLanguage.code === lang.code ? 'bg-purple-50' : ''
                               }`}
                           >
-                            <div className={`w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-bold ${selectedLanguage.code === lang.code ? 'bg-purple-600' : 'bg-gray-400'
+                            <div className={`w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-bold ${selectedLanguage.code === lang.code ? 'bg-[#009BE2]' : 'bg-gray-400'
                               }`}>
                               {langAvatar}
                             </div>
-                            <span className={`text-sm ${selectedLanguage.code === lang.code ? 'text-purple-600 font-medium' : 'text-gray-700'}`}>
+                            <span className={`text-sm ${selectedLanguage.code === lang.code ? 'text-[#009BE2] font-medium' : 'text-gray-700'}`}>
                               {lang.name}
                             </span>
                             {selectedLanguage.code === lang.code && (
-                              <span className="ml-auto text-purple-600">✓</span>
+                              <span className="ml-auto text-[#009BE2]">✓</span>
                             )}
                           </button>
                         );

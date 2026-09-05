@@ -427,7 +427,7 @@
         @inertia
     </main>
 
-    <!-- ─── LOADER HIDE SCRIPT (unchanged) ─── -->
+    <!-- ─── LOADER HIDE SCRIPT ─── -->
     <script>
         (function() {
             const loading = document.getElementById('app-loading');
@@ -446,24 +446,7 @@
                 }, 250);
             }
 
-            const appRoot = document.getElementById('app');
-            if (appRoot && appRoot.children.length > 0) {
-                hideLoader();
-            } else if (appRoot) {
-                const observer = new MutationObserver(function() {
-                    if (appRoot.children.length > 0) {
-                        observer.disconnect();
-                        hideLoader();
-                    }
-                });
-                observer.observe(appRoot, {
-                    childList: true
-                });
-            }
-
-            window.addEventListener('load', function() {
-                setTimeout(hideLoader, 1200);
-            });
+            window.addEventListener('app:ready', hideLoader, { once: true });
         })();
     </script>
 

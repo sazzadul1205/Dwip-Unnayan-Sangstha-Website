@@ -593,7 +593,7 @@ const JobsSection = ({
 
       {/* Skeleton Loading - Initial Load */}
       {loading && jobs.length === 0 && (
-        <div className="space-y-4 sm:space-y-5 lg:space-y-6">
+        <div data-frontend-loader="true" className="space-y-4 sm:space-y-5 lg:space-y-6">
           <JobSkeleton count={3} />
         </div>
       )}
