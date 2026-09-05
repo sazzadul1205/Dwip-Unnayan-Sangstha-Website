@@ -919,19 +919,26 @@ class SectionController extends Controller
 
             $extension = $this->getImageExtension($base64String);
             $filename = date('Ymd').'_'.Str::uuid().'.'.$extension;
-            $path = $subPath.'/'.$filename;
+            $normalizedSubPath = trim(strtolower($subPath), '/');
+            $path = $normalizedSubPath.'/'.$filename;
 
             if (! Storage::disk('public')->put($path, $imageContent)) {
                 Log::error('Failed to store image: '.$path);
 
-                return '';
+                throw new \RuntimeException('The image could not be written to the public storage disk.');
+            }
+
+            if (! Storage::disk('public')->exists($path)) {
+                Log::error('Image write was reported successful but the file is missing: '.$path);
+
+                throw new \RuntimeException('The uploaded image is missing from the public storage disk.');
             }
 
             return '/storage/'.$path;
         } catch (\Exception $e) {
             Log::error('Image upload failed: '.$e->getMessage());
 
-            return '';
+            throw $e;
         }
     }
 
@@ -943,7 +950,6 @@ class SectionController extends Controller
         $mimeMap = [
             'image/jpeg' => 'jpg',
             'image/jpg' => 'jpg',
-            'image/png' => 'png',
             'image/gif' => 'gif',
             'image/webp' => 'webp',
             'image/svg+xml' => 'svg',
