@@ -33,6 +33,8 @@ const resolvePage = (name: string) => {
     return resolvePageComponent(pagePath, pageFiles);
 };
 
+const isFrontendPath = (path: string) => !/^\/(backend|login|register|dashboard|api|storage|auth|complete-profile|seeker|apply|profile|unauthorized|playground)(\/|$)/.test(path);
+
 export function AppReady({ children }: { children: React.ReactNode }) {
     useEffect(() => {
         let cancelled = false;
@@ -98,9 +100,12 @@ createInertiaApp({
         const root = createRoot(el);
         let loadingTimer: number | null = null;
 
-        router.on('start', () => {
+        router.on('start', (event) => {
             delete document.documentElement.dataset.frontendPage;
             document.documentElement.dataset.frontendReady = 'false';
+
+            const path = new URL(event.detail.visit.url, window.location.origin).pathname;
+            if (!isFrontendPath(path)) return;
 
             loadingTimer = window.setTimeout(() => {
                 window.dispatchEvent(new Event('app:loading'));

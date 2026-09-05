@@ -404,8 +404,15 @@
         Skip to main content
     </a>
 
+    @php
+        $isFrontendRoute = request()->routeIs('home', 'sitemap')
+            || request()->route('pageSlug') !== null
+            || request()->route('detailSlug') !== null;
+    @endphp
+
     <!-- ─── LOADER ─── uses dynamic preloader icon -->
-    <div id="app-loading" role="status" aria-label="Loading Dwip Unnayan Songstha" aria-busy="true">
+    <div id="app-loading" role="status" aria-label="Loading Dwip Unnayan Songstha" aria-busy="true"
+        style="{{ $isFrontendRoute ? '' : 'display: none' }}">
         <div class="loader-container">
             <div class="loader-logo" aria-hidden="true">
                 <img src="{{ $preloaderUrl }}"
