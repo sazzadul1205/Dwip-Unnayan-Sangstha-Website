@@ -7,8 +7,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <base href="{{ rtrim(url('/'), '/') }}/">
 
-    <!-- SEO -->
-    <title inertia>Dwip Unnayan Songstha</title>
+    <!-- ============================================ -->
+    <!-- SEO - BASIC META TAGS -->
+    <!-- ============================================ -->
+    <title inertia>Dwip Unnayan Songstha - Empowering Island Communities</title>
 
     <meta name="description"
         content="Dwip Unnayan Songstha (DUS) is a non-governmental organization dedicated to sustainable development, education, healthcare, and livelihood support for island communities in Bangladesh.">
@@ -20,12 +22,16 @@
     <meta name="robots" content="index, follow">
     <link rel="canonical" href="{{ url()->current() }}">
 
-    <!-- Open Graph -->
+    <!-- ============================================ -->
+    <!-- OPEN GRAPH (Facebook, WhatsApp, LinkedIn, etc) -->
+    <!-- ============================================ -->
     <meta property="og:type" content="website">
     <meta property="og:title" content="Dwip Unnayan Songstha - Empowering Island Communities">
     <meta property="og:description"
         content="Dwip Unnayan Songstha (DUS) works for sustainable development, education, healthcare, and livelihood support for island communities in Bangladesh.">
     <meta property="og:url" content="{{ url()->current() }}">
+    <meta property="og:site_name" content="Dwip Unnayan Songstha">
+    <meta property="og:locale" content="bn_BD">
 
     @php
         // Helper to get icon URL with cache busting
@@ -60,21 +66,110 @@
         $ogImageUrl = getIconUrl('og-image', asset('storage/images/dus-logo-og.png'));
         $siteIconUrl = getIconUrl('site-icon');
         $logoUrl = getIconUrl('logo');
+
+        // Generate a proper OG image URL with dimensions
+        $ogImageFullUrl = $ogImageUrl;
+
+        // If no OG image found, use a default
+        if (!$ogImageFullUrl || $ogImageFullUrl === asset('storage/images/dus-logo-og.png')) {
+            $ogImageFullUrl = asset('images/dus-default-og.jpg');
+        }
     @endphp
 
     <!-- Open Graph image -->
-    <meta property="og:image" content="{{ $ogImageUrl }}">
-    <meta property="og:site_name" content="Dwip Unnayan Songstha">
-    <meta property="og:locale" content="bn_BD">
+    <meta property="og:image" content="{{ $ogImageFullUrl }}">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="Dwip Unnayan Songstha - Empowering Island Communities">
 
-    <!-- Twitter -->
+    <!-- Additional OG image for better preview -->
+    <meta property="og:image:secure_url" content="{{ $ogImageFullUrl }}">
+    <meta property="og:image:type" content="image/jpeg">
+
+    <!-- ============================================ -->
+    <!-- TWITTER CARD (Twitter/X) -->
+    <!-- ============================================ -->
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="Dwip Unnayan Songstha - Empowering Island Communities">
     <meta name="twitter:description"
         content="Dwip Unnayan Songstha (DUS) works for sustainable development, education, healthcare, and livelihood support for island communities in Bangladesh.">
-    <meta name="twitter:image" content="{{ $ogImageUrl }}">
+    <meta name="twitter:image" content="{{ $ogImageFullUrl }}">
+    <meta name="twitter:image:alt" content="Dwip Unnayan Songstha - Empowering Island Communities">
+    <meta name="twitter:site" content="@DUS_NGO">
+    <meta name="twitter:creator" content="@DUS_NGO">
 
-    <!-- Theme detection -->
+    <!-- ============================================ -->
+    <!-- WHATSAPP / TELEGRAM / MESSENGER -->
+    <!-- ============================================ -->
+    <!-- WhatsApp specific -->
+    <meta property="og:video" content="">
+    <meta property="og:video:width" content="">
+    <meta property="og:video:height" content="">
+
+    <!-- For rich link previews -->
+    <meta property="al:android:url" content="https://dus.ngo/">
+    <meta property="al:android:package" content="">
+    <meta property="al:ios:url" content="https://dus.ngo/">
+    <meta property="al:ios:app_store_id" content="">
+
+    <!-- ============================================ -->
+    <!-- STRUCTURED DATA (JSON-LD) - Rich Snippets -->
+    <!-- ============================================ -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "NGO",
+        "name": "Dwip Unnayan Songstha",
+        "alternateName": "DUS NGO",
+        "description": "Dwip Unnayan Songstha (DUS) is a non-governmental organization dedicated to sustainable development, education, healthcare, and livelihood support for island communities in Bangladesh.",
+        "url": "{{ url('/') }}",
+        "logo": "{{ $logoUrl ?? asset('storage/images/dus-logo.png') }}",
+        "image": "{{ $ogImageFullUrl }}",
+        "email": "info@dus.ngo",
+        "telephone": "+880-XXXX-XXXXXX",
+        "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Dhaka",
+            "addressCountry": "BD"
+        },
+        "contactPoint": {
+            "@type": "ContactPoint",
+            "contactType": "Customer Service",
+            "availableLanguage": ["English", "Bengali"]
+        },
+        "sameAs": [
+            "https://www.facebook.com/dusngo",
+            "https://twitter.com/DUS_NGO",
+            "https://www.linkedin.com/company/dusngo",
+            "https://www.instagram.com/dusngo"
+        ]
+    }
+    </script>
+
+    <!-- Organization Schema (for SEO) -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "Organization",
+        "name": "Dwip Unnayan Songstha",
+        "legalName": "Dwip Unnayan Songstha",
+        "url": "{{ url('/') }}",
+        "logo": "{{ $logoUrl ?? asset('storage/images/dus-logo.png') }}",
+        "description": "Empowering island communities in Bangladesh through sustainable development, education, healthcare, and livelihood support.",
+        "foundingDate": "1990",
+        "slogan": "Empowering Island Communities",
+        "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Dhaka",
+            "addressRegion": "Dhaka",
+            "addressCountry": "Bangladesh"
+        }
+    }
+    </script>
+
+    <!-- ============================================ -->
+    <!-- THEME DETECTION -->
+    <!-- ============================================ -->
     <script>
         (function() {
             const appearance = @json($appearance ?? 'system');
@@ -90,7 +185,9 @@
         })();
     </script>
 
-    <!-- Critical CSS -->
+    <!-- ============================================ -->
+    <!-- CRITICAL CSS -->
+    <!-- ============================================ -->
     <style>
         /* ... your existing styles (unchanged) ... */
         html {
@@ -328,11 +425,12 @@
     <!-- CSRF Token -->
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
-    <!-- ─── DYNAMIC FAVICONS ─── -->
+    <!-- ============================================ -->
+    <!-- FAVICONS -->
+    <!-- ============================================ -->
     @if ($faviconUrl)
         <link rel="icon" href="{{ $faviconUrl }}" type="image/x-icon">
         <link rel="shortcut icon" href="{{ $faviconUrl }}" type="image/x-icon">
-        <!-- Also provide PNG/SVG variants if available -->
         @php
             $disk = Storage::disk('public');
             $faviconPng = $disk->exists('images/favicon.png')
@@ -350,7 +448,6 @@
             <link rel="icon" href="{{ $faviconSvg }}" type="image/svg+xml">
         @endif
     @else
-        <!-- Default fallback -->
         <link rel="icon" href="{{ asset('images/dus-default-icon.png') }}" type="image/png">
     @endif
 
@@ -363,7 +460,9 @@
 
     <link rel="manifest" href="{{ asset('manifest.json') }}" crossorigin="use-credentials">
 
-    <!-- Fonts -->
+    <!-- ============================================ -->
+    <!-- FONTS -->
+    <!-- ============================================ -->
     <link rel="preconnect" href="https://fonts.bunny.net" crossorigin>
     <link rel="preload" as="style"
         href="https://fonts.bunny.net/css?family=instrument-sans:400,500,600,700|noto-sans-bengali:400,600,700&display=swap">
@@ -379,13 +478,17 @@
     <link rel="dns-prefetch" href="https://fonts.bunny.net">
     <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
 
+    <!-- ============================================ -->
     <!-- PWA -->
+    <!-- ============================================ -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="application-name" content="Dwip Unnayan Songstha">
 
-    <!-- NGO meta -->
+    <!-- ============================================ -->
+    <!-- NGO META -->
+    <!-- ============================================ -->
     <meta name="organization-type" content="NGO">
     <meta name="organization-registration" content="Registered with NGO Affairs Bureau, Bangladesh">
     <meta name="target-region" content="Island Communities of Bangladesh">
@@ -405,12 +508,13 @@
     </a>
 
     @php
-        $isFrontendRoute = request()->routeIs('home', 'sitemap')
-            || request()->route('pageSlug') !== null
-            || request()->route('detailSlug') !== null;
+        $isFrontendRoute =
+            request()->routeIs('home', 'sitemap') ||
+            request()->route('pageSlug') !== null ||
+            request()->route('detailSlug') !== null;
     @endphp
 
-    <!-- ─── LOADER ─── uses dynamic preloader icon -->
+    <!-- LOADER -->
     <div id="app-loading" role="status" aria-label="Loading Dwip Unnayan Songstha" aria-busy="true"
         style="{{ $isFrontendRoute ? '' : 'display: none' }}">
         <div class="loader-container">
@@ -429,12 +533,12 @@
         </div>
     </div>
 
-    <!-- ─── MAIN ─── -->
+    <!-- MAIN -->
     <main id="main">
         @inertia
     </main>
 
-    <!-- ─── LOADER HIDE SCRIPT ─── -->
+    <!-- LOADER HIDE SCRIPT -->
     <script>
         (function() {
             const loading = document.getElementById('app-loading');
