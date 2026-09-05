@@ -35,29 +35,31 @@
 
     @php
         // Helper to get icon URL with cache busting
-        function getIconUrl($type, $default = null)
-        {
-            $disk = Storage::disk('public');
-            $path = 'images/';
-            $prefixes = [
-                'favicon' => 'favicon',
-                'preloader' => 'preloader',
-                'og-image' => 'og-image',
-                'apple-touch' => 'apple-touch-icon',
-                'site-icon' => 'icon',
-                'logo' => 'logo',
-            ];
-            $prefix = $prefixes[$type] ?? $type;
-            $extensions = ['png', 'svg', 'ico', 'jpg', 'jpeg', 'webp'];
-            foreach ($extensions as $ext) {
-                $file = $prefix . '.' . $ext;
-                if ($disk->exists($path . $file)) {
-                    $url = asset('storage/' . $path . $file);
-                    $mtime = $disk->lastModified($path . $file);
-                    return $url . '?v=' . $mtime;
+        if (!function_exists('getIconUrl')) {
+            function getIconUrl($type, $default = null)
+            {
+                $disk = Storage::disk('public');
+                $path = 'images/';
+                $prefixes = [
+                    'favicon' => 'favicon',
+                    'preloader' => 'preloader',
+                    'og-image' => 'og-image',
+                    'apple-touch' => 'apple-touch-icon',
+                    'site-icon' => 'icon',
+                    'logo' => 'logo',
+                ];
+                $prefix = $prefixes[$type] ?? $type;
+                $extensions = ['png', 'svg', 'ico', 'jpg', 'jpeg', 'webp'];
+                foreach ($extensions as $ext) {
+                    $file = $prefix . '.' . $ext;
+                    if ($disk->exists($path . $file)) {
+                        $url = asset('storage/' . $path . $file);
+                        $mtime = $disk->lastModified($path . $file);
+                        return $url . '?v=' . $mtime;
+                    }
                 }
+                return $default;
             }
-            return $default;
         }
 
         $faviconUrl = getIconUrl('favicon');
@@ -74,6 +76,9 @@
         if (!$ogImageFullUrl || $ogImageFullUrl === asset('storage/images/dus-logo-og.png')) {
             $ogImageFullUrl = asset('images/dus-default-og.jpg');
         }
+
+        // Resolved logo used across both JSON-LD schemas
+        $schemaLogo = $logoUrl ?? asset('storage/images/dus-logo.png');
     @endphp
 
     <!-- Open Graph image -->
@@ -115,57 +120,67 @@
     <!-- ============================================ -->
     <!-- STRUCTURED DATA (JSON-LD) - Rich Snippets -->
     <!-- ============================================ -->
-    <script type="application/ld+json">
-    {
-        "@context": "https://schema.org",
-        "@type": "NGO",
-        "name": "Dwip Unnayan Songstha",
-        "alternateName": "DUS NGO",
-        "description": "Dwip Unnayan Songstha (DUS) is a non-governmental organization dedicated to sustainable development, education, healthcare, and livelihood support for island communities in Bangladesh.",
-        "url": "{{ url('/') }}",
-        "logo": "{{ $logoUrl ?? asset('storage/images/dus-logo.png') }}",
-        "image": "{{ $ogImageFullUrl }}",
-        "email": "info@dus.ngo",
-        "telephone": "+880-XXXX-XXXXXX",
-        "address": {
-            "@type": "PostalAddress",
-            "addressLocality": "Dhaka",
-            "addressCountry": "BD"
-        },
-        "contactPoint": {
-            "@type": "ContactPoint",
-            "contactType": "Customer Service",
-            "availableLanguage": ["English", "Bengali"]
-        },
-        "sameAs": [
-            "https://www.facebook.com/dusngo",
-            "https://twitter.com/DUS_NGO",
-            "https://www.linkedin.com/company/dusngo",
-            "https://www.instagram.com/dusngo"
-        ]
-    }
-    </script>
+    {{--
+        IMPORTANT: Build JSON-LD as PHP arrays and json_encode() them.
+        Never hand-write raw "@context"/"@type" text inside a Blade file --
+        Blade's compiler scans the whole file for @word patterns and will
+        try to parse "@context"/"@type" as directives, corrupting compilation
+        (this was the cause of the "unexpected end of file" ParseError).
+    --}}
+    @php
+        $ngoSchema = [
+            '@context' => 'https://schema.org',
+            '@type' => 'NGO',
+            'name' => 'Dwip Unnayan Songstha',
+            'alternateName' => 'DUS NGO',
+            'description' =>
+                'Dwip Unnayan Songstha (DUS) is a non-governmental organization dedicated to sustainable development, education, healthcare, and livelihood support for island communities in Bangladesh.',
+            'url' => url('/'),
+            'logo' => $schemaLogo,
+            'image' => $ogImageFullUrl,
+            'email' => 'info@dus.ngo',
+            'telephone' => '+880-XXXX-XXXXXX',
+            'address' => [
+                '@type' => 'PostalAddress',
+                'addressLocality' => 'Dhaka',
+                'addressCountry' => 'BD',
+            ],
+            'contactPoint' => [
+                '@type' => 'ContactPoint',
+                'contactType' => 'Customer Service',
+                'availableLanguage' => ['English', 'Bengali'],
+            ],
+            'sameAs' => [
+                'https://www.facebook.com/dusngo',
+                'https://twitter.com/DUS_NGO',
+                'https://www.linkedin.com/company/dusngo',
+                'https://www.instagram.com/dusngo',
+            ],
+        ];
+
+        $organizationSchema = [
+            '@context' => 'https://schema.org',
+            '@type' => 'Organization',
+            'name' => 'Dwip Unnayan Songstha',
+            'legalName' => 'Dwip Unnayan Songstha',
+            'url' => url('/'),
+            'logo' => $schemaLogo,
+            'description' =>
+                'Empowering island communities in Bangladesh through sustainable development, education, healthcare, and livelihood support.',
+            'foundingDate' => '1990',
+            'slogan' => 'Empowering Island Communities',
+            'address' => [
+                '@type' => 'PostalAddress',
+                'addressLocality' => 'Dhaka',
+                'addressRegion' => 'Dhaka',
+                'addressCountry' => 'Bangladesh',
+            ],
+        ];
+    @endphp
+    <script type="application/ld+json">{!! json_encode($ngoSchema, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}</script>
 
     <!-- Organization Schema (for SEO) -->
-    <script type="application/ld+json">
-    {
-        "@context": "https://schema.org",
-        "@type": "Organization",
-        "name": "Dwip Unnayan Songstha",
-        "legalName": "Dwip Unnayan Songstha",
-        "url": "{{ url('/') }}",
-        "logo": "{{ $logoUrl ?? asset('storage/images/dus-logo.png') }}",
-        "description": "Empowering island communities in Bangladesh through sustainable development, education, healthcare, and livelihood support.",
-        "foundingDate": "1990",
-        "slogan": "Empowering Island Communities",
-        "address": {
-            "@type": "PostalAddress",
-            "addressLocality": "Dhaka",
-            "addressRegion": "Dhaka",
-            "addressCountry": "Bangladesh"
-        }
-    }
-    </script>
+    <script type="application/ld+json">{!! json_encode($organizationSchema, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}</script>
 
     <!-- ============================================ -->
     <!-- THEME DETECTION -->
