@@ -4,6 +4,14 @@ import React, { Suspense } from 'react';
 import SectionLoader from './SectionLoader';
 import { SECTION_COMPONENTS, SECTION_CONFIGS } from '../config/sectionRegistry';
 
+// Components that always receive their whole payload as ONE prop object.
+// These must never be spread (isMultiProp) — otherwise the shape breaks.
+const SINGLE_PAYLOAD_COMPONENTS = new Set([
+  'HomeBanner',
+  'PageBannerSection',
+  'PageTagBannerSection',
+]);
+
 const DynamicSectionRenderer = ({
   section,
   pageData,
@@ -16,10 +24,10 @@ const DynamicSectionRenderer = ({
     id,
     component: componentName,
     propName,
-    dataKey,  // 🔥 This is the key used in pageData
+    dataKey,
     custom_props: customPropsFromDb,
     customProps: customPropsFromFrontend,
-    data: sectionData,  // Data attached directly to section
+    data: sectionData,
   } = section;
 
   // ============================================
@@ -52,32 +60,30 @@ const DynamicSectionRenderer = ({
   }
 
   // ============================================
-  // BUILD COMPONENT PROPS
+  // BASE PROPS
   // ============================================
   const baseProps = { ...globalProps, ...parsedCustomProps };
 
   const config = SECTION_CONFIGS[componentName];
 
   // ============================================
-  // 🔥 RESOLVE DATA USING DATAKEY
+  // RESOLVE DATA USING DATAKEY
   // ============================================
   let dataValue = undefined;
 
-  // 1. First, check if data is attached directly to the section
+  // 1. Data attached directly to the section
   if (sectionData !== undefined && sectionData !== null) {
     dataValue = sectionData;
   }
 
-  // 2. If not, try to find data in pageData using dataKey
+  // 2. Resolve via dataKey
   if (dataValue === undefined && dataKey && pageData) {
     const dataSource = pageData?.pageData || pageData || {};
 
-    // Try the exact dataKey
     if (dataSource[dataKey] !== undefined) {
       dataValue = dataSource[dataKey];
     }
 
-    // If dataKey has underscores, try with hyphens
     if (dataValue === undefined && dataKey.includes('_')) {
       const hyphenKey = dataKey.replace(/_/g, '-');
       if (dataSource[hyphenKey] !== undefined) {
@@ -85,7 +91,6 @@ const DynamicSectionRenderer = ({
       }
     }
 
-    // If dataKey has hyphens, try with underscores
     if (dataValue === undefined && dataKey.includes('-')) {
       const underscoreKey = dataKey.replace(/-/g, '_');
       if (dataSource[underscoreKey] !== undefined) {
@@ -94,7 +99,7 @@ const DynamicSectionRenderer = ({
     }
   }
 
-  // 3. Try using propName
+  // 3. Resolve via propName
   if (dataValue === undefined && propName && pageData) {
     const dataSource = pageData?.pageData || pageData || {};
     if (dataSource[propName] !== undefined) {
@@ -102,7 +107,7 @@ const DynamicSectionRenderer = ({
     }
   }
 
-  // 4. Try kebab-case of propName
+  // 4. kebab-case of propName
   if (dataValue === undefined && propName && pageData) {
     const dataSource = pageData?.pageData || pageData || {};
     const kebabProp = propName.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase();
@@ -111,7 +116,7 @@ const DynamicSectionRenderer = ({
     }
   }
 
-  // 5. Try snake_case of propName
+  // 5. snake_case of propName
   if (dataValue === undefined && propName && pageData) {
     const dataSource = pageData?.pageData || pageData || {};
     const snakeProp = propName.replace(/([a-z])([A-Z])/g, '$1_$2').toLowerCase();
@@ -125,15 +130,20 @@ const DynamicSectionRenderer = ({
   // ============================================
   const componentProps = { ...baseProps };
 
-  if (config?.isMultiProp) {
-    // Multi-prop components: pass multiple props
+  if (SINGLE_PAYLOAD_COMPONENTS.has(componentName)) {
+    // Always pass the whole payload as one prop (e.g. bannerData = { slideInterval, slides })
+    const propNameToUse = propName || config?.propName || 'bannerData';
+    if (dataValue !== undefined) {
+      componentProps[propNameToUse] = dataValue;
+    }
+  } else if (config?.isMultiProp) {
+    // Multi-prop components: spread object keys
     if (dataValue && typeof dataValue === 'object') {
       Object.assign(componentProps, dataValue);
     }
   } else {
-    // Single prop components
+    // Default single-prop
     const propNameToUse = propName || config?.propName || 'data';
-
     if (dataValue !== undefined) {
       componentProps[propNameToUse] = dataValue;
     }

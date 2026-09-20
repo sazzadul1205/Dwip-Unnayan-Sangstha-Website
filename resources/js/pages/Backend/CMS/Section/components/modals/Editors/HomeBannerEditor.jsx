@@ -4,7 +4,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 
 // Icons
-import { FaTrash, FaPlus, FaImage, FaArrowLeft, FaArrowRight } from 'react-icons/fa';
+import { FaTrash, FaPlus, FaImage, FaArrowLeft, FaArrowRight, FaCopy } from 'react-icons/fa';
 
 // Sweetalert
 import Swal from 'sweetalert2';
@@ -13,103 +13,116 @@ import Swal from 'sweetalert2';
 import ImageUpload from './shared/ImageUpload';
 import { TextField, SelectField } from './shared/Fields';
 
+const MAX_SLIDES = 10;
+const MAX_BUTTONS = 2;
+
+const DEFAULT_OVERLAY = {
+  darkOverlay: 'bg-black/40 lg:bg-black/50',
+  gradient: '',
+};
+
+const DEFAULT_CONTENT = {
+  tagline: { text: '', className: 'uppercase tracking-[4px] font-semibold' },
+  title: { text: '', className: 'font-bold leading-tight' },
+  description: { text: '', className: 'font-normal leading-tight' },
+};
+
+const createEmptySlide = (index) => ({
+  id: `slide_${Date.now()}_${index}`,
+  src: '',
+  alt: `Slide ${index + 1}`,
+  overlay: { ...DEFAULT_OVERLAY },
+  content: JSON.parse(JSON.stringify(DEFAULT_CONTENT)),
+  buttons: [],
+});
+
+const createEmptyButton = () => ({
+  text: '',
+  link: '',
+  icon: true,
+  className: '',
+});
+
 const HomeBannerEditor = ({ section, hasData, onDataChange }) => {
   // ===== STATE MANAGEMENT =====
   const initialData = section?.data?.data || section?.data || {};
-  const [formData, setFormData] = useState(initialData);
-  const [slideImages, setSlideImages] = useState([]);
+
+  const [slides, setSlides] = useState(() => {
+    const existing = Array.isArray(initialData.slides) ? initialData.slides : [];
+    return existing.slice(0, MAX_SLIDES).map((s, i) => ({
+      ...createEmptySlide(i),
+      ...s,
+      overlay: { ...DEFAULT_OVERLAY, ...(s.overlay || {}) },
+      content: {
+        tagline: { ...DEFAULT_CONTENT.tagline, ...(s.content?.tagline || {}) },
+        title: { ...DEFAULT_CONTENT.title, ...(s.content?.title || {}) },
+        description: { ...DEFAULT_CONTENT.description, ...(s.content?.description || {}) },
+      },
+      buttons: Array.isArray(s.buttons) ? s.buttons.slice(0, MAX_BUTTONS) : [],
+    }));
+  });
+
+  const [slideInterval, setSlideInterval] = useState(initialData?.slideInterval ?? 5000);
   const [previewIndex, setPreviewIndex] = useState(0);
+  const [activeSlideIndex, setActiveSlideIndex] = useState(0);
 
   // ===== EFFECTS =====
-  // Initialize slide images from background data
-  useEffect(() => {
-    const bgSrc = formData?.background?.src || [];
-    const bgAlt = formData?.background?.alt || [];
-
-    if (Array.isArray(bgSrc) && bgSrc.length > 0) {
-      const slides = bgSrc.map((src, index) => ({
-        src: src || '',
-        alt: Array.isArray(bgAlt) ? (bgAlt[index] || '') : (bgAlt || ''),
-        id: index,
-      }));
-      setSlideImages(slides);
-    } else if (bgSrc && typeof bgSrc === 'string') {
-      setSlideImages([{
-        src: bgSrc,
-        alt: bgAlt || '',
-        id: 0,
-      }]);
-    } else {
-      setSlideImages([]);
-    }
-  }, [formData?.background?.src, formData?.background?.alt]);
-
-  // Notify parent when form data changes
   useEffect(() => {
     if (onDataChange) {
-      onDataChange(formData);
+      onDataChange({ slides, slideInterval });
     }
-  }, [formData, onDataChange]);
+  }, [slides, slideInterval, onDataChange]);
 
-  // ===== HELPER FUNCTIONS =====
-
-  // Update nested object fields using dot notation
-  const updateField = useCallback((path, value) => {
-    const keys = path.split('.');
-    const newData = { ...formData };
-    let current = newData;
-
-    for (let i = 0; i < keys.length - 1; i++) {
-      if (!current[keys[i]]) current[keys[i]] = {};
-      current = current[keys[i]];
+  useEffect(() => {
+    if (activeSlideIndex >= slides.length) {
+      setActiveSlideIndex(Math.max(0, slides.length - 1));
     }
-    current[keys[keys.length - 1]] = value;
-    setFormData(newData);
-  }, [formData]);
-
-  // Update background images array
-  const updateBackgroundImages = useCallback((newImages) => {
-    const srcs = newImages.map(img => img.src);
-    const alts = newImages.map(img => img.alt);
-
-    updateField('background.src', srcs);
-    updateField('background.alt', alts);
-    setSlideImages(newImages);
-
-    // Reset preview index if it's out of bounds
-    if (previewIndex >= newImages.length) {
-      setPreviewIndex(Math.max(0, newImages.length - 1));
+    if (previewIndex >= slides.length) {
+      setPreviewIndex(Math.max(0, slides.length - 1));
     }
-  }, [updateField, previewIndex]);
+  }, [slides.length, activeSlideIndex, previewIndex]);
 
   // ===== SLIDE MANAGEMENT =====
-
-  // Add a new slide image
-  const addSlideImage = useCallback(() => {
-    if (slideImages.length >= 5) {
+  const addSlide = useCallback(() => {
+    if (slides.length >= MAX_SLIDES) {
       Swal.fire({
         icon: 'warning',
-        title: 'Maximum 5 Slides',
-        text: 'You can only have up to 5 slides in this section.',
+        title: `Maximum ${MAX_SLIDES} Slides`,
+        text: `You can only have up to ${MAX_SLIDES} slides in this banner.`,
         confirmButtonColor: '#3b82f6',
       });
       return;
     }
+    const updated = [...slides, createEmptySlide(slides.length)];
+    setSlides(updated);
+    setActiveSlideIndex(updated.length - 1);
+    setPreviewIndex(updated.length - 1);
+  }, [slides]);
 
-    const newSlide = {
-      src: '',
-      alt: `Slide ${slideImages.length + 1}`,
-      id: Date.now(),
+  const duplicateSlide = useCallback((index) => {
+    if (slides.length >= MAX_SLIDES) {
+      Swal.fire({
+        icon: 'warning',
+        title: `Maximum ${MAX_SLIDES} Slides`,
+        text: `You can only have up to ${MAX_SLIDES} slides in this banner.`,
+        confirmButtonColor: '#3b82f6',
+      });
+      return;
+    }
+    const clone = {
+      ...JSON.parse(JSON.stringify(slides[index])),
+      id: `slide_${Date.now()}_${index}`,
+      alt: `${slides[index].alt || 'Slide'} (copy)`,
     };
+    const updated = [...slides];
+    updated.splice(index + 1, 0, clone);
+    setSlides(updated);
+    setActiveSlideIndex(index + 1);
+    setPreviewIndex(index + 1);
+  }, [slides]);
 
-    const updatedSlides = [...slideImages, newSlide];
-    updateBackgroundImages(updatedSlides);
-    setPreviewIndex(updatedSlides.length - 1);
-  }, [slideImages, updateBackgroundImages]);
-
-  // Remove a slide image
-  const removeSlideImage = useCallback((index) => {
-    if (slideImages.length <= 1) {
+  const removeSlide = useCallback((index) => {
+    if (slides.length <= 1) {
       Swal.fire({
         icon: 'warning',
         title: 'Cannot Remove',
@@ -118,66 +131,116 @@ const HomeBannerEditor = ({ section, hasData, onDataChange }) => {
       });
       return;
     }
+    const updated = slides.filter((_, i) => i !== index);
+    setSlides(updated);
+    setActiveSlideIndex(Math.min(activeSlideIndex, updated.length - 1));
+    setPreviewIndex(Math.min(previewIndex, updated.length - 1));
+  }, [slides, activeSlideIndex, previewIndex]);
 
-    const updatedSlides = slideImages.filter((_, i) => i !== index);
-    updateBackgroundImages(updatedSlides);
+  // ===== SLIDE FIELD UPDATERS =====
+  const updateSlide = useCallback((index, updater) => {
+    setSlides((prev) => {
+      const updated = [...prev];
+      updated[index] =
+        typeof updater === 'function' ? updater(updated[index]) : { ...updated[index], ...updater };
+      return updated;
+    });
+  }, []);
 
-    if (previewIndex >= updatedSlides.length) {
-      setPreviewIndex(updatedSlides.length - 1);
-    }
-  }, [slideImages, updateBackgroundImages, previewIndex]);
+  const updateSlideField = useCallback((index, path, value) => {
+    updateSlide(index, (slide) => {
+      const keys = path.split('.');
+      const clone = JSON.parse(JSON.stringify(slide));
+      let cur = clone;
+      for (let i = 0; i < keys.length - 1; i++) {
+        if (!cur[keys[i]]) cur[keys[i]] = {};
+        cur = cur[keys[i]];
+      }
+      cur[keys[keys.length - 1]] = value;
+      return clone;
+    });
+  }, [updateSlide]);
 
-  // Update slide image source
-  const updateSlideSrc = useCallback((index, src) => {
-    const updatedSlides = [...slideImages];
-    updatedSlides[index].src = src;
-    updateBackgroundImages(updatedSlides);
-  }, [slideImages, updateBackgroundImages]);
+  // ===== BUTTON MANAGEMENT =====
+  const addButton = useCallback((slideIndex) => {
+    updateSlide(slideIndex, (slide) => {
+      const buttons = Array.isArray(slide.buttons) ? [...slide.buttons] : [];
+      if (buttons.length >= MAX_BUTTONS) {
+        Swal.fire({
+          icon: 'warning',
+          title: `Maximum ${MAX_BUTTONS} Buttons`,
+          text: `Each slide can have up to ${MAX_BUTTONS} buttons.`,
+          confirmButtonColor: '#3b82f6',
+        });
+        return slide;
+      }
+      buttons.push(createEmptyButton());
+      return { ...slide, buttons };
+    });
+  }, [updateSlide]);
 
-  // Update slide alt text
-  const updateSlideAlt = useCallback((index, alt) => {
-    const updatedSlides = [...slideImages];
-    updatedSlides[index].alt = alt;
-    updateBackgroundImages(updatedSlides);
-  }, [slideImages, updateBackgroundImages]);
+  const removeButton = useCallback((slideIndex, buttonIndex) => {
+    updateSlide(slideIndex, (slide) => ({
+      ...slide,
+      buttons: (slide.buttons || []).filter((_, i) => i !== buttonIndex),
+    }));
+  }, [updateSlide]);
 
-  // Navigate preview
+  const updateButtonField = useCallback((slideIndex, buttonIndex, field, value) => {
+    updateSlide(slideIndex, (slide) => {
+      const buttons = [...(slide.buttons || [])];
+      buttons[buttonIndex] = { ...buttons[buttonIndex], [field]: value };
+      return { ...slide, buttons };
+    });
+  }, [updateSlide]);
+
+  // ===== NAVIGATION =====
   const prevSlide = useCallback(() => {
-    if (slideImages.length === 0) return;
-    setPreviewIndex((prev) => (prev - 1 + slideImages.length) % slideImages.length);
-  }, [slideImages.length]);
+    if (slides.length === 0) return;
+    setPreviewIndex((prev) => (prev - 1 + slides.length) % slides.length);
+  }, [slides.length]);
 
   const nextSlide = useCallback(() => {
-    if (slideImages.length === 0) return;
-    setPreviewIndex((prev) => (prev + 1) % slideImages.length);
-  }, [slideImages.length]);
+    if (slides.length === 0) return;
+    setPreviewIndex((prev) => (prev + 1) % slides.length);
+  }, [slides.length]);
 
   // ===== OPTIONS =====
   const overlayOptions = useMemo(() => [
     { value: 'bg-black/40 lg:bg-black/50', label: 'Light Dark Overlay' },
     { value: 'bg-black/60 lg:bg-black/70', label: 'Medium Dark Overlay' },
     { value: 'bg-black/80 lg:bg-black/90', label: 'Heavy Dark Overlay' },
-    { value: 'bg-linear-to-r from-black/85 via-black/10 to-transparent', label: 'Gradient Left to Right' },
-    { value: 'bg-linear-to-l from-black/85 via-black/10 to-transparent', label: 'Gradient Right to Left' },
-    { value: 'bg-linear-to-t from-black/85 via-black/10 to-transparent', label: 'Gradient Bottom to Top' },
-    { value: 'bg-linear-to-b from-black/85 via-black/10 to-transparent', label: 'Gradient Top to Bottom' },
-  ], []);
-
-  const gradientOptions = useMemo(() => [
-    { value: 'bg-linear-to-r from-black/85 via-black/10 to-transparent', label: 'Left to Right' },
-    { value: 'bg-linear-to-l from-black/85 via-black/10 to-transparent', label: 'Right to Left' },
-    { value: 'bg-linear-to-t from-black/85 via-black/10 to-transparent', label: 'Bottom to Top' },
-    { value: 'bg-linear-to-b from-black/85 via-black/10 to-transparent', label: 'Top to Bottom' },
+    { value: 'bg-gradient-to-r from-black/85 via-black/10 to-transparent', label: 'Gradient Left to Right' },
+    { value: 'bg-gradient-to-l from-black/85 via-black/10 to-transparent', label: 'Gradient Right to Left' },
+    { value: 'bg-gradient-to-t from-black/85 via-black/10 to-transparent', label: 'Gradient Bottom to Top' },
+    { value: 'bg-gradient-to-b from-black/85 via-black/10 to-transparent', label: 'Gradient Top to Bottom' },
     { value: '', label: 'None' },
   ], []);
 
-  // ===== RENDER HELPERS =====
+  const gradientOptions = useMemo(() => [
+    { value: 'bg-gradient-to-r from-black/85 via-black/10 to-transparent', label: 'Left to Right' },
+    { value: 'bg-gradient-to-l from-black/85 via-black/10 to-transparent', label: 'Right to Left' },
+    { value: 'bg-gradient-to-t from-black/85 via-black/10 to-transparent', label: 'Bottom to Top' },
+    { value: 'bg-gradient-to-b from-black/85 via-black/10 to-transparent', label: 'Top to Bottom' },
+    { value: '', label: 'None' },
+  ], []);
 
-  // Render slide preview
-  const renderSlidePreview = useCallback(() => {
-    if (slideImages.length === 0 || !slideImages[previewIndex]?.src) {
+  const intervalOptions = useMemo(() => [
+    { value: 3000, label: '3 seconds (Fast)' },
+    { value: 4000, label: '4 seconds' },
+    { value: 5000, label: '5 seconds (Default)' },
+    { value: 6000, label: '6 seconds' },
+    { value: 8000, label: '8 seconds' },
+    { value: 10000, label: '10 seconds (Slow)' },
+    { value: 15000, label: '15 seconds' },
+  ], []);
+
+  // ===== RENDER HELPERS =====
+  const renderSlidePreview = () => {
+    const slide = slides[previewIndex];
+    if (!slide?.src) {
       return (
-        <div className="w-full h-32 bg-gray-100 rounded-lg flex items-center justify-center text-gray-400">
+        <div className="w-full h-40 bg-gray-100 rounded-lg flex items-center justify-center text-gray-400">
           <div className="text-center">
             <FaImage className="w-8 h-8 mx-auto mb-2 opacity-50" />
             <span className="text-sm">No image selected</span>
@@ -187,32 +250,75 @@ const HomeBannerEditor = ({ section, hasData, onDataChange }) => {
     }
 
     return (
-      <div className="relative w-full h-32 bg-gray-100 rounded-lg overflow-hidden">
+      <div className="relative w-full h-40 bg-gray-100 rounded-lg overflow-hidden">
         <img
-          src={slideImages[previewIndex].src}
-          alt={slideImages[previewIndex].alt || `Slide ${previewIndex + 1}`}
+          src={slide.src}
+          alt={slide.alt || `Slide ${previewIndex + 1}`}
           className="w-full h-full object-cover"
         />
-        {slideImages.length > 1 && (
+        {slide.overlay?.darkOverlay && (
+          <div className={`absolute inset-0 ${slide.overlay.darkOverlay}`} />
+        )}
+        {slide.overlay?.gradient && (
+          <div className={`absolute inset-0 ${slide.overlay.gradient}`} />
+        )}
+        <div className="absolute inset-0 flex flex-col justify-center px-4 text-white">
+          {slide.content?.tagline?.text && (
+            <p className="text-[10px] uppercase tracking-widest opacity-90">
+              {slide.content.tagline.text}
+            </p>
+          )}
+          {slide.content?.title?.text && (
+            <h3 className="text-sm font-bold leading-tight line-clamp-2">
+              {slide.content.title.text}
+            </h3>
+          )}
+          {slide.content?.description?.text && (
+            <p className="text-[10px] leading-tight line-clamp-2 opacity-90">
+              {slide.content.description.text}
+            </p>
+          )}
+          {slide.buttons?.length > 0 && (
+            <div className="flex gap-1 mt-1 flex-wrap">
+              {slide.buttons.map(
+                (b, i) =>
+                  b.text && (
+                    <span
+                      key={i}
+                      className={`text-[9px] px-2 py-0.5 rounded ${i === 0 ? 'bg-[#009BE2] text-white' : 'bg-white/90 text-black'
+                        }`}
+                    >
+                      {b.text}
+                    </span>
+                  )
+              )}
+            </div>
+          )}
+        </div>
+
+        {slides.length > 1 && (
           <>
             <button
+              type="button"
               onClick={prevSlide}
               className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full p-1 transition-colors"
             >
-              <FaArrowLeft size={12} />
+              <FaArrowLeft size={10} />
             </button>
             <button
+              type="button"
               onClick={nextSlide}
               className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full p-1 transition-colors"
             >
-              <FaArrowRight size={12} />
+              <FaArrowRight size={10} />
             </button>
             <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1">
-              {slideImages.map((_, idx) => (
+              {slides.map((_, idx) => (
                 <button
                   key={idx}
+                  type="button"
                   onClick={() => setPreviewIndex(idx)}
-                  className={`w-2 h-2 rounded-full transition-colors ${idx === previewIndex ? 'bg-white' : 'bg-white/50 hover:bg-white/80'
+                  className={`w-1.5 h-1.5 rounded-full transition-colors ${idx === previewIndex ? 'bg-white' : 'bg-white/50 hover:bg-white/80'
                     }`}
                 />
               ))}
@@ -221,259 +327,285 @@ const HomeBannerEditor = ({ section, hasData, onDataChange }) => {
         )}
       </div>
     );
-  }, [slideImages, previewIndex, prevSlide, nextSlide]);
+  };
 
   // ===== MAIN RENDER =====
+  const activeSlide = slides[activeSlideIndex];
+
   return (
     <div className="bg-white rounded-lg border border-gray-200 p-4">
-      <h3 className="text-sm font-semibold text-gray-700 mb-3">Edit Data</h3>
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-sm font-semibold text-gray-700">Edit Banner Carousel</h3>
+        <span className="text-xs text-gray-400">
+          {slides.length} / {MAX_SLIDES} slides
+        </span>
+      </div>
 
-      {/* ===== SLIDER IMAGES ===== */}
+      {/* ===== CAROUSEL SETTINGS ===== */}
+      <div className="mb-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
+        <SelectField
+          label="Autoplay Speed"
+          value={slideInterval}
+          onChange={(e) => setSlideInterval(Number(e.target.value))}
+          options={intervalOptions}
+        />
+        <p className="text-xs text-gray-400 mt-1">
+          Time each slide stays visible before transitioning.
+        </p>
+      </div>
+
+      {/* ===== SLIDE LIST ===== */}
       <div className="mb-4">
         <div className="flex items-center justify-between mb-2">
-          <h4 className="text-sm font-medium text-gray-600">Slider Images (Max 5)</h4>
-          <div className="flex gap-2">
-            <span className="text-xs text-gray-400">
-              {slideImages.length} / 5 slides
-            </span>
-            <button
-              type="button"
-              onClick={addSlideImage}
-              className="text-xs text-blue-600 hover:text-blue-700 flex items-center gap-1"
-            >
-              <FaPlus size={12} /> Add Slide
-            </button>
-          </div>
+          <h4 className="text-sm font-medium text-gray-600">Slides</h4>
+          <button
+            type="button"
+            onClick={addSlide}
+            disabled={slides.length >= MAX_SLIDES}
+            className={`text-xs flex items-center gap-1 ${slides.length >= MAX_SLIDES
+                ? 'text-gray-300 cursor-not-allowed'
+                : 'text-blue-600 hover:text-blue-700'
+              }`}
+          >
+            <FaPlus size={12} /> Add Slide
+          </button>
         </div>
 
-        {/* Slide Preview */}
-        {slideImages.length > 0 && renderSlidePreview()}
+        {slides.length > 0 && renderSlidePreview()}
 
-        {/* Slide Images List */}
-        <div className="space-y-3 mt-3 max-h-80 overflow-y-auto">
-          {slideImages.map((slide, index) => (
-            <div
+        <div className="flex flex-wrap gap-1.5 mt-3">
+          {slides.map((slide, index) => (
+            <button
               key={slide.id || index}
-              className={`p-3 rounded-lg border transition-colors ${index === previewIndex
-                  ? 'bg-blue-50 border-blue-300'
-                  : 'bg-gray-50 border-gray-200'
+              type="button"
+              onClick={() => setActiveSlideIndex(index)}
+              className={`text-xs px-2.5 py-1 rounded-md border transition-colors ${activeSlideIndex === index
+                  ? 'bg-blue-50 border-blue-300 text-blue-700'
+                  : 'bg-gray-50 border-gray-200 text-gray-500 hover:bg-gray-100'
                 }`}
             >
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-medium text-gray-500">
-                  Slide #{index + 1}
-                  {index === previewIndex && (
-                    <span className="ml-2 text-blue-500 text-[10px] font-semibold">(Previewing)</span>
-                  )}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => removeSlideImage(index)}
-                  className="text-xs text-red-500 hover:text-red-700 flex items-center gap-1"
-                >
-                  <FaTrash size={12} /> Remove
-                </button>
-              </div>
-
-              <div className="space-y-2">
-                <ImageUpload
-                  imageSrc={slide.src || ''}
-                  onImageChange={(src) => updateSlideSrc(index, src)}
-                  onImageRemove={() => updateSlideSrc(index, '')}
-                  oldImagePath=""
-                  imageChanged={false}
-                  uploadPath="/storage/Banner/"
-                  label="Slide Image"
-                />
-
-                <TextField
-                  label="Alt Text"
-                  value={slide.alt || ''}
-                  onChange={(e) => updateSlideAlt(index, e.target.value)}
-                  placeholder={`Alt text for slide ${index + 1}`}
-                />
-              </div>
-            </div>
+              Slide #{index + 1}
+            </button>
           ))}
         </div>
-
-        {slideImages.length === 0 && (
-          <div className="text-center py-4 text-gray-400 text-sm">
-            No slides added. Click "Add Slide" to create one (max 5).
-          </div>
-        )}
-
-        {slideImages.length >= 5 && (
-          <div className="text-center text-xs text-yellow-600 mt-1">
-            Maximum of 5 slides reached.
-          </div>
-        )}
       </div>
 
-      {/* ===== OVERLAY SETTINGS ===== */}
-      <div className="mb-4">
-        <h4 className="text-sm font-medium text-gray-600 mb-2">Overlay Settings</h4>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <SelectField
-            label="Dark Overlay"
-            value={formData.overlay?.darkOverlay || ''}
-            onChange={(e) => updateField('overlay.darkOverlay', e.target.value)}
-            options={overlayOptions}
-          />
-          <SelectField
-            label="Gradient"
-            value={formData.overlay?.gradient || ''}
-            onChange={(e) => updateField('overlay.gradient', e.target.value)}
-            options={gradientOptions}
-          />
-        </div>
-        {formData.overlay?.darkOverlay && (
-          <div className="mt-2">
-            <div
-              className={`w-full h-8 rounded-lg ${formData.overlay.darkOverlay}`}
-              style={{
-                backgroundImage: formData.overlay.darkOverlay.includes('gradient')
-                  ? formData.overlay.darkOverlay.replace(/^bg-/, '')
-                  : undefined,
-                backgroundColor: formData.overlay.darkOverlay.includes('bg-') && !formData.overlay.darkOverlay.includes('gradient')
-                  ? formData.overlay.darkOverlay.replace(/^bg-/, '').replace(/\s/g, '')
-                  : undefined,
-                minHeight: '32px'
-              }}
-            />
-            <span className="text-xs text-gray-400 mt-1 block">Preview</span>
-          </div>
-        )}
-      </div>
-
-      {/* ===== CONTENT SECTION ===== */}
-      <div className="mb-4">
-        <h4 className="text-sm font-medium text-gray-600 mb-2">Content</h4>
-
-        {/* Tagline */}
-        <div className="mb-3">
-          <h5 className="text-xs font-medium text-gray-500 mb-1">Tagline</h5>
-          <div className="space-y-2">
-            <TextField
-              label="Text"
-              value={formData.content?.tagline?.text || ''}
-              onChange={(e) => updateField('content.tagline.text', e.target.value)}
-              placeholder="Tagline text"
-            />
-            <TextField
-              label="Class Name (Fixed)"
-              value={formData.content?.tagline?.className || 'uppercase tracking-[4px] font-semibold'}
-              onChange={(e) => updateField('content.tagline.className', e.target.value)}
-              placeholder="CSS classes"
-              className="bg-gray-50"
-            />
-            <p className="text-xs text-gray-400 -mt-1">Fixed class name - edit if needed</p>
-          </div>
-        </div>
-
-        {/* Title */}
-        <div className="mb-3">
-          <h5 className="text-xs font-medium text-gray-500 mb-1">Title</h5>
-          <div className="space-y-2">
-            <TextField
-              label="Text"
-              value={formData.content?.title?.text || ''}
-              onChange={(e) => updateField('content.title.text', e.target.value)}
-              placeholder="Title text"
-            />
-            <TextField
-              label="Class Name (Fixed)"
-              value={formData.content?.title?.className || 'font-bold leading-tight'}
-              onChange={(e) => updateField('content.title.className', e.target.value)}
-              placeholder="CSS classes"
-              className="bg-gray-50"
-            />
-            <p className="text-xs text-gray-400 -mt-1">Fixed class name - edit if needed</p>
-          </div>
-        </div>
-
-        {/* Description */}
-        <div>
-          <h5 className="text-xs font-medium text-gray-500 mb-1">Description</h5>
-          <div className="space-y-2">
-            <div>
-              <label className="block text-xs text-gray-400 mb-0.5">Text</label>
-              <textarea
-                value={formData.content?.description?.text || ''}
-                onChange={(e) => updateField('content.description.text', e.target.value)}
-                rows={2}
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
-                placeholder="Description text"
-              />
+      {/* ===== ACTIVE SLIDE EDITOR ===== */}
+      {activeSlide && (
+        <div className="border-t border-gray-200 pt-4">
+          <div className="flex items-center justify-between mb-3">
+            <h4 className="text-sm font-semibold text-gray-700">
+              Editing Slide #{activeSlideIndex + 1}
+            </h4>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => duplicateSlide(activeSlideIndex)}
+                disabled={slides.length >= MAX_SLIDES}
+                className={`text-xs flex items-center gap-1 ${slides.length >= MAX_SLIDES
+                    ? 'text-gray-300 cursor-not-allowed'
+                    : 'text-gray-600 hover:text-gray-800'
+                  }`}
+              >
+                <FaCopy size={11} /> Duplicate
+              </button>
+              <button
+                type="button"
+                onClick={() => removeSlide(activeSlideIndex)}
+                className="text-xs text-red-500 hover:text-red-700 flex items-center gap-1"
+              >
+                <FaTrash size={12} /> Remove
+              </button>
             </div>
-            <TextField
-              label="Class Name (Fixed)"
-              value={formData.content?.description?.className || 'font-normal leading-tight'}
-              onChange={(e) => updateField('content.description.className', e.target.value)}
-              placeholder="CSS classes"
-              className="bg-gray-50"
-            />
-            <p className="text-xs text-gray-400 -mt-1">Fixed class name - edit if needed</p>
           </div>
-        </div>
-      </div>
 
-      {/* ===== SINGLE BUTTON ===== */}
-      <div className="mb-4">
-        <h4 className="text-sm font-medium text-gray-600 mb-2">Call to Action Button</h4>
-        <p className="text-xs text-gray-400 mb-2">Only the first button will be displayed with a blue theme</p>
-
-        <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <TextField
-              label="Button Text"
-              value={formData.buttons?.[0]?.text || ''}
-              onChange={(e) => {
-                const newButtons = [...(formData.buttons || [])];
-                if (newButtons.length === 0) {
-                  newButtons.push({ text: '', link: '', icon: true, className: '' });
-                }
-                newButtons[0].text = e.target.value;
-                updateField('buttons', newButtons);
-              }}
-              placeholder="Button text"
+          {/* --- SLIDE IMAGE --- */}
+          <div className="mb-4">
+            <h5 className="text-xs font-medium text-gray-500 mb-2">Slide Image</h5>
+            <ImageUpload
+              imageSrc={activeSlide.src || ''}
+              onImageChange={(src) => updateSlideField(activeSlideIndex, 'src', src)}
+              onImageRemove={() => updateSlideField(activeSlideIndex, 'src', '')}
+              oldImagePath=""
+              imageChanged={false}
+              uploadPath="/storage/Banner/"
+              label="Banner Image"
             />
-            <TextField
-              label="Button Link"
-              value={formData.buttons?.[0]?.link || ''}
-              onChange={(e) => {
-                const newButtons = [...(formData.buttons || [])];
-                if (newButtons.length === 0) {
-                  newButtons.push({ text: '', link: '', icon: true, className: '' });
-                }
-                newButtons[0].link = e.target.value;
-                updateField('buttons', newButtons);
-              }}
-              placeholder="/about or https://example.com"
-            />
-            <div className="md:col-span-2">
+            <div className="mt-2">
               <TextField
-                label="Additional Class Name"
-                value={formData.buttons?.[0]?.className || ''}
-                onChange={(e) => {
-                  const newButtons = [...(formData.buttons || [])];
-                  if (newButtons.length === 0) {
-                    newButtons.push({ text: '', link: '', icon: true, className: '' });
-                  }
-                  newButtons[0].className = e.target.value;
-                  updateField('buttons', newButtons);
-                }}
-                placeholder="Additional CSS classes"
+                label="Alt Text"
+                value={activeSlide.alt || ''}
+                onChange={(e) => updateSlideField(activeSlideIndex, 'alt', e.target.value)}
+                placeholder="Describe this banner image"
               />
             </div>
           </div>
-          <div className="mt-3 p-2 bg-blue-50 rounded border border-blue-200">
-            <p className="text-xs text-blue-600">
-              💡 The button will be displayed with: <span className="font-semibold">blue background (#009BE2)</span> with white text and hover effects
-            </p>
+
+          {/* --- OVERLAY --- */}
+          <div className="mb-4">
+            <h5 className="text-xs font-medium text-gray-500 mb-2">Overlay</h5>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <SelectField
+                label="Dark Overlay"
+                value={activeSlide.overlay?.darkOverlay || ''}
+                onChange={(e) => updateSlideField(activeSlideIndex, 'overlay.darkOverlay', e.target.value)}
+                options={overlayOptions}
+              />
+              <SelectField
+                label="Gradient"
+                value={activeSlide.overlay?.gradient || ''}
+                onChange={(e) => updateSlideField(activeSlideIndex, 'overlay.gradient', e.target.value)}
+                options={gradientOptions}
+              />
+            </div>
+          </div>
+
+          {/* --- CONTENT --- */}
+          <div className="mb-4">
+            <h5 className="text-xs font-medium text-gray-500 mb-2">Content</h5>
+
+            <div className="mb-3">
+              <h6 className="text-xs font-medium text-gray-500 mb-1">Tagline</h6>
+              <div className="space-y-2">
+                <TextField
+                  label="Text"
+                  value={activeSlide.content?.tagline?.text || ''}
+                  onChange={(e) => updateSlideField(activeSlideIndex, 'content.tagline.text', e.target.value)}
+                  placeholder="Tagline text"
+                />
+                <TextField
+                  label="Class Name"
+                  value={activeSlide.content?.tagline?.className || ''}
+                  onChange={(e) => updateSlideField(activeSlideIndex, 'content.tagline.className', e.target.value)}
+                  placeholder="CSS classes"
+                  className="bg-gray-50"
+                />
+              </div>
+            </div>
+
+            <div className="mb-3">
+              <h6 className="text-xs font-medium text-gray-500 mb-1">Title</h6>
+              <div className="space-y-2">
+                <TextField
+                  label="Text"
+                  value={activeSlide.content?.title?.text || ''}
+                  onChange={(e) => updateSlideField(activeSlideIndex, 'content.title.text', e.target.value)}
+                  placeholder="Title text"
+                />
+                <TextField
+                  label="Class Name"
+                  value={activeSlide.content?.title?.className || ''}
+                  onChange={(e) => updateSlideField(activeSlideIndex, 'content.title.className', e.target.value)}
+                  placeholder="CSS classes"
+                  className="bg-gray-50"
+                />
+              </div>
+            </div>
+
+            <div>
+              <h6 className="text-xs font-medium text-gray-500 mb-1">Description</h6>
+              <div className="space-y-2">
+                <textarea
+                  value={activeSlide.content?.description?.text || ''}
+                  onChange={(e) => updateSlideField(activeSlideIndex, 'content.description.text', e.target.value)}
+                  rows={3}
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
+                  placeholder="Description text"
+                />
+                <TextField
+                  label="Class Name"
+                  value={activeSlide.content?.description?.className || ''}
+                  onChange={(e) => updateSlideField(activeSlideIndex, 'content.description.className', e.target.value)}
+                  placeholder="CSS classes"
+                  className="bg-gray-50"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* --- BUTTONS (MAX 2) --- */}
+          <div className="mb-4">
+            <div className="flex items-center justify-between mb-2">
+              <h5 className="text-xs font-medium text-gray-500">
+                Buttons (max {MAX_BUTTONS})
+              </h5>
+              <button
+                type="button"
+                onClick={() => addButton(activeSlideIndex)}
+                disabled={(activeSlide.buttons?.length || 0) >= MAX_BUTTONS}
+                className={`text-xs flex items-center gap-1 ${(activeSlide.buttons?.length || 0) >= MAX_BUTTONS
+                    ? 'text-gray-300 cursor-not-allowed'
+                    : 'text-blue-600 hover:text-blue-700'
+                  }`}
+              >
+                <FaPlus size={11} /> Add Button
+              </button>
+            </div>
+
+            {(activeSlide.buttons?.length || 0) === 0 && (
+              <p className="text-xs text-gray-400 italic py-2">
+                No buttons. Click "Add Button" to create one.
+              </p>
+            )}
+
+            <div className="space-y-3">
+              {(activeSlide.buttons || []).map((btn, bIdx) => (
+                <div key={bIdx} className="p-3 bg-gray-50 rounded-lg border border-gray-200">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-medium text-gray-500">
+                      Button #{bIdx + 1}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => removeButton(activeSlideIndex, bIdx)}
+                      className="text-xs text-red-500 hover:text-red-700 flex items-center gap-1"
+                    >
+                      <FaTrash size={11} /> Remove
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    <TextField
+                      label="Text"
+                      value={btn.text || ''}
+                      onChange={(e) => updateButtonField(activeSlideIndex, bIdx, 'text', e.target.value)}
+                      placeholder="Button text"
+                    />
+                    <TextField
+                      label="Link"
+                      value={btn.link || ''}
+                      onChange={(e) => updateButtonField(activeSlideIndex, bIdx, 'link', e.target.value)}
+                      placeholder="/about or https://..."
+                    />
+                    <div className="md:col-span-2">
+                      <TextField
+                        label="Additional Class Name"
+                        value={btn.className || ''}
+                        onChange={(e) => updateButtonField(activeSlideIndex, bIdx, 'className', e.target.value)}
+                        placeholder="Additional CSS classes"
+                      />
+                    </div>
+                    <div className="md:col-span-2 flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        id={`btn-icon-${activeSlideIndex}-${bIdx}`}
+                        checked={!!btn.icon}
+                        onChange={(e) => updateButtonField(activeSlideIndex, bIdx, 'icon', e.target.checked)}
+                        className="rounded"
+                      />
+                      <label
+                        htmlFor={`btn-icon-${activeSlideIndex}-${bIdx}`}
+                        className="text-xs text-gray-600"
+                      >
+                        Show arrow icon
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* ===== DATA INFORMATION ===== */}
       <div className="mt-4 bg-gray-50 rounded-lg p-4 border border-gray-200">
