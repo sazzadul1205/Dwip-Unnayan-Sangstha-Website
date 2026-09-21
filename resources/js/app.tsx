@@ -1,6 +1,6 @@
 import '../css/app.css';
 
-import { createInertiaApp, router } from '@inertiajs/react';
+import { createInertiaApp } from '@inertiajs/react';
 import { StrictMode, useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
 import { type route as routeFn } from 'ziggy-js';
@@ -13,17 +13,13 @@ declare global {
 
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
 
-const isFrontendPath = (path: string) =>
-    !/^\/(backend|login|register|dashboard|api|storage|auth|complete-profile|seeker|apply|profile|unauthorized|playground)(\/|$)/.test(
-        path,
-    );
-
 /**
- * Fires `app:ready` as soon as React has committed and the browser has
- * painted two frames. No font waiting, no image decoding, no observers.
+ * Fires `app:ready` after React commits + browser paints two frames.
  *
- * Lazy sections stream in afterwards — each shows its own Suspense
- * fallback inside its own slot, so the global loader never blocks on them.
+ * The preloader partial listens for this event ONLY, and hides itself
+ * once received. Route-level navigation is handled by:
+ *   1. Inertia's 2px progress bar (see `progress` below)
+ *   2. Each section's own skeleton while its data / chunk loads
  */
 export function AppReady({ children }: { children: React.ReactNode }) {
     useEffect(() => {
@@ -33,7 +29,6 @@ export function AppReady({ children }: { children: React.ReactNode }) {
         const signalReady = () => {
             if (cancelled) return;
 
-            // cancel any frames still queued from a previous navigation
             pendingFrames.forEach((id) => cancelAnimationFrame(id));
             pendingFrames = [];
 
@@ -49,13 +44,9 @@ export function AppReady({ children }: { children: React.ReactNode }) {
 
         signalReady();
 
-        const handlePageFinished = () => signalReady();
-        window.addEventListener('app:page-finished', handlePageFinished);
-
         return () => {
             cancelled = true;
             pendingFrames.forEach((id) => cancelAnimationFrame(id));
-            window.removeEventListener('app:page-finished', handlePageFinished);
         };
     }, []);
 
@@ -67,27 +58,10 @@ createInertiaApp({
     resolve: resolvePage,
     setup({ el, App, props }) {
         const root = createRoot(el);
-        let loadingTimer: number | null = null;
 
-        router.on('start', (event) => {
-            const path = new URL(event.detail.visit.url, window.location.origin).pathname;
-            if (!isFrontendPath(path)) return;
-
-            loadingTimer = window.setTimeout(() => {
-                window.dispatchEvent(new Event('app:loading'));
-            }, 150);
-        });
-
-        router.on('finish', () => {
-            if (loadingTimer !== null) {
-                window.clearTimeout(loadingTimer);
-                loadingTimer = null;
-            }
-
-            requestAnimationFrame(() => {
-                window.dispatchEvent(new Event('app:page-finished'));
-            });
-        });
+        // No route-level listeners here — the preloader only cares about
+        // the initial paint. Subsequent navigations rely on Inertia's
+        // native progress bar + per-section skeletons.
 
         root.render(
             <StrictMode>
@@ -98,7 +72,7 @@ createInertiaApp({
         );
     },
     progress: {
-        color: '#4B5563',
+        color: '#009BE2',
         delay: 100,
         showSpinner: false,
     },

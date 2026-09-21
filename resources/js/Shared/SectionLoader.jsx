@@ -1,36 +1,31 @@
-// dus-frontend/src/Shared/SectionLoader.jsx
+// resources/js/Shared/SectionLoader.jsx
+
+import { Skeleton, SkeletonText } from './Skeletons/SkeletonPrimitives';
 
 /**
- * ============================================
- * SECTION LOADER - Inline Loading Skeleton
- * ============================================
+ * Generic skeleton fallback for lazy-loaded sections.
+ * Used by React Suspense while a section's JS chunk downloads.
  *
- * PURPOSE:
- * - Shown as the Suspense fallback while a section's lazy chunk loads
- * - Reserves a modest amount of vertical space to avoid layout jank
- *   when the real section mounts
- *
- * NOTE:
- * - Does NOT reserve a full viewport height (old behaviour caused the
- *   page to scroll for hundreds of px while multiple sections loaded)
- * - The global loader (in app.blade.php) is what hides after first paint;
- *   this one only fills the slot of the section currently loading
- *
- * USAGE:
- * <Suspense fallback={<SectionLoader message="Loading FAQ..." />}>
- *   <FAQSection />
- * </Suspense>
+ * This is NOT the data-skeleton (those live inside each section and are
+ * driven by the `loading` prop). This is only the chunk-load placeholder.
  */
-
-const SectionLoader = ({ message = "Loading..." }) => {
+const SectionLoader = ({ message = 'Loading section...' }) => {
   return (
     <div
       data-frontend-loader="true"
-      className="w-full min-h-60 py-16 flex justify-center items-center"
+      className="w-full py-12 sm:py-16 md:py-20 lg:py-25"
+      aria-busy="true"
+      aria-label={message}
     >
-      <div className="animate-pulse flex flex-col items-center">
-        <div className="w-10 h-10 border-4 border-[#009BE2] border-t-transparent rounded-full animate-spin" />
-        <p className="mt-3 text-sm text-[#515151]">{message}</p>
+      <div className="mx-auto max-w-7xl px-5 sm:px-8 md:px-12 lg:px-20 xl:px-30 2xl:px-50 space-y-6">
+        {/* Title */}
+        <Skeleton className="h-8 sm:h-10 lg:h-12 w-2/3 sm:w-1/2" />
+
+        {/* Body lines */}
+        <SkeletonText lines={3} lineClassName="h-4 sm:h-4.5 lg:h-5" />
+
+        {/* Big block — generic image/table/card area */}
+        <Skeleton className="h-48 sm:h-64 md:h-80 w-full rounded-2xl mt-8" />
       </div>
     </div>
   );
