@@ -17,7 +17,7 @@
 
 // React
 import { Link } from '@inertiajs/react';
-import { useState, useCallback, memo, useEffect } from 'react';
+import { useState, useCallback, memo, useEffect, useMemo, useRef } from 'react';
 
 // Icons
 import {
@@ -93,6 +93,22 @@ const getIconComponent = (iconName) => {
 };
 
 /**
+ * Shallow-compare two plain objects whose values are strings.
+ * Used to skip redundant state updates for contactImageHtmls.
+ */
+const shallowEqualStringMap = (a, b) => {
+  if (a === b) return true;
+  if (!a || !b) return false;
+  const aKeys = Object.keys(a);
+  const bKeys = Object.keys(b);
+  if (aKeys.length !== bKeys.length) return false;
+  for (const k of aKeys) {
+    if (a[k] !== b[k]) return false;
+  }
+  return true;
+};
+
+/**
  * Footer Component
  */
 const Footer = ({
@@ -120,8 +136,14 @@ const Footer = ({
   // State for generated contact images
   const [contactImageHtmls, setContactImageHtmls] = useState({});
 
+  // Keep latest state in a ref so the effect can compare without re-running
+  const contactImageHtmlsRef = useRef(contactImageHtmls);
+  useEffect(() => {
+    contactImageHtmlsRef.current = contactImageHtmls;
+  }, [contactImageHtmls]);
+
   // ====
-  // DATA
+  // DATA (safe defaults — never assume footerData is defined)
   // ====
 
   const {
@@ -137,7 +159,7 @@ const Footer = ({
     bottomFooter = {},
     quickLinkLinkIcon = '',
     OurProgramLinkIcon = '',
-  } = footerData;
+  } = footerData || {};
 
   // ====
   // CONTENT CHECKS
@@ -164,66 +186,33 @@ const Footer = ({
     hasValue(bottomFooter.copyright) ||
     hasValue(bottomFooter.links);
 
-  // Generate contact images for emails and phone numbers
-  useEffect(() => {
-    const newContactImages = {};
+  // ====
+  // STABLE PRIMITIVE KEYS FOR EFFECT DEPS
+  // Prevents the effect from re-running just because parent created new
+  // object references on every render (which is what caused the
+  // "Maximum update depth exceeded" loop).
+  // ====
 
-    // Generate images for email addresses
-    if (hasEmailInfo && hasValue(emailInfo.addresses)) {
-      emailInfo.addresses.forEach((emailAddr, index) => {
-        try {
-          const emailLink = createContactImage({
-            type: 'email',
-            value: emailAddr,
-            alt: `Email ${index + 1}`,
-            fontSize: 14,
-            fontFamily: 'Arial',
-            textColor: '#FFFFFF',
-            backgroundColor: 'transparent',
-            padding: 0,
-          });
-          const imgElement = emailLink.querySelector('img');
-          if (imgElement) {
-            const key = `email_${index}`;
-            newContactImages[key] = imgElement.outerHTML;
-          }
-        } catch (error) {
-          console.error(`Error creating email image for ${emailAddr}:`, error);
-        }
-      });
-    }
+  const emailsKey = useMemo(
+    () =>
+      Array.isArray(emailInfo?.addresses)
+        ? emailInfo.addresses.join('|')
+        : '',
+    [emailInfo?.addresses],
+  );
 
-    // Generate images for phone numbers
-    if (hasContact && hasValue(contact.numbers)) {
-      contact.numbers.forEach((number, index) => {
-        try {
-          const phoneLink = createContactImage({
-            type: 'phone',
-            value: number,
-            alt: `Phone ${index + 1}`,
-            fontSize: 14,
-            fontFamily: 'Arial',
-            textColor: '#FFFFFF',
-            backgroundColor: 'transparent',
-            padding: 0,
-          });
-          const imgElement = phoneLink.querySelector('img');
-          if (imgElement) {
-            const key = `phone_${index}`;
-            newContactImages[key] = imgElement.outerHTML;
-          }
-        } catch (error) {
-          console.error(`Error creating phone image for ${number}:`, error);
-        }
-      });
-    }
+  const phonesKey = useMemo(
+    () =>
+      Array.isArray(contact?.numbers)
+        ? contact.numbers.join('|')
+        : '',
+    [contact?.numbers],
+  );
 
-    setContactImageHtmls(newContactImages);
-  }, [emailInfo, contact, hasEmailInfo, hasContact]);
+  // ====
+  // IMAGE URL HELPER (defined before use in effects/callbacks)
+  // ====
 
-  /**
-   * Build image URL with storage path
-   */
   const getImageSrc = useCallback(
     (imagePath) => {
       if (!imagePath) return null;
@@ -256,16 +245,83 @@ const Footer = ({
     [storageUrl],
   );
 
-  /**
-   * Handle logo image error
-   */
+  // ====
+  // EFFECT: Generate contact images (emails + phones)
+  // Deps are primitive strings only -> runs once per real data change.
+  // ====
+
+  useEffect(() => {
+    // If there is nothing to render, clear once and bail.
+    if (!emailsKey && !phonesKey) {
+      if (Object.keys(contactImageHtmlsRef.current).length !== 0) {
+        setContactImageHtmls({});
+      }
+      return;
+    }
+
+    const newContactImages = {};
+
+    const emails = emailsKey ? emailsKey.split('|') : [];
+    const phones = phonesKey ? phonesKey.split('|') : [];
+
+    emails.forEach((emailAddr, index) => {
+      try {
+        const emailLink = createContactImage({
+          type: 'email',
+          value: emailAddr,
+          alt: `Email ${index + 1}`,
+          fontSize: 14,
+          fontFamily: 'Arial',
+          textColor: '#FFFFFF',
+          backgroundColor: 'transparent',
+          padding: 0,
+        });
+        const imgElement = emailLink.querySelector('img');
+        if (imgElement) {
+          newContactImages[`email_${index}`] = imgElement.outerHTML;
+        }
+      } catch (error) {
+        console.error(`Error creating email image for ${emailAddr}:`, error);
+      }
+    });
+
+    phones.forEach((number, index) => {
+      try {
+        const phoneLink = createContactImage({
+          type: 'phone',
+          value: number,
+          alt: `Phone ${index + 1}`,
+          fontSize: 14,
+          fontFamily: 'Arial',
+          textColor: '#FFFFFF',
+          backgroundColor: 'transparent',
+          padding: 0,
+        });
+        const imgElement = phoneLink.querySelector('img');
+        if (imgElement) {
+          newContactImages[`phone_${index}`] = imgElement.outerHTML;
+        }
+      } catch (error) {
+        console.error(`Error creating phone image for ${number}:`, error);
+      }
+    });
+
+    // Bail out if nothing actually changed (guarantees no loop).
+    if (shallowEqualStringMap(contactImageHtmlsRef.current, newContactImages)) {
+      return;
+    }
+
+    setContactImageHtmls(newContactImages);
+  }, [emailsKey, phonesKey]);
+
+  // ====
+  // HANDLERS
+  // ====
+
   const handleLogoError = useCallback(() => {
     setLogoError(true);
   }, []);
 
-  /**
-   * Toggle mobile accordion sections
-   */
   const toggleMobileSection = useCallback((section) => {
     setIsMobileMenuOpen((prev) => ({
       ...prev,
@@ -273,9 +329,6 @@ const Footer = ({
     }));
   }, []);
 
-  /**
-   * Handle newsletter subscription
-   */
   const handleSubscribe = useCallback(
     async (e) => {
       e.preventDefault();
@@ -325,15 +378,12 @@ const Footer = ({
             data.message ||
             'Successfully subscribed to our newsletter!',
           );
-
           setSubmitMessageType('success');
           setEmail('');
           setName('');
         } else {
           if (data.errors) {
-            const errorMessages =
-              Object.values(data.errors).flat();
-
+            const errorMessages = Object.values(data.errors).flat();
             setSubmitMessage(
               errorMessages[0] ||
               'Subscription failed. Please check your email.',
@@ -344,19 +394,13 @@ const Footer = ({
               'Subscription failed. Please try again.',
             );
           }
-
           setSubmitMessageType('error');
         }
       } catch (error) {
-        console.error(
-          'Newsletter subscription error:',
-          error,
-        );
-
+        console.error('Newsletter subscription error:', error);
         setSubmitMessage(
           'Unable to subscribe at this time. Please try again later.',
         );
-
         setSubmitMessageType('error');
       } finally {
         setIsSubmitting(false);
@@ -370,9 +414,10 @@ const Footer = ({
     [email, name],
   );
 
-  /**
-   * Render link with icon
-   */
+  // ====
+  // RENDER HELPERS
+  // ====
+
   const renderLinkWithIcon = useCallback(
     (link, iconSrc, index) => {
       const iconUrl = getImageSrc(iconSrc);
@@ -401,50 +446,49 @@ const Footer = ({
     [getImageSrc],
   );
 
-  /**
-   * Render contact item (email or phone) with optional image
-   */
-  const renderContactItem = useCallback((type, value, href, index) => {
-    const key = `${type}_${index}`;
-    const imageHtml = contactImageHtmls[key];
+  const renderContactItem = useCallback(
+    (type, value, href, index) => {
+      const key = `${type}_${index}`;
+      const imageHtml = contactImageHtmls[key];
 
-    if (imageHtml) {
+      if (imageHtml) {
+        return (
+          <a
+            key={index}
+            href={href}
+            className="mb-1 block transition-opacity hover:opacity-80"
+            dangerouslySetInnerHTML={{ __html: imageHtml }}
+          />
+        );
+      }
+
+      if (type === 'email') {
+        return (
+          <a
+            key={index}
+            href={href}
+            className="mb-1 block break-all text-sm text-white transition-colors hover:text-[#009BE2] sm:text-base"
+          >
+            {value}
+          </a>
+        );
+      }
+
       return (
         <a
           key={index}
           href={href}
-          className="mb-1 block transition-opacity hover:opacity-80"
-          dangerouslySetInnerHTML={{ __html: imageHtml }}
-        />
-      );
-    }
-
-    // Fallback to plain text
-    if (type === 'email') {
-      return (
-        <a
-          key={index}
-          href={href}
-          className="mb-1 block break-all text-sm text-white transition-colors hover:text-[#009BE2] sm:text-base"
+          className="mb-1 block text-sm text-white transition-colors hover:text-[#009BE2] sm:text-base"
         >
           {value}
         </a>
       );
-    }
-
-    return (
-      <a
-        key={index}
-        href={href}
-        className="mb-1 block text-sm text-white transition-colors hover:text-[#009BE2] sm:text-base"
-      >
-        {value}
-      </a>
-    );
-  }, [contactImageHtmls]);
+    },
+    [contactImageHtmls],
+  );
 
   // ====
-  // EARLY RETURN
+  // EARLY RETURNS
   // ====
 
   if (!hasValue(footerData)) {
