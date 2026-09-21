@@ -6,6 +6,9 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 // Arrow Icon
 import ArrowIcon from '../../Shared/ArrowIcon';
 
+// Skeleton primitives
+import { Skeleton } from '../../Shared/Skeletons/SkeletonPrimitives';
+
 const MAX_SLIDES = 10;
 const MAX_BUTTONS = 2;
 const DEFAULT_INTERVAL = 5000;
@@ -31,24 +34,96 @@ const EMPTY_CONTENT = {
   description: { text: '', className: 'font-normal leading-tight' },
 };
 
+// ============================================
+// SKELETON: Full HomeBanner slide
+// ============================================
+const HomeBannerSkeleton = ({ paddingX, paddingY, showDots = true }) => (
+  <>
+    {/* Background image placeholder */}
+    <Skeleton
+      className="w-full h-full absolute inset-0"
+      rounded="rounded-none"
+      style={{ background: 'rgba(255,255,255,0.08)' }}
+    />
+
+    {/* Dark overlay stack — mirrors real */}
+    <div className="absolute inset-0 bg-black/40 sm:bg-black/30 md:bg-black/20 lg:bg-black/10" />
+
+    {/* Content */}
+    <div className={`absolute inset-0 flex items-center ${paddingX} ${paddingY}`}>
+      <div className="w-full text-white space-y-2 sm:space-y-3 md:space-y-4 lg:space-y-5">
+        {/* Tagline */}
+        <div className="flex justify-center md:justify-start">
+          <Skeleton
+            className="h-3 sm:h-4 md:h-5 lg:h-6 xl:h-7 2xl:h-8 w-32 sm:w-40 md:w-52 lg:w-64 rounded-md"
+            style={{ background: 'rgba(255,255,255,0.25)' }}
+          />
+        </div>
+
+        {/* Title — 2 lines */}
+        <div className="w-full md:max-w-2xl lg:max-w-3xl xl:max-w-4xl 2xl:max-w-215.75 mx-auto md:mx-0">
+          <Skeleton
+            className="h-7 sm:h-9 md:h-12 lg:h-16 xl:h-20 2xl:h-25 w-5/6 mb-3 mx-auto md:mx-0"
+            style={{ background: 'rgba(255,255,255,0.25)' }}
+          />
+          <Skeleton
+            className="h-7 sm:h-9 md:h-12 lg:h-16 xl:h-20 2xl:h-25 w-3/5 mx-auto md:mx-0"
+            style={{ background: 'rgba(255,255,255,0.25)' }}
+          />
+        </div>
+
+        {/* Description — 2 lines */}
+        <div className="w-full md:max-w-2xl lg:max-w-3xl xl:max-w-4xl 2xl:max-w-215.75 mx-auto md:mx-0">
+          <Skeleton
+            className="h-3.5 sm:h-4 md:h-5 lg:h-6 xl:h-7 2xl:h-8 w-5/6 mb-2 mx-auto md:mx-0"
+            style={{ background: 'rgba(255,255,255,0.2)' }}
+          />
+          <Skeleton
+            className="h-3.5 sm:h-4 md:h-5 lg:h-6 xl:h-7 2xl:h-8 w-2/3 mx-auto md:mx-0"
+            style={{ background: 'rgba(255,255,255,0.2)' }}
+          />
+        </div>
+
+        {/* Buttons — 2 pills, responsive stack */}
+        <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-3 md:gap-4 lg:gap-5 xl:gap-6 pt-3 sm:pt-4 md:pt-5 lg:pt-6 xl:pt-7.5">
+          <Skeleton
+            className="h-11 sm:h-12 md:h-13 lg:h-14 xl:h-15 w-full sm:w-36 md:w-40 lg:w-44 rounded-md"
+            style={{ background: 'rgba(0,155,226,0.85)' }}
+          />
+          <Skeleton
+            className="h-11 sm:h-12 md:h-13 lg:h-14 xl:h-15 w-full sm:w-36 md:w-40 lg:w-44 rounded-md"
+            style={{ background: 'rgba(255,255,255,0.9)' }}
+          />
+        </div>
+      </div>
+    </div>
+
+    {/* Dots */}
+    {showDots && (
+      <div className="absolute bottom-4 sm:bottom-6 md:bottom-8 lg:bottom-10 left-1/2 transform -translate-x-1/2 z-10 flex gap-1.5 sm:gap-2">
+        {[0, 1, 2].map((i) => (
+          <Skeleton
+            key={`dot-skeleton-${i}`}
+            className={
+              i === 0
+                ? 'w-8 sm:w-10 h-2 sm:h-2.5 rounded-full'
+                : 'w-2 sm:w-2.5 h-2 sm:h-2.5 rounded-full'
+            }
+            style={{ background: 'rgba(255,255,255,0.5)' }}
+          />
+        ))}
+      </div>
+    )}
+  </>
+);
+
 /**
- * HomeBanner — full carousel.
- * Expected data shape:
- *   {
- *     slideInterval: number,   // ms
- *     slides: [
- *       {
- *         id, src, alt,
- *         overlay: { darkOverlay, gradient },
- *         content: { tagline{text,className}, title{...}, description{...} },
- *         buttons: [{ text, link, icon, className }, ...max 2]
- *       }, ...max 10
- *     ]
- *   }
+ * HomeBanner — full carousel
  */
 const HomeBanner = ({
   data,
   bannerData,
+  loading = false,               // ← NEW
   bgColor = '',
   height = 'h-100 sm:h-80 md:h-100 lg:h-150 xl:h-200 2xl:h-250',
   paddingY = 'py-12 sm:py-16 md:py-20 lg:py-25 xl:py-30 2xl:py-37.5',
@@ -56,7 +131,6 @@ const HomeBanner = ({
   sectionClassName = '',
   slideInterval: slideIntervalProp,
 }) => {
-  
   // ===== RESOLVE DATA =====
   let resolvedData = data || bannerData;
   if (resolvedData?.data && typeof resolvedData.data === 'object') {
@@ -99,10 +173,13 @@ const HomeBanner = ({
     if (currentSlide >= slides.length) setCurrentSlide(0);
   }, [slides.length, currentSlide]);
 
-  const goToSlide = useCallback((index) => {
-    if (slides.length === 0) return;
-    setCurrentSlide(((index % slides.length) + slides.length) % slides.length);
-  }, [slides.length]);
+  const goToSlide = useCallback(
+    (index) => {
+      if (slides.length === 0) return;
+      setCurrentSlide(((index % slides.length) + slides.length) % slides.length);
+    },
+    [slides.length]
+  );
 
   useEffect(() => {
     if (!hasMultipleSlides || isPaused) return;
@@ -116,6 +193,22 @@ const HomeBanner = ({
 
   const handleMouseEnter = useCallback(() => setIsPaused(true), []);
   const handleMouseLeave = useCallback(() => setIsPaused(false), []);
+
+  // ============================================
+  // LOADING STATE
+  // ============================================
+  if (loading) {
+    return (
+      <div className="w-full flex justify-center overflow-hidden">
+        <section
+          id="banner"
+          className={`relative w-full max-w-[1920px] ${height} overflow-hidden ${bgColor} ${sectionClassName}`}
+        >
+          <HomeBannerSkeleton paddingX={paddingX} paddingY={paddingY} />
+        </section>
+      </div>
+    );
+  }
 
   if (!hasValue(resolvedData) || slides.length === 0) {
     return null;
@@ -134,8 +227,11 @@ const HomeBanner = ({
         <div className="absolute inset-0">
           {slides.map((slide, index) => {
             const isActive = index === currentSlide;
-            const imageSrc = slide.src || getPlaceholderImage(1920, 600, slide.content?.title?.text || 'Welcome');
-            const imageAlt = slide.alt || slide.content?.title?.text || `Slide ${index + 1}`;
+            const imageSrc =
+              slide.src ||
+              getPlaceholderImage(1920, 600, slide.content?.title?.text || 'Welcome');
+            const imageAlt =
+              slide.alt || slide.content?.title?.text || `Slide ${index + 1}`;
             const primaryButton = slide.buttons[0] || null;
             const secondaryButton = slide.buttons[1] || null;
 
@@ -168,7 +264,10 @@ const HomeBanner = ({
                 <div className={`absolute inset-0 flex items-center ${paddingX} ${paddingY}`}>
                   <div className="w-full text-white space-y-2 sm:space-y-3 md:space-y-4 lg:space-y-5">
                     {hasValue(slide.content?.tagline?.text) && (
-                      <p className={`bricolage-grotesque ${slide.content.tagline.className || ''} text-white text-center md:text-left text-[12px] sm:text-[14px] md:text-[18px] lg:text-[24px] xl:text-[30px] tracking-[1px] sm:tracking-[2px] md:tracking-[3px] lg:tracking-[4px]`}>
+                      <p
+                        className={`bricolage-grotesque ${slide.content.tagline.className || ''
+                          } text-white text-center md:text-left text-[12px] sm:text-[14px] md:text-[18px] lg:text-[24px] xl:text-[30px] tracking-[1px] sm:tracking-[2px] md:tracking-[3px] lg:tracking-[4px]`}
+                      >
                         {slide.content.tagline.text}
                       </p>
                     )}
@@ -193,7 +292,8 @@ const HomeBanner = ({
                             onClick={() => {
                               if (primaryButton.link) window.location.href = primaryButton.link;
                             }}
-                            className={`capitalize font-600 text-[13px] sm:text-[14px] md:text-[15px] lg:text-[16px] xl:text-[18px] px-4 sm:px-5 md:px-6 lg:px-7 xl:px-7.5 py-2.5 sm:py-3 md:py-3.5 lg:py-4 xl:py-5 bricolage-grotesque rounded-md inline-flex items-center justify-center gap-1.5 sm:gap-2 md:gap-2.5 lg:gap-3 group transition-all duration-300 w-full sm:w-auto bg-[#009BE2] text-white hover:bg-[#009BE2]/90 shadow-md hover:shadow-lg ${primaryButton.className || ''}`}
+                            className={`capitalize font-600 text-[13px] sm:text-[14px] md:text-[15px] lg:text-[16px] xl:text-[18px] px-4 sm:px-5 md:px-6 lg:px-7 xl:px-7.5 py-2.5 sm:py-3 md:py-3.5 lg:py-4 xl:py-5 bricolage-grotesque rounded-md inline-flex items-center justify-center gap-1.5 sm:gap-2 md:gap-2.5 lg:gap-3 group transition-all duration-300 w-full sm:w-auto bg-[#009BE2] text-white hover:bg-[#009BE2]/90 shadow-md hover:shadow-lg ${primaryButton.className || ''
+                              }`}
                           >
                             <span>{primaryButton.text}</span>
                             {primaryButton.icon && (
@@ -208,7 +308,8 @@ const HomeBanner = ({
                             onClick={() => {
                               if (secondaryButton.link) window.location.href = secondaryButton.link;
                             }}
-                            className={`capitalize font-600 text-[13px] sm:text-[14px] md:text-[15px] lg:text-[16px] xl:text-[18px] px-4 sm:px-5 md:px-6 lg:px-7 xl:px-7.5 py-2.5 sm:py-3 md:py-3.5 lg:py-4 xl:py-5 bricolage-grotesque rounded-md inline-flex items-center justify-center gap-1.5 sm:gap-2 md:gap-2.5 lg:gap-3 group transition-all duration-300 w-full sm:w-auto bg-white/90 lg:bg-white text-black hover:bg-white shadow-md hover:shadow-lg ${secondaryButton.className || ''}`}
+                            className={`capitalize font-600 text-[13px] sm:text-[14px] md:text-[15px] lg:text-[16px] xl:text-[18px] px-4 sm:px-5 md:px-6 lg:px-7 xl:px-7.5 py-2.5 sm:py-3 md:py-3.5 lg:py-4 xl:py-5 bricolage-grotesque rounded-md inline-flex items-center justify-center gap-1.5 sm:gap-2 md:gap-2.5 lg:gap-3 group transition-all duration-300 w-full sm:w-auto bg-white/90 lg:bg-white text-black hover:bg-white shadow-md hover:shadow-lg ${secondaryButton.className || ''
+                              }`}
                           >
                             <span>{secondaryButton.text}</span>
                             {secondaryButton.icon && (

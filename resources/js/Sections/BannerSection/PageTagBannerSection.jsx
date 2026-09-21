@@ -3,6 +3,10 @@
 import React, { useState } from 'react';
 import { usePage, router } from '@inertiajs/react';
 
+// Skeleton primitives
+import { Skeleton } from '../../Shared/Skeletons/SkeletonPrimitives';
+
+// Utility function to check if value exists
 const hasValue = (value) => {
   if (value === undefined || value === null) return false;
   if (typeof value === 'string') return value.trim().length > 0;
@@ -11,7 +15,7 @@ const hasValue = (value) => {
   return true;
 };
 
-// Generate placeholder image URL (inline SVG — avoids external placeholder services)
+// Generate placeholder image URL (inline SVG)
 const getPlaceholderImage = (width = 1920, height = 600, text = 'Gallery Banner') => {
   const safeText = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   const fontSize = Math.max(14, Math.round(Math.min(width, height) / 12));
@@ -19,9 +23,58 @@ const getPlaceholderImage = (width = 1920, height = 600, text = 'Gallery Banner'
   return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
 };
 
+// ============================================
+// SKELETON: Full PageTagBanner
+// ============================================
+const PageTagBannerSkeleton = ({ paddingX, paddingY, tagCount = 5 }) => (
+  <>
+    {/* Background image */}
+    <Skeleton
+      className="w-full h-full absolute inset-0"
+      rounded="rounded-none"
+    />
+
+    {/* Dark overlay */}
+    <div className="absolute inset-0 bg-black/30 sm:bg-black/20 md:bg-black/10 lg:bg-black/5" />
+
+    {/* Content — title + tag pills */}
+    <div className={`absolute left-0 inset-0 flex items-center ${paddingX} ${paddingY}`}>
+      <div className="w-full text-white space-y-2 sm:space-y-3 md:space-y-4 lg:space-y-5">
+        {/* Title */}
+        <div className="w-full md:max-w-2xl lg:max-w-3xl xl:max-w-4xl 2xl:max-w-215.75">
+          <Skeleton
+            className="h-7 sm:h-9 md:h-12 lg:h-16 xl:h-20 2xl:h-25 w-5/6 mb-3"
+            style={{ background: 'rgba(255,255,255,0.25)' }}
+          />
+          <Skeleton
+            className="h-7 sm:h-9 md:h-12 lg:h-16 xl:h-20 2xl:h-25 w-3/5"
+            style={{ background: 'rgba(255,255,255,0.25)' }}
+          />
+        </div>
+
+        {/* Tag pills row */}
+        <div className="pt-3 sm:pt-4 md:pt-5 max-w-232.5 flex flex-wrap gap-2 sm:gap-3 md:gap-4">
+          {Array.from({ length: tagCount }).map((_, i) => (
+            <Skeleton
+              key={`tag-skeleton-${i}`}
+              className="h-8 sm:h-9 md:h-11 rounded-lg"
+              style={{
+                background: 'rgba(255,255,255,0.9)',
+                width: 80 + i * 20,
+              }}
+            />
+          ))}
+        </div>
+      </div>
+    </div>
+  </>
+);
+
 const PageTagBannerSection = ({
   data,
   bannerData,
+  loading = false,               // ← NEW
+  skeletonTagCount = 5,          // ← NEW
   bgColor = '',
   height = 'h-64 sm:h-80 md:h-100 lg:h-120 xl:h-135 2xl:h-147.25',
   paddingY = 'py-12 sm:py-16 md:py-20 lg:py-25 xl:py-30 2xl:py-37.5',
@@ -36,29 +89,46 @@ const PageTagBannerSection = ({
   const currentQuery = new URLSearchParams(url.split('?')[1] || '');
   const currentTagFromUrl = currentQuery.get('tag') || '';
 
-  let resolvedData = data || bannerData;
+  // ============================================
+  // LOADING STATE
+  // ============================================
+  if (loading) {
+    return (
+      <div className="w-full flex justify-center overflow-hidden">
+        <section
+          id={sectionId}
+          className={`relative w-[1920px] max-w-full ${height} overflow-hidden ${bgColor} ${sectionClassName}`}
+        >
+          <PageTagBannerSkeleton
+            paddingX={paddingX}
+            paddingY={paddingY}
+            tagCount={skeletonTagCount}
+          />
+        </section>
+      </div>
+    );
+  }
 
+  // ============================================
+  // RESOLVE DATA
+  // ============================================
+  let resolvedData = data || bannerData;
   if (!hasValue(resolvedData)) return null;
 
   if (resolvedData?.data && typeof resolvedData.data === 'object') {
     resolvedData = resolvedData.data;
   }
 
-  const {
-    background = {},
-    overlay = {},
-    content = {},
-  } = resolvedData;
-
+  const { background = {}, overlay = {}, content = {} } = resolvedData;
   const title = content.title || {};
 
-  const galleryTags = tags.length > 0 ? tags : (resolvedData.tags || []);
+  const galleryTags = tags.length > 0 ? tags : resolvedData.tags || [];
   const galleryTitle = tagTitle || resolvedData.tagTitle || title.text || 'Photo Gallery';
 
   const defaultColors = [
     '#009BE2', '#FF6B6B', '#4ECDC4', '#FFE66D', '#6C5CE7',
     '#FD79A8', '#00B894', '#FDCB6E', '#E17055', '#0984E3',
-    '#A29BFE', '#55EFC4', '#F8A5C2', '#74B9FF', '#FF7675'
+    '#A29BFE', '#55EFC4', '#F8A5C2', '#74B9FF', '#FF7675',
   ];
 
   const hasTitle = hasValue(galleryTitle);
@@ -69,14 +139,22 @@ const PageTagBannerSection = ({
   const hasAnyContent = hasTitle || hasBackground || hasOverlays || hasTags;
   if (!hasAnyContent) return null;
 
+  // ============================================
+  // IMAGE HANDLING
+  // ============================================
   const usePlaceholder = !hasBackground || imageError;
   const imageSrc = usePlaceholder
     ? getPlaceholderImage(1920, 600, galleryTitle)
     : background.src;
-  const imageAlt = background.alt || (galleryTitle ? `${galleryTitle} - Banner` : 'Gallery banner background');
+  const imageAlt =
+    background.alt ||
+    (galleryTitle ? `${galleryTitle} - Banner` : 'Gallery banner background');
 
   const handleImageError = () => setImageError(true);
 
+  // ============================================
+  // COLOR EXTRACTION
+  // ============================================
   const extractColorValue = (color) => {
     if (!color) return null;
     if (typeof color === 'string' && color.startsWith('#')) return color;
@@ -91,9 +169,9 @@ const PageTagBannerSection = ({
     return color;
   };
 
-  // ─── CHECK IF A TAG IS ACTIVE ──────────────────────────
-  // For "All" tag: active when no filter is applied (currentTagFromUrl is empty)
-  // For other tags: active when it matches the URL parameter
+  // ============================================
+  // TAG ACTIVE STATE
+  // ============================================
   const isTagActive = (tagLabel) => {
     if (tagLabel.toLowerCase() === 'all') {
       return currentTagFromUrl === '' || currentTagFromUrl.toLowerCase() === 'all';
@@ -101,16 +179,16 @@ const PageTagBannerSection = ({
     return tagLabel === currentTagFromUrl;
   };
 
-  // ─── HANDLE TAG CLICK ──────────────────────────────────
+  // ============================================
+  // TAG CLICK
+  // ============================================
   const handleTagClick = (tagLabel) => {
     const currentUrl = new URL(window.location.href);
     const params = new URLSearchParams(currentUrl.search);
 
-    // Special case: if tag is "All" (case-insensitive), always clear the filter
     if (tagLabel.toLowerCase() === 'all') {
       params.delete('tag');
     } else {
-      // Toggle: if clicked tag is already active, clear; otherwise set
       if (tagLabel === currentTagFromUrl) {
         params.delete('tag');
       } else {
@@ -118,13 +196,16 @@ const PageTagBannerSection = ({
       }
     }
 
-    router.get(`${window.location.pathname}?${params.toString()}`, {}, {
-      preserveState: true,
-      preserveScroll: true,
-      replace: true,
-    });
+    router.get(
+      `${window.location.pathname}?${params.toString()}`,
+      {},
+      { preserveState: true, preserveScroll: true, replace: true }
+    );
   };
 
+  // ============================================
+  // RENDER TAGS
+  // ============================================
   const renderTags = () => {
     if (!hasTags) return null;
 
@@ -132,10 +213,13 @@ const PageTagBannerSection = ({
       <div className="pt-3 sm:pt-4 md:pt-5 max-w-232.5 flex flex-wrap gap-2 sm:gap-3 md:gap-4">
         {galleryTags.map((tag, index) => {
           const tagLabel = typeof tag === 'string' ? tag : tag.label;
-          const rawColor = typeof tag === 'object' && tag.color
-            ? tag.color
-            : defaultColors[index % defaultColors.length];
-          const tagColor = extractColorValue(rawColor) || defaultColors[index % defaultColors.length];
+          const rawColor =
+            typeof tag === 'object' && tag.color
+              ? tag.color
+              : defaultColors[index % defaultColors.length];
+          const tagColor =
+            extractColorValue(rawColor) ||
+            defaultColors[index % defaultColors.length];
           const active = isTagActive(tagLabel);
 
           return (
@@ -168,6 +252,9 @@ const PageTagBannerSection = ({
     );
   };
 
+  // ============================================
+  // RENDER
+  // ============================================
   return (
     <div className="w-full flex justify-center overflow-hidden">
       <section
