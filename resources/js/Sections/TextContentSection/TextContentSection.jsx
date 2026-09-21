@@ -3,9 +3,10 @@
 import React from 'react';
 import { sanitizeHTML } from '../../utils/sectionHelpers';
 
-/**
- * Utility to check if a value exists
- */
+// Skeleton primitives
+import { Skeleton, SkeletonText } from '../../Shared/Skeletons/SkeletonPrimitives';
+
+// Utility function to check if value exists
 const hasValue = (value) => {
   if (value === undefined || value === null) return false;
   if (typeof value === 'string') return value.trim().length > 0;
@@ -14,16 +15,72 @@ const hasValue = (value) => {
   return true;
 };
 
+// ============================================
+// SKELETON: Rich text placeholder
+// Mimics a typical legal/privacy document: h2 heading,
+// paragraph block, list, another heading, more paragraphs.
+// ============================================
+const TextContentSkeleton = () => (
+  <div className="max-w-none">
+    {/* H1 */}
+    <Skeleton className="h-8 sm:h-10 lg:h-12 w-3/4 mb-6" />
+
+    {/* Paragraph 1 — 5 lines */}
+    <SkeletonText
+      lines={5}
+      lineClassName="h-4 sm:h-4.5 lg:h-5"
+      className="mb-6"
+    />
+
+    {/* H2 */}
+    <Skeleton className="h-6 sm:h-8 lg:h-9 w-1/2 mb-4 mt-8" />
+
+    {/* Paragraph 2 — 4 lines */}
+    <SkeletonText
+      lines={4}
+      lineClassName="h-4 sm:h-4.5 lg:h-5"
+      className="mb-4"
+    />
+
+    {/* Bullet list — 4 rows */}
+    <div className="space-y-3 mb-6 pl-6">
+      {Array.from({ length: 4 }).map((_, i) => (
+        <div key={`list-item-${i}`} className="flex items-start gap-3">
+          <Skeleton className="w-2 h-2 rounded-full mt-2 shrink-0" />
+          <Skeleton
+            className="h-4 sm:h-4.5 lg:h-5 flex-1"
+            style={{ width: `${90 - i * 5}%` }}
+          />
+        </div>
+      ))}
+    </div>
+
+    {/* H3 */}
+    <Skeleton className="h-5 sm:h-6 lg:h-7 w-1/3 mb-3 mt-8" />
+
+    {/* Paragraph 3 — 3 lines */}
+    <SkeletonText
+      lines={3}
+      lineClassName="h-4 sm:h-4.5 lg:h-5"
+      className="mb-4"
+    />
+
+    {/* Paragraph 4 — 4 lines */}
+    <SkeletonText
+      lines={4}
+      lineClassName="h-4 sm:h-4.5 lg:h-5"
+    />
+  </div>
+);
+
 /**
  * TextContentSection Component
- * 
- * Renders arbitrary HTML content (like legal terms, privacy policy, etc.)
- * using the application's global typography and spacing styles.
  */
 const TextContentSection = ({
   data,
   textData,
   textContentSection,
+  loading = false,               // ← NEW
   bgColor = 'bg-white',
   paddingY = 'py-10 sm:py-15 md:py-25 lg:py-37.5',
   paddingX = 'px-5 sm:px-10 md:px-20 lg:px-50',
@@ -32,21 +89,30 @@ const TextContentSection = ({
   sectionId = 'text-content',
 }) => {
   // ============================================
-  // RESOLVE DATA - Check all possible prop names
+  // LOADING STATE
+  // ============================================
+  if (loading) {
+    return (
+      <section
+        id={sectionId}
+        className={`${bgColor} ${paddingX} ${paddingY} ${sectionClassName}`}
+      >
+        <div className={`mx-auto ${maxWidth}`}>
+          <TextContentSkeleton />
+        </div>
+      </section>
+    );
+  }
+
+  // ============================================
+  // RESOLVE DATA
   // ============================================
   let resolvedData = data || textData || textContentSection;
 
-  // ============================================
-  // NORMALIZE DATA STRUCTURE
-  // ============================================
-  // Check if the data is wrapped in a 'data' property
   if (resolvedData.data && typeof resolvedData.data === 'object') {
     resolvedData = resolvedData.data;
   }
 
-  // ============================================
-  // SAFE DESTRUCTURING
-  // ============================================
   const { content = {} } = resolvedData;
 
   // ============================================
@@ -54,9 +120,6 @@ const TextContentSection = ({
   // ============================================
   const htmlContent = content.html || content.content || content.text || '';
 
-  // ============================================
-  // EARLY RETURN - No content
-  // ============================================
   if (!hasValue(htmlContent)) {
     return null;
   }

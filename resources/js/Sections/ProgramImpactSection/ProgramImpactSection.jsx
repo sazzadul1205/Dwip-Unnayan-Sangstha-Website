@@ -3,7 +3,10 @@
 // React
 import React, { useState } from 'react';
 
-// Utility function to check if value exists (SAME as other sections)
+// Skeleton primitives
+import { Skeleton } from '../../Shared/Skeletons/SkeletonPrimitives';
+
+// Utility function to check if value exists
 const hasValue = (value) => {
   if (value === undefined || value === null) return false;
   if (typeof value === 'string') return value.trim().length > 0;
@@ -12,7 +15,7 @@ const hasValue = (value) => {
   return true;
 };
 
-// Generate placeholder image URL (inline SVG — avoids external placeholder services)
+// Generate placeholder image URL (inline SVG)
 const getPlaceholderImage = (width = 800, height = 600, text = 'Impact') => {
   const safeText = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   const fontSize = Math.max(14, Math.round(Math.min(width, height) / 12));
@@ -20,101 +23,108 @@ const getPlaceholderImage = (width = 800, height = 600, text = 'Impact') => {
   return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
 };
 
+// ============================================
+// SKELETON: Full section
+// ============================================
+const ProgramImpactSkeleton = ({ sdgCount = 6 }) => (
+  <>
+    {/* Carousel block — matches real: pb-6 → xl:pb-15, rounded, tall image */}
+    <div className="w-full flex flex-col items-center pb-6 sm:pb-8 md:pb-10 lg:pb-12 xl:pb-15">
+      <div className="w-full">
+        <div className="relative overflow-hidden rounded-xl sm:rounded-2xl">
+          <Skeleton className="w-full h-48 sm:h-60 md:h-80 lg:h-120 xl:h-150 2xl:h-186.25 rounded-xl sm:rounded-2xl" />
+        </div>
+      </div>
+    </div>
+
+    {/* Title */}
+    <Skeleton className="h-5 sm:h-5.5 md:h-6 lg:h-6.5 xl:h-7 2xl:h-8 w-1/2 sm:w-1/3 mb-3 sm:mb-4 md:mb-5 lg:mb-6" />
+
+    {/* SDG grid — matches real: 2 / 3 / 4 / 5 / 6 cols */}
+    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4 md:gap-5 lg:gap-6 xl:gap-7">
+      {Array.from({ length: sdgCount }).map((_, i) => (
+        <Skeleton
+          key={`sdg-skeleton-${i}`}
+          className="w-full h-auto aspect-square rounded-lg"
+        />
+      ))}
+    </div>
+  </>
+);
+
 /**
  * ProgramImpactSection Component
- * 
- * @param {Object} props
- * @param {Object} props.data - Program Impact data from API (from DynamicSectionRenderer)
- * @param {Object} props.impactData - Program Impact data from API (direct prop)
- * @param {string} props.bgColor - Background color (optional)
- * @param {string} props.paddingY - Vertical padding classes
- * @param {string} props.paddingX - Horizontal padding classes
- * @param {string} props.sectionClassName - Additional CSS classes
- * @param {string} props.sectionId - Section ID (default: 'program-impact')
- * 
- * @returns {JSX.Element} Rendered program impact section
  */
 const ProgramImpactSection = ({
-  data,           // From DynamicSectionRenderer
-  impactData,     // Direct prop (legacy support)
+  data,
+  impactData,
+  loading = false,               // ← NEW
+  skeletonSdgCount = 6,          // ← NEW
   bgColor = 'bg-white',
   paddingY = 'py-12 sm:py-16 md:py-20 lg:py-25 xl:py-30 2xl:py-37.5',
   paddingX = 'px-5 sm:px-8 md:px-12 lg:px-20 xl:px-30 2xl:px-50',
   sectionClassName = '',
   sectionId = 'program-impact',
 }) => {
-  // ============================================
-  // HOOKS - Must be called before any conditional returns
-  // ============================================
   const [index, setIndex] = useState(0);
   const [imageErrors, setImageErrors] = useState({});
 
   // ============================================
-  // RESOLVE DATA
+  // LOADING STATE
   // ============================================
-  // Use data prop if available, fallback to impactData
-  let resolvedData = data || impactData;
+  if (loading) {
+    return (
+      <section
+        id={sectionId}
+        className={`${bgColor} ${paddingX} ${paddingY} ${sectionClassName}`}
+      >
+        <ProgramImpactSkeleton sdgCount={skeletonSdgCount} />
+      </section>
+    );
+  }
 
   // ============================================
-  // EARLY RETURN - No data
+  // RESOLVE + NORMALIZE
   // ============================================
+  let resolvedData = data || impactData;
   if (!hasValue(resolvedData)) return null;
 
-  // ============================================
-  // NORMALIZE DATA STRUCTURE
-  // ============================================
-  // Check if the data is wrapped in a 'data' property
-  // This happens when the API returns { id, page_slug, section_key, data: { ... } }
   if (resolvedData.data && typeof resolvedData.data === 'object') {
     resolvedData = resolvedData.data;
   }
 
-  // ============================================
-  // SAFE DESTRUCTURING WITH DEFAULTS
-  // ============================================
   const { section = {}, sdgImages = [] } = resolvedData;
   const images = section?.mainImage?.images || [];
 
-  // ============================================
-  // CHECK FOR CONTENT
-  // ============================================
   const hasImages = hasValue(images);
   const hasTitle = hasValue(section.title);
   const hasSdgImages = hasValue(sdgImages);
 
-  // Early return if no content
   if (!hasImages && !hasTitle && !hasSdgImages) return null;
 
   // ============================================
   // IMAGE HANDLING
   // ============================================
   const handleImageError = (imageId) => {
-    setImageErrors(prev => ({ ...prev, [imageId]: true }));
+    setImageErrors((prev) => ({ ...prev, [imageId]: true }));
   };
 
   const getImageSrc = (image, defaultText = 'Impact') => {
     if (imageErrors[image.id]) {
       return getPlaceholderImage(800, 600, image.alt || defaultText);
     }
-    if (hasValue(image.src)) {
-      return image.src;
-    }
+    if (hasValue(image.src)) return image.src;
     return getPlaceholderImage(800, 600, image.alt || defaultText);
   };
 
-  const getCarouselImageSrc = (imageUrl, index) => {
-    if (imageErrors[`carousel-${index}`]) {
-      return getPlaceholderImage(1200, 800, `Impact slide ${index + 1}`);
+  const getCarouselImageSrc = (imageUrl, idx) => {
+    if (imageErrors[`carousel-${idx}`]) {
+      return getPlaceholderImage(1200, 800, `Impact slide ${idx + 1}`);
     }
-    if (hasValue(imageUrl)) {
-      return imageUrl;
-    }
-    return getPlaceholderImage(1200, 800, `Impact slide ${index + 1}`);
+    if (hasValue(imageUrl)) return imageUrl;
+    return getPlaceholderImage(1200, 800, `Impact slide ${idx + 1}`);
   };
 
-  // ============================================
-  // HELPER: Go to slide
-  // ============================================
   const goToSlide = (i) => setIndex(i);
 
   // ============================================
@@ -125,7 +135,7 @@ const ProgramImpactSection = ({
       id={sectionId}
       className={`${bgColor} ${paddingX} ${paddingY} ${sectionClassName}`}
     >
-      {/* Carousel - Only show if images exist */}
+      {/* Carousel */}
       {hasImages && (
         <div className="w-full flex flex-col items-center pb-6 sm:pb-8 md:pb-10 lg:pb-12 xl:pb-15">
           <div className="w-full">
@@ -139,7 +149,6 @@ const ProgramImpactSection = ({
                 />
               )}
 
-              {/* Dots - Only show if more than 1 image */}
               {images.length > 1 && (
                 <div className="absolute bottom-3 sm:bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-1.5 sm:gap-2">
                   {images.map((_, i) => (
@@ -147,8 +156,8 @@ const ProgramImpactSection = ({
                       key={i}
                       onClick={() => goToSlide(i)}
                       className={`transition-all duration-300 rounded-full cursor-pointer ${i === index
-                        ? "w-6 sm:w-8 h-1.5 sm:h-2 bg-white"
-                        : "w-2 sm:w-2.5 h-1.5 sm:h-2 bg-white/50 hover:bg-white/70"
+                          ? 'w-6 sm:w-8 h-1.5 sm:h-2 bg-white'
+                          : 'w-2 sm:w-2.5 h-1.5 sm:h-2 bg-white/50 hover:bg-white/70'
                         }`}
                       aria-label={`Go to slide ${i + 1}`}
                     />
@@ -160,22 +169,22 @@ const ProgramImpactSection = ({
         </div>
       )}
 
-      {/* Title - Only show if exists */}
+      {/* Title */}
       {hasTitle && (
-        <h1 className='text-[#080C14] text-[18px] sm:text-[20px] md:text-[22px] lg:text-[24px] xl:text-[26px] 2xl:text-[28px] font-600 mb-3 sm:mb-4 md:mb-5 lg:mb-6'>
+        <h1 className="text-[#080C14] text-[18px] sm:text-[20px] md:text-[22px] lg:text-[24px] xl:text-[26px] 2xl:text-[28px] font-600 mb-3 sm:mb-4 md:mb-5 lg:mb-6">
           {section.title}
         </h1>
       )}
 
-      {/* SDG Grid - Only show if images exist */}
+      {/* SDG Grid */}
       {hasSdgImages && (
-        <div className='grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4 md:gap-5 lg:gap-6 xl:gap-7'>
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4 md:gap-5 lg:gap-6 xl:gap-7">
           {sdgImages.map((image) => (
             <img
               key={image.id}
               src={getImageSrc(image, 'SDG')}
-              alt={image.alt || "SDG"}
-              className='w-full h-auto object-cover rounded-lg hover:scale-105 hover:shadow-lg transition-all duration-300 cursor-pointer'
+              alt={image.alt || 'SDG'}
+              className="w-full h-auto object-cover rounded-lg hover:scale-105 hover:shadow-lg transition-all duration-300 cursor-pointer"
               onClick={() => image.link && (window.location.href = image.link)}
               onError={() => handleImageError(image)}
             />

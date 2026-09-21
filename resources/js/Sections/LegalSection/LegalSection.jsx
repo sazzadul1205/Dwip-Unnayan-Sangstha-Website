@@ -6,7 +6,10 @@ import React, { useState } from 'react';
 // Components
 import ArrowIcon from '../../Shared/ArrowIcon';
 
-// Utility function to check if value exists (SAME as other sections)
+// Skeleton primitives
+import { Skeleton } from '../../Shared/Skeletons/SkeletonPrimitives';
+
+// Utility function to check if value exists
 const hasValue = (value) => {
   if (value === undefined || value === null) return false;
   if (typeof value === 'string') return value.trim().length > 0;
@@ -15,7 +18,7 @@ const hasValue = (value) => {
   return true;
 };
 
-// Generate placeholder image URL (inline SVG — avoids external placeholder services)
+// Generate placeholder image URL (inline SVG)
 const getPlaceholderImage = (width = 1920, height = 600, text = 'Legal') => {
   const safeText = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   const fontSize = Math.max(14, Math.round(Math.min(width, height) / 12));
@@ -23,24 +26,38 @@ const getPlaceholderImage = (width = 1920, height = 600, text = 'Legal') => {
   return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
 };
 
+// ============================================
+// SKELETON: Full Legal section
+// ============================================
+const LegalSkeleton = () => (
+  <>
+    {/* Background image block */}
+    <Skeleton
+      className="w-full h-full absolute inset-0"
+      rounded="rounded-none"
+    />
+
+    {/* White text box — matches real positioning */}
+    <div className="absolute bottom-5 right-5 md:bottom-10 lg:bottom-12.5 md:right-10 lg:right-50 bg-white/90 backdrop-blur-sm p-6 md:p-8 lg:p-12.5 w-[calc(100%-2.5rem)] md:w-auto lg:w-182.5 h-auto lg:h-75 shadow-lg rounded-lg">
+      {/* Title — 2 lines with different widths */}
+      <Skeleton className="h-7 sm:h-8 md:h-9 lg:h-10 w-5/6 mb-2" />
+      <Skeleton className="h-7 sm:h-8 md:h-9 lg:h-10 w-2/3" />
+
+      {/* Button */}
+      <div className="pt-6 md:pt-7 lg:pt-9">
+        <Skeleton className="h-11 sm:h-12 md:h-13 lg:h-14 w-36 sm:w-40 lg:w-44 rounded-md" />
+      </div>
+    </div>
+  </>
+);
+
 /**
  * LegalSection Component
- * 
- * @param {Object} props
- * @param {Object} props.data - Legal data from API (from DynamicSectionRenderer)
- * @param {Object} props.legalData - Legal data from API (direct prop - legacy)
- * @param {string} props.bgColor - Background color (optional)
- * @param {string} props.height - Height classes (default: 'h-125 md:h-147.25')
- * @param {string} props.paddingY - Vertical padding classes
- * @param {string} props.paddingX - Horizontal padding classes
- * @param {string} props.sectionClassName - Additional CSS classes
- * @param {string} props.sectionId - Section ID (default: 'legal')
- * 
- * @returns {JSX.Element} Rendered legal section
  */
 const LegalSection = ({
-  data,           // From DynamicSectionRenderer
-  legalData,      // Direct prop (legacy support)
+  data,
+  legalData,
+  loading = false,               // ← NEW
   bgColor = '',
   height = 'h-125 md:h-147.25',
   paddingY = '',
@@ -48,55 +65,41 @@ const LegalSection = ({
   sectionClassName = '',
   sectionId = 'legal',
 }) => {
-  // ============================================
-  // HOOKS - Must be called at the top level
-  // ============================================
   const [imageError, setImageError] = useState(false);
 
   // ============================================
-  // RESOLVE DATA
+  // LOADING STATE
   // ============================================
-  // Use data prop if available, fallback to legalData
-  let resolvedData = data || legalData;
-
-  // ============================================
-  // EARLY RETURN - No data
-  // ============================================
-  if (!hasValue(resolvedData)) {
-    return null;
+  if (loading) {
+    return (
+      <section
+        id={sectionId}
+        className={`relative w-full ${height} overflow-hidden ${bgColor} ${paddingY} ${paddingX} ${sectionClassName}`}
+      >
+        <LegalSkeleton />
+      </section>
+    );
   }
 
   // ============================================
-  // NORMALIZE DATA STRUCTURE
+  // RESOLVE + NORMALIZE
   // ============================================
-  // Check if the data is wrapped in a 'data' property
-  // This happens when the API returns { id, page_slug, section_key, data: { ... } }
+  let resolvedData = data || legalData;
+  if (!hasValue(resolvedData)) return null;
+
   if (resolvedData.data && typeof resolvedData.data === 'object') {
     resolvedData = resolvedData.data;
   }
 
-  // ============================================
-  // SAFE DESTRUCTURING WITH DEFAULTS
-  // ============================================
-  const {
-    background = {},
-    overlay = {},
-    textBox = {}
-  } = resolvedData;
+  const { background = {}, overlay = {}, textBox = {} } = resolvedData;
 
-  // ============================================
-  // CHECK FOR CONTENT
-  // ============================================
   const hasBackground = hasValue(background.src);
   const hasOverlay = hasValue(overlay.darkOverlay);
   const hasTitle = hasValue(textBox.title) || hasValue(textBox.titleLine2);
   const hasButton = hasValue(textBox.buttonText) && hasValue(textBox.buttonLink);
 
   const hasAnyContent = hasBackground || hasOverlay || hasTitle || hasButton;
-
-  if (!hasAnyContent) {
-    return null;
-  }
+  if (!hasAnyContent) return null;
 
   // ============================================
   // IMAGE HANDLING
@@ -107,11 +110,11 @@ const LegalSection = ({
     ? getPlaceholderImage(1920, 600, textBox.title || 'Legal')
     : background.src;
 
-  const imageAlt = background.alt || (textBox.title ? `${textBox.title} - Legal` : 'Legal background');
+  const imageAlt =
+    background.alt ||
+    (textBox.title ? `${textBox.title} - Legal` : 'Legal background');
 
-  const handleImageError = () => {
-    setImageError(true);
-  };
+  const handleImageError = () => setImageError(true);
 
   // ============================================
   // RENDER
@@ -121,7 +124,6 @@ const LegalSection = ({
       id={sectionId}
       className={`relative w-full ${height} overflow-hidden ${bgColor} ${paddingY} ${paddingX} ${sectionClassName}`}
     >
-      {/* Background Image - Always render with fallback */}
       <img
         src={imageSrc}
         alt={imageAlt}
@@ -129,19 +131,14 @@ const LegalSection = ({
         onError={handleImageError}
       />
 
-      {/* Dark Overlay - Only render if darkOverlay class exists */}
       {hasValue(overlay.darkOverlay) && (
         <div className={`absolute inset-0 ${overlay.darkOverlay}`} />
       )}
 
-      {/* Additional overlay for mobile to ensure text readability */}
       <div className="absolute inset-0 bg-black/40 md:hidden" />
 
-      {/* White Box Text - Positioned at bottom right - Only show if there's content */}
       {(hasTitle || hasButton) && (
         <div className="absolute bottom-5 right-5 md:bottom-10 lg:bottom-12.5 md:right-10 lg:right-50 bg-white/90 backdrop-blur-sm p-6 md:p-8 lg:p-12.5 w-[calc(100%-2.5rem)] md:w-auto lg:w-182.5 h-auto lg:h-75 shadow-lg rounded-lg">
-
-          {/* Title */}
           {(hasValue(textBox.title) || hasValue(textBox.titleLine2)) && (
             <h3 className="text-black font-700 text-2xl md:text-3xl lg:text-[40px] bricolage-grotesque leading-tight">
               {hasValue(textBox.title) && <span>{textBox.title}</span>}
@@ -150,12 +147,11 @@ const LegalSection = ({
             </h3>
           )}
 
-          {/* Button */}
           {hasValue(textBox.buttonText) && hasValue(textBox.buttonLink) && (
-            <div className='pt-6 md:pt-7 lg:pt-9'>
+            <div className="pt-6 md:pt-7 lg:pt-9">
               <button
-                onClick={() => window.location.href = textBox.buttonLink}
-                className='bricolage-grotesque border border-[#009BE2] rounded-md text-[#009BE2] px-4 py-3 sm:px-5 sm:py-3.5 lg:p-4 font-600 text-[14px] sm:text-[15px] lg:text-[16px] inline-flex items-center gap-3 group hover:bg-[#009BE2] hover:text-white transition-all duration-300'
+                onClick={() => (window.location.href = textBox.buttonLink)}
+                className="bricolage-grotesque border border-[#009BE2] rounded-md text-[#009BE2] px-4 py-3 sm:px-5 sm:py-3.5 lg:p-4 font-600 text-[14px] sm:text-[15px] lg:text-[16px] inline-flex items-center gap-3 group hover:bg-[#009BE2] hover:text-white transition-all duration-300"
               >
                 <span>{textBox.buttonText}</span>
                 <ArrowIcon className="group-hover:translate-x-1 group-hover:-translate-y-1 transition-all duration-300" />
