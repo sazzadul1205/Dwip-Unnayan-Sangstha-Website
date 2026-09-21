@@ -5,8 +5,8 @@ import { Link } from '@inertiajs/react';
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 
 // React Icons
-import { LuBriefcaseBusiness, LuClock4 } from "react-icons/lu";
-import { HiOutlineLocationMarker, HiOutlineSearch } from "react-icons/hi";
+import { LuBriefcaseBusiness, LuClock4 } from 'react-icons/lu';
+import { HiOutlineLocationMarker, HiOutlineSearch } from 'react-icons/hi';
 
 // Axios
 import axios from 'axios';
@@ -17,49 +17,58 @@ import ArrowIcon from '../../Shared/ArrowIcon';
 // Utils
 import { hasValue } from '../../utils/sectionHelpers';
 
-// Individual job skeleton card
+// Skeleton primitives
+import { Skeleton } from '../../Shared/Skeletons/SkeletonPrimitives';
+
+// ============================================
+// SKELETON: Single job card
+// Matches real: p-5 → p-10, meta row, title, 3-line desc, salary, Apply button
+// ============================================
 const JobSkeletonCard = () => (
-  <div className="bg-white p-5 sm:p-6 md:p-8 lg:p-10 rounded-2xl animate-pulse">
+  <div className="bg-white p-5 sm:p-6 md:p-8 lg:p-10 rounded-2xl">
     <div className="flex flex-col md:flex-row items-start justify-between gap-5">
       <div className="flex-1 w-full">
-        {/* Tags skeleton */}
+        {/* Meta row — 3 pills separated by dots */}
         <div className="flex items-center gap-2 sm:gap-3 mb-3 flex-wrap">
-          <div className="h-4 w-20 bg-gray-200 rounded-full" />
-          <div className="h-4 w-px bg-gray-200" />
-          <div className="h-4 w-24 bg-gray-200 rounded-full" />
-          <div className="h-4 w-px bg-gray-200" />
-          <div className="h-4 w-16 bg-gray-200 rounded-full" />
+          <Skeleton className="h-4 w-20 rounded-full" />
+          <Skeleton className="h-4 w-px rounded-none" />
+          <Skeleton className="h-4 w-24 rounded-full" />
+          <Skeleton className="h-4 w-px rounded-none" />
+          <Skeleton className="h-4 w-16 rounded-full" />
         </div>
-        {/* Title skeleton */}
-        <div className="h-8 bg-gray-200 rounded-lg mb-3 w-3/4" />
-        {/* Description skeleton */}
+
+        {/* Title */}
+        <Skeleton className="h-8 w-3/4 rounded-lg mb-3" />
+
+        {/* Description — 3 lines */}
         <div className="space-y-2">
-          <div className="h-4 bg-gray-200 rounded w-full" />
-          <div className="h-4 bg-gray-200 rounded w-5/6" />
-          <div className="h-4 bg-gray-200 rounded w-4/6" />
+          <Skeleton className="h-4 w-full rounded" />
+          <Skeleton className="h-4 w-5/6 rounded" />
+          <Skeleton className="h-4 w-4/6 rounded" />
         </div>
-        {/* Salary skeleton */}
-        <div className="mt-3 h-5 bg-gray-200 rounded w-40" />
+
+        {/* Salary */}
+        <Skeleton className="mt-3 h-5 w-40 rounded" />
       </div>
+
+      {/* Apply button */}
       <div className="w-full md:w-auto mt-4 md:mt-0">
-        <div className="h-12 bg-gray-200 rounded-md w-full md:w-36" />
+        <Skeleton className="h-12 rounded-md w-full md:w-36" />
       </div>
     </div>
   </div>
 );
 
 // Multiple skeleton cards
-const JobSkeleton = ({ count = 3 }) => {
-  return (
-    <>
-      {Array.from({ length: count }).map((_, index) => (
-        <JobSkeletonCard key={`skeleton-${index}`} />
-      ))}
-    </>
-  );
-};
+const JobSkeleton = ({ count = 3 }) => (
+  <>
+    {Array.from({ length: count }).map((_, index) => (
+      <JobSkeletonCard key={`skeleton-${index}`} />
+    ))}
+  </>
+);
 
-// Loading more skeleton (shows 2 cards)
+// Loading more skeleton (2 cards)
 const LoadingMoreSkeleton = () => (
   <div className="space-y-4 sm:space-y-5 lg:space-y-6">
     <JobSkeletonCard />
@@ -74,6 +83,7 @@ const JobsSection = ({
   description: propDescription,
   limit: propLimit,
   filterPlaceholder: propFilterPlaceholder,
+  loading: externalLoading = false,     // ← NEW: force skeleton (parent-controlled)
   bgColor = 'bg-[#F5F5F5]',
   paddingY = 'py-12 sm:py-16 md:py-20 lg:py-25 xl:py-30 2xl:py-37.5',
   paddingX = 'px-5 sm:px-8 md:px-12 lg:px-20 xl:px-30 2xl:px-50',
@@ -87,14 +97,16 @@ const JobsSection = ({
   const [jobs, setJobs] = useState([]);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMorePages, setHasMorePages] = useState(true);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
-  const [selectedFilter, setSelectedFilter] = useState("");
+  const [selectedFilter, setSelectedFilter] = useState('');
   const [initialFetchDone, setInitialFetchDone] = useState(false);
-  const [filterOptions, setFilterOptions] = useState([{ value: 'all', label: 'All Jobs' }]);
+  const [filterOptions, setFilterOptions] = useState([
+    { value: 'all', label: 'All Jobs' },
+  ]);
 
   // REFS - Bool
   const searchRef = useRef(null);
@@ -129,7 +141,11 @@ const JobsSection = ({
     if (customProps.limit !== undefined && customProps.limit !== null && customProps.limit !== '') {
       const val = parseInt(customProps.limit);
       if (!isNaN(val)) lim = val;
-    } else if (propData?.data?.section?.limit !== undefined && propData?.data?.section?.limit !== null && propData?.data?.section?.limit !== '') {
+    } else if (
+      propData?.data?.section?.limit !== undefined &&
+      propData?.data?.section?.limit !== null &&
+      propData?.data?.section?.limit !== ''
+    ) {
       const val = parseInt(propData.data.section.limit);
       if (!isNaN(val)) lim = val;
     } else if (propLimit !== undefined && propLimit !== null && propLimit !== '') {
@@ -138,12 +154,32 @@ const JobsSection = ({
     }
 
     displayLimitRef.current = lim;
-    shouldFetchAllRef.current = (lim === 999 || lim === 0);
+    shouldFetchAllRef.current = lim === 999 || lim === 0;
 
-    titleRef.current = customProps.title || propData?.data?.section?.title || propTitle || 'Job Openings';
-    descriptionRef.current = customProps.description || propData?.data?.section?.description || propDescription || 'Join our team and make a difference';
-    filterPlaceholderRef.current = customProps.filterPlaceholder || propData?.data?.filter?.placeholder || propFilterPlaceholder || 'Browse By';
-  }, [customProps, propData, propTitle, propDescription, propLimit, propFilterPlaceholder, apiParams, apiEndpoint, publicJobsRoute, perPage]);
+    titleRef.current =
+      customProps.title || propData?.data?.section?.title || propTitle || 'Job Openings';
+    descriptionRef.current =
+      customProps.description ||
+      propData?.data?.section?.description ||
+      propDescription ||
+      'Join our team and make a difference';
+    filterPlaceholderRef.current =
+      customProps.filterPlaceholder ||
+      propData?.data?.filter?.placeholder ||
+      propFilterPlaceholder ||
+      'Browse By';
+  }, [
+    customProps,
+    propData,
+    propTitle,
+    propDescription,
+    propLimit,
+    propFilterPlaceholder,
+    apiParams,
+    apiEndpoint,
+    publicJobsRoute,
+    perPage,
+  ]);
 
   // CLOSE SEARCH DROPDOWN ON OUTSIDE CLICK
   useEffect(() => {
@@ -157,129 +193,132 @@ const JobsSection = ({
   }, []);
 
   // FETCH JOBS
-  const fetchJobs = useCallback(async (params = {}) => {
-    if (isFetchingRef.current) return;
-    isFetchingRef.current = true;
+  const fetchJobs = useCallback(
+    async (params = {}) => {
+      if (isFetchingRef.current) return;
+      isFetchingRef.current = true;
 
-    try {
-      setLoading(true);
-      setError(null);
-      setCurrentPage(1);
-      setJobs([]);
+      try {
+        setLoading(true);
+        setError(null);
+        setCurrentPage(1);
+        setJobs([]);
 
-      const currentSearch = searchTerm;
-      const currentFilter = selectedFilter;
-      const endpoint = apiEndpointRef.current;
-      const route = publicJobsRouteRef.current;
-      const currentApiParams = apiParamsRef.current || {};
-      const currentPerPage = perPageRef.current;
-      const displayLimit = displayLimitRef.current;
+        const currentSearch = searchTerm;
+        const currentFilter = selectedFilter;
+        const endpoint = apiEndpointRef.current;
+        const route = publicJobsRouteRef.current;
+        const currentApiParams = apiParamsRef.current || {};
+        const currentPerPage = perPageRef.current;
+        const displayLimit = displayLimitRef.current;
 
-      const queryParams = new URLSearchParams();
+        const queryParams = new URLSearchParams();
 
-      if (currentSearch.trim()) {
-        queryParams.append('search', currentSearch.trim());
-      }
-      if (currentFilter && currentFilter !== 'all') {
-        queryParams.append('job_type', currentFilter);
-      }
+        if (currentSearch.trim()) queryParams.append('search', currentSearch.trim());
+        if (currentFilter && currentFilter !== 'all') queryParams.append('job_type', currentFilter);
 
-      const effectivePerPage = displayLimit < currentPerPage ? displayLimit : currentPerPage;
-      queryParams.append('page', 1);
-      queryParams.append('per_page', effectivePerPage);
+        const effectivePerPage = displayLimit < currentPerPage ? displayLimit : currentPerPage;
+        queryParams.append('page', 1);
+        queryParams.append('per_page', effectivePerPage);
 
-      Object.keys(currentApiParams).forEach(key => {
-        if (currentApiParams[key] !== undefined && currentApiParams[key] !== null) {
-          queryParams.append(key, currentApiParams[key]);
+        Object.keys(currentApiParams).forEach((key) => {
+          if (currentApiParams[key] !== undefined && currentApiParams[key] !== null) {
+            queryParams.append(key, currentApiParams[key]);
+          }
+        });
+        Object.keys(params).forEach((key) => {
+          if (params[key] !== undefined && params[key] !== null) {
+            queryParams.append(key, params[key]);
+          }
+        });
+
+        const url = `${endpoint}?${queryParams.toString()}`;
+        const response = await axios.get(url);
+
+        let fetchedJobs = [];
+        let meta = {};
+
+        if (response.data?.success && Array.isArray(response.data?.data)) {
+          fetchedJobs = response.data.data;
+          meta = response.data.meta || {};
+        } else if (response.data?.data && Array.isArray(response.data?.data)) {
+          fetchedJobs = response.data.data;
+          meta = response.data.meta || {};
+        } else if (response.data?.data?.data && Array.isArray(response.data?.data?.data)) {
+          fetchedJobs = response.data.data.data;
+          meta = response.data.data.meta || {};
+        } else if (Array.isArray(response.data)) {
+          fetchedJobs = response.data;
+        } else if (response.data?.jobs && Array.isArray(response.data?.jobs)) {
+          fetchedJobs = response.data.jobs;
+        } else {
+          fetchedJobs = [];
         }
-      });
-      Object.keys(params).forEach(key => {
-        if (params[key] !== undefined && params[key] !== null) {
-          queryParams.append(key, params[key]);
+
+        if (!Array.isArray(fetchedJobs)) fetchedJobs = [];
+
+        const mappedJobs = fetchedJobs.map((job) => ({
+          id: job.id,
+          title: job.title || 'Untitled Position',
+          description: job.description || job.requirements || 'No description available.',
+          type: job.job_type || job.type || 'Full-time',
+          department: job.department || job.category?.name || 'General',
+          location: job.location || job.locations?.[0]?.name || 'Bangladesh',
+          link: job.slug ? `${route}/${job.slug}` : `${route}/${job.id}`,
+          slug: job.slug,
+          views: job.views_count || 0,
+          salary_min: job.salary_min,
+          salary_max: job.salary_max,
+          is_active: job.is_active,
+          category: job.category,
+          employer: job.employer,
+        }));
+
+        const limitedJobs = mappedJobs.slice(0, displayLimit);
+        setJobs(limitedJobs);
+
+        if (displayLimit < 999 && limitedJobs.length >= displayLimit) {
+          setHasMorePages(false);
+        } else if (meta && meta.total !== undefined) {
+          const currentPageNum = meta.current_page || 1;
+          const lastPage = meta.last_page || 1;
+          const hasMore = currentPageNum < lastPage && limitedJobs.length < displayLimit;
+          setHasMorePages(hasMore);
+        } else {
+          setHasMorePages(
+            fetchedJobs.length === currentPerPage && limitedJobs.length < displayLimit
+          );
         }
-      });
 
-      const url = `${endpoint}?${queryParams.toString()}`;
-      const response = await axios.get(url);
-
-      let fetchedJobs = [];
-      let meta = {};
-
-      if (response.data?.success && Array.isArray(response.data?.data)) {
-        fetchedJobs = response.data.data;
-        meta = response.data.meta || {};
-      } else if (response.data?.data && Array.isArray(response.data?.data)) {
-        fetchedJobs = response.data.data;
-        meta = response.data.meta || {};
-      } else if (response.data?.data?.data && Array.isArray(response.data?.data?.data)) {
-        fetchedJobs = response.data.data.data;
-        meta = response.data.data.meta || {};
-      } else if (Array.isArray(response.data)) {
-        fetchedJobs = response.data;
-      } else if (response.data?.jobs && Array.isArray(response.data?.jobs)) {
-        fetchedJobs = response.data.jobs;
-      } else {
-        fetchedJobs = [];
+        const types = new Set();
+        limitedJobs.forEach((job) => {
+          if (job.type) {
+            const type = job.type.toLowerCase().replace(/\s+/g, '-');
+            types.add(type);
+          }
+        });
+        const options = [{ value: 'all', label: 'All Jobs' }];
+        types.forEach((type) => {
+          const label = type
+            .split('-')
+            .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+            .join(' ');
+          options.push({ value: type, label });
+        });
+        setFilterOptions(options);
+      } catch (err) {
+        console.error('Error fetching jobs:', err);
+        setError(err.response?.data?.message || err.message || 'Failed to load jobs');
+      } finally {
+        setLoading(false);
+        isFetchingRef.current = false;
+        setInitialFetchDone(true);
       }
+    },
+    [searchTerm, selectedFilter]
+  );
 
-      if (!Array.isArray(fetchedJobs)) fetchedJobs = [];
-
-      const mappedJobs = fetchedJobs.map(job => ({
-        id: job.id,
-        title: job.title || 'Untitled Position',
-        description: job.description || job.requirements || 'No description available.',
-        type: job.job_type || job.type || 'Full-time',
-        department: job.department || job.category?.name || 'General',
-        location: job.location || job.locations?.[0]?.name || 'Bangladesh',
-        link: job.slug ? `${route}/${job.slug}` : `${route}/${job.id}`,
-        slug: job.slug,
-        views: job.views_count || 0,
-        salary_min: job.salary_min,
-        salary_max: job.salary_max,
-        is_active: job.is_active,
-        category: job.category,
-        employer: job.employer,
-      }));
-
-      const limitedJobs = mappedJobs.slice(0, displayLimit);
-      setJobs(limitedJobs);
-
-      if (displayLimit < 999 && limitedJobs.length >= displayLimit) {
-        setHasMorePages(false);
-      } else if (meta && meta.total !== undefined) {
-        const currentPageNum = meta.current_page || 1;
-        const lastPage = meta.last_page || 1;
-        const hasMore = currentPageNum < lastPage && limitedJobs.length < displayLimit;
-        setHasMorePages(hasMore);
-      } else {
-        setHasMorePages(fetchedJobs.length === currentPerPage && limitedJobs.length < displayLimit);
-      }
-
-      const types = new Set();
-      limitedJobs.forEach(job => {
-        if (job.type) {
-          const type = job.type.toLowerCase().replace(/\s+/g, '-');
-          types.add(type);
-        }
-      });
-      const options = [{ value: 'all', label: 'All Jobs' }];
-      types.forEach(type => {
-        const label = type.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-        options.push({ value: type, label });
-      });
-      setFilterOptions(options);
-
-    } catch (err) {
-      console.error('Error fetching jobs:', err);
-      setError(err.response?.data?.message || err.message || 'Failed to load jobs');
-    } finally {
-      setLoading(false);
-      isFetchingRef.current = false;
-      setInitialFetchDone(true);
-    }
-  }, [searchTerm, selectedFilter]);
-
-  // LOAD MORE JOBS
+  // LOAD MORE
   const loadMoreJobs = useCallback(async () => {
     if (isFetchingRef.current || loadingMore || !hasMorePages) return;
 
@@ -304,15 +343,11 @@ const JobsSection = ({
       queryParams.append('page', nextPage);
       queryParams.append('per_page', currentPerPage);
 
-      if (currentSearch.trim()) {
-        queryParams.append('search', currentSearch.trim());
-      }
-      if (currentFilter && currentFilter !== 'all') {
-        queryParams.append('job_type', currentFilter);
-      }
+      if (currentSearch.trim()) queryParams.append('search', currentSearch.trim());
+      if (currentFilter && currentFilter !== 'all') queryParams.append('job_type', currentFilter);
 
       const currentApiParams = apiParamsRef.current || {};
-      Object.keys(currentApiParams).forEach(key => {
+      Object.keys(currentApiParams).forEach((key) => {
         if (currentApiParams[key] !== undefined && currentApiParams[key] !== null) {
           queryParams.append(key, currentApiParams[key]);
         }
@@ -350,14 +385,16 @@ const JobsSection = ({
         return;
       }
 
-      const mappedJobs = fetchedJobs.map(job => ({
+      const mappedJobs = fetchedJobs.map((job) => ({
         id: job.id,
         title: job.title || 'Untitled Position',
         description: job.description || job.requirements || 'No description available.',
         type: job.job_type || job.type || 'Full-time',
         department: job.department || job.category?.name || 'General',
         location: job.location || job.locations?.[0]?.name || 'Bangladesh',
-        link: job.slug ? `${publicJobsRouteRef.current}/${job.slug}` : `${publicJobsRouteRef.current}/${job.id}`,
+        link: job.slug
+          ? `${publicJobsRouteRef.current}/${job.slug}`
+          : `${publicJobsRouteRef.current}/${job.id}`,
         slug: job.slug,
         views: job.views_count || 0,
         salary_min: job.salary_min,
@@ -382,7 +419,6 @@ const JobsSection = ({
       } else {
         setHasMorePages(fetchedJobs.length === currentPerPage);
       }
-
     } catch (err) {
       console.error('Error loading more jobs:', err);
       setError(err.response?.data?.message || err.message || 'Failed to load more jobs');
@@ -393,7 +429,7 @@ const JobsSection = ({
     }
   }, [currentPage, hasMorePages, loadingMore, searchTerm, selectedFilter, jobs]);
 
-  // INFINITE SCROLL - Intersection Observer
+  // INFINITE SCROLL
   useEffect(() => {
     if (jobs.length === 0 || !hasMorePages || loading || loadingMore) return;
 
@@ -420,9 +456,7 @@ const JobsSection = ({
 
     observerRef.current = new IntersectionObserver(
       (entries) => {
-        if (loadMoreDebounceRef.current) {
-          clearTimeout(loadMoreDebounceRef.current);
-        }
+        if (loadMoreDebounceRef.current) clearTimeout(loadMoreDebounceRef.current);
 
         if (entries[0].isIntersecting && hasMorePages && !loadingMore && !isFetchingRef.current) {
           loadMoreDebounceRef.current = setTimeout(() => {
@@ -457,40 +491,35 @@ const JobsSection = ({
     };
   }, [jobs, hasMorePages, loading, loadingMore, loadMoreJobs]);
 
-  // DEBOUNCED FETCH ON SEARCH/FILTER CHANGE 
+  // DEBOUNCED FETCH ON SEARCH/FILTER CHANGE
   useEffect(() => {
     if (!initialFetchDone) return;
 
-    if (debounceTimerRef.current) {
-      clearTimeout(debounceTimerRef.current);
-    }
+    if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
 
     debounceTimerRef.current = setTimeout(() => {
       fetchJobs();
     }, 500);
 
     return () => {
-      if (debounceTimerRef.current) {
-        clearTimeout(debounceTimerRef.current);
-      }
+      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
     };
   }, [searchTerm, selectedFilter, fetchJobs, initialFetchDone]);
 
-  // INITIAL FETCH 
+  // INITIAL FETCH
   useEffect(() => {
-    if (!initialFetchDone) {
+    if (!initialFetchDone && !externalLoading) {
       fetchJobs();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [externalLoading]);
 
-  // HANDLER - Search Input Change 
+  // HANDLERS
   const handleSearchChange = (e) => {
     setSearchTerm(e.target.value);
     setIsSearchOpen(true);
   };
 
-  // HANDLER - Search Select and Filter Change
   const handleSearchSelect = (job) => {
     setSearchTerm(job.title);
     setIsSearchOpen(false);
@@ -498,7 +527,10 @@ const JobsSection = ({
     if (el) {
       el.scrollIntoView({ behavior: 'smooth', block: 'center' });
       el.classList.add('ring-2', 'ring-[#009BE2]', 'ring-offset-2');
-      setTimeout(() => el.classList.remove('ring-2', 'ring-[#009BE2]', 'ring-offset-2'), 3000);
+      setTimeout(
+        () => el.classList.remove('ring-2', 'ring-[#009BE2]', 'ring-offset-2'),
+        3000
+      );
     }
   };
 
@@ -506,31 +538,33 @@ const JobsSection = ({
   const filteredJobs = useMemo(() => {
     if (!searchTerm.trim()) return jobs;
     const lower = searchTerm.toLowerCase().trim();
-    return jobs.filter(job =>
-      job.title?.toLowerCase().includes(lower) ||
-      job.description?.toLowerCase().includes(lower) ||
-      job.type?.toLowerCase().includes(lower) ||
-      job.department?.toLowerCase().includes(lower) ||
-      job.location?.toLowerCase().includes(lower)
+    return jobs.filter(
+      (job) =>
+        job.title?.toLowerCase().includes(lower) ||
+        job.description?.toLowerCase().includes(lower) ||
+        job.type?.toLowerCase().includes(lower) ||
+        job.department?.toLowerCase().includes(lower) ||
+        job.location?.toLowerCase().includes(lower)
     );
   }, [jobs, searchTerm]);
 
-  const searchSuggestions = isSearchOpen && searchTerm.trim() !== '' ? filteredJobs.slice(0, 5) : [];
+  const searchSuggestions =
+    isSearchOpen && searchTerm.trim() !== '' ? filteredJobs.slice(0, 5) : [];
 
   const displayLimit = displayLimitRef.current;
   const displayedJobs = filteredJobs.slice(0, displayLimit);
 
-  // 
   const title = titleRef.current;
   const description = descriptionRef.current;
+
+  // `loading` here is either the internal fetch state OR forced by parent
+  const showSkeleton = externalLoading || (loading && jobs.length === 0);
 
   return (
     <section id="jobs" className={`${bgColor} ${paddingX} ${paddingY} ${sectionClassName}`}>
       {/* Header */}
       {(hasValue(title) || hasValue(description) || hasValue(filterOptions)) && (
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center pb-6 sm:pb-8 md:pb-10 lg:pb-12 xl:pb-15 flex-wrap gap-4 sm:gap-5">
-
-          {/* Title and Description */}
           {(hasValue(title) || hasValue(description)) && (
             <div>
               {hasValue(title) && (
@@ -546,9 +580,8 @@ const JobsSection = ({
             </div>
           )}
 
-          {/* Search and Filter */}
+          {/* Search */}
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 w-full lg:w-auto">
-            {/* Search Input */}
             <div className="relative w-full lg:min-w-72 xl:min-w-80 2xl:min-w-96" ref={searchRef}>
               <div className="relative">
                 <input
@@ -557,7 +590,8 @@ const JobsSection = ({
                   value={searchTerm}
                   onChange={handleSearchChange}
                   onFocus={() => setIsSearchOpen(true)}
-                  className="w-full pl-10 pr-4 py-2.5 sm:py-3 md:py-3.5 border border-[#A3A3A3] rounded-[14px] bg-white text-[13px] sm:text-[14px] md:text-[15px] lg:text-[16px] font-400 text-[#515151] outline-none focus:border-[#009BE2] focus:ring-1 focus:ring-[#009BE2] transition-all duration-300"
+                  disabled={showSkeleton}
+                  className="w-full pl-10 pr-4 py-2.5 sm:py-3 md:py-3.5 border border-[#A3A3A3] rounded-[14px] bg-white text-[13px] sm:text-[14px] md:text-[15px] lg:text-[16px] font-400 text-[#515151] outline-none focus:border-[#009BE2] focus:ring-1 focus:ring-[#009BE2] transition-all duration-300 disabled:opacity-60"
                 />
                 <HiOutlineSearch className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 text-[#A3A3A3] text-[16px] sm:text-[18px] md:text-[20px]" />
               </div>
@@ -570,7 +604,9 @@ const JobsSection = ({
                       onClick={() => handleSearchSelect(job)}
                       className="w-full text-left px-4 py-3 hover:bg-[#F5F5F5] transition-colors duration-200 border-b border-[#F5F5F5] last:border-b-0"
                     >
-                      <div className="font-500 text-[#080C14] text-[13px] sm:text-[14px] md:text-[15px] lg:text-[16px]">{job.title}</div>
+                      <div className="font-500 text-[#080C14] text-[13px] sm:text-[14px] md:text-[15px] lg:text-[16px]">
+                        {job.title}
+                      </div>
                       <div className="flex items-center gap-2 mt-1 text-[11px] sm:text-[12px] md:text-[13px] lg:text-[14px] text-[#524B48]">
                         {job.type && <span>{job.type}</span>}
                         {job.type && job.location && <span>•</span>}
@@ -581,7 +617,7 @@ const JobsSection = ({
                 </div>
               )}
 
-              {isSearchOpen && searchTerm.trim() !== "" && searchSuggestions.length === 0 && (
+              {isSearchOpen && searchTerm.trim() !== '' && searchSuggestions.length === 0 && (
                 <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-[#E5E5E5] rounded-xl shadow-lg z-50 p-4 text-center text-[#524B48] text-[13px] sm:text-[14px]">
                   No jobs found matching "{searchTerm}"
                 </div>
@@ -591,32 +627,32 @@ const JobsSection = ({
         </div>
       )}
 
-      {/* Skeleton Loading - Initial Load */}
-      {loading && jobs.length === 0 && (
+      {/* Skeleton — initial or parent-forced */}
+      {showSkeleton && (
         <div data-frontend-loader="true" className="space-y-4 sm:space-y-5 lg:space-y-6">
           <JobSkeleton count={3} />
         </div>
       )}
 
       {/* Error */}
-      {error && (
+      {error && !showSkeleton && (
         <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-xl mb-4">
           <p>Error loading jobs: {error}</p>
         </div>
       )}
 
       {/* No jobs */}
-      {!loading && jobs.length === 0 && (
+      {!showSkeleton && !loading && jobs.length === 0 && (
         <div className="text-center py-12">
-          <p className="text-[#524B48] text-[16px] sm:text-[17px] lg:text-[18px]">No jobs available at the moment.</p>
+          <p className="text-[#524B48] text-[16px] sm:text-[17px] lg:text-[18px]">
+            No jobs available at the moment.
+          </p>
         </div>
       )}
 
       {/* Jobs list */}
-      {!loading && jobs.length > 0 && (
+      {!showSkeleton && jobs.length > 0 && (
         <div className="space-y-4 sm:space-y-5 lg:space-y-6">
-
-          {/* Job cards */}
           {displayedJobs.map((job, index) => (
             <div
               key={job.id || `job-${index}`}
@@ -626,33 +662,40 @@ const JobsSection = ({
             >
               <div className="flex flex-col md:flex-row items-start justify-between gap-4 sm:gap-5">
                 <div className="flex-1 w-full">
-                  {(hasValue(job.type) || hasValue(job.department) || hasValue(job.location)) && (
-                    <div className="flex items-center gap-2 sm:gap-3 text-[#524B48] text-[11px] sm:text-[12px] md:text-[13px] lg:text-[14px] font-400 uppercase mb-2 sm:mb-3 flex-wrap">
-                      {hasValue(job.type) && (
-                        <>
+                  {(hasValue(job.type) ||
+                    hasValue(job.department) ||
+                    hasValue(job.location)) && (
+                      <div className="flex items-center gap-2 sm:gap-3 text-[#524B48] text-[11px] sm:text-[12px] md:text-[13px] lg:text-[14px] font-400 uppercase mb-2 sm:mb-3 flex-wrap">
+                        {hasValue(job.type) && (
+                          <>
+                            <p className="flex items-center gap-1 sm:gap-1.5">
+                              <LuClock4 className="text-[11px] sm:text-[12px] md:text-[13px] lg:text-[14px]" />{' '}
+                              {job.type}
+                            </p>
+                            {(hasValue(job.department) || hasValue(job.location)) && (
+                              <span className="w-1 h-px bg-[#524B48] block" />
+                            )}
+                          </>
+                        )}
+                        {hasValue(job.department) && (
+                          <>
+                            <p className="flex items-center gap-1 sm:gap-1.5">
+                              <LuBriefcaseBusiness className="text-[11px] sm:text-[12px] md:text-[13px] lg:text-[14px]" />{' '}
+                              {job.department}
+                            </p>
+                            {hasValue(job.location) && (
+                              <span className="w-1 h-px bg-[#524B48] block" />
+                            )}
+                          </>
+                        )}
+                        {hasValue(job.location) && (
                           <p className="flex items-center gap-1 sm:gap-1.5">
-                            <LuClock4 className="text-[11px] sm:text-[12px] md:text-[13px] lg:text-[14px]" /> {job.type}
+                            <HiOutlineLocationMarker className="text-[11px] sm:text-[12px] md:text-[13px] lg:text-[14px]" />{' '}
+                            {job.location}
                           </p>
-                          {(hasValue(job.department) || hasValue(job.location)) && (
-                            <span className="w-1 h-px bg-[#524B48] block" />
-                          )}
-                        </>
-                      )}
-                      {hasValue(job.department) && (
-                        <>
-                          <p className="flex items-center gap-1 sm:gap-1.5">
-                            <LuBriefcaseBusiness className="text-[11px] sm:text-[12px] md:text-[13px] lg:text-[14px]" /> {job.department}
-                          </p>
-                          {hasValue(job.location) && <span className="w-1 h-px bg-[#524B48] block" />}
-                        </>
-                      )}
-                      {hasValue(job.location) && (
-                        <p className="flex items-center gap-1 sm:gap-1.5">
-                          <HiOutlineLocationMarker className="text-[11px] sm:text-[12px] md:text-[13px] lg:text-[14px]" /> {job.location}
-                        </p>
-                      )}
-                    </div>
-                  )}
+                        )}
+                      </div>
+                    )}
                   {hasValue(job.title) && (
                     <h3 className="text-[#080C14] text-[18px] sm:text-[20px] md:text-[22px] lg:text-[26px] xl:text-[28px] 2xl:text-[32px] font-600 mb-1.5 sm:mb-2 md:mb-2.5 lg:mb-3 leading-tight">
                       {job.title}
@@ -666,10 +709,17 @@ const JobsSection = ({
                   {(job.salary_min || job.salary_max) && (
                     <div className="mt-2 sm:mt-2.5 md:mt-3 flex items-center gap-2 text-[#009BE2] font-500 text-[13px] sm:text-[14px]">
                       {job.salary_min && job.salary_max && (
-                        <span>${job.salary_min.toLocaleString()} - ${job.salary_max.toLocaleString()}</span>
+                        <span>
+                          ${job.salary_min.toLocaleString()} - $
+                          {job.salary_max.toLocaleString()}
+                        </span>
                       )}
-                      {job.salary_min && !job.salary_max && <span>From ${job.salary_min.toLocaleString()}</span>}
-                      {!job.salary_min && job.salary_max && <span>Up to ${job.salary_max.toLocaleString()}</span>}
+                      {job.salary_min && !job.salary_max && (
+                        <span>From ${job.salary_min.toLocaleString()}</span>
+                      )}
+                      {!job.salary_min && job.salary_max && (
+                        <span>Up to ${job.salary_max.toLocaleString()}</span>
+                      )}
                     </div>
                   )}
                 </div>
@@ -686,14 +736,14 @@ const JobsSection = ({
             </div>
           ))}
 
-          {/* Loading More - Skeleton */}
+          {/* Loading more */}
           {loadingMore && (
             <div className="pt-2">
               <LoadingMoreSkeleton />
             </div>
           )}
 
-          {/* No more jobs */}
+          {/* No matches */}
           {filteredJobs.length === 0 && jobs.length > 0 && (
             <div className="bg-white p-6 sm:p-8 md:p-10 lg:p-12 rounded-2xl text-center">
               <p className="text-[#515151] text-[15px] sm:text-[16px] md:text-[17px] lg:text-[18px] font-400">
