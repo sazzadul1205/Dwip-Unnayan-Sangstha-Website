@@ -4,7 +4,23 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Link, usePage, router } from '@inertiajs/react';
 import { FiSearch } from "react-icons/fi";
 import { FaAngleDown, FaAngleUp } from "react-icons/fa";
-import { FaFacebook, FaInstagram, FaLinkedin, FaXTwitter, FaUser } from "react-icons/fa6";
+import {
+  FaFacebook,
+  FaInstagram,
+  FaLinkedin,
+  FaXTwitter,
+  FaYoutube,
+  FaTiktok,
+  FaPinterest,
+  FaWhatsapp,
+  FaTelegram,
+  FaDiscord,
+  FaReddit,
+  FaSnapchat,
+  FaThreads,
+  FaGithub,
+  FaUser,
+} from "react-icons/fa6";
 import createContactImage from '../utils/createContactImage';
 
 // SVG Icons
@@ -35,12 +51,56 @@ const hasValue = (value) => {
   return true;
 };
 
-// ICON MAPPING
+// ============================================
+// ICON MAPPING - Syncs with TopBarEditor SOCIAL_ICONS
+// ============================================
 const iconMap = {
+  // Primary
   FaFacebook,
+  FaXTwitter,
   FaInstagram,
   FaLinkedin,
-  FaXTwitter
+  FaYoutube,
+  FaTiktok,
+  FaPinterest,
+  FaWhatsapp,
+  FaTelegram,
+  FaDiscord,
+  FaReddit,
+  FaSnapchat,
+  FaThreads,
+  FaGithub,
+
+  // Aliases (legacy / lowercase)
+  FaTwitter: FaXTwitter,
+  FaTwitterX: FaXTwitter,
+  FaYoutube2: FaYoutube,
+  facebook: FaFacebook,
+  instagram: FaInstagram,
+  linkedin: FaLinkedin,
+  twitter: FaXTwitter,
+  x: FaXTwitter,
+  youtube: FaYoutube,
+  tiktok: FaTiktok,
+  pinterest: FaPinterest,
+  whatsapp: FaWhatsapp,
+  telegram: FaTelegram,
+  discord: FaDiscord,
+  reddit: FaReddit,
+  snapchat: FaSnapchat,
+  threads: FaThreads,
+  github: FaGithub,
+};
+
+// Helper: resolve icon component by name (case-insensitive)
+const getIconComponent = (iconName) => {
+  if (!iconName) return null;
+  if (iconMap[iconName]) return iconMap[iconName];
+  const lower = iconName.toLowerCase();
+  for (const [key, value] of Object.entries(iconMap)) {
+    if (key.toLowerCase() === lower) return value;
+  }
+  return null;
 };
 
 const TopBar = ({ topBarData }) => {
@@ -53,7 +113,6 @@ const TopBar = ({ topBarData }) => {
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  // State for generated contact images
   const [emailImageHtml, setEmailImageHtml] = useState(null);
   const [phoneImageHtml, setPhoneImageHtml] = useState(null);
 
@@ -68,9 +127,8 @@ const TopBar = ({ topBarData }) => {
     userMenu = {}
   } = topBarData || {};
 
-  // Filter languages to only show 'us' and 'bd'
-  const languagesToShow = (languages || []).filter(lang =>
-    lang.code === 'us' || lang.code === 'bd'
+  const languagesToShow = (languages || []).filter(
+    lang => lang.code === 'us' || lang.code === 'bd'
   );
 
   const getInitialLanguage = () => {
@@ -86,10 +144,7 @@ const TopBar = ({ topBarData }) => {
     }
 
     const englishLang = languagesToShow.find(lang => lang.code === 'us');
-    return englishLang || languagesToShow[0] || {
-      code: 'us',
-      name: 'English'
-    };
+    return englishLang || languagesToShow[0] || { code: 'us', name: 'English' };
   };
 
   const [selectedLanguage, setSelectedLanguage] = useState(getInitialLanguage);
@@ -108,9 +163,7 @@ const TopBar = ({ topBarData }) => {
 
   const finalUserMenu = hasValue(userMenu) ? userMenu : defaultUserMenu;
 
-  // Generate contact images using createContactImage
   useEffect(() => {
-    // Generate email image
     if (contactInfo.email?.text) {
       try {
         const emailLink = createContactImage({
@@ -123,13 +176,8 @@ const TopBar = ({ topBarData }) => {
           backgroundColor: 'transparent',
           padding: 0,
         });
-        // Extract the image element HTML
         const imgElement = emailLink.querySelector('img');
-        if (imgElement) {
-          setEmailImageHtml(imgElement.outerHTML);
-        } else {
-          setEmailImageHtml(null);
-        }
+        setEmailImageHtml(imgElement ? imgElement.outerHTML : null);
       } catch (error) {
         console.error('Error creating email image:', error);
         setEmailImageHtml(null);
@@ -138,7 +186,6 @@ const TopBar = ({ topBarData }) => {
       setEmailImageHtml(null);
     }
 
-    // Generate phone image
     if (contactInfo.phone?.text) {
       try {
         const phoneLink = createContactImage({
@@ -151,13 +198,8 @@ const TopBar = ({ topBarData }) => {
           backgroundColor: 'transparent',
           padding: 0,
         });
-        // Extract the image element HTML
         const imgElement = phoneLink.querySelector('img');
-        if (imgElement) {
-          setPhoneImageHtml(imgElement.outerHTML);
-        } else {
-          setPhoneImageHtml(null);
-        }
+        setPhoneImageHtml(imgElement ? imgElement.outerHTML : null);
       } catch (error) {
         console.error('Error creating phone image:', error);
         setPhoneImageHtml(null);
@@ -170,9 +212,7 @@ const TopBar = ({ topBarData }) => {
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (searchRef.current && !searchRef.current.contains(event.target)) {
-        if (!searchQuery) {
-          setIsSearchExpanded(false);
-        }
+        if (!searchQuery) setIsSearchExpanded(false);
       }
       if (langRef.current && !langRef.current.contains(event.target)) {
         setIsLangDropdownOpen(false);
@@ -181,7 +221,6 @@ const TopBar = ({ topBarData }) => {
         setIsUserDropdownOpen(false);
       }
     };
-
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [searchQuery]);
@@ -215,7 +254,6 @@ const TopBar = ({ topBarData }) => {
     return null;
   }
 
-  // Get avatar letters for selected language
   const avatarLetters = (selectedLanguage?.name || selectedLanguage?.code || 'EN').slice(0, 2).toUpperCase();
 
   return (
@@ -223,7 +261,6 @@ const TopBar = ({ topBarData }) => {
       {/* DESKTOP TOP BAR */}
       <div className='hidden lg:flex justify-between items-center px-8 xl:px-16 2xl:px-25 py-4.75 bg-[#080C14] relative border-b border-white/5 z-40'>
 
-        {/* Left Side - Contact Info */}
         {hasContactInfo && (
           <div className='flex items-center space-x-4 xl:space-x-5'>
             {hasValue(contactInfo.email?.text) && (
@@ -283,10 +320,8 @@ const TopBar = ({ topBarData }) => {
           </div>
         )}
 
-        {/* Right Side - Language, Search, User, Social */}
         <div className='flex items-center space-x-4 xl:space-x-5'>
 
-          {/* LANGUAGE SELECTOR - With Avatar */}
           {hasLanguages && (
             <div className="relative" ref={langRef}>
               <button
@@ -306,7 +341,6 @@ const TopBar = ({ topBarData }) => {
                 }
               </button>
 
-              {/* Language Dropdown */}
               <div
                 className={`absolute top-full mt-2 right-0 bg-white rounded-lg shadow-xl py-2 w-48 transition-all duration-200 origin-top-right z-100
                   ${isLangDropdownOpen ? 'opacity-100 scale-100 visible' : 'opacity-0 scale-95 invisible'}`}
@@ -317,11 +351,9 @@ const TopBar = ({ topBarData }) => {
                     <button
                       key={lang.code}
                       onClick={() => handleLanguageSelect(lang)}
-                      className={`flex items-center gap-3 px-4 py-2 hover:bg-gray-50 w-full text-left transition-colors duration-150 cursor-pointer ${selectedLanguage.code === lang.code ? 'bg-purple-50' : ''
-                        }`}
+                      className={`flex items-center gap-3 px-4 py-2 hover:bg-gray-50 w-full text-left transition-colors duration-150 cursor-pointer ${selectedLanguage.code === lang.code ? 'bg-purple-50' : ''}`}
                     >
-                      <div className={`w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-bold ${selectedLanguage.code === lang.code ? 'bg-[#009BE2]' : 'bg-gray-400'
-                        }`}>
+                      <div className={`w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-bold ${selectedLanguage.code === lang.code ? 'bg-[#009BE2]' : 'bg-gray-400'}`}>
                         {langAvatar}
                       </div>
                       <span className={`text-sm ${selectedLanguage.code === lang.code ? 'text-[#009BE2] font-medium' : 'text-gray-700'}`}>
@@ -337,16 +369,13 @@ const TopBar = ({ topBarData }) => {
             </div>
           )}
 
-          {/* Divider */}
           {hasLanguages && (hasSocialLinks || hasContactInfo) && (
             <div className="bg-white/20 h-3.75 w-px hidden sm:block" />
           )}
 
-          {/* SEARCH */}
           <div className="relative" ref={searchRef}>
             <div className="overflow-hidden">
-              <div className={`transition-all duration-300 ease-in-out ${isSearchExpanded ? 'w-48 xl:w-64 opacity-100' : 'w-8 opacity-100'
-                }`}>
+              <div className={`transition-all duration-300 ease-in-out ${isSearchExpanded ? 'w-48 xl:w-64 opacity-100' : 'w-8 opacity-100'}`}>
                 {isSearchExpanded ? (
                   <form onSubmit={handleSearchSubmit} className="flex items-center animate-slideIn">
                     <input
@@ -377,10 +406,8 @@ const TopBar = ({ topBarData }) => {
             </div>
           </div>
 
-          {/* Divider */}
           <div className="bg-white/20 h-3.75 w-px hidden sm:block" />
 
-          {/* USER MENU */}
           <div className="relative" ref={userRef}>
             <button
               onClick={() => {
@@ -393,7 +420,6 @@ const TopBar = ({ topBarData }) => {
               <FaUser className="text-lg text-white/90" />
             </button>
 
-            {/* User Dropdown */}
             <div
               className={`absolute top-full mt-2 right-0 bg-white rounded-lg shadow-xl py-2 w-48 transition-all duration-200 origin-top-right z-100
                 ${isUserDropdownOpen ? 'opacity-100 scale-100 visible' : 'opacity-0 scale-95 invisible'}`}
@@ -445,23 +471,22 @@ const TopBar = ({ topBarData }) => {
             </div>
           </div>
 
-          {/* Divider before social links */}
           {hasSocialLinks && <div className="bg-white/20 h-3.75 w-px hidden sm:block" />}
 
-          {/* SOCIAL LINKS */}
           {hasSocialLinks && (
             <div className="flex items-center gap-2 xl:gap-3">
-              {socialLinks.map((social) => {
-                const IconComponent = iconMap[social.iconName];
+              {socialLinks.map((social, idx) => {
+                const IconComponent = getIconComponent(social.iconName);
                 if (!IconComponent) return null;
                 return (
                   <a
-                    key={social.id}
+                    key={social.id ?? `${social.iconName}-${idx}`}
                     href={social.url}
                     target="_blank"
                     rel="noopener noreferrer"
                     className={`text-white/80 text-lg xl:text-xl px-2.5 ${social.hoverColor || ''} transition-all duration-200 hover:scale-110 hover:text-white`}
-                    aria-label={social.name}
+                    aria-label={social.name || social.iconName}
+                    title={social.name || ''}
                   >
                     <IconComponent />
                   </a>
@@ -492,7 +517,6 @@ const TopBar = ({ topBarData }) => {
           </button>
 
           <div className="flex items-center gap-3">
-            {/* Mobile Search Icon */}
             <button
               onClick={() => setIsSearchExpanded(!isSearchExpanded)}
               className="text-white/90 p-2 rounded-lg hover:bg-white/5 transition-colors duration-200"
@@ -500,14 +524,12 @@ const TopBar = ({ topBarData }) => {
               <FiSearch className="text-xl" />
             </button>
 
-            {/* Mobile User Icon */}
             <Link href={user ? route('backend.dashboard') : route('login')} className="text-white/90 p-2 rounded-lg hover:bg-white/5 transition-colors duration-200">
               <FaUser className="text-lg" />
             </Link>
           </div>
         </div>
 
-        {/* Mobile Search Bar */}
         {isSearchExpanded && (
           <form onSubmit={handleSearchSubmit} className="flex items-center mt-3 animate-slideIn">
             <input
@@ -527,13 +549,8 @@ const TopBar = ({ topBarData }) => {
           </form>
         )}
 
-        {/* Mobile Menu Content */}
-        <div
-          className={`transition-all duration-300 ease-in-out overflow-hidden ${isMobileMenuOpen ? 'max-h-150 opacity-100 mt-4' : 'max-h-0 opacity-0'
-            }`}
-        >
+        <div className={`transition-all duration-300 ease-in-out overflow-hidden ${isMobileMenuOpen ? 'max-h-150 opacity-100 mt-4' : 'max-h-0 opacity-0'}`}>
           <div className="space-y-4 pb-4">
-            {/* Contact Info */}
             {hasContactInfo && (
               <div className="space-y-3 p-2">
                 {hasValue(contactInfo.email?.text) && (
@@ -587,7 +604,6 @@ const TopBar = ({ topBarData }) => {
 
             {hasContactInfo && <div className="border-t border-white/10" />}
 
-            {/* Language Selector - Mobile with Avatar */}
             {hasLanguages && (
               <>
                 <div className="p-2">
@@ -616,11 +632,9 @@ const TopBar = ({ topBarData }) => {
                           <button
                             key={lang.code}
                             onClick={() => handleLanguageSelect(lang)}
-                            className={`flex items-center gap-3 px-4 py-2 hover:bg-gray-50 w-full text-left transition-colors duration-150 ${selectedLanguage.code === lang.code ? 'bg-purple-50' : ''
-                              }`}
+                            className={`flex items-center gap-3 px-4 py-2 hover:bg-gray-50 w-full text-left transition-colors duration-150 ${selectedLanguage.code === lang.code ? 'bg-purple-50' : ''}`}
                           >
-                            <div className={`w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-bold ${selectedLanguage.code === lang.code ? 'bg-[#009BE2]' : 'bg-gray-400'
-                              }`}>
+                            <div className={`w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-bold ${selectedLanguage.code === lang.code ? 'bg-[#009BE2]' : 'bg-gray-400'}`}>
                               {langAvatar}
                             </div>
                             <span className={`text-sm ${selectedLanguage.code === lang.code ? 'text-[#009BE2] font-medium' : 'text-gray-700'}`}>
@@ -640,21 +654,20 @@ const TopBar = ({ topBarData }) => {
               </>
             )}
 
-            {/* Social Links - Mobile */}
             {hasSocialLinks && (
               <div className="p-2">
-                <div className="flex justify-center gap-4">
-                  {socialLinks.map((social) => {
-                    const IconComponent = iconMap[social.iconName];
+                <div className="flex justify-center gap-4 flex-wrap">
+                  {socialLinks.map((social, idx) => {
+                    const IconComponent = getIconComponent(social.iconName);
                     if (!IconComponent) return null;
                     return (
                       <a
-                        key={social.id}
+                        key={social.id ?? `${social.iconName}-${idx}`}
                         href={social.url}
                         target="_blank"
                         rel="noopener noreferrer"
                         className={`text-white/80 text-xl ${social.hoverColor || ''} transition-all duration-200 hover:text-white hover:scale-110`}
-                        aria-label={social.name}
+                        aria-label={social.name || social.iconName}
                       >
                         <IconComponent />
                       </a>
@@ -667,23 +680,13 @@ const TopBar = ({ topBarData }) => {
         </div>
       </div>
 
-      {/* INLINE STYLES */}
       <style>{`
         @keyframes slideIn {
-          from {
-            opacity: 0;
-            transform: translateX(-10px);
-          }
-          to {
-            opacity: 1;
-            transform: translateX(0);
-          }
+          from { opacity: 0; transform: translateX(-10px); }
+          to { opacity: 1; transform: translateX(0); }
         }
-        .animate-slideIn {
-          animation: slideIn 0.3s ease-out;
-        }
-        
-        /* Style for contact images */
+        .animate-slideIn { animation: slideIn 0.3s ease-out; }
+
         .topbar-contact-image {
           display: inline-block;
           vertical-align: middle;

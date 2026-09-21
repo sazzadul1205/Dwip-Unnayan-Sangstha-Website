@@ -1,25 +1,155 @@
 // resources/js/pages/Backend/CMS/Shared/Modals/FooterEditor.jsx
 
-// React
-import { useState, useEffect, useCallback, useRef } from 'react';
-
-// Sweetalert
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import Swal from 'sweetalert2';
+import {
+  FaPlus, FaTrash, FaUpload, FaSpinner, FaImage, FaLink, FaPhone,
+  FaAddressCard, FaShareAlt, FaCopyright, FaIcons
+} from 'react-icons/fa';
+import {
+  FiFacebook, FiGithub, FiInstagram, FiLinkedin,
+  FiYoutube, FiSearch, FiChevronDown, FiCheck, FiX,
+} from 'react-icons/fi';
+import {
+  FaXTwitter, FaTiktok, FaPinterest, FaWhatsapp, FaTelegram,
+  FaDiscord, FaReddit, FaSnapchat, FaThreads
+} from 'react-icons/fa6';
 
-// Icons
-import { FaPlus, FaTrash, FaUpload, FaSpinner, FaImage, FaLink, FaPhone, FaAddressCard, FaShareAlt, FaCopyright, FaIcons } from 'react-icons/fa';
-import { FiExternalLink, FiFacebook, FiGithub, FiInstagram, FiLinkedin, FiTwitter, FiYoutube } from 'react-icons/fi';
-
-// Available social icons with their display names
+// ============================================
+// AVAILABLE SOCIAL ICONS
+// ============================================
 const SOCIAL_ICONS = [
   { value: 'FaFacebook', label: 'Facebook', icon: FiFacebook, color: '#1877F2' },
-  { value: 'FaTwitter', label: 'Twitter', icon: FiTwitter, color: '#1DA1F2' },
+  { value: 'FaXTwitter', label: 'X (Twitter)', icon: FaXTwitter, color: '#000000' },
   { value: 'FaInstagram', label: 'Instagram', icon: FiInstagram, color: '#E4405F' },
   { value: 'FaLinkedin', label: 'LinkedIn', icon: FiLinkedin, color: '#0A66C2' },
   { value: 'FaYoutube', label: 'YouTube', icon: FiYoutube, color: '#FF0000' },
+  { value: 'FaTiktok', label: 'TikTok', icon: FaTiktok, color: '#000000' },
+  { value: 'FaPinterest', label: 'Pinterest', icon: FaPinterest, color: '#BD081C' },
+  { value: 'FaWhatsapp', label: 'WhatsApp', icon: FaWhatsapp, color: '#25D366' },
+  { value: 'FaTelegram', label: 'Telegram', icon: FaTelegram, color: '#26A5E4' },
+  { value: 'FaDiscord', label: 'Discord', icon: FaDiscord, color: '#5865F2' },
+  { value: 'FaReddit', label: 'Reddit', icon: FaReddit, color: '#FF4500' },
+  { value: 'FaSnapchat', label: 'Snapchat', icon: FaSnapchat, color: '#FFFC00' },
+  { value: 'FaThreads', label: 'Threads', icon: FaThreads, color: '#000000' },
   { value: 'FaGithub', label: 'GitHub', icon: FiGithub, color: '#181717' },
 ];
 
+// ============================================
+// SEARCHABLE ICON PICKER (shared with TopBarEditor style)
+// ============================================
+function IconPicker({ value, onChange, disabled = false }) {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState('');
+  const ref = useRef(null);
+
+  const selected = useMemo(
+    () => SOCIAL_ICONS.find(i => i.value === value) || SOCIAL_ICONS[0],
+    [value]
+  );
+
+  const filtered = useMemo(() => {
+    if (!search.trim()) return SOCIAL_ICONS;
+    const q = search.toLowerCase();
+    return SOCIAL_ICONS.filter(
+      i => i.label.toLowerCase().includes(q) || i.value.toLowerCase().includes(q)
+    );
+  }, [search]);
+
+  useEffect(() => {
+    const handleClick = (e) => {
+      if (ref.current && !ref.current.contains(e.target)) {
+        setOpen(false);
+        setSearch('');
+      }
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, []);
+
+  const SelectedIcon = selected.icon;
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        type="button"
+        onClick={() => !disabled && setOpen(o => !o)}
+        disabled={disabled}
+        className="flex items-center gap-2 w-full min-w-45 px-3 py-2 border border-gray-300 rounded-lg bg-white hover:border-pink-400 focus:ring-2 focus:ring-pink-500 focus:border-transparent transition outline-none disabled:opacity-60 disabled:cursor-not-allowed"
+      >
+        <span
+          className="w-7 h-7 rounded-md flex items-center justify-center shrink-0"
+          style={{ backgroundColor: `${selected.color}15`, color: selected.color }}
+        >
+          <SelectedIcon size={16} />
+        </span>
+        <span className="flex-1 text-left text-sm text-gray-700 truncate">
+          {selected.label}
+        </span>
+        <FiChevronDown
+          className={`text-gray-400 transition-transform ${open ? 'rotate-180' : ''}`}
+          size={16}
+        />
+      </button>
+
+      {open && (
+        <div className="absolute z-50 top-full left-0 mt-1 w-64 bg-white border border-gray-200 rounded-lg shadow-xl overflow-hidden">
+          <div className="p-2 border-b border-gray-100">
+            <div className="relative">
+              <FiSearch className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm" />
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search icons..."
+                autoFocus
+                className="w-full pl-8 pr-2 py-1.5 text-sm border border-gray-200 rounded-md focus:ring-2 focus:ring-pink-500 focus:border-transparent outline-none"
+              />
+            </div>
+          </div>
+
+          <div className="max-h-64 overflow-y-auto py-1">
+            {filtered.length === 0 ? (
+              <p className="text-xs text-gray-400 text-center py-4">No icons found</p>
+            ) : (
+              filtered.map((icon) => {
+                const Icon = icon.icon;
+                const isActive = icon.value === value;
+                return (
+                  <button
+                    key={icon.value}
+                    type="button"
+                    onClick={() => {
+                      onChange(icon);
+                      setOpen(false);
+                      setSearch('');
+                    }}
+                    className={`flex items-center gap-3 w-full px-3 py-2 text-left transition ${isActive ? 'bg-pink-50' : 'hover:bg-gray-50'}`}
+                  >
+                    <span
+                      className="w-7 h-7 rounded-md flex items-center justify-center shrink-0"
+                      style={{ backgroundColor: `${icon.color}15`, color: icon.color }}
+                    >
+                      <Icon size={16} />
+                    </span>
+                    <span className={`text-sm flex-1 ${isActive ? 'text-pink-600 font-medium' : 'text-gray-700'}`}>
+                      {icon.label}
+                    </span>
+                    {isActive && <FiCheck className="text-pink-600" size={14} />}
+                  </button>
+                );
+              })
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ============================================
+// MAIN COMPONENT
+// ============================================
 export default function FooterEditor({
   formData,
   updateFormData,
@@ -28,47 +158,45 @@ export default function FooterEditor({
   isLoading = false,
   setIsLoading = null
 }) {
-
-  // STATE
   const [dragActive, setDragActive] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [navItems, setNavItems] = useState([]);
   const [loadingItems, setLoadingItems] = useState(false);
   const [itemsError, setItemsError] = useState(null);
 
-  // REF
   const fileInputRef = useRef(null);
   const quickLinkIconInputRef = useRef(null);
   const programLinkIconInputRef = useRef(null);
 
+  // ✅ Memoized so the reference stays stable across renders when the
+  //    underlying `formData.socialLinks` value hasn't changed.
+  //    This prevents `socialStats` (useMemo) from recomputing on every render
+  //    and removes the exhaustive-deps warning.
+  const socialLinks = useMemo(
+    () => formData.socialLinks || [],
+    [formData.socialLinks]
+  );
+
+  // ---------------------------------------------
   // FETCH NAVIGATION ITEMS
+  // ---------------------------------------------
   const fetchNavItems = useCallback(async () => {
     setLoadingItems(true);
     setItemsError(null);
-
     try {
       const response = await fetch('/data/navigation.json');
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-
+      if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       const data = await response.json();
 
       let items = [];
-      if (data.items && Array.isArray(data.items)) {
-        items = data.items;
-      } else if (data.data && Array.isArray(data.data)) {
-        items = data.data;
-      } else if (Array.isArray(data)) {
-        items = data;
-      }
+      if (data.items && Array.isArray(data.items)) items = data.items;
+      else if (data.data && Array.isArray(data.data)) items = data.data;
+      else if (Array.isArray(data)) items = data;
 
       setNavItems(items);
     } catch (error) {
       console.error('Error fetching navigation items:', error);
       setItemsError(error.message);
-
       Swal.fire({
         icon: 'warning',
         title: 'Could Not Load Navigation Items',
@@ -84,15 +212,14 @@ export default function FooterEditor({
     fetchNavItems();
   }, [fetchNavItems]);
 
+  // ---------------------------------------------
   // LOGO HANDLING
+  // ---------------------------------------------
   const handleDrag = (e) => {
     e.preventDefault();
     e.stopPropagation();
-    if (e.type === "dragenter" || e.type === "dragover") {
-      setDragActive(true);
-    } else if (e.type === "dragleave") {
-      setDragActive(false);
-    }
+    if (e.type === "dragenter" || e.type === "dragover") setDragActive(true);
+    else if (e.type === "dragleave") setDragActive(false);
   };
 
   const processImageFile = (file) => {
@@ -101,12 +228,10 @@ export default function FooterEditor({
         reject(new Error('Please upload an image file (JPEG, PNG, GIF, WebP, SVG)'));
         return;
       }
-
       if (file.size > 5 * 1024 * 1024) {
         reject(new Error('Image size should be less than 5MB'));
         return;
       }
-
       const reader = new FileReader();
       reader.onload = (event) => resolve(event.target.result);
       reader.onerror = () => reject(new Error('Failed to read the image file'));
@@ -118,7 +243,6 @@ export default function FooterEditor({
     e.preventDefault();
     e.stopPropagation();
     setDragActive(false);
-
     const files = e.dataTransfer.files;
     if (!files || !files[0]) return;
     await uploadImage(files[0]);
@@ -134,11 +258,9 @@ export default function FooterEditor({
   const uploadImage = async (file) => {
     setUploading(true);
     if (setIsLoading) setIsLoading(true);
-
     try {
       const imageUrl = await processImageFile(file);
       updateFormData('logo.src', imageUrl);
-
       Swal.fire({
         icon: 'success',
         title: 'Uploaded!',
@@ -171,14 +293,14 @@ export default function FooterEditor({
     }).then((result) => {
       if (result.isConfirmed) {
         updateFormData('logo.src', '');
-        if (fileInputRef.current) {
-          fileInputRef.current.value = '';
-        }
+        if (fileInputRef.current) fileInputRef.current.value = '';
       }
     });
   };
 
+  // ---------------------------------------------
   // LINK ICON HANDLING
+  // ---------------------------------------------
   const handleLinkIconDrag = (e, type) => {
     e.preventDefault();
     e.stopPropagation();
@@ -189,7 +311,6 @@ export default function FooterEditor({
     e.preventDefault();
     e.stopPropagation();
     setDragActive(false);
-
     const files = e.dataTransfer.files;
     if (!files || !files[0]) return;
     await uploadLinkIcon(files[0], type);
@@ -205,12 +326,10 @@ export default function FooterEditor({
   const uploadLinkIcon = async (file, type) => {
     setUploading(true);
     if (setIsLoading) setIsLoading(true);
-
     try {
       const imageUrl = await processImageFile(file);
       const fieldName = type === 'quick' ? 'quickLinkLinkIcon' : 'OurProgramLinkIcon';
       updateFormData(fieldName, imageUrl);
-
       Swal.fire({
         icon: 'success',
         title: 'Icon Uploaded',
@@ -234,7 +353,6 @@ export default function FooterEditor({
   const removeLinkIcon = (type) => {
     const iconName = type === 'quick' ? 'Quick Link Icon' : 'Program Link Icon';
     const fieldName = type === 'quick' ? 'quickLinkLinkIcon' : 'OurProgramLinkIcon';
-
     Swal.fire({
       title: `Remove ${iconName}?`,
       text: `This will remove the ${iconName.toLowerCase()} from the footer.`,
@@ -246,17 +364,58 @@ export default function FooterEditor({
     }).then((result) => {
       if (result.isConfirmed) {
         updateFormData(fieldName, '');
-        if (type === 'quick' && quickLinkIconInputRef.current) {
-          quickLinkIconInputRef.current.value = '';
-        }
-        if (type === 'program' && programLinkIconInputRef.current) {
-          programLinkIconInputRef.current.value = '';
-        }
+        if (type === 'quick' && quickLinkIconInputRef.current) quickLinkIconInputRef.current.value = '';
+        if (type === 'program' && programLinkIconInputRef.current) programLinkIconInputRef.current.value = '';
       }
     });
   };
 
-  // ITEM SELECTION HELPERS
+  // ---------------------------------------------
+  // SOCIAL LINK HANDLERS
+  // ---------------------------------------------
+  const addSocialLink = (presetIcon = null) => {
+    const used = new Set(socialLinks.map(l => l.iconName));
+    const icon = presetIcon || SOCIAL_ICONS.find(i => !used.has(i.value)) || SOCIAL_ICONS[0];
+    updateFormData('socialLinks', [
+      ...socialLinks,
+      {
+        iconName: icon.value,
+        url: '',
+        name: icon.label,
+        ariaLabel: icon.label,
+        hoverColor: `hover:text-[${icon.color}]`,
+      },
+    ]);
+  };
+
+  const removeSocialLink = (index) => {
+    const link = socialLinks[index] || {};
+    Swal.fire({
+      title: 'Remove Social Link?',
+      html: `Remove "<strong>${link.name || link.ariaLabel || 'this link'}</strong>" from social links?`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#dc2626',
+      cancelButtonColor: '#6b7280',
+      confirmButtonText: 'Yes, remove',
+      cancelButtonText: 'Cancel',
+    }).then((result) => {
+      if (result.isConfirmed) {
+        updateFormData('socialLinks', socialLinks.filter((_, i) => i !== index));
+      }
+    });
+  };
+
+  const handleSocialIconChange = (index, icon) => {
+    updateFormData(`socialLinks.${index}.iconName`, icon.value);
+    updateFormData(`socialLinks.${index}.name`, icon.label);
+    updateFormData(`socialLinks.${index}.ariaLabel`, icon.label);
+    updateFormData(`socialLinks.${index}.hoverColor`, `hover:text-[${icon.color}]`);
+  };
+
+  // ---------------------------------------------
+  // ITEM SELECTION
+  // ---------------------------------------------
   const getDropdownItems = useCallback(() => {
     const items = [];
     const pages = navItems.filter(item => item.type === 'page');
@@ -264,18 +423,12 @@ export default function FooterEditor({
 
     if (pages.length > 0) {
       items.push({ type: 'header', label: '📄 Pages', key: 'header-pages' });
-      pages.forEach(page => {
-        items.push({ ...page, key: `page-${page.id}` });
-      });
+      pages.forEach(page => items.push({ ...page, key: `page-${page.id}` }));
     }
-
     if (programs.length > 0) {
       items.push({ type: 'header', label: '📁 Programs', key: 'header-programs' });
-      programs.forEach(program => {
-        items.push({ ...program, key: `program-${program.id}` });
-      });
+      programs.forEach(program => items.push({ ...program, key: `program-${program.id}` }));
     }
-
     return items;
   }, [navItems]);
 
@@ -287,7 +440,9 @@ export default function FooterEditor({
     }
   }, [navItems, updateFormData]);
 
-  // CONTACT NUMBER HANDLING
+  // ---------------------------------------------
+  // CONTACT / EMAIL / BOTTOM LINKS
+  // ---------------------------------------------
   const addContactNumber = () => {
     const currentNumbers = formData.contact?.numbers || [];
     updateFormData('contact.numbers', [...currentNumbers, '']);
@@ -296,16 +451,10 @@ export default function FooterEditor({
   const removeContactNumber = (index) => {
     const currentNumbers = formData.contact?.numbers || [];
     if (currentNumbers.length <= 1) {
-      Swal.fire({
-        icon: 'warning',
-        title: 'Cannot Remove',
-        text: 'You need at least one contact number.',
-        confirmButtonColor: '#3b82f6',
-      });
+      Swal.fire({ icon: 'warning', title: 'Cannot Remove', text: 'You need at least one contact number.', confirmButtonColor: '#3b82f6' });
       return;
     }
-    const newNumbers = currentNumbers.filter((_, i) => i !== index);
-    updateFormData('contact.numbers', newNumbers);
+    updateFormData('contact.numbers', currentNumbers.filter((_, i) => i !== index));
   };
 
   const updateContactNumber = (index, value) => {
@@ -315,7 +464,6 @@ export default function FooterEditor({
     updateFormData('contact.numbers', newNumbers);
   };
 
-  // BOTTOM FOOTER LINK HANDLING
   const addBottomLink = () => {
     const currentLinks = formData.bottomFooter?.links || [];
     updateFormData('bottomFooter.links', [...currentLinks, { text: '', url: '/' }]);
@@ -323,8 +471,7 @@ export default function FooterEditor({
 
   const removeBottomLink = (index) => {
     const currentLinks = formData.bottomFooter?.links || [];
-    const newLinks = currentLinks.filter((_, i) => i !== index);
-    updateFormData('bottomFooter.links', newLinks);
+    updateFormData('bottomFooter.links', currentLinks.filter((_, i) => i !== index));
   };
 
   const updateBottomLink = (index, field, value) => {
@@ -334,7 +481,6 @@ export default function FooterEditor({
     updateFormData('bottomFooter.links', newLinks);
   };
 
-  // EMAIL ADDRESS HANDLING
   const addEmailAddress = () => {
     const currentAddresses = formData.email?.addresses || [];
     updateFormData('email.addresses', [...currentAddresses, '']);
@@ -343,16 +489,10 @@ export default function FooterEditor({
   const removeEmailAddress = (index) => {
     const currentAddresses = formData.email?.addresses || [];
     if (currentAddresses.length <= 1) {
-      Swal.fire({
-        icon: 'warning',
-        title: 'Cannot Remove',
-        text: 'You need at least one email address.',
-        confirmButtonColor: '#3b82f6',
-      });
+      Swal.fire({ icon: 'warning', title: 'Cannot Remove', text: 'You need at least one email address.', confirmButtonColor: '#3b82f6' });
       return;
     }
-    const newAddresses = currentAddresses.filter((_, i) => i !== index);
-    updateFormData('email.addresses', newAddresses);
+    updateFormData('email.addresses', currentAddresses.filter((_, i) => i !== index));
   };
 
   const updateEmailAddress = (index, value) => {
@@ -362,9 +502,12 @@ export default function FooterEditor({
     updateFormData('email.addresses', newAddresses);
   };
 
+  // ---------------------------------------------
   // COMPUTED
+  // ---------------------------------------------
   const isDisabled = isLoading || uploading || loadingItems;
   const dropdownItems = getDropdownItems();
+
   const hasDuplicateLinks = (items) => {
     if (!items || !Array.isArray(items)) return false;
     const urls = items.map(item => item.url).filter(url => url && url.trim() !== '');
@@ -375,11 +518,17 @@ export default function FooterEditor({
   const programsHaveDuplicates = hasDuplicateLinks(formData.programs);
   const hasLogo = formData.logo?.src && formData.logo.src.trim().length > 0;
 
+  const socialStats = useMemo(() => {
+    const active = socialLinks.filter(l => l.url && l.url.trim() !== '').length;
+    return { total: socialLinks.length, active };
+  }, [socialLinks]);
 
   return (
     <div className="space-y-8 w-full">
 
-      {/* LOGO SECTION */}
+      {/* ============================================
+          LOGO
+          ============================================ */}
       <div className="bg-linear-to-r from-blue-50 to-indigo-50 rounded-xl p-6 border border-blue-100">
         <div className="flex items-center gap-3 mb-4">
           <div className="p-2 bg-blue-100 rounded-lg">
@@ -392,16 +541,14 @@ export default function FooterEditor({
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Logo Upload */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Logo Image
-              <span className="text-xs text-gray-400 ml-2">(Recommended: PNG with transparent background)</span>
+              <span className="text-xs text-gray-400 ml-2">(PNG with transparent background recommended)</span>
             </label>
             <div className="relative">
               <div
-                className={`relative border-2 border-dashed rounded-lg p-4 transition-all ${dragActive === true ? 'border-blue-500 bg-blue-50' : 'border-gray-300 hover:border-gray-400'
-                  } ${uploading ? 'opacity-50' : ''}`}
+                className={`relative border-2 border-dashed rounded-lg p-4 transition-all ${dragActive === true ? 'border-blue-500 bg-blue-50' : 'border-gray-300 hover:border-gray-400'} ${uploading ? 'opacity-50' : ''}`}
                 onDragEnter={handleDrag}
                 onDragLeave={handleDrag}
                 onDragOver={handleDrag}
@@ -410,20 +557,15 @@ export default function FooterEditor({
                 <div className="flex items-center gap-3 min-h-16">
                   {hasLogo ? (
                     <div className="flex items-center gap-3 w-full">
-                      {/* Dark background preview - matches footer */}
                       <div className="w-16 h-16 rounded border border-gray-600 bg-[#080C14] flex items-center justify-center p-1 shrink-0">
                         <img
                           src={formData.logo.src}
                           alt={formData.logo?.alt || 'Logo preview'}
                           className="max-w-full max-h-full object-contain"
-                          onError={(e) => {
-                            e.target.src = '/images/placeholder-logo.png';
-                          }}
+                          onError={(e) => { e.target.src = '/images/placeholder-logo.png'; }}
                         />
                       </div>
-                      <span className="text-xs text-gray-500 truncate flex-1">
-                        Logo uploaded
-                      </span>
+                      <span className="text-xs text-gray-500 truncate flex-1">Logo uploaded</span>
                       <button
                         type="button"
                         onClick={removeLogo}
@@ -431,9 +573,7 @@ export default function FooterEditor({
                         title="Remove logo"
                         disabled={isDisabled}
                       >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
+                        <FiX className="w-4 h-4" />
                       </button>
                     </div>
                   ) : (
@@ -460,13 +600,10 @@ export default function FooterEditor({
                   </div>
                 )}
               </div>
-              <p className="text-xs text-gray-400 mt-1.5">
-                Drag & drop or click to upload. Max 5MB. Supported: JPG, PNG, GIF, WebP, SVG
-              </p>
+              <p className="text-xs text-gray-400 mt-1.5">Max 5MB. Supported: JPG, PNG, GIF, WebP, SVG</p>
             </div>
           </div>
 
-          {/* Logo Alt Text */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Logo Alt Text
@@ -480,14 +617,14 @@ export default function FooterEditor({
               className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition outline-none"
               disabled={isDisabled}
             />
-            <p className="text-xs text-gray-400 mt-1.5">
-              Describes the logo for screen readers and SEO
-            </p>
+            <p className="text-xs text-gray-400 mt-1.5">Describes the logo for screen readers and SEO</p>
           </div>
         </div>
       </div>
 
-      {/* DESCRIPTION SECTION */}
+      {/* ============================================
+          DESCRIPTION
+          ============================================ */}
       <div className="bg-linear-to-r from-gray-50 to-slate-50 rounded-xl p-6 border border-gray-200">
         <div className="flex items-center gap-3 mb-4">
           <div className="p-2 bg-gray-100 rounded-lg">
@@ -509,7 +646,9 @@ export default function FooterEditor({
         />
       </div>
 
-      {/*   ADDRESS & CONTACT SECTION */}
+      {/* ============================================
+          ADDRESS & CONTACT
+          ============================================ */}
       <div className="bg-linear-to-r from-green-50 to-emerald-50 rounded-xl p-6 border border-green-100">
         <div className="flex items-center gap-3 mb-4">
           <div className="p-2 bg-green-100 rounded-lg">
@@ -547,7 +686,9 @@ export default function FooterEditor({
         </div>
       </div>
 
-      {/* CONTACT & EMAIL SECTION */}
+      {/* ============================================
+          CONTACT & EMAIL
+          ============================================ */}
       <div className="bg-linear-to-r from-cyan-50 to-teal-50 rounded-xl p-6 border border-cyan-100">
         <div className="flex items-center gap-3 mb-4">
           <div className="p-2 bg-cyan-100 rounded-lg">
@@ -560,7 +701,6 @@ export default function FooterEditor({
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Contact Numbers */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Contact Title</label>
             <input
@@ -604,7 +744,6 @@ export default function FooterEditor({
             </div>
           </div>
 
-          {/* Email Addresses */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Email Section Title</label>
             <input
@@ -650,9 +789,11 @@ export default function FooterEditor({
         </div>
       </div>
 
-      {/* SOCIAL LINKS SECTION */}
+      {/* ============================================
+          SOCIAL LINKS
+          ============================================ */}
       <div className="bg-linear-to-r from-pink-50 to-rose-50 rounded-xl p-6 border border-pink-100">
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-pink-100 rounded-lg">
               <FaShareAlt className="text-pink-600 text-lg" />
@@ -660,93 +801,154 @@ export default function FooterEditor({
             <div>
               <h3 className="font-semibold text-gray-800 text-lg">Social Links</h3>
               <p className="text-xs text-gray-500">
-                {(formData.socialLinks || []).length} social media links
+                {socialStats.total === 0
+                  ? 'No social links yet'
+                  : `${socialStats.active} of ${socialStats.total} active`}
               </p>
             </div>
           </div>
-          {/* <button
+          <button
             type="button"
-            onClick={addSocialLink}
-            className="flex items-center gap-2 px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 transition shadow-sm"
+            onClick={() => addSocialLink()}
+            className="flex items-center gap-2 px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 transition shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
             disabled={isDisabled}
           >
             <FaPlus size={14} />
             Add Social Link
-          </button> */}
+          </button>
         </div>
 
-        {(!formData.socialLinks || formData.socialLinks.length === 0) ? (
+        {socialLinks.length === 0 ? (
           <div className="bg-white rounded-lg p-8 text-center border-2 border-dashed border-gray-300">
             <FaShareAlt className="text-gray-300 text-4xl mx-auto mb-3" />
             <p className="text-gray-400 font-medium">No social links added yet</p>
-            <p className="text-xs text-gray-400">Click "Add Social Link" to connect your social media</p>
+            <p className="text-xs text-gray-400 mb-4">Connect Facebook, X (Twitter), LinkedIn, YouTube and more</p>
+            <button
+              type="button"
+              onClick={() => addSocialLink()}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 transition text-sm"
+              disabled={isDisabled}
+            >
+              <FaPlus size={12} />
+              Add Your First Link
+            </button>
           </div>
         ) : (
           <div className="space-y-3">
-            {(formData.socialLinks || []).map((link, index) => {
-              const iconConfig = SOCIAL_ICONS.find(i => i.value === link.iconName);
-              const IconComponent = iconConfig?.icon || FiExternalLink;
+            {socialLinks.map((link, index) => {
+              const iconConfig = SOCIAL_ICONS.find(i => i.value === link.iconName) || SOCIAL_ICONS[0];
+              const IconComponent = iconConfig.icon;
               const hasUrl = link.url && link.url.trim() !== '';
+
               return (
                 <div
                   key={index}
-                  className={`bg-white rounded-lg p-4 shadow-sm border transition ${hasUrl ? 'border-green-200 hover:border-green-300' : 'border-gray-200 hover:border-gray-300'
-                    }`}
+                  className={`bg-white rounded-lg p-4 shadow-sm border transition ${hasUrl ? 'border-green-200 hover:border-green-300' : 'border-gray-200 hover:border-gray-300'}`}
                 >
                   <div className="flex flex-wrap items-center gap-3">
+                    <IconPicker
+                      value={link.iconName}
+                      onChange={(icon) => handleSocialIconChange(index, icon)}
+                      disabled={isDisabled}
+                    />
 
-                    {/* URL */}
                     <div className="flex-1 min-w-45">
                       <input
                         type="url"
                         value={link.url || ''}
                         onChange={(e) => updateFormData(`socialLinks.${index}.url`, e.target.value)}
-                        placeholder="https://facebook.com/yourpage"
-                        className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition outline-none ${hasUrl ? 'border-green-300' : 'border-gray-300'
-                          }`}
-                        disabled={isLoading}
+                        placeholder={`https://${iconConfig.label.toLowerCase().replace(/[^a-z]/g, '')}.com/yourpage`}
+                        className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent transition outline-none ${hasUrl ? 'border-green-300' : 'border-gray-300'}`}
+                        disabled={isDisabled}
                       />
                     </div>
 
-                    {/* Name */}
                     <div className="min-w-25">
                       <input
                         type="text"
-                        value={link.ariaLabel || ''}
-                        onChange={(e) => updateFormData(`socialLinks.${index}.ariaLabel`, e.target.value)}
+                        value={link.ariaLabel || link.name || ''}
+                        onChange={(e) => {
+                          updateFormData(`socialLinks.${index}.ariaLabel`, e.target.value);
+                          updateFormData(`socialLinks.${index}.name`, e.target.value);
+                        }}
                         placeholder="Label"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition outline-none text-sm"
-                        disabled={isLoading}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent transition outline-none text-sm"
+                        disabled={isDisabled}
                       />
                     </div>
+
+                    <div className="flex items-center gap-3 ml-auto">
+                      {hasUrl ? (
+                        <span className="text-xs px-2 py-1 bg-green-100 text-green-700 rounded-full whitespace-nowrap">🔗 Active</span>
+                      ) : (
+                        <span className="text-xs px-2 py-1 bg-gray-100 text-gray-500 rounded-full whitespace-nowrap">⏸ Hidden</span>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => removeSocialLink(index)}
+                        className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition shrink-0"
+                        disabled={isDisabled}
+                        title="Remove link"
+                      >
+                        <FaTrash size={14} />
+                      </button>
+                    </div>
                   </div>
-                  {/* Preview of how it will look */}
+
                   {hasUrl && (
                     <div className="mt-3 pt-3 border-t border-gray-100 flex items-center gap-2 text-sm">
                       <span className="text-xs text-gray-400">Preview:</span>
-                      <a
-                        href="#"
-                        className={`text-gray-600 transition ${link.hoverColor || 'hover:text-cyan-600'} flex items-center gap-1`}
-                        onClick={(e) => e.preventDefault()}
+                      <span
+                        className="flex items-center gap-1.5 px-2 py-1 rounded-md"
+                        style={{ backgroundColor: `${iconConfig.color}10`, color: iconConfig.color }}
                       >
                         <IconComponent size={14} />
-                        {link.name || 'Link'}
-                      </a>
-                      <span className="text-xs text-gray-400 ml-2">→ {link.url}</span>
+                        <span className="text-xs font-medium">{link.name || link.ariaLabel || iconConfig.label}</span>
+                      </span>
+                      <span className="text-xs text-gray-400 truncate ml-1">→ {link.url}</span>
                     </div>
                   )}
-
                 </div>
-              )
+              );
             })}
+          </div>
+        )}
+
+        {socialLinks.length > 0 && (
+          <div className="mt-4 pt-4 border-t border-pink-200/60">
+            <p className="text-xs text-gray-500 mb-2">Quick add:</p>
+            <div className="flex flex-wrap gap-2">
+              {SOCIAL_ICONS
+                .filter(icon => !socialLinks.some(l => l.iconName === icon.value))
+                .slice(0, 8)
+                .map((icon) => {
+                  const Icon = icon.icon;
+                  return (
+                    <button
+                      key={icon.value}
+                      type="button"
+                      onClick={() => addSocialLink(icon)}
+                      disabled={isDisabled}
+                      className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full border border-gray-200 bg-white hover:border-pink-400 hover:bg-pink-50 transition text-xs text-gray-600 disabled:opacity-50"
+                      title={`Add ${icon.label}`}
+                    >
+                      <span style={{ color: icon.color }}>
+                        <Icon size={12} />
+                      </span>
+                      {icon.label}
+                      <FaPlus size={8} className="text-gray-400" />
+                    </button>
+                  );
+                })}
+            </div>
           </div>
         )}
       </div>
 
-      {/* QUICK LINKS & PROGRAMS SECTION*/}
+      {/* ============================================
+          QUICK LINKS & PROGRAMS
+          ============================================ */}
       <div className="bg-linear-to-r from-orange-50 to-amber-50 rounded-xl p-6 border border-orange-100">
-
-        {/* Header */}
         <div className="flex items-center gap-3 mb-4">
           <div className="p-2 bg-orange-100 rounded-lg">
             <FaLink className="text-orange-600 text-lg" />
@@ -759,9 +961,8 @@ export default function FooterEditor({
           </div>
         </div>
 
-        {/* Quick Links */}
         <div className="space-y-6">
-          {/* Quick Links */}
+          {/* QUICK LINKS */}
           <div>
             <div className="flex items-center justify-between mb-3">
               <h4 className="font-medium text-gray-700">Quick Links</h4>
@@ -858,7 +1059,7 @@ export default function FooterEditor({
             )}
           </div>
 
-          {/* Programs */}
+          {/* PROGRAMS */}
           <div>
             <div className="flex items-center justify-between mb-3">
               <h4 className="font-medium text-gray-700">Programs</h4>
@@ -879,7 +1080,6 @@ export default function FooterEditor({
               </div>
             )}
 
-            {/* Programs */}
             {(formData.programs || []).length === 0 ? (
               <div className="bg-white rounded-lg p-6 text-center border-2 border-dashed border-gray-300">
                 <p className="text-gray-400 text-sm">No programs added yet</p>
@@ -958,9 +1158,10 @@ export default function FooterEditor({
         </div>
       </div>
 
-      {/* BOTTOM FOOTER SECTION*/}
+      {/* ============================================
+          BOTTOM FOOTER
+          ============================================ */}
       <div className="bg-linear-to-r from-gray-50 to-slate-50 rounded-xl p-6 border border-gray-200">
-        {/* HEADER */}
         <div className="flex items-center gap-3 mb-4">
           <div className="p-2 bg-gray-100 rounded-lg">
             <FaCopyright className="text-gray-600 text-lg" />
@@ -971,9 +1172,7 @@ export default function FooterEditor({
           </div>
         </div>
 
-        {/* CONTENT */}
         <div className="space-y-4">
-          {/* COPYRIGHT */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Copyright Text</label>
             <input
@@ -986,7 +1185,6 @@ export default function FooterEditor({
             />
           </div>
 
-          {/* LEGAL LINKS */}
           <div>
             <div className="flex items-center justify-between mb-3">
               <label className="block text-sm font-medium text-gray-700">Legal Links</label>
@@ -1047,10 +1245,10 @@ export default function FooterEditor({
         </div>
       </div>
 
-      {/* LINK ICONS SECTION */}
+      {/* ============================================
+          LINK ICONS
+          ============================================ */}
       <div className="bg-linear-to-r from-purple-50 to-indigo-50 rounded-xl p-6 border border-purple-100">
-
-        {/* Header */}
         <div className="flex items-center gap-3 mb-4">
           <div className="p-2 bg-purple-100 rounded-lg">
             <FaIcons className="text-purple-600 text-lg" />
@@ -1061,9 +1259,7 @@ export default function FooterEditor({
           </div>
         </div>
 
-        {/* Quick Link Icon */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Quick Link Icon */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Quick Link Icon
@@ -1071,34 +1267,24 @@ export default function FooterEditor({
             </label>
             <div className="relative">
               <div
-                className={`relative border-2 border-dashed rounded-lg p-4 transition-all ${dragActive === 'quick' ? 'border-purple-500 bg-purple-50' : 'border-gray-300 hover:border-gray-400'
-                  } ${uploading ? 'opacity-50' : ''}`}
+                className={`relative border-2 border-dashed rounded-lg p-4 transition-all ${dragActive === 'quick' ? 'border-purple-500 bg-purple-50' : 'border-gray-300 hover:border-gray-400'} ${uploading ? 'opacity-50' : ''}`}
                 onDragEnter={(e) => handleLinkIconDrag(e, 'quick')}
-                onDragLeave={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  setDragActive(false);
-                }}
+                onDragLeave={(e) => { e.preventDefault(); e.stopPropagation(); setDragActive(false); }}
                 onDragOver={(e) => handleLinkIconDrag(e, 'quick')}
                 onDrop={(e) => handleLinkIconDrop(e, 'quick')}
               >
                 <div className="flex items-center gap-3 min-h-16">
                   {formData.quickLinkLinkIcon ? (
                     <div className="flex items-center gap-3 w-full">
-                      {/* Dark background preview */}
                       <div className="w-12 h-12 rounded border border-gray-600 bg-[#080C14] flex items-center justify-center p-1 shrink-0">
                         <img
                           src={formData.quickLinkLinkIcon}
                           alt="Quick Link Icon"
                           className="max-w-full max-h-full object-contain"
-                          onError={(e) => {
-                            e.target.src = '/images/placeholder-icon.png';
-                          }}
+                          onError={(e) => { e.target.src = '/images/placeholder-icon.png'; }}
                         />
                       </div>
-                      <span className="text-xs text-gray-500 truncate flex-1">
-                        Icon uploaded
-                      </span>
+                      <span className="text-xs text-gray-500 truncate flex-1">Icon uploaded</span>
                       <button
                         type="button"
                         onClick={() => removeLinkIcon('quick')}
@@ -1106,9 +1292,7 @@ export default function FooterEditor({
                         title="Remove icon"
                         disabled={isDisabled}
                       >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
+                        <FiX className="w-4 h-4" />
                       </button>
                     </div>
                   ) : (
@@ -1135,13 +1319,10 @@ export default function FooterEditor({
                   </div>
                 )}
               </div>
-              <p className="text-xs text-gray-400 mt-1.5">
-                Max 5MB. Supported: JPG, PNG, GIF, WebP, SVG
-              </p>
+              <p className="text-xs text-gray-400 mt-1.5">Max 5MB. Supported: JPG, PNG, GIF, WebP, SVG</p>
             </div>
           </div>
 
-          {/* Program Link Icon */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Program Link Icon
@@ -1149,34 +1330,24 @@ export default function FooterEditor({
             </label>
             <div className="relative">
               <div
-                className={`relative border-2 border-dashed rounded-lg p-4 transition-all ${dragActive === 'program' ? 'border-purple-500 bg-purple-50' : 'border-gray-300 hover:border-gray-400'
-                  } ${uploading ? 'opacity-50' : ''}`}
+                className={`relative border-2 border-dashed rounded-lg p-4 transition-all ${dragActive === 'program' ? 'border-purple-500 bg-purple-50' : 'border-gray-300 hover:border-gray-400'} ${uploading ? 'opacity-50' : ''}`}
                 onDragEnter={(e) => handleLinkIconDrag(e, 'program')}
-                onDragLeave={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  setDragActive(false);
-                }}
+                onDragLeave={(e) => { e.preventDefault(); e.stopPropagation(); setDragActive(false); }}
                 onDragOver={(e) => handleLinkIconDrag(e, 'program')}
                 onDrop={(e) => handleLinkIconDrop(e, 'program')}
               >
                 <div className="flex items-center gap-3 min-h-16">
                   {formData.OurProgramLinkIcon ? (
                     <div className="flex items-center gap-3 w-full">
-                      {/* Dark background preview */}
                       <div className="w-12 h-12 rounded border border-gray-600 bg-[#080C14] flex items-center justify-center p-1 shrink-0">
                         <img
                           src={formData.OurProgramLinkIcon}
                           alt="Program Link Icon"
                           className="max-w-full max-h-full object-contain"
-                          onError={(e) => {
-                            e.target.src = '/images/placeholder-icon.png';
-                          }}
+                          onError={(e) => { e.target.src = '/images/placeholder-icon.png'; }}
                         />
                       </div>
-                      <span className="text-xs text-gray-500 truncate flex-1">
-                        Icon uploaded
-                      </span>
+                      <span className="text-xs text-gray-500 truncate flex-1">Icon uploaded</span>
                       <button
                         type="button"
                         onClick={() => removeLinkIcon('program')}
@@ -1184,9 +1355,7 @@ export default function FooterEditor({
                         title="Remove icon"
                         disabled={isDisabled}
                       >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
+                        <FiX className="w-4 h-4" />
                       </button>
                     </div>
                   ) : (
@@ -1213,9 +1382,7 @@ export default function FooterEditor({
                   </div>
                 )}
               </div>
-              <p className="text-xs text-gray-400 mt-1.5">
-                Max 5MB. Supported: JPG, PNG, GIF, WebP, SVG
-              </p>
+              <p className="text-xs text-gray-400 mt-1.5">Max 5MB. Supported: JPG, PNG, GIF, WebP, SVG</p>
             </div>
           </div>
         </div>
