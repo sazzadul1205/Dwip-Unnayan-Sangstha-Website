@@ -6,7 +6,10 @@ import React from 'react';
 // Icons
 import { FaGraduationCap } from 'react-icons/fa';
 
-// Utility function to check if value exists (SAME as other sections)
+// Skeleton primitives
+import { Skeleton, SkeletonText } from '../../Shared/Skeletons/SkeletonPrimitives';
+
+// Utility function to check if value exists
 const hasValue = (value) => {
   if (value === undefined || value === null) return false;
   if (typeof value === 'string') return value.trim().length > 0;
@@ -15,29 +18,65 @@ const hasValue = (value) => {
   return true;
 };
 
+// ============================================
+// SKELETON: Single office card
+// ============================================
+const OfficeSkeletonCard = () => (
+  <div className="rounded-2xl border border-gray-100 bg-white p-5 sm:p-6 md:p-8 lg:p-10 xl:p-12.5 shadow-sm">
+    {/* Icon — 3xl → 4xl */}
+    <Skeleton className="h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 rounded-md" />
+
+    {/* Title */}
+    <Skeleton className="h-5 sm:h-5.5 md:h-6 lg:h-6.5 w-2/3 mt-4 sm:mt-5 mb-3 sm:mb-4" />
+
+    {/* Org name */}
+    <Skeleton className="h-3.5 sm:h-4 w-3/4 mb-2" />
+
+    {/* Address (2 lines) */}
+    <SkeletonText
+      lines={2}
+      lineClassName="h-3.5 sm:h-4"
+      className="mb-2"
+    />
+
+    {/* Phone */}
+    <Skeleton className="h-3.5 sm:h-4 w-1/2 mb-2" />
+
+    {/* Email */}
+    <Skeleton className="h-3.5 sm:h-4 w-2/3" />
+  </div>
+);
+
+// ============================================
+// SKELETON: Full section (title + card grid)
+// ============================================
+const ContactOfficeSkeleton = ({ count = 3, hasTitle = true }) => (
+  <>
+    {/* Section Title */}
+    {hasTitle && (
+      <Skeleton className="h-7 sm:h-8 md:h-9 lg:h-10 xl:h-11 w-56 sm:w-64 md:w-72 mb-4 sm:mb-6 md:mb-8 lg:mb-10 xl:mb-12.5" />
+    )}
+
+    {/* Cards grid — matches real: 1 / 2 / 3 cols */}
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 md:gap-6 lg:gap-7 xl:gap-8">
+      {Array.from({ length: count }).map((_, i) => (
+        <OfficeSkeletonCard key={`office-skeleton-${i}`} />
+      ))}
+    </div>
+  </>
+);
+
 /**
  * ContactOfficeSection Component
- * 
- * @param {Object} props
- * @param {Object} props.data - Contact office data from API (from DynamicSectionRenderer)
- * @param {Object} props.officesData - Contact office data from API (direct prop - legacy)
- * @param {Array} props.offices - Offices array (direct prop - legacy)
- * @param {string} props.title - Section title (default: "Our Offices")
- * @param {string} props.orgName - Organization name (default: "Dwip Unnayan Songstha (DUS)")
- * @param {string} props.bgColor - Background color (optional)
- * @param {string} props.paddingY - Vertical padding classes
- * @param {string} props.paddingX - Horizontal padding classes
- * @param {string} props.sectionClassName - Additional CSS classes
- * @param {string} props.sectionId - Section ID (default: 'contact-offices')
- * 
- * @returns {JSX.Element} Rendered contact office section
  */
 const ContactOfficeSection = ({
-  data,           // From DynamicSectionRenderer
-  officesData,    // Direct prop (legacy support)
-  offices,        // Direct prop (legacy support)
-  title = "Our Offices",
-  orgName = "Dwip Unnayan Songstha (DUS)",
+  data,
+  officesData,
+  offices,
+  loading = false,               // ← NEW
+  skeletonCount = 3,             // ← NEW
+  title = 'Our Offices',
+  orgName = 'Dwip Unnayan Songstha (DUS)',
   bgColor = 'bg-white',
   paddingY = 'py-12 sm:py-16 md:py-20 lg:py-25 xl:py-30 2xl:py-37.5',
   paddingX = 'px-5 sm:px-8 md:px-12 lg:px-20 xl:px-30 2xl:px-50',
@@ -45,55 +84,63 @@ const ContactOfficeSection = ({
   sectionId = 'contact-offices',
 }) => {
   // ============================================
-  // RESOLVE DATA
+  // LOADING STATE
   // ============================================
-  // Use data prop if available, fallback to officesData or offices
-  let resolvedData = data || officesData || offices;
+  if (loading) {
+    return (
+      <section
+        id={sectionId}
+        className={`${bgColor} ${sectionClassName}`}
+      >
+        <div className={`mx-auto ${paddingX} ${paddingY}`}>
+          <ContactOfficeSkeleton
+            count={skeletonCount}
+            hasTitle={hasValue(title)}
+          />
+        </div>
+      </section>
+    );
+  }
 
   // ============================================
-  // EARLY RETURN - No data
+  // RESOLVE DATA
   // ============================================
-  if (!hasValue(resolvedData)) {
-    return null;
-  }
+  let resolvedData = data || officesData || offices;
+  if (!hasValue(resolvedData)) return null;
 
   // ============================================
   // NORMALIZE DATA STRUCTURE
   // ============================================
   let officesArray = [];
 
-  // Case 1: Data is directly an array of offices
   if (Array.isArray(resolvedData)) {
     officesArray = resolvedData;
   } else {
-    // Case 2: Data is an object
-    // Check if the data is wrapped in a 'data' property
     if (resolvedData.data && typeof resolvedData.data === 'object') {
-      // If data.data is an array, use it directly
       if (Array.isArray(resolvedData.data)) {
         officesArray = resolvedData.data;
       } else {
-        // If data.data is an object, use the data property
         resolvedData = resolvedData.data;
       }
     }
 
-    // If we haven't found offices yet, try other properties
     if (officesArray.length === 0) {
-      // Case 3: Data has an offices property
       if (Array.isArray(resolvedData.offices)) {
         officesArray = resolvedData.offices;
       } else if (Array.isArray(resolvedData.officeData)) {
         officesArray = resolvedData.officeData;
-      } else if (Array.isArray(resolvedData)) {
-        officesArray = resolvedData;
       } else {
-        // Try to find any array property that might be offices
         let foundOffices = false;
         for (const key in resolvedData) {
           if (Array.isArray(resolvedData[key]) && resolvedData[key].length > 0) {
             const firstItem = resolvedData[key][0];
-            if (firstItem && (firstItem.address || firstItem.phones || firstItem.emails || firstItem.title)) {
+            if (
+              firstItem &&
+              (firstItem.address ||
+                firstItem.phones ||
+                firstItem.emails ||
+                firstItem.title)
+            ) {
               officesArray = resolvedData[key];
               foundOffices = true;
               break;
@@ -107,9 +154,6 @@ const ContactOfficeSection = ({
     }
   }
 
-  // ============================================
-  // EARLY RETURN - No offices
-  // ============================================
   if (!hasValue(officesArray) || officesArray.length === 0) {
     console.warn('ContactOfficeSection - No offices to display');
     return null;
@@ -119,12 +163,8 @@ const ContactOfficeSection = ({
   // RENDER
   // ============================================
   return (
-    <section
-      id={sectionId}
-      className={`${bgColor} ${sectionClassName}`}
-    >
+    <section id={sectionId} className={`${bgColor} ${sectionClassName}`}>
       <div className={`mx-auto ${paddingX} ${paddingY}`}>
-        {/* Section Title */}
         {hasValue(title) && (
           <h2 className="text-[#1D2566] font-bold text-[24px] sm:text-[28px] md:text-[32px] lg:text-[36px] xl:text-[40px] leading-tight pb-4 sm:pb-6 md:pb-8 lg:pb-10 xl:pb-12.5 text-center sm:text-left">
             {title}
@@ -137,10 +177,8 @@ const ContactOfficeSection = ({
               key={office.title || index}
               className="rounded-2xl border border-gray-100 bg-white p-5 sm:p-6 md:p-8 lg:p-10 xl:p-12.5 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
             >
-              {/* Icon */}
               <FaGraduationCap className="text-3xl sm:text-4xl text-black" />
 
-              {/* Office Title */}
               {hasValue(office.title) && (
                 <h3 className="text-[18px] sm:text-[20px] md:text-[22px] lg:text-[24px] font-bold text-[#080C14] pt-4 sm:pt-5">
                   {office.title}
@@ -148,12 +186,10 @@ const ContactOfficeSection = ({
               )}
 
               <div className="space-y-1.5 sm:space-y-2 text-[13px] sm:text-[14px] md:text-[15px] leading-relaxed text-[#444] mt-2 sm:mt-3">
-                {/* Organization Name */}
                 {hasValue(orgName) && (
                   <p className="font-semibold text-[#333333]">{orgName}</p>
                 )}
 
-                {/* Address */}
                 {hasValue(office.address) && (
                   <p className="flex flex-col sm:flex-row gap-0.5 sm:gap-2">
                     <span className="font-semibold text-[#333333] shrink-0">Address:</span>
@@ -161,7 +197,6 @@ const ContactOfficeSection = ({
                   </p>
                 )}
 
-                {/* Phone Numbers */}
                 {hasValue(office.phones) && (
                   <p className="flex flex-col sm:flex-row gap-0.5 sm:gap-2 flex-wrap">
                     <span className="font-semibold text-[#333333] shrink-0">Phone:</span>
@@ -169,7 +204,6 @@ const ContactOfficeSection = ({
                   </p>
                 )}
 
-                {/* Emails */}
                 {hasValue(office.emails) && office.emails.length > 0 && (
                   <p className="flex flex-col sm:flex-row gap-0.5 sm:gap-2 flex-wrap">
                     <span className="font-semibold text-[#333333] shrink-0">E-mail:</span>

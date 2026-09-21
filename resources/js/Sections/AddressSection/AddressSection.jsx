@@ -1,14 +1,20 @@
 // js/Sections/AddressSection/AddressSection.jsx
 
 // React
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo } from 'react';
 
 // React Icons
-import { FaArrowRight } from "react-icons/fa6";
+import { FaArrowRight } from 'react-icons/fa6';
 
 // Utils
 import { hasValue, normalizeData, extractArray } from '../../utils/sectionHelpers';
 
+// Skeleton primitives
+import { Skeleton } from '../../Shared/Skeletons/SkeletonPrimitives';
+
+// ============================================
+// ICONS (unchanged)
+// ============================================
 const OfficeStar = ({ active }) => (
   <svg
     width="24"
@@ -20,12 +26,12 @@ const OfficeStar = ({ active }) => (
   >
     <path
       d="M12 2L13.85 8.15L20 10L13.85 11.85L12 18L10.15 11.85L4 10L10.15 8.15L12 2Z"
-      fill={active ? "#1396E8" : "#111827"}
+      fill={active ? '#1396E8' : '#111827'}
     />
   </svg>
 );
 
-const BuildingIcon = ({ className = "", ...props }) => (
+const BuildingIcon = ({ className = '', ...props }) => (
   <svg
     width="23"
     height="23"
@@ -46,6 +52,58 @@ const BuildingIcon = ({ className = "", ...props }) => (
   </svg>
 );
 
+// ============================================
+// SKELETON: Tab button
+// ============================================
+const TabSkeleton = ({ width = 140 }) => (
+  <div className="flex items-center justify-center gap-2 sm:gap-3 rounded-2xl px-4 sm:px-5 py-3 sm:py-5 bg-white shrink-0">
+    <Skeleton className="w-6 h-6 rounded-full" />
+    <Skeleton className="h-4 sm:h-5 md:h-6" style={{ width }} />
+  </div>
+);
+
+// ============================================
+// SKELETON: Full Address section
+// ============================================
+const AddressSkeleton = ({ tabCount = 3 }) => (
+  <>
+    {/* Tabs strip */}
+    <div className="max-w-200 mx-auto rounded-[18px] bg-white p-4">
+      <div className="flex flex-wrap justify-between gap-3">
+        {Array.from({ length: tabCount }).map((_, i) => (
+          <TabSkeleton key={`tab-skeleton-${i}`} width={100 + i * 20} />
+        ))}
+      </div>
+    </div>
+
+    {/* Map + floating card */}
+    <div className="relative pt-12">
+      <div className="w-full max-w-380 mx-auto rounded-2xl overflow-hidden shadow-lg">
+        <Skeleton className="w-full h-100 md:h-228.75 rounded-2xl" />
+      </div>
+
+      {/* Floating address card */}
+      <div className="absolute left-1/2 -translate-x-1/2 bottom-0 translate-y-1/2 w-[90%] md:w-192.5 z-10">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5 bg-white py-6 px-7 rounded-2xl shadow-xl">
+          {/* Icon circle */}
+          <Skeleton className="rounded-full w-13 h-13 sm:w-14 sm:h-14 shrink-0" />
+
+          <div className="flex-1 w-full">
+            {/* "Address" label */}
+            <Skeleton className="h-3 w-16 mb-2" />
+            {/* Address text — 2 lines */}
+            <Skeleton className="h-4 sm:h-5 w-full mb-1.5" />
+            <Skeleton className="h-4 sm:h-5 w-2/3" />
+          </div>
+
+          {/* Arrow icon */}
+          <Skeleton className="w-5 h-5 sm:w-6 sm:h-6 rounded-md shrink-0" />
+        </div>
+      </div>
+    </div>
+  </>
+);
+
 /**
  * AddressSection Component
  */
@@ -53,19 +111,18 @@ const AddressSection = ({
   data,
   addressData,
   officesLocation,
+  loading = false,               // ← NEW
+  skeletonTabCount = 3,          // ← NEW
   bgColor = 'bg-[#F5F5F5]',
   paddingY = 'py-10 sm:py-14 lg:py-37.5',
   paddingX = 'px-4 sm:px-6 lg:px-50',
   sectionClassName = '',
   sectionId = 'address-section',
 }) => {
-  // ============================================
-  // HOOKS
-  // ============================================
   const [activeOffice, setActiveOffice] = useState(null);
 
   // ============================================
-  // RESOLVE DATA WITH useMemo
+  // RESOLVE DATA
   // ============================================
   const officesArray = useMemo(() => {
     const resolvedData = data || addressData;
@@ -74,11 +131,16 @@ const AddressSection = ({
     if (hasValue(resolvedData)) {
       const normalized = normalizeData(resolvedData);
 
-      // Try to extract offices from various sources
       if (Array.isArray(normalized)) {
         offices = normalized;
       } else if (normalized && typeof normalized === 'object') {
-        offices = extractArray(normalized, ['officesLocation', 'offices', 'locations', 'items', 'data']);
+        offices = extractArray(normalized, [
+          'officesLocation',
+          'offices',
+          'locations',
+          'items',
+          'data',
+        ]);
       }
     }
 
@@ -86,7 +148,7 @@ const AddressSection = ({
   }, [data, addressData, officesLocation]);
 
   // ============================================
-  // EFFECT: Set active office when data loads
+  // EFFECT: Set active office
   // ============================================
   useEffect(() => {
     if (hasValue(officesArray) && officesArray.length > 0 && !activeOffice) {
@@ -95,19 +157,31 @@ const AddressSection = ({
   }, [officesArray, activeOffice]);
 
   // ============================================
-  // EARLY RETURN - No data
+  // LOADING STATE
+  // ============================================
+  if (loading) {
+    return (
+      <section
+        id={sectionId}
+        className={`${bgColor} ${paddingX} ${paddingY} ${sectionClassName}`}
+      >
+        <AddressSkeleton tabCount={skeletonTabCount} />
+      </section>
+    );
+  }
+
+  // ============================================
+  // EARLY RETURN
   // ============================================
   if (!hasValue(officesArray) || officesArray.length === 0) {
     return null;
   }
 
   // ============================================
-  // GET MAP URL WITH FALLBACK
+  // GET MAP URL
   // ============================================
   const getMapUrl = (office) => {
-    if (hasValue(office?.mapUrl)) {
-      return office.mapUrl;
-    }
+    if (hasValue(office?.mapUrl)) return office.mapUrl;
     if (hasValue(office?.address)) {
       return `https://maps.google.com/maps?q=${encodeURIComponent(office.address)}&t=&z=13&ie=UTF8&iwloc=&output=embed`;
     }
@@ -130,8 +204,8 @@ const AddressSection = ({
               key={office.id || office.label}
               onClick={() => setActiveOffice(office)}
               className={`flex items-center justify-center gap-2 sm:gap-3 rounded-2xl px-4 sm:px-5 py-3 sm:py-5 text-[16px] sm:text-[18px] md:text-[24px] font-semibold transition-all shrink-0 cursor-pointer ${activeOffice?.id === office.id
-                ? 'bg-[#FAFAFA] text-[#1396E8]'
-                : 'bg-white text-[#111827] hover:bg-gray-50'
+                  ? 'bg-[#FAFAFA] text-[#1396E8]'
+                  : 'bg-white text-[#111827] hover:bg-gray-50'
                 }`}
             >
               <OfficeStar active={activeOffice?.id === office.id} />
@@ -141,7 +215,7 @@ const AddressSection = ({
         </div>
       </div>
 
-      {/* Dynamic Map */}
+      {/* Map + address card */}
       <div className="relative pt-12">
         <div className="w-full max-w-380 mx-auto rounded-2xl overflow-hidden shadow-lg">
           <iframe
@@ -153,11 +227,10 @@ const AddressSection = ({
           />
         </div>
 
-        {/* Dynamic Address Card */}
         {hasValue(activeOffice?.address) && (
           <div className="absolute left-1/2 -translate-x-1/2 bottom-0 translate-y-1/2 w-[90%] md:w-192.5 z-10">
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5 bg-white py-6 px-7 rounded-2xl shadow-xl">
-              <div className='bg-[#F4F8FF] rounded-full p-3.5 shrink-0'>
+              <div className="bg-[#F4F8FF] rounded-full p-3.5 shrink-0">
                 <BuildingIcon />
               </div>
 
