@@ -227,7 +227,7 @@ const HomeBanner = ({
 
         {/* DOTS */}
         {hasMultipleSlides && (
-          <div className="absolute bottom-4 sm:bottom-6 md:bottom-8 lg:bottom-10 left-1/2 transform -translate-x-1/2 z-20 flex gap-1.5 sm:gap-2">
+          <div className="absolute bottom-4 sm:bottom-6 md:bottom-8 lg:bottom-10 left-1/2 transform -translate-x-1/2 z-10 flex gap-1.5 sm:gap-2">
             {slides.map((_, index) => (
               <button
                 key={index}
