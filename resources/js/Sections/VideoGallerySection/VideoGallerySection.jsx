@@ -1,10 +1,69 @@
 // js/Sections/VideoGallerySection/VideoGallerySection.jsx
 
-import React, { useState } from 'react';
+import { useState } from 'react';
+
+// Skeleton primitives
+import { Skeleton, SkeletonCircle } from '../../Shared/Skeletons/SkeletonPrimitives';
+
+// ============================================
+// SKELETON: Single video card
+// Matches real card: 16/9 iframe area + optional caption
+// ============================================
+const VideoSkeletonCard = () => (
+  <div className="rounded-lg overflow-hidden shadow-md bg-white">
+    {/* 16:9 aspect-ratio block — same technique as real iframe wrapper */}
+    <div className="relative pb-[56.25%] h-0 overflow-hidden">
+      <Skeleton
+        className="absolute inset-0 w-full h-full"
+        rounded="rounded-none"
+      />
+      {/* Play button placeholder in the middle */}
+      <div className="absolute inset-0 flex items-center justify-center">
+        <SkeletonCircle size={56} className="opacity-60" />
+      </div>
+    </div>
+  </div>
+);
+
+// ============================================
+// SKELETON: Header + 2-column grid
+// ============================================
+const VideoGallerySkeleton = ({
+  count = 4,
+  sectionTitle,
+}) => (
+  <>
+    {/* Header */}
+    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between flex-wrap gap-3 sm:gap-4">
+      {sectionTitle ? (
+        <h3 className="text-[#171D38] text-[24px] sm:text-[28px] md:text-[32px] lg:text-[36px] font-semibold">
+          {sectionTitle}
+        </h3>
+      ) : (
+        <Skeleton className="h-8 sm:h-9 md:h-10 w-40 sm:w-48 md:w-56" />
+      )}
+      <Skeleton className="h-8 sm:h-9 md:h-10 w-28 sm:w-32 rounded-lg" />
+    </div>
+
+    {/* 2-column grid — matches real grid exactly */}
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5 md:gap-6 lg:gap-7.5">
+      {Array.from({ length: count }).map((_, index) => (
+        <VideoSkeletonCard key={`video-skeleton-${index}`} />
+      ))}
+    </div>
+
+    {/* Show More button placeholder */}
+    <div className="flex justify-center pt-2 sm:pt-3 md:pt-4">
+      <Skeleton className="h-11 sm:h-12 md:h-13 lg:h-13.75 w-32 sm:w-36 md:w-40 rounded-lg" />
+    </div>
+  </>
+);
 
 const VideoGallerySection = ({
   data,
   videoData,
+  loading = false,                       // ← NEW: externally controlled
+  skeletonCount = 4,                     // ← NEW: how many skeleton video cards
   sectionTitle = 'Videos',
   videoCountLabel = 'Video Count',
   videosPerPage = 4,
@@ -18,68 +77,69 @@ const VideoGallerySection = ({
   const [visibleCount, setVisibleCount] = useState(videosPerPage);
 
   // ============================================
-  // RESOLVE DATA - FIXED
+  // RESOLVE DATA
   // ============================================
   let resolvedData = videoData || data || {};
 
-  // If resolvedData has a 'data' property (from nested structure)
   if (resolvedData.data && typeof resolvedData.data === 'object') {
     resolvedData = resolvedData.data;
   }
 
   // ============================================
-  // NORMALIZE DATA STRUCTURE - FIXED
+  // NORMALIZE DATA STRUCTURE
   // ============================================
   let resolvedVideos = [];
   let resolvedSectionTitle = sectionTitle;
   let resolvedVideoCountLabel = videoCountLabel;
 
   if (resolvedData) {
-    // Direct videos array
-    if (Array.isArray(resolvedData.videos)) {
-      resolvedVideos = resolvedData.videos;
-    }
-    // Data is the videos array itself
-    else if (Array.isArray(resolvedData)) {
-      resolvedVideos = resolvedData;
-    }
-    // Items array
-    else if (Array.isArray(resolvedData.items)) {
-      resolvedVideos = resolvedData.items;
-    }
-    // Gallery array
-    else if (Array.isArray(resolvedData.gallery)) {
-      resolvedVideos = resolvedData.gallery;
-    }
-    // VideoGallery array
-    else if (Array.isArray(resolvedData.videoGallery)) {
-      resolvedVideos = resolvedData.videoGallery;
-    }
+    if (Array.isArray(resolvedData.videos)) resolvedVideos = resolvedData.videos;
+    else if (Array.isArray(resolvedData)) resolvedVideos = resolvedData;
+    else if (Array.isArray(resolvedData.items)) resolvedVideos = resolvedData.items;
+    else if (Array.isArray(resolvedData.gallery)) resolvedVideos = resolvedData.gallery;
+    else if (Array.isArray(resolvedData.videoGallery)) resolvedVideos = resolvedData.videoGallery;
 
-    // Extract section title
-    if (resolvedData.sectionTitle) {
-      resolvedSectionTitle = resolvedData.sectionTitle;
-    } else if (resolvedData.title) {
-      resolvedSectionTitle = resolvedData.title;
-    }
+    if (resolvedData.sectionTitle) resolvedSectionTitle = resolvedData.sectionTitle;
+    else if (resolvedData.title) resolvedSectionTitle = resolvedData.title;
 
-    // Extract video count label
-    if (resolvedData.videoCountLabel) {
-      resolvedVideoCountLabel = resolvedData.videoCountLabel;
-    }
+    if (resolvedData.videoCountLabel) resolvedVideoCountLabel = resolvedData.videoCountLabel;
+  }
+
+  // ============================================
+  // LOADING STATE — SKELETON
+  // ============================================
+  if (loading) {
+    return (
+      <section
+        id={sectionId}
+        className={`${bgColor} ${paddingY} ${paddingX} ${sectionClassName}`}
+      >
+        <div className="mx-auto space-y-5 sm:space-y-6 md:space-y-7.5">
+          <VideoGallerySkeleton
+            count={skeletonCount}
+            sectionTitle={resolvedSectionTitle}
+            videoCountLabel={resolvedVideoCountLabel}
+          />
+        </div>
+      </section>
+    );
   }
 
   // ============================================
   // CHECK FOR CONTENT
   // ============================================
   const hasVideos = resolvedVideos.length > 0;
-
   if (!hasVideos) {
     return null;
   }
 
+  // ============================================
+  // HANDLERS
+  // ============================================
   const handleShowMore = () => {
-    setVisibleCount(prev => Math.min(prev + videosPerLoad, resolvedVideos.length));
+    setVisibleCount((prev) =>
+      Math.min(prev + videosPerLoad, resolvedVideos.length)
+    );
   };
 
   const isAllVisible = visibleCount >= resolvedVideos.length;
@@ -98,32 +158,22 @@ const VideoGallerySection = ({
         videoId = urlParams.get('v');
       } catch (e) {
         console.error(e);
-        // Invalid URL, try regex
         const match = url.match(/v=([^&]+)/);
         if (match) videoId = match[1];
       }
-    }
-    else if (url.includes('youtu.be/')) {
+    } else if (url.includes('youtu.be/')) {
       const parts = url.split('/');
       videoId = parts[parts.length - 1];
-      if (videoId.includes('?')) {
-        videoId = videoId.split('?')[0];
-      }
-    }
-    else if (url.includes('embed/')) {
+      if (videoId.includes('?')) videoId = videoId.split('?')[0];
+    } else if (url.includes('embed/')) {
       const parts = url.split('/');
       videoId = parts[parts.length - 1];
-      if (videoId.includes('?')) {
-        videoId = videoId.split('?')[0];
-      }
-    }
-    else if (url.length === 11) {
+      if (videoId.includes('?')) videoId = videoId.split('?')[0];
+    } else if (url.length === 11) {
       videoId = url;
     }
 
-    if (videoId) {
-      return `https://www.youtube.com/embed/${videoId}`;
-    }
+    if (videoId) return `https://www.youtube.com/embed/${videoId}`;
 
     if (url.includes('youtube.com/embed') || url.includes('youtube-nocookie.com/embed')) {
       return url;
@@ -134,6 +184,9 @@ const VideoGallerySection = ({
 
   const visibleVideos = resolvedVideos.slice(0, visibleCount);
 
+  // ============================================
+  // RENDER
+  // ============================================
   return (
     <section
       id={sectionId}
@@ -155,15 +208,15 @@ const VideoGallerySection = ({
         {/* Video Grid - 2 columns */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5 md:gap-6 lg:gap-7.5">
           {visibleVideos.map((video, index) => {
-            const videoSrc = video.src || video.url || video.videoUrl || video.embedUrl || video;
+            const videoSrc =
+              video.src || video.url || video.videoUrl || video.embedUrl || video;
             const videoTitle = video.title || video.caption || `Video ${index + 1}`;
             const videoId = video.id || index;
             const thumbnail = video.thumbnail || video.thumb || video.image || '';
 
-            // Get embed URL if it's a YouTube video
             const embedUrl = getYouTubeEmbedUrl(videoSrc);
 
-            // If it's an external video (like YouTube), use iframe
+            // External video (YouTube etc.)
             if (embedUrl) {
               return (
                 <div
@@ -184,7 +237,7 @@ const VideoGallerySection = ({
               );
             }
 
-            // If it's a self-hosted video or has a direct video source
+            // Self-hosted video
             if (videoSrc && typeof videoSrc === 'string' && !embedUrl) {
               return (
                 <div
@@ -206,7 +259,7 @@ const VideoGallerySection = ({
               );
             }
 
-            // Fallback: display placeholder
+            // Fallback placeholder
             return (
               <div
                 key={videoId}
@@ -214,8 +267,16 @@ const VideoGallerySection = ({
               >
                 <div className="relative pb-[56.25%] h-0 overflow-hidden bg-gray-200 flex items-center justify-center">
                   <div className="absolute inset-0 flex items-center justify-center text-gray-400">
-                    <svg className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
+                    <svg
+                      className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z"
+                        clipRule="evenodd"
+                      />
                     </svg>
                     <span className="ml-2 text-sm sm:text-base">Video not available</span>
                   </div>
@@ -230,7 +291,7 @@ const VideoGallerySection = ({
           })}
         </div>
 
-        {/* Show More Button - Only show if not all videos are visible */}
+        {/* Show More Button */}
         {!isAllVisible && (
           <div className="flex justify-center pt-2 sm:pt-3 md:pt-4">
             <button

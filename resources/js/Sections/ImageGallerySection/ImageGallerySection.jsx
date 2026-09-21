@@ -3,6 +3,9 @@
 import { useCallback, useEffect, useState, useRef, useLayoutEffect } from 'react';
 import { usePage, router } from '@inertiajs/react';
 
+// Skeleton primitives
+import { Skeleton } from '../../Shared/Skeletons/SkeletonPrimitives';
+
 // Generate placeholder image URL (inline SVG — avoids external placeholder services)
 const getPlaceholderImage = (width = 485, height = 400, text = 'Gallery Image') => {
   const safeText = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -11,9 +14,48 @@ const getPlaceholderImage = (width = 485, height = 400, text = 'Gallery Image') 
   return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
 };
 
+// ============================================
+// SKELETON: Header + Image grid + Show More button
+// ============================================
+const ImageGallerySkeleton = ({
+  count = 9,
+  sectionTitle,
+}) => (
+  <>
+    {/* Header */}
+    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between flex-wrap gap-3 sm:gap-4">
+      {sectionTitle ? (
+        <h3 className="text-[#171D38] text-[24px] sm:text-[28px] md:text-[32px] lg:text-[36px] font-semibold">
+          {sectionTitle}
+        </h3>
+      ) : (
+        <Skeleton className="h-8 sm:h-9 md:h-10 w-48 sm:w-56 md:w-64" />
+      )}
+      <Skeleton className="h-8 sm:h-9 md:h-10 w-28 sm:w-32 rounded-lg" />
+    </div>
+
+    {/* Image grid — matches real grid breakpoints exactly */}
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 md:gap-6 lg:gap-7.5">
+      {Array.from({ length: count }).map((_, index) => (
+        <Skeleton
+          key={`gallery-skeleton-${index}`}
+          className="h-48 sm:h-52 md:h-60 lg:h-80 xl:h-90 2xl:h-100 rounded-lg"
+        />
+      ))}
+    </div>
+
+    {/* Show More button placeholder */}
+    <div className="flex justify-center pt-2 sm:pt-3 md:pt-4">
+      <Skeleton className="h-11 sm:h-12 md:h-13 lg:h-13.75 w-32 sm:w-36 md:w-40 rounded-lg" />
+    </div>
+  </>
+);
+
 const ImageGallerySection = ({
   data,
   galleryData,
+  loading = false,                       // ← NEW: externally controlled
+  skeletonCount = 9,                     // ← NEW: how many skeleton tiles
   sectionTitle = 'Gallery',
   imageCountLabel = 'Image Count',
   imagesPerPage = 9,
@@ -37,7 +79,9 @@ const ImageGallerySection = ({
   const [backdropOpacity, setBackdropOpacity] = useState(0);
   const modalImageRef = useRef(null);
 
-  // Resolve data
+  // ============================================
+  // RESOLVE DATA
+  // ============================================
   let resolvedData = galleryData || data || {};
   if (Array.isArray(resolvedData)) {
     resolvedData = { images: resolvedData };
@@ -62,28 +106,28 @@ const ImageGallerySection = ({
     if (resolvedData.imageCountLabel) resolvedImageCountLabel = resolvedData.imageCountLabel;
   }
 
-  // ─── FILTER IMAGES BY TAG ───────────────────────────────
-  const getImageTag = (image) => {
-    return image.tag || image.tags || '';
-  };
+  // ============================================
+  // FILTER IMAGES BY TAG
+  // ============================================
+  const getImageTag = (image) => image.tag || image.tags || '';
 
   const filteredImages = filterTag
-    ? resolvedImages.filter(img => {
-      const tag = getImageTag(img).toLowerCase();
-      return tag.includes(filterTag.toLowerCase());
-    })
+    ? resolvedImages.filter((img) =>
+      getImageTag(img).toLowerCase().includes(filterTag.toLowerCase())
+    )
     : resolvedImages;
 
   const hasFilteredImages = filteredImages.length > 0;
 
-  // Reset visible count when filter changes
   useEffect(() => {
     setVisibleCount(imagesPerPage);
   }, [filterTag, imagesPerPage]);
 
-  // Image helpers
+  // ============================================
+  // IMAGE HELPERS
+  // ============================================
   const handleImageError = (imageId) => {
-    setImageErrors(prev => ({ ...prev, [imageId]: true }));
+    setImageErrors((prev) => ({ ...prev, [imageId]: true }));
   };
 
   const getImageSrc = (image, index) => {
@@ -93,19 +137,16 @@ const ImageGallerySection = ({
       return getPlaceholderImage(485, 400, title);
     }
     const src = image.src || image.url || image.image || image;
-    if (typeof src === 'string' && src.trim().length > 0) {
-      return src;
-    }
+    if (typeof src === 'string' && src.trim().length > 0) return src;
     return getPlaceholderImage(485, 400, image.title || image.caption || `Gallery image ${index + 1}`);
   };
 
-  const getImageAlt = (image, index) => {
-    return image.alt || image.title || image.caption || `Gallery image ${index + 1}`;
-  };
+  const getImageAlt = (image, index) =>
+    image.alt || image.title || image.caption || `Gallery image ${index + 1}`;
 
-  // ─── MODAL HANDLERS (only used when there are images) ────
-  // We'll conditionally render the modal only if there are images.
-
+  // ============================================
+  // MODAL HANDLERS
+  // ============================================
   const openModal = (e, index) => {
     const imgElement = e.currentTarget.querySelector('img');
     if (!imgElement) return;
@@ -138,17 +179,22 @@ const ImageGallerySection = ({
     }, 300);
   }, [thumbnailRect]);
 
-  const showPrev = useCallback((e) => {
-    e.stopPropagation();
-    setSelectedIndex((prev) => (prev > 0 ? prev - 1 : filteredImages.length - 1));
-  }, [filteredImages.length]);
+  const showPrev = useCallback(
+    (e) => {
+      e.stopPropagation();
+      setSelectedIndex((prev) => (prev > 0 ? prev - 1 : filteredImages.length - 1));
+    },
+    [filteredImages.length]
+  );
 
-  const showNext = useCallback((e) => {
-    e.stopPropagation();
-    setSelectedIndex((prev) => (prev < filteredImages.length - 1 ? prev + 1 : 0));
-  }, [filteredImages.length]);
+  const showNext = useCallback(
+    (e) => {
+      e.stopPropagation();
+      setSelectedIndex((prev) => (prev < filteredImages.length - 1 ? prev + 1 : 0));
+    },
+    [filteredImages.length]
+  );
 
-  // Keyboard events
   useEffect(() => {
     if (!modalOpen) return;
     const handleKey = (e) => {
@@ -160,12 +206,9 @@ const ImageGallerySection = ({
     return () => window.removeEventListener('keydown', handleKey);
   }, [modalOpen, closeModal, showPrev, showNext]);
 
-  // ─── ANIMATE MODAL ENTRANCE ─────────────────────────────
   useLayoutEffect(() => {
     if (!modalOpen || !thumbnailRect) return;
-
     const { left, top, width, height } = thumbnailRect;
-
     setModalImageStyle({
       position: 'fixed',
       left: `${left}px`,
@@ -176,11 +219,7 @@ const ImageGallerySection = ({
       opacity: 1,
       transition: 'none',
     });
-
-    if (modalImageRef.current) {
-      void modalImageRef.current.offsetHeight; // force reflow
-    }
-
+    if (modalImageRef.current) void modalImageRef.current.offsetHeight;
     requestAnimationFrame(() => {
       setModalImageStyle({
         position: 'fixed',
@@ -198,19 +237,43 @@ const ImageGallerySection = ({
     });
   }, [modalOpen, thumbnailRect]);
 
+  // ============================================
+  // LOADING STATE — SKELETON
+  // ============================================
+  if (loading) {
+    return (
+      <section
+        id={sectionId}
+        className={`${bgColor} ${paddingY} ${paddingX} ${sectionClassName}`}
+      >
+        <div className="mx-auto space-y-5 sm:space-y-6 md:space-y-7.5">
+          <ImageGallerySkeleton
+            count={skeletonCount}
+            sectionTitle={resolvedSectionTitle}
+            imageCountLabel={resolvedImageCountLabel}
+          />
+        </div>
+      </section>
+    );
+  }
+
   // If there are no images at all, return null
   if (resolvedImages.length === 0) {
     return null;
   }
 
-  // ─── RENDER ──────────────────────────────────────────────
-
+  // ============================================
+  // HANDLERS
+  // ============================================
   const handleShowMore = () => {
-    setVisibleCount(prev => Math.min(prev + imagesPerLoad, filteredImages.length));
+    setVisibleCount((prev) => Math.min(prev + imagesPerLoad, filteredImages.length));
   };
   const isAllVisible = visibleCount >= filteredImages.length;
   const visibleImages = filteredImages.slice(0, visibleCount);
 
+  // ============================================
+  // RENDER
+  // ============================================
   return (
     <section
       id={sectionId}
@@ -234,7 +297,7 @@ const ImageGallerySection = ({
           </div>
         </div>
 
-        {/* ─── FALLBACK: No images for this tag ────────────── */}
+        {/* Fallback: No images for this tag */}
         {!hasFilteredImages ? (
           <div className="flex flex-col items-center justify-center py-12 sm:py-16 md:py-20 text-center">
             <div className="text-5xl mb-4">🔍</div>
@@ -248,11 +311,11 @@ const ImageGallerySection = ({
               onClick={() => {
                 const params = new URLSearchParams(window.location.search);
                 params.delete('tag');
-                router.get(`${window.location.pathname  }?${  params.toString()}`, {}, {
-                  preserveState: true,
-                  preserveScroll: true,
-                  replace: true,
-                });
+                router.get(
+                  `${window.location.pathname}?${params.toString()}`,
+                  {},
+                  { preserveState: true, preserveScroll: true, replace: true }
+                );
               }}
               className="mt-4 px-6 py-2 bg-[#2781BD] text-white rounded-lg hover:bg-[#1e6a9e] transition-colors"
             >
@@ -307,7 +370,7 @@ const ImageGallerySection = ({
         )}
       </div>
 
-      {/* ─── LIGHTBOX MODAL ─────────────────────────────────── */}
+      {/* Lightbox Modal */}
       {modalOpen && hasFilteredImages && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center"
@@ -318,15 +381,14 @@ const ImageGallerySection = ({
           }}
           onClick={closeModal}
         >
-          {/* Subtle radial glow */}
           <div
             className="absolute inset-0 pointer-events-none"
             style={{
-              background: 'radial-gradient(circle at center, rgba(255,255,255,0.08) 0%, transparent 70%)',
+              background:
+                'radial-gradient(circle at center, rgba(255,255,255,0.08) 0%, transparent 70%)',
             }}
           />
 
-          {/* Navigation arrows */}
           <button
             onClick={showPrev}
             className="absolute left-2 sm:left-6 text-white text-4xl hover:opacity-70 px-2 z-10"
@@ -344,7 +406,6 @@ const ImageGallerySection = ({
             &#8250;
           </button>
 
-          {/* Close button */}
           <button
             onClick={closeModal}
             className="absolute top-4 right-4 sm:top-6 sm:right-6 text-white text-3xl leading-none hover:opacity-70 z-10"
@@ -354,7 +415,6 @@ const ImageGallerySection = ({
             &times;
           </button>
 
-          {/* Animated image container */}
           <div
             ref={modalImageRef}
             style={{
@@ -381,13 +441,14 @@ const ImageGallerySection = ({
             )}
           </div>
 
-          {/* Image counter and tag */}
           {selectedIndex !== null && (
             <div
               className="absolute bottom-4 sm:bottom-6 text-white/70 text-sm z-10 text-center"
               style={{ opacity: backdropOpacity }}
             >
-              <p>{selectedIndex + 1} / {filteredImages.length}</p>
+              <p>
+                {selectedIndex + 1} / {filteredImages.length}
+              </p>
               {getImageTag(filteredImages[selectedIndex]) && (
                 <p className="mt-1 text-xs bg-white/20 inline-block px-3 py-1 rounded-full">
                   {getImageTag(filteredImages[selectedIndex])}
