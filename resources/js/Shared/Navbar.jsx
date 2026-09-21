@@ -1,6 +1,6 @@
 // resources/js/Shared/Navbar.jsx
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, memo } from 'react';
 import { Link, usePage } from '@inertiajs/react';
 import { Menu, X, ChevronDown } from 'lucide-react';
 import ArrowIcon from './ArrowIcon';
@@ -282,4 +282,4 @@ const Navbar = ({ navbarData, storageUrl = '', defaultLogo = '/images/default-lo
   );
 };
 
-export default Navbar;
+export default memo(Navbar);

@@ -1,6 +1,6 @@
 // resources/js/components/TopBar.jsx
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, memo } from 'react';
 import { Link, usePage, router } from '@inertiajs/react';
 import { FiSearch } from "react-icons/fi";
 import { FaAngleDown, FaAngleUp } from "react-icons/fa";
@@ -696,4 +696,4 @@ const TopBar = ({ topBarData }) => {
   );
 };
 
-export default TopBar;
+export default memo(TopBar);

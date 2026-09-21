@@ -509,7 +509,11 @@
     <meta name="target-region" content="Island Communities of Bangladesh">
 
     @routes
-    @viteReactRefresh
+
+    @if (app()->isLocal())
+        @viteReactRefresh
+    @endif
+
     @vite(['resources/js/app.tsx'])
     @inertiaHead
 </head>

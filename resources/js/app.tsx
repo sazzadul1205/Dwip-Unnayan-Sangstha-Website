@@ -1,91 +1,60 @@
 import '../css/app.css';
 
 import { createInertiaApp, router } from '@inertiajs/react';
-import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import { StrictMode, useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
 import { type route as routeFn } from 'ziggy-js';
 import { initializeTheme } from './hooks/use-appearance';
+import { resolvePage } from './inertia-resolver';
 
 declare global {
     const route: typeof routeFn;
 }
 
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
-// Import all page files in the pages folder (TSX and JSX)
-const pageFiles = import.meta.glob('./pages/**/*.{tsx,jsx}');
 
-// Resolve Inertia page component with TSX/JSX fallback
-const resolvePage = (name: string) => {
-    const tsxPath = `./pages/${name}.tsx`;
-    const jsxPath = `./pages/${name}.jsx`;
+const isFrontendPath = (path: string) =>
+    !/^\/(backend|login|register|dashboard|api|storage|auth|complete-profile|seeker|apply|profile|unauthorized|playground)(\/|$)/.test(
+        path,
+    );
 
-    const pagePath = pageFiles[tsxPath]
-        ? tsxPath
-        : pageFiles[jsxPath]
-          ? jsxPath
-          : null;
-
-    if (!pagePath) {
-        throw new Error(`Page not found: ${tsxPath} or ${jsxPath}`);
-    }
-
-    return resolvePageComponent(pagePath, pageFiles);
-};
-
-const isFrontendPath = (path: string) => !/^\/(backend|login|register|dashboard|api|storage|auth|complete-profile|seeker|apply|profile|unauthorized|playground)(\/|$)/.test(path);
-
+/**
+ * Fires `app:ready` as soon as React has committed and the browser has
+ * painted two frames. No font waiting, no image decoding, no observers.
+ *
+ * Lazy sections stream in afterwards — each shows its own Suspense
+ * fallback inside its own slot, so the global loader never blocks on them.
+ */
 export function AppReady({ children }: { children: React.ReactNode }) {
     useEffect(() => {
         let cancelled = false;
+        let pendingFrames: number[] = [];
 
-        const signalReady = async () => {
-            await document.fonts.ready;
+        const signalReady = () => {
+            if (cancelled) return;
 
-            await new Promise<void>((resolve) => {
-                requestAnimationFrame(() => resolve());
-            });
+            // cancel any frames still queued from a previous navigation
+            pendingFrames.forEach((id) => cancelAnimationFrame(id));
+            pendingFrames = [];
 
-            if (document.documentElement.dataset.frontendPage === 'true') {
-                if (document.documentElement.dataset.frontendReady !== 'true') {
-                    await new Promise<void>((resolve) => {
-                        window.addEventListener('frontend:ready', () => resolve(), { once: true });
-                    });
-                }
-            }
-
-            await new Promise<void>((resolve) => {
-                requestAnimationFrame(() => {
-                    requestAnimationFrame(() => resolve());
+            const f1 = requestAnimationFrame(() => {
+                const f2 = requestAnimationFrame(() => {
+                    if (cancelled) return;
+                    window.dispatchEvent(new Event('app:ready'));
                 });
+                pendingFrames.push(f2);
             });
-
-            const visibleImages = Array.from(document.images).filter((image) => {
-                const rect = image.getBoundingClientRect();
-                return rect.width > 0 && rect.height > 0 && rect.top < window.innerHeight;
-            });
-
-            await Promise.all(
-                visibleImages.map((image) =>
-                    image.complete ? Promise.resolve() : image.decode().catch(() => undefined),
-                ),
-            );
-
-            if (!cancelled) {
-                window.dispatchEvent(new Event('app:ready'));
-            }
+            pendingFrames.push(f1);
         };
 
-        void signalReady();
+        signalReady();
 
-        const handlePageFinished = () => {
-            void signalReady();
-        };
-
+        const handlePageFinished = () => signalReady();
         window.addEventListener('app:page-finished', handlePageFinished);
 
         return () => {
             cancelled = true;
+            pendingFrames.forEach((id) => cancelAnimationFrame(id));
             window.removeEventListener('app:page-finished', handlePageFinished);
         };
     }, []);
@@ -95,15 +64,12 @@ export function AppReady({ children }: { children: React.ReactNode }) {
 
 createInertiaApp({
     title: (title) => `${title} - ${appName}`,
-    resolve: (name: string) => resolvePage(name),
+    resolve: resolvePage,
     setup({ el, App, props }) {
         const root = createRoot(el);
         let loadingTimer: number | null = null;
 
         router.on('start', (event) => {
-            delete document.documentElement.dataset.frontendPage;
-            document.documentElement.dataset.frontendReady = 'false';
-
             const path = new URL(event.detail.visit.url, window.location.origin).pathname;
             if (!isFrontendPath(path)) return;
 
@@ -138,7 +104,4 @@ createInertiaApp({
     },
 });
 
-// This will set light / dark mode on load...
 initializeTheme();
-
-

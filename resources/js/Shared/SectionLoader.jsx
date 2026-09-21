@@ -2,44 +2,35 @@
 
 /**
  * ============================================
- * SECTION LOADER - Loading Skeleton Component
+ * SECTION LOADER - Inline Loading Skeleton
  * ============================================
- * 
+ *
  * PURPOSE:
- * - Shows a loading spinner while a section is being lazy-loaded
- * - Used as the fallback in Suspense for DynamicSectionRenderer
- * - Provides visual feedback during code splitting
- * 
+ * - Shown as the Suspense fallback while a section's lazy chunk loads
+ * - Reserves a modest amount of vertical space to avoid layout jank
+ *   when the real section mounts
+ *
+ * NOTE:
+ * - Does NOT reserve a full viewport height (old behaviour caused the
+ *   page to scroll for hundreds of px while multiple sections loaded)
+ * - The global loader (in app.blade.php) is what hides after first paint;
+ *   this one only fills the slot of the section currently loading
+ *
  * USAGE:
  * <Suspense fallback={<SectionLoader message="Loading FAQ..." />}>
  *   <FAQSection />
  * </Suspense>
- * 
- * FEATURES:
- * - Spinning animation with brand color (#009BE2)
- * - Customizable loading message
- * - Full-width with centered content
- * - Minimum height for consistent layout
- * 
- * ============================================
  */
 
-/**
- * SectionLoader Component
- * 
- * @param {Object} props
- * @param {string} props.message - Loading message to display (default: 'Loading Pages...')
- * 
- * @returns {JSX.Element} Loading spinner with message
- */
-const SectionLoader = ({ message = "Loading Pages..." }) => {
+const SectionLoader = ({ message = "Loading..." }) => {
   return (
-    <div data-frontend-loader="true" className="w-full py-20 flex justify-center items-center min-h-screen">
+    <div
+      data-frontend-loader="true"
+      className="w-full min-h-60 py-16 flex justify-center items-center"
+    >
       <div className="animate-pulse flex flex-col items-center">
-        {/* Spinning border - brand color with transparent top */}
-        <div className="w-12 h-12 border-4 border-[#009BE2] border-t-transparent rounded-full animate-spin" />
-        {/* Loading message */}
-        <p className="mt-4 text-[#515151] font-400">{message}</p>
+        <div className="w-10 h-10 border-4 border-[#009BE2] border-t-transparent rounded-full animate-spin" />
+        <p className="mt-3 text-sm text-[#515151]">{message}</p>
       </div>
     </div>
   );
