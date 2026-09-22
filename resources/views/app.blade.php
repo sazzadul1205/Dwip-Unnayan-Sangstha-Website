@@ -262,6 +262,18 @@
     <link rel="manifest" href="{{ asset('manifest.json') }}" crossorigin="use-credentials">
 
     {{-- ============================================ --}}
+    {{-- CRITICAL IMAGE PRELOADS                      --}}
+    {{-- ============================================ --}}
+    @if ($preloaderUrl)
+        <link rel="preload" as="image" href="{{ $preloaderUrl }}" fetchpriority="high">
+    @endif
+
+    @if (!empty($ogImageFullUrl) && $isFrontendRoute)
+        {{-- Only preload OG image on frontend — used by the hero on home --}}
+        <link rel="preload" as="image" href="{{ $ogImageFullUrl }}">
+    @endif
+
+    {{-- ============================================ --}}
     {{-- FONTS                                        --}}
     {{-- ============================================ --}}
     <link rel="preconnect" href="https://fonts.bunny.net" crossorigin>
