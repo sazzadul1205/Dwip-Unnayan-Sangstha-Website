@@ -2,9 +2,9 @@
 
 
 // Components
-import Navbar from '../Shared/Navbar';
-import TopBar from '../Shared/TopBar';
-import Footer from '../Shared/Footer';
+import Navbar from '../Shared/Navbar/Navbar';
+import TopBar from '../Shared/TopBar/TopBar';
+import Footer from '../Shared/Footer/Footer';
 import BackToTop from '../Shared/BackToTop';
 import CookieConsent from '../Shared/CookieConsent';
 

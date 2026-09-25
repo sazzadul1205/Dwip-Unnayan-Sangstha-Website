@@ -16,9 +16,9 @@ import { FaSpinner } from 'react-icons/fa';
 import Swal from 'sweetalert2';
 
 import AuthenticatedLayout from '../../../../layouts/AuthenticatedLayout';
-import TopBar from '../../../../Shared/TopBar';
-import Navbar from '../../../../Shared/Navbar';
-import Footer from '../../../../Shared/Footer';
+import TopBar from '../../../../Shared/TopBar/TopBar';
+import Navbar from '../../../../Shared/Navbar/Navbar';
+import Footer from '../../../../Shared/Footer/Footer';
 import FAQSection from '../../../../Sections/FAQSection/FAQSection';
 import StoriesSection from '../../../../Sections/StoriesSection/StoriesSection';
 import UpcomingEventsSection from '../../../../Sections/UpcomingEventsSection/UpcomingEventsSection';

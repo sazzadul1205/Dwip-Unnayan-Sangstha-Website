@@ -1,11 +1,12 @@
-// resources/js/Shared/Navbar.jsx
+// js/Shared/Navbar/Navbar
 
 import { useState, useEffect, memo } from 'react';
 import { Link, usePage } from '@inertiajs/react';
 import { Menu, X, ChevronDown } from 'lucide-react';
-import ArrowIcon from './ArrowIcon';
 
-import { hasValue } from '../utils/sectionHelpers';
+// Components
+import ArrowIcon from '../ArrowIcon';
+import { hasValue } from '../../utils/sectionHelpers';
 
 
 const Navbar = ({ navbarData, storageUrl = '', defaultLogo = '/images/default-logo.png' }) => {

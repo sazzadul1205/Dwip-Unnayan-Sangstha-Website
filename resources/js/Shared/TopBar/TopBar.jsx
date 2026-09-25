@@ -1,4 +1,4 @@
-// resources/js/components/TopBar.jsx
+// js/Shared/TopBar/TopBar
 
 import React, { useState, useRef, useEffect, memo } from 'react';
 import { Link, usePage, router } from '@inertiajs/react';
@@ -21,9 +21,10 @@ import {
   FaGithub,
   FaUser,
 } from "react-icons/fa6";
-import createContactImage from '../utils/createContactImage';
 
-import { hasValue } from '../utils/sectionHelpers';
+// Utils
+import { hasValue } from '../../utils/sectionHelpers';
+import createContactImage from '../../utils/createContactImage';
 
 // SVG Icons
 const EmailIcon = () => (

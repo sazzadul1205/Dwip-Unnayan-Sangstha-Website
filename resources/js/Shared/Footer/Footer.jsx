@@ -1,4 +1,4 @@
-// resources/js/components/Footer.jsx
+// js/Shared/Footer/Footer
 
 import { Link } from '@inertiajs/react';
 import { useState, useCallback, memo, useEffect, useMemo, useRef } from 'react';
@@ -19,10 +19,14 @@ import {
   FaThreads,
   FaGithub,
 } from 'react-icons/fa6';
-import ArrowIcon from './ArrowIcon';
-import createContactImage from '../utils/createContactImage';
 
-import { hasValue } from '../utils/sectionHelpers';
+// Components
+import ArrowIcon from '../ArrowIcon';
+
+// Utils
+import { hasValue } from '../../utils/sectionHelpers';
+import createContactImage from '../../utils/createContactImage';
+
 
 /**
  * UTILITY: Check if value exists
