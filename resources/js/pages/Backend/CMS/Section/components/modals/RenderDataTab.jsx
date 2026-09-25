@@ -1,7 +1,9 @@
 // resources/js/pages/Backend/CMS/Section/components/modals/RenderDataTab.jsx
 
 import React, { lazy, Suspense } from 'react';
-import { FaExternalLinkAlt } from 'react-icons/fa';
+
+// Shared generic redirect notice
+import ExternalManagerRedirect from './Editors/shared/ExternalManagerRedirect';
 
 // ===== LAZY LOAD EDITORS =====
 const FAQEditor = lazy(() => import('./Editors/FAQEditor'));
@@ -52,19 +54,13 @@ const SharedDataNotice = ({ section }) => {
   if (!info) return null;
 
   return (
-    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-      <h3 className="text-sm font-semibold text-blue-800 mb-1">
-        {info.icon} {info.label} are managed in the Shared Data Manager
-      </h3>
-      <p className="text-sm text-blue-700">{info.description}</p>
-      <a
-        href={route('backend.cms.shared.index')}
-        className="inline-flex items-center gap-2 mt-3 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm font-medium"
-      >
-        <FaExternalLinkAlt size={12} />
-        Go to Shared Data Manager
-      </a>
-    </div>
+    <ExternalManagerRedirect
+      variant="notice"
+      heading={`${info.icon} ${info.label} are managed in the Shared Data Manager`}
+      description={info.description}
+      actionLabel="Go to Shared Data Manager"
+      actionHref={route('backend.cms.shared.index')}
+    />
   );
 };
 
