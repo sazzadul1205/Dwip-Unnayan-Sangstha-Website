@@ -1,266 +1,131 @@
-import React from 'react';
-import {
-  FaPlus,
-  FaTrophy,
-  FaAward,
-  FaStar,
-  FaTrashAlt,
-  FaMedal,
-  FaCertificate,
-  FaRegStar,
-  FaExclamationTriangle,
-  FaCheckCircle
-} from 'react-icons/fa';
-import { MdEmojiEvents, MdVerified } from 'react-icons/md';
-import { GiAchievement, GiMedalSkull } from 'react-icons/gi';
+// pages/auth/Steps/Achievements.jsx
+import { FaPlus, FaTrashAlt, FaTrophy, FaAlignLeft, FaLightbulb, FaCertificate, FaMedal, FaAward } from 'react-icons/fa';
+import { GiAchievement } from 'react-icons/gi';
 import Swal from 'sweetalert2';
 
-const Achievements = ({ data, setData }) => {
-  const MAX_ACHIEVEMENTS = 3;
+const MAX_ACHIEVEMENTS = 3;
 
-  const addAchievement = () => {
-    // Check if already at max limit
+const Achievements = ({ data, setData }) => {
+  const add = () => {
     if (data.achievements.length >= MAX_ACHIEVEMENTS) {
-      Swal.fire({
-        icon: 'warning',
-        title: 'Maximum Limit Reached',
-        text: `You can only add up to ${MAX_ACHIEVEMENTS} achievements or certifications.`,
-        confirmButtonColor: '#3b82f6',
-        confirmButtonText: 'Got it'
-      });
+      Swal.fire({ icon: 'warning', title: 'Limit reached', text: `Up to ${MAX_ACHIEVEMENTS} entries.`, timer: 2500, showConfirmButton: false });
       return;
     }
-
     setData('achievements', [
       ...data.achievements,
-      {
-        id: Date.now(),
-        achievement_name: '',
-        achievement_details: ''
-      }
+      { id: Date.now(), achievement_name: '', achievement_details: '' },
     ]);
   };
 
-  const updateAchievement = (index, field, value) => {
-    const updated = [...data.achievements];
-    updated[index][field] = value;
-    setData('achievements', updated);
+  const update = (index, field, value) => {
+    const next = [...data.achievements];
+    next[index][field] = value;
+    setData('achievements', next);
   };
 
-  const removeAchievement = (index) => {
-    // Direct removal without any confirmation
-    const updated = data.achievements.filter((_, i) => i !== index);
-    setData('achievements', updated);
-  };
+  const remove = (i) => setData('achievements', data.achievements.filter((_, idx) => idx !== i));
 
-  const getAchievementIcon = (title) => {
-    if (title?.toLowerCase().includes('certificate') || title?.toLowerCase().includes('certified')) {
-      return <FaCertificate className="h-4 w-4 text-purple-500" />;
-    }
-    if (title?.toLowerCase().includes('award') || title?.toLowerCase().includes('winner')) {
-      return <FaMedal className="h-4 w-4 text-yellow-500" />;
-    }
-    if (title?.toLowerCase().includes('competition')) {
-      return <MdEmojiEvents className="h-4 w-4 text-orange-500" />;
-    }
-    return <FaStar className="h-4 w-4 text-yellow-500" />;
-  };
+  const inputCls = "w-full px-3 py-2 text-sm text-gray-900 bg-white border border-gray-200 rounded-lg outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 placeholder:text-gray-400";
+  const labelCls = "flex items-center gap-1.5 text-xs font-medium text-gray-600 mb-1.5";
 
-  // Calculate remaining slots
-  const remainingSlots = MAX_ACHIEVEMENTS - data.achievements.length;
+  // Friendly empty-state examples
+  const examples = [
+    { Icon: FaCertificate, color: 'text-purple-500', text: 'AWS Certified Solutions Architect' },
+    { Icon: FaMedal, color: 'text-amber-500', text: 'Employee of the Month' },
+    { Icon: FaTrophy, color: 'text-orange-500', text: 'Hackathon Winner 2024' },
+    { Icon: FaAward, color: 'text-emerald-500', text: 'Google IT Support Certificate' },
+  ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Header */}
-      <div className="border-b border-gray-200 pb-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="p-2 bg-blue-100 rounded-lg">
-              <GiAchievement className="h-6 w-6 text-blue-600" />
-            </div>
-            <div>
-              <h2 className="text-xl font-semibold text-gray-900">Achievements & Certifications</h2>
-              <p className="text-sm text-gray-500 mt-1">Showcase your accomplishments</p>
-            </div>
+      <div className="flex items-center justify-between pb-4 border-b border-gray-100">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-blue-50 rounded-lg">
+            <GiAchievement className="h-4 w-4 text-blue-600" />
+          </div>
+          <div>
+            <h2 className="text-base font-semibold text-gray-900">What are you proud of?</h2>
+            <p className="text-xs text-gray-500">Optional · certifications, awards, recognitions · up to {MAX_ACHIEVEMENTS}</p>
+          </div>
+        </div>
+        <span className="text-xs font-medium text-gray-500 tabular-nums">
+          {data.achievements.length}/{MAX_ACHIEVEMENTS}
+        </span>
+      </div>
+
+      {/* Empty state with examples */}
+      {data.achievements.length === 0 && (
+        <div className="py-6 px-4 border border-dashed border-gray-200 rounded-xl bg-gray-50/30">
+          <div className="text-center mb-4">
+            <GiAchievement className="h-6 w-6 text-gray-300 mx-auto mb-2" />
+            <p className="text-sm text-gray-600 font-medium">Nothing added yet</p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {examples.map(({ Icon, color, text }, i) => (
+              <div key={i} className="flex items-center gap-2 text-xs text-gray-500 bg-white border border-gray-100 rounded-lg px-3 py-2">
+                <Icon className={`h-3 w-3 ${color} shrink-0`} />
+                <span className="truncate">{text}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {data.achievements.map((a, index) => (
+        <div key={a.id} className="p-4 border border-gray-200 rounded-xl bg-white">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-xs font-semibold text-gray-500">#{index + 1}</span>
+            <button
+              onClick={() => remove(index)}
+              className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition"
+              aria-label="Remove"
+            >
+              <FaTrashAlt className="h-3.5 w-3.5" />
+            </button>
           </div>
 
-          {/* Limit Indicator */}
-          <div className="text-right">
-            <div className="text-sm font-medium text-gray-600">
-              {data.achievements.length} / {MAX_ACHIEVEMENTS} Achievements
+          <div className="space-y-3">
+            <div>
+              <label className={labelCls}><FaTrophy className="h-3 w-3 text-amber-500" /> Title</label>
+              <input
+                type="text"
+                value={a.achievement_name}
+                onChange={(e) => update(index, 'achievement_name', e.target.value)}
+                className={inputCls}
+                placeholder="e.g., AWS Certified Solutions Architect"
+              />
             </div>
-            <div className="w-32 h-2 bg-gray-200 rounded-full mt-1 overflow-hidden">
-              <div
-                className="h-full bg-blue-500 rounded-full transition-all duration-300"
-                style={{ width: `${(data.achievements.length / MAX_ACHIEVEMENTS) * 100}%` }}
+            <div>
+              <label className={labelCls}><FaAlignLeft className="h-3 w-3 text-gray-400" /> Details</label>
+              <textarea
+                value={a.achievement_details}
+                onChange={(e) => update(index, 'achievement_details', e.target.value)}
+                rows="2"
+                className={`${inputCls} resize-none`}
+                placeholder="Issuing organization, date, and any context…"
               />
             </div>
           </div>
         </div>
-      </div>
-
-      {/* Empty State */}
-      {data.achievements.length === 0 && (
-        <div className="text-center py-12 bg-linear-to-b from-gray-50 to-gray-100 rounded-xl">
-          <div className="p-4 bg-white rounded-full w-20 h-20 mx-auto mb-4 shadow-md flex items-center justify-center">
-            <GiMedalSkull className="h-10 w-10 text-gray-400" />
-          </div>
-          <p className="text-gray-500 font-medium">No achievements added yet</p>
-          <p className="text-sm text-gray-400 mt-1">Add your certifications, awards, or accomplishments</p>
-          <p className="text-xs text-gray-400 mt-2">Maximum {MAX_ACHIEVEMENTS} achievements allowed</p>
-        </div>
-      )}
-
-      {/* Achievements List */}
-      {data.achievements.map((achievement, index) => (
-        <div key={achievement.id} className="border border-gray-200 rounded-xl p-5 relative hover:shadow-lg transition-all duration-200 bg-white">
-          <button
-            onClick={() => removeAchievement(index)}
-            className="absolute top-4 right-4 text-red-500 hover:text-red-700 p-1 hover:bg-red-50 rounded-lg transition-colors duration-200"
-            title="Remove achievement"
-          >
-            <FaTrashAlt className="h-4 w-4" />
-          </button>
-
-          <div className="flex items-center space-x-2 mb-4 pb-2 border-b border-gray-100">
-            <FaTrophy className="h-5 w-5 text-yellow-500" />
-            <span className="text-sm font-semibold text-gray-600">Achievement #{index + 1}</span>
-            {achievement.achievement_name && (
-              <span className="ml-2 flex items-center gap-1">
-                {getAchievementIcon(achievement.achievement_name)}
-              </span>
-            )}
-          </div>
-
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              <span className="flex items-center gap-2">
-                <FaAward className="h-4 w-4 text-gray-400" />
-                Achievement / Certification Title
-              </span>
-            </label>
-            <input
-              type="text"
-              value={achievement.achievement_name}
-              onChange={(e) => updateAchievement(index, 'achievement_name', e.target.value)}
-              className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
-              placeholder="e.g., Certified Scrum Master, Best Employee Award 2024, Google IT Certification"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              <span className="flex items-center gap-2">
-                <MdVerified className="h-4 w-4 text-gray-400" />
-                Details
-              </span>
-            </label>
-            <textarea
-              value={achievement.achievement_details}
-              onChange={(e) => updateAchievement(index, 'achievement_details', e.target.value)}
-              rows="3"
-              className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
-              placeholder="Describe your achievement, certification, or award. Include issuing organization, date, and any relevant details..."
-            />
-          </div>
-
-          {/* Preview of entered data */}
-          {(achievement.achievement_name || achievement.achievement_details) && (
-            <div className="mt-4 p-3 bg-linear-to-r from-yellow-50 to-orange-50 rounded-lg border border-yellow-100">
-              <p className="text-xs text-gray-500 mb-1 flex items-center gap-1">
-                <FaRegStar className="h-3 w-3 text-yellow-500" />
-                Preview:
-              </p>
-              {achievement.achievement_name && (
-                <p className="text-sm font-semibold text-gray-800">
-                  🏆 {achievement.achievement_name}
-                </p>
-              )}
-              {achievement.achievement_details && (
-                <p className="text-sm text-gray-600 mt-1 line-clamp-2">
-                  {achievement.achievement_details}
-                </p>
-              )}
-            </div>
-          )}
-        </div>
       ))}
 
-      {/* Add Button - Disabled when max reached */}
-      <button
-        onClick={addAchievement}
-        disabled={data.achievements.length >= MAX_ACHIEVEMENTS}
-        className={`w-full py-3.5 border-2 border-dashed rounded-xl transition-all duration-200 flex items-center justify-center gap-2 font-medium ${data.achievements.length >= MAX_ACHIEVEMENTS
-            ? 'border-gray-200 bg-gray-50 text-gray-400 cursor-not-allowed'
-            : 'border-gray-300 text-gray-600 hover:border-blue-500 hover:text-blue-600 hover:bg-blue-50'
-          }`}
-      >
-        <FaPlus className="h-5 w-5" />
-        Add Achievement / Certification {data.achievements.length >= MAX_ACHIEVEMENTS && '(Maximum Reached)'}
-      </button>
-
-      {/* Warning when approaching limit */}
-      {remainingSlots === 1 && data.achievements.length > 0 && (
-        <div className="bg-yellow-50 rounded-xl p-4 border border-yellow-200">
-          <div className="flex items-center justify-center gap-2 text-yellow-800">
-            <FaExclamationTriangle className="h-5 w-5" />
-            <p className="text-sm">
-              You can add {remainingSlots} more achievement (Maximum {MAX_ACHIEVEMENTS})
-            </p>
-          </div>
-        </div>
+      {data.achievements.length < MAX_ACHIEVEMENTS && (
+        <button
+          onClick={add}
+          className="w-full py-2.5 border border-dashed border-gray-300 rounded-xl text-sm font-medium text-gray-600 hover:border-blue-500 hover:text-blue-600 hover:bg-blue-50/40 transition inline-flex items-center justify-center gap-2"
+        >
+          <FaPlus className="h-3.5 w-3.5" /> Add achievement
+        </button>
       )}
 
-      {/* Info Notice */}
+      {/* Friendly tip */}
       {data.achievements.length > 0 && data.achievements.length < MAX_ACHIEVEMENTS && (
-        <div className="bg-linear-to-r from-yellow-50 to-orange-50 rounded-xl p-4 border border-yellow-100">
-          <div className="flex items-center justify-center gap-2">
-            <FaTrophy className="h-5 w-5 text-yellow-600" />
-            <p className="text-sm text-gray-600">
-              Add all your achievements, certifications, awards, and recognitions. You can add up to {MAX_ACHIEVEMENTS} entries.
-              {remainingSlots > 0 && ` You can add ${remainingSlots} more.`}
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* Max limit reached notice */}
-      {data.achievements.length === MAX_ACHIEVEMENTS && (
-        <div className="bg-blue-50 rounded-xl p-4 border border-blue-200">
-          <div className="flex items-center justify-center gap-2 text-blue-800">
-            <FaCheckCircle className="h-5 w-5" />
-            <p className="text-sm">
-              You've added the maximum of {MAX_ACHIEVEMENTS} achievements and certifications.
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* Examples Section when empty */}
-      {data.achievements.length === 0 && (
-        <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
-          <p className="text-xs font-medium text-gray-500 mb-2 flex items-center gap-1">
-            <FaStar className="h-3 w-3 text-yellow-500" />
-            Example achievements you can add:
+        <div className="flex items-start gap-2 p-3 bg-amber-50/60 border border-amber-100 rounded-lg">
+          <FaLightbulb className="h-3.5 w-3.5 text-amber-600 mt-0.5 shrink-0" />
+          <p className="text-xs text-amber-800">
+            Add any certificate, award or recognition — even small ones help you stand out.
           </p>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs text-gray-600">
-            <div className="flex items-center gap-1">
-              <FaCertificate className="h-3 w-3 text-purple-500" />
-              <span>Certified Scrum Master (CSM)</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <FaMedal className="h-3 w-3 text-yellow-500" />
-              <span>Employee of the Month</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <MdEmojiEvents className="h-3 w-3 text-orange-500" />
-              <span>Hackathon Winner 2023</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <FaAward className="h-3 w-3 text-green-500" />
-              <span>AWS Certified Solutions Architect</span>
-            </div>
-          </div>
         </div>
       )}
     </div>
