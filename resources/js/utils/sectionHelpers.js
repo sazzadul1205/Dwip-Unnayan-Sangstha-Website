@@ -120,3 +120,49 @@ export const sanitizeHTML = (html) => {
   if (!html) return '';
   return DOMPurify.sanitize(html);
 };
+
+/**
+ * Canonical `section_configs.data_table` values.
+ *
+ * PHP source of truth: app/Enums/SectionDataTable.php — keep this mirror in sync.
+ * Previously the CMS, the seeder and the frontend route map each carried their own
+ * hard-coded list, and they had already drifted (the admin only handled 6 of the
+ * 10 values the frontend did).
+ */
+export const DATA_TABLES = Object.freeze({
+  CUSTOM_SECTION_DATA: 'custom_section_data',
+  SHARED_DATA: 'shared_data',
+  BLOGS: 'blogs',
+  PROGRAMS: 'programs',
+  PUBLICATIONS: 'publications',
+  ABOUT_CONTENT: 'about_content',
+  JOBS: 'jobs',
+  JOB_DETAILS: 'job_details',
+  PAGES: 'pages',
+  BLOG: 'blog', // legacy singular alias of BLOGS
+});
+
+/**
+ * `data_table` value -> human-readable label.
+ * Single source for the CMS UI (was duplicated in SectionEditModal and
+ * Section/utils/sectionHelpers).
+ */
+export const DATA_TABLE_LABELS = Object.freeze({
+  [DATA_TABLES.CUSTOM_SECTION_DATA]: 'Custom Data',
+  [DATA_TABLES.SHARED_DATA]: 'Shared Data',
+  [DATA_TABLES.BLOGS]: 'Blogs',
+  [DATA_TABLES.PROGRAMS]: 'Programs',
+  [DATA_TABLES.PUBLICATIONS]: 'Publications',
+  [DATA_TABLES.ABOUT_CONTENT]: 'About Content',
+  [DATA_TABLES.JOBS]: 'Jobs',
+  [DATA_TABLES.JOB_DETAILS]: 'Job Details',
+  [DATA_TABLES.PAGES]: 'Pages',
+  [DATA_TABLES.BLOG]: 'Blogs', // legacy alias — mirrors SectionDataTable::label()
+  our_programs: 'Our Programs', // legacy value, not part of DATA_TABLES
+});
+
+/**
+ * Human-readable label for a `data_table` value.
+ */
+export const getDataTableLabel = (table) => DATA_TABLE_LABELS[table] || table || 'None';
+

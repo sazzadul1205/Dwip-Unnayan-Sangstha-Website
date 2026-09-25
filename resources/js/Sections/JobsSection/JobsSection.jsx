@@ -137,16 +137,28 @@ const JobsSection = ({
     publicJobsRouteRef.current = publicJobsRoute;
     perPageRef.current = perPage;
 
+    // Resolve the section payload from the raw prop.
+    //
+    // JobsSection historically read `propData.data.section.*`, which only worked
+    // because SectionEditModal's submit path wrapped the editor payload as
+    // `{ data: { section, filter } }`. SectionPayloadNormalizer::unwrap() (PHP)
+    // now collapses that wrapper before the data reaches the frontend, so the
+    // canonical shape is the flat `{ section, filter }`. Accept BOTH shapes so
+    // neither an already-cached page nor a legacy row breaks.
+    const payload = (propData?.section || propData?.filter)
+      ? propData
+      : (propData?.data || propData);
+
     let lim = 999;
     if (customProps.limit !== undefined && customProps.limit !== null && customProps.limit !== '') {
       const val = parseInt(customProps.limit);
       if (!isNaN(val)) lim = val;
     } else if (
-      propData?.data?.section?.limit !== undefined &&
-      propData?.data?.section?.limit !== null &&
-      propData?.data?.section?.limit !== ''
+      payload?.section?.limit !== undefined &&
+      payload?.section?.limit !== null &&
+      payload?.section?.limit !== ''
     ) {
-      const val = parseInt(propData.data.section.limit);
+      const val = parseInt(payload.section.limit, 10);
       if (!isNaN(val)) lim = val;
     } else if (propLimit !== undefined && propLimit !== null && propLimit !== '') {
       const val = parseInt(propLimit);
@@ -157,15 +169,15 @@ const JobsSection = ({
     shouldFetchAllRef.current = lim === 999 || lim === 0;
 
     titleRef.current =
-      customProps.title || propData?.data?.section?.title || propTitle || 'Job Openings';
+      customProps.title || payload?.section?.title || propTitle || 'Job Openings';
     descriptionRef.current =
       customProps.description ||
-      propData?.data?.section?.description ||
+      payload?.section?.description ||
       propDescription ||
       'Join our team and make a difference';
     filterPlaceholderRef.current =
       customProps.filterPlaceholder ||
-      propData?.data?.filter?.placeholder ||
+      payload?.filter?.placeholder ||
       propFilterPlaceholder ||
       'Browse By';
   }, [

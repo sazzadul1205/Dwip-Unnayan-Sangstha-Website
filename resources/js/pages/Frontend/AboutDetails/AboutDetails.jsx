@@ -136,7 +136,7 @@ const AboutDetails = ({
             <ContentSection
               key={section.id}
               subPageData={pageData.contentSectionData}
-              {...section.customProps}
+              {...section.custom_props}
             />
           );
         }

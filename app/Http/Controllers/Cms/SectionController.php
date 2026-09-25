@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Cms;
 
+use App\Enums\SectionDataTable;
 use App\Http\Controllers\Controller;
 use App\Models\pages\AboutContent;
 use App\Models\pages\Blog;
@@ -100,7 +101,7 @@ class SectionController extends Controller
                     ];
                 });
 
-            return Inertia::render('Backend/CMS/Section/Index', [
+            return Inertia::render('Backend/CMS/Sections/Index', [
                 'page' => $page,
                 'sections' => $sections,
                 'trashedSections' => $trashedSections,
@@ -112,7 +113,7 @@ class SectionController extends Controller
                 'trace' => $e->getTraceAsString(),
             ]);
 
-            return Inertia::render('Backend/CMS/Section/Index', [
+            return Inertia::render('Backend/CMS/Sections/Index', [
                 'page' => null,
                 'sections' => [],
                 'trashedSections' => [],
@@ -221,7 +222,7 @@ class SectionController extends Controller
                     Rule::unique('section_configs', 'section_key')
                         ->where(fn ($query) => $query->where('page_slug', $page->slug)),
                 ],
-                'data_table' => 'required|string|max:255',
+                'data_table' => ['required', 'string', Rule::in(SectionDataTable::values())],
                 'is_enabled' => 'nullable|boolean',
                 'custom_props' => 'nullable|array',
             ]);
@@ -308,7 +309,7 @@ class SectionController extends Controller
                         ->ignore($sectionConfig->id),
                 ],
                 'component' => 'sometimes|string|max:255',
-                'data_table' => 'sometimes|string|max:255',
+                'data_table' => ['sometimes', 'string', Rule::in(SectionDataTable::values())],
                 'data_key' => 'sometimes|string|max:255',
                 'is_enabled' => 'nullable|boolean',
                 'custom_props' => 'nullable|array',
@@ -733,20 +734,54 @@ class SectionController extends Controller
         }
 
         try {
-            $rawData = $customData->data;
-
-            if (is_string($rawData)) {
-                $decodedData = json_decode($rawData, true);
-
-                return ($decodedData !== null) ? ($decodedData['data'] ?? $decodedData) : $rawData;
-            }
-
-            return $rawData;
+            return $this->unwrapSectionPayload($customData->data);
         } catch (\Exception $e) {
             Log::error('Failed to extract custom section data: '.$e->getMessage());
 
             return null;
         }
+    }
+
+    /**
+     * Normalise a stored section payload into the shape the UI expects.
+     *
+     * Some editors persist an extra `{ "data": { ... } }` wrapper (see
+     * SectionEditModal::handleSubmit -> submitData.data), so the JSON column can
+     * hold either the payload itself or the payload nested one level deep.
+     *
+     * The previous `is_string()` branch never fired because both
+     * CustomSectionData and SharedData cast the column to `array`, so the
+     * wrapper was never unwrapped and every editor had to guess with
+     * `section.data.data ?? section.data`. Unwrapping is now explicit and
+     * idempotent:
+     *
+     *  - a JSON string is decoded first,
+     *  - the wrapper is collapsed only when `data` is the *sole* key and its
+     *    value is an array, so a genuine payload that happens to contain a
+     *    `data` field alongside other keys is never truncated.
+     */
+    private function unwrapSectionPayload(mixed $rawData): mixed
+    {
+        if (is_string($rawData)) {
+            $decoded = json_decode($rawData, true);
+
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                return $rawData;
+            }
+
+            $rawData = $decoded;
+        }
+
+        if (
+            is_array($rawData)
+            && count($rawData) === 1
+            && array_key_exists('data', $rawData)
+            && is_array($rawData['data'])
+        ) {
+            return $rawData['data'];
+        }
+
+        return $rawData;
     }
 
     /**
@@ -759,15 +794,7 @@ class SectionController extends Controller
         }
 
         try {
-            $rawData = $shared->data ?? $shared;
-
-            if (is_string($rawData)) {
-                $decodedData = json_decode($rawData, true);
-
-                return ($decodedData !== null) ? ($decodedData['data'] ?? $decodedData) : $rawData;
-            }
-
-            return $rawData;
+            return $this->unwrapSectionPayload($shared->data ?? $shared);
         } catch (\Exception $e) {
             Log::error('Failed to extract shared data: '.$e->getMessage());
 
@@ -1055,89 +1082,6 @@ class SectionController extends Controller
                 'is_active' => true,
             ]
         );
-    }
-
-    /**
-     * Display a listing of trashed (soft-deleted) sections for a specific page.
-     */
-    public function trashed(int $pageId): Response|RedirectResponse
-    {
-        $user = $this->getAuthUser();
-
-        if (! $user->hasPermission('sections.view')) {
-            return redirect()->route('unauthorized.access')
-                ->with('error', 'You do not have permission to view trashed sections.');
-        }
-
-        try {
-            $page = Page::withTrashed()->findOrFail($pageId);
-
-            $trashedSections = SectionConfig::onlyTrashed()
-                ->where('page_slug', $page->slug)
-                ->orderBy('deleted_at', 'desc')
-                ->get()
-                ->map(function ($section) {
-                    return [
-                        'id' => $section->id,
-                        'section_key' => $section->section_key,
-                        'component' => $section->component,
-                        'data_table' => $section->data_table,
-                        'is_enabled' => $section->is_enabled,
-                        'is_fixed_section' => $section->is_fixed_section,
-                        'display_order' => $section->display_order,
-                        'deleted_at' => $section->deleted_at?->toISOString(),
-                        'created_at' => $section->created_at?->toISOString(),
-                        'updated_at' => $section->updated_at?->toISOString(),
-                    ];
-                });
-
-            return Inertia::render('Backend/CMS/Section/Trashed', [
-                'page' => $page,
-                'trashedSections' => $trashedSections,
-                'trashedCount' => $trashedSections->count(),
-            ]);
-        } catch (\Exception $e) {
-            Log::error('Failed to load trashed sections: '.$e->getMessage(), [
-                'page_id' => $pageId,
-                'trace' => $e->getTraceAsString(),
-            ]);
-
-            return redirect()->back()->with('error', 'Failed to load trashed sections.');
-        }
-    }
-
-    /**
-     * Get the count of trashed sections for a specific page (AJAX).
-     */
-    public function trashedCount(int $pageId): JsonResponse
-    {
-        $user = $this->getAuthUser();
-
-        if (! $user->hasPermission('sections.view')) {
-            return response()->json(['error' => 'Unauthorized'], 403);
-        }
-
-        try {
-            $page = Page::withTrashed()->findOrFail($pageId);
-
-            $count = SectionConfig::onlyTrashed()
-                ->where('page_slug', $page->slug)
-                ->count();
-
-            return response()->json([
-                'success' => true,
-                'count' => $count,
-            ]);
-        } catch (\Exception $e) {
-            Log::error('Failed to get trashed count: '.$e->getMessage(), [
-                'page_id' => $pageId,
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to get trashed count.',
-            ], 500);
-        }
     }
 
     /**

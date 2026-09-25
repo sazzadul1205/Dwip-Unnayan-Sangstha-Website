@@ -132,7 +132,7 @@ const ProjectsAndProgramsDetails = ({
             <ProgramContentSection
               key={section.id}
               programData={programData}
-              {...section.customProps}
+              {...section.custom_props}
             />
           );
         }

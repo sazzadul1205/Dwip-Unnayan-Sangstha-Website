@@ -285,7 +285,7 @@ const BlogDetails = ({
     : (sectionConfig?.sections || []);
 
   const renderSpecialComponent = (section) => {
-    const { component, customProps = {} } = section;
+    const { component, custom_props: customProps = {} } = section;
 
     if (component === 'BannerSection' || component === 'PageBannerSection') {
       return (
@@ -331,7 +331,7 @@ const BlogDetails = ({
                 bannerData={bannerData}
                 blogData={null}
                 notFound={true}
-                {...section.customProps}
+                {...section.custom_props}
               />
             );
           }

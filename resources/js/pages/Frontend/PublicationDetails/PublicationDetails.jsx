@@ -295,7 +295,7 @@ const ProjectsAndProgramsDetails = ({
     : (sectionConfig?.sections || []);
 
   const renderSpecialComponent = (section) => {
-    const { component, customProps = {} } = section;
+    const { component, custom_props: customProps = {} } = section;
 
     if (component === 'BannerSection' || component === 'PageBannerSection') {
       return (
@@ -341,7 +341,7 @@ const ProjectsAndProgramsDetails = ({
                 bannerData={bannerData}
                 publicationData={null}
                 notFound={true}
-                {...section.customProps}
+                {...section.custom_props}
               />
             );
           }

@@ -7,6 +7,7 @@ use App\Models\JobListing;
 use App\Models\pages\Page;
 use App\Services\ContentService;
 use App\Services\PageMapService;
+use App\Services\SectionPayloadNormalizer;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\App;
@@ -380,7 +381,7 @@ class PageController extends Controller
             foreach ($needs['shared_data'] as $type) {
                 $sharedItem = $this->contentService->getSharedData($type);
                 if ($sharedItem) {
-                    $data['shared'][$type] = $sharedItem->data;
+                    $data['shared'][$type] = SectionPayloadNormalizer::unwrap($sharedItem->data);
                 }
             }
         }
@@ -433,7 +434,7 @@ class PageController extends Controller
                 $customData = $this->contentService->getSectionData($pageSlug, $sectionKey);
                 if ($customData) {
                     $data['custom'][$sectionKey] = method_exists($customData, 'getDataAttribute')
-                        ? $customData->data
+                        ? SectionPayloadNormalizer::unwrap($customData->data)
                         : $customData;
                 }
             }
@@ -761,7 +762,7 @@ class PageController extends Controller
                 'propName'           => $config->prop_name,
                 'dataKey'            => $config->data_key,
                 'order'              => $config->display_order,
-                'customProps'        => $config->custom_props ?? [],
+                'custom_props'       => $config->custom_props ?? [],
                 'isFixedSection'     => (bool) $config->is_fixed_section,
                 'isSpecialComponent' => (bool) $config->is_special_component,
             ];

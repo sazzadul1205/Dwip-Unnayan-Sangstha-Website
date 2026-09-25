@@ -33,8 +33,6 @@ Route::prefix('cms')->name('cms.')->group(function () {
   // Section Management
   Route::prefix('sections')->name('sections.')->group(function () {
     Route::get('/page/{pageId}', [CmsSectionController::class, 'index'])->name('page.sections');
-    Route::get('/trashed/{pageId}', [CmsSectionController::class, 'trashed'])->name('trashed');
-    Route::get('/trashed-count/{pageId}', [CmsSectionController::class, 'trashedCount'])->name('trashed-count');
     Route::post('/', [CmsSectionController::class, 'store'])->name('store');
     Route::post('/{pageId}/update-order', [CmsSectionController::class, 'updateOrder'])->name('update-order');
     Route::put('/update/{section}', [CmsSectionController::class, 'update'])->name('update');

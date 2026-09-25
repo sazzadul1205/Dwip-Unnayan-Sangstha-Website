@@ -30,8 +30,7 @@ const DynamicSectionRenderer = ({
     component: componentName,
     propName,
     dataKey,
-    custom_props: customPropsFromDb,
-    customProps: customPropsFromFrontend,
+    custom_props: rawCustomProps,
     data: sectionData,
   } = section;
 
@@ -48,8 +47,10 @@ const DynamicSectionRenderer = ({
   // ============================================
   // PARSE CUSTOM PROPS
   // ============================================
-  const rawCustomProps = customPropsFromDb || customPropsFromFrontend || {};
-
+  // `custom_props` is a JSON column on section_configs, and the CMS + the public
+  // frontend now both expose it under that single name (it used to arrive as
+  // camelCase `customProps` from formatSectionConfigs). Keep the defensive string
+  // parse for JSON-encoded legacy payloads.
   let parsedCustomProps = {};
   if (typeof rawCustomProps === 'string') {
     try {
@@ -58,7 +59,7 @@ const DynamicSectionRenderer = ({
         parsedCustomProps = parsed;
       }
     } catch (e) {
-      console.warn(`[DynamicSectionRenderer] Failed to parse customProps for ${componentName}:`, e);
+      console.warn(`[DynamicSectionRenderer] Failed to parse custom_props for ${componentName}:`, e);
     }
   } else if (rawCustomProps && typeof rawCustomProps === 'object' && !Array.isArray(rawCustomProps)) {
     parsedCustomProps = rawCustomProps;
