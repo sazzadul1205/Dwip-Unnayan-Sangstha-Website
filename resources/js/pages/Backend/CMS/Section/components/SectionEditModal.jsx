@@ -23,7 +23,7 @@ import {
 import { showToast } from '../utils/toastHelper';
 import { getComponentLabel } from '../utils/sectionHelpers';
 import { DEFAULT_CONFIG, SECTION_CONFIGS } from '../utils/SectionConfigData';
-import RenderDataTab from './modals/renderDataTab';
+import RenderDataTab from './modals/RenderDataTab';
 
 // Helper: Check if section has data
 const hasSectionData = (section) => {

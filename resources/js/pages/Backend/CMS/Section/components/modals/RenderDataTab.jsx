@@ -1,6 +1,7 @@
 // resources/js/pages/Backend/CMS/Section/components/modals/RenderDataTab.jsx
 
 import React, { lazy, Suspense } from 'react';
+import { FaExternalLinkAlt } from 'react-icons/fa';
 
 // ===== LAZY LOAD EDITORS =====
 const FAQEditor = lazy(() => import('./Editors/FAQEditor'));
@@ -10,8 +11,6 @@ const CardsEditor = lazy(() => import('./Editors/CardsEditor'));
 const LegalEditor = lazy(() => import('./Editors/LegalEditor'));
 const AddressEditor = lazy(() => import('./Editors/AddressEditor'));
 const ContentEditor = lazy(() => import('./Editors/ContentEditor'));
-// StoriesEditor removed - now using Shared Data
-const StoriesEditor = lazy(() => import('./Editors/StoriesEditor'));
 const AboutUsEditor = lazy(() => import('./Editors/AboutUsEditor'));
 const FollowUsEditor = lazy(() => import('./Editors/FollowUsEditor'));
 const OurActionEditor = lazy(() => import('./Editors/OurActionEditor'));
@@ -24,11 +23,50 @@ const WhereWeWorkEditor = lazy(() => import('./Editors/WhereWeWorkEditor'));
 const ContactReachEditor = lazy(() => import('./Editors/ContactReachEditor'));
 const ProgramImpactEditor = lazy(() => import('./Editors/ProgramImpactEditor'));
 const ContactOfficeEditor = lazy(() => import('./Editors/ContactOfficeEditor'));
-const UpcomingEventsEditor = lazy(() => import('./Editors/UpcomingEventsEditor'));
 const PublicationsEditor = lazy(() => import('./Editors/PublicationsEditor'));
 const ImageGalleryEditor = lazy(() => import('./Editors/ImageGalleryEditor'));
 const VideoGalleryEditor = lazy(() => import('./Editors/VideoGalleryEditor'));
 const TextContentEditor = lazy(() => import('./Editors/TextContentEditor'));
+
+// ===== SHARED DATA NOTICE =====
+// Some section types don't have a local form: their data lives in the
+// Shared Data Manager so it can be reused across pages. This notice
+// points users to where they can actually edit.
+const SHARED_DATA_SECTIONS = {
+  StoriesSection: {
+    icon: '📖',
+    label: 'Stories',
+    description:
+      'Stories are managed centrally so they can be reused across pages. Add, edit, or remove them from the Shared Data Manager.',
+  },
+  UpcomingEventsSection: {
+    icon: '📅',
+    label: 'Upcoming Events',
+    description:
+      'Events are managed centrally so they can be reused across pages. Add, edit, or remove them from the Shared Data Manager.',
+  },
+};
+
+const SharedDataNotice = ({ section }) => {
+  const info = SHARED_DATA_SECTIONS[section.component];
+  if (!info) return null;
+
+  return (
+    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+      <h3 className="text-sm font-semibold text-blue-800 mb-1">
+        {info.icon} {info.label} are managed in the Shared Data Manager
+      </h3>
+      <p className="text-sm text-blue-700">{info.description}</p>
+      <a
+        href={route('backend.cms.shared.index')}
+        className="inline-flex items-center gap-2 mt-3 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm font-medium"
+      >
+        <FaExternalLinkAlt size={12} />
+        Go to Shared Data Manager
+      </a>
+    </div>
+  );
+};
 
 // ===== LOADING COMPONENT =====
 const EditorLoader = () => (
@@ -42,13 +80,13 @@ const EditorLoader = () => (
 
 // ===== EDITOR MAP =====
 const EDITOR_COMPONENTS = {
+  // Local form editors (each editor has its own file)
   'FAQSection': FAQEditor,
   'JobsSection': JobsEditor,
   'BlogSection': BlogEditor,
   'CardsSection': CardsEditor,
   'LegalSection': LegalEditor,
   'HomeBanner': HomeBannerEditor,
-  'StoriesSection': StoriesEditor,
   'ContentSection': ContentEditor,
   'AddressSection': AddressEditor,
   'AboutUsSection': AboutUsEditor,
@@ -62,11 +100,14 @@ const EDITOR_COMPONENTS = {
   'ContactReachSection': ContactReachEditor,
   'ContactOfficeSection': ContactOfficeEditor,
   'ProgramImpactSection': ProgramImpactEditor,
-  'UpcomingEventsSection': UpcomingEventsEditor,
   'PublicationsSection': PublicationsEditor,
   'ImageGallerySection': ImageGalleryEditor,
   'VideoGallerySection': VideoGalleryEditor,
   'TextContentSection': TextContentEditor,
+
+  // Shared-data sections (no local form; show a pointer instead)
+  'StoriesSection': SharedDataNotice,
+  'UpcomingEventsSection': SharedDataNotice,
 };
 
 // ===== COMPONENT =====
@@ -96,4 +137,5 @@ const RenderDataTab = ({ section, hasData, onDataChange }) => {
     </div>
   );
 };
+
 export default RenderDataTab;
