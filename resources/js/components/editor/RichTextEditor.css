@@ -1,0 +1,199 @@
+/* ==========================================================================
+   RichTextEditor.css
+   All non-Tailwind styles for the RichTextEditor component.
+
+   Sections:
+     1. Placeholder
+     2. Content typography (p, h1–h6, lists, media, code, …)
+     3. Responsive breakpoints
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   1. Placeholder shown when the editor is empty.
+   Uses data-placeholder so we don't need an extra DOM node.
+   -------------------------------------------------------------------------- */
+.editor-placeholder:empty::before {
+  content: attr(data-placeholder);
+  color: #9ca3af;
+  pointer-events: none;
+}
+
+.editor-placeholder:focus:empty::before {
+  color: #d1d5db;
+}
+
+/* --------------------------------------------------------------------------
+   2. Content typography.
+   These rules mirror GLOBAL_STYLES in editorConfig.js. Change both together.
+   -------------------------------------------------------------------------- */
+
+.rte-content p {
+  font-weight: 400;
+  font-size: 1rem;
+  color: #333333;
+  line-height: 1.625;
+  margin-bottom: 1rem;
+}
+
+.rte-content h1,
+.rte-content h2 {
+  font-weight: 700;
+  color: #080c14;
+  font-size: 1.5rem;
+  margin: 2rem 0 1rem;
+}
+
+.rte-content h3 {
+  font-weight: 700;
+  color: #080c14;
+  font-size: 1.25rem;
+  margin: 2rem 0 1rem;
+}
+
+.rte-content h4 {
+  font-weight: 700;
+  color: #080c14;
+  font-size: 1.125rem;
+  margin: 1.5rem 0 0.75rem;
+}
+
+.rte-content h5 {
+  font-weight: 700;
+  color: #080c14;
+  font-size: 1rem;
+  margin: 1.5rem 0 0.75rem;
+}
+
+.rte-content h6 {
+  font-weight: 700;
+  color: #080c14;
+  font-size: 0.875rem;
+  margin: 1rem 0 0.5rem;
+}
+
+.rte-content strong,
+.rte-content b {
+  color: #009be2;
+  font-weight: 700;
+}
+
+.rte-content ul {
+  list-style-type: disc;
+  padding-left: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.rte-content ol {
+  list-style-type: decimal;
+  padding-left: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.rte-content li {
+  font-weight: 400;
+  font-size: 1rem;
+  color: #333333;
+  line-height: 1.625;
+  margin-bottom: 0.75rem;
+}
+
+.rte-content img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 0.5rem;
+}
+
+.rte-content a {
+  color: #009be2;
+  text-decoration: underline;
+}
+
+.rte-content blockquote {
+  border-left: 4px solid #009be2;
+  padding-left: 1rem;
+  font-style: italic;
+  color: #333333;
+  margin: 1rem 0;
+}
+
+.rte-content code {
+  background-color: #f3f4f6;
+  border-radius: 0.25rem;
+  padding: 0.125rem 0.5rem;
+  font-size: 0.875rem;
+  font-family: monospace;
+}
+
+.rte-content hr {
+  border: 0;
+  border-top: 1px solid #d1d5db;
+  margin: 2rem 0;
+}
+
+/* Keeps floated images from overflowing their container. */
+.rte-content .clearfix::after {
+  content: '';
+  display: table;
+  clear: both;
+}
+
+/* --------------------------------------------------------------------------
+   3. Responsive breakpoints.
+   -------------------------------------------------------------------------- */
+@media (min-width: 640px) {
+
+  .rte-content h1,
+  .rte-content h2 {
+    font-size: 2rem;
+  }
+
+  .rte-content h3 {
+    font-size: 1.75rem;
+  }
+
+  .rte-content h4 {
+    font-size: 1.5rem;
+  }
+
+  .rte-content h5 {
+    font-size: 1.25rem;
+  }
+
+  .rte-content h6 {
+    font-size: 1.125rem;
+  }
+
+  .rte-content p,
+  .rte-content li {
+    font-size: 1.125rem;
+  }
+}
+
+@media (min-width: 1024px) {
+
+  .rte-content h1,
+  .rte-content h2 {
+    font-size: 2.5rem;
+  }
+
+  .rte-content h3 {
+    font-size: 2.25rem;
+  }
+
+  .rte-content h4 {
+    font-size: 2rem;
+  }
+
+  .rte-content h5 {
+    font-size: 1.75rem;
+  }
+
+  .rte-content h6 {
+    font-size: 1.5rem;
+  }
+
+  .rte-content p,
+  .rte-content li {
+    font-size: 1.25rem;
+  }
+}

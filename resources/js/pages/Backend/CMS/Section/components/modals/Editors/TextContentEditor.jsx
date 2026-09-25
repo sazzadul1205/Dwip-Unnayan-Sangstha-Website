@@ -1,7 +1,7 @@
 // resources/js/pages/Backend/CMS/Section/components/modals/Editors/TextContentEditor.jsx
 
 import React, { useEffect, useMemo } from 'react';
-import RichTextEditor from '../../../../../../../components/RichTextEditor/RichTextEditor';
+import RichTextEditor from '../../../../../../../components/editor/RichTextEditor'; // ← CHANGED
 import { sanitizeHTML } from '../../../../../../../utils/sectionHelpers';
 import { TextField, SelectField } from './shared/Fields';
 import { useSectionEditor } from './shared/useSectionEditor';
@@ -12,11 +12,7 @@ const TextContentEditor = ({ section, hasData, onDataChange }) => {
     updateField,
     isDirty,
   } = useSectionEditor(section, useMemo(() => ({
-    content: {
-      html: '',
-      content: '',
-      text: '',
-    },
+    content: { html: '', content: '', text: '' },
     bgColor: 'bg-white',
     paddingY: 'py-10 sm:py-15 md:py-25 lg:py-37.5',
     paddingX: 'px-5 sm:px-10 md:px-20 lg:px-50',
@@ -27,15 +23,15 @@ const TextContentEditor = ({ section, hasData, onDataChange }) => {
 
   useEffect(() => {
     if (!formData.content) {
-      updateField('content', {
-        html: '',
-        content: '',
-        text: '',
-      });
+      updateField('content', { html: '', content: '', text: '' });
     }
   }, [formData, updateField]);
 
-  const currentHtml = formData?.content?.html || formData?.content?.content || formData?.content?.text || '';
+  const currentHtml =
+    formData?.content?.html ||
+    formData?.content?.content ||
+    formData?.content?.text ||
+    '';
   const previewHtml = sanitizeHTML(currentHtml || '');
 
   const handleHtmlChange = (html) => {
@@ -49,7 +45,9 @@ const TextContentEditor = ({ section, hasData, onDataChange }) => {
       <div className="flex items-center justify-between gap-3">
         <div>
           <h3 className="text-sm font-semibold text-gray-700">Edit Text Content Section</h3>
-          <p className="text-xs text-gray-400 mt-0.5">Edit rich text content and layout settings for this section.</p>
+          <p className="text-xs text-gray-400 mt-0.5">
+            Edit rich text content and layout settings for this section.
+          </p>
         </div>
         <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${isDirty ? 'bg-yellow-100 text-yellow-700' : 'bg-green-100 text-green-700'}`}>
           {isDirty ? 'Unsaved changes' : 'Saved'}
@@ -88,7 +86,11 @@ const TextContentEditor = ({ section, hasData, onDataChange }) => {
         </div>
         <div
           className="prose prose-sm max-w-none prose-headings:text-gray-900 prose-p:text-gray-700 prose-a:text-blue-600"
-          dangerouslySetInnerHTML={{ __html: previewHtml || '<p class="text-gray-400">No content to preview yet.</p>' }}
+          dangerouslySetInnerHTML={{
+            __html:
+              previewHtml ||
+              '<p class="text-gray-400">No content to preview yet.</p>',
+          }}
         />
       </div>
 

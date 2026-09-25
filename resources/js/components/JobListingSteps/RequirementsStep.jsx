@@ -2,8 +2,22 @@
 
 import React, { useCallback } from 'react';
 import { StepWrapper } from './StepWrapper';
-import CustomEditor from '../../components/CustomEditor';
+import RichTextEditor from '../../components/editor/RichTextEditor';
 import { FaInfoCircle, FaSearch, FaTimes } from 'react-icons/fa';
+
+// Editor features for the requirements field (inline, no shared file).
+// Form-safe: no images, colors, alignment, preview, or code view.
+const REQUIREMENTS_FEATURES = {
+  headings: true,
+  colors: false,
+  images: false,
+  alignment: false,
+  history: true,
+  strikethrough: false,
+  clearFormat: true,
+  preview: false,
+  codeView: false,
+};
 
 // Comprehensive Education Requirements Array
 const educationRequirements = [
@@ -340,10 +354,11 @@ export const RequirementsStep = ({ formData, errors, handleChange, handleArrayCh
           <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">
             Detailed Requirements <span className="text-red-500">*</span>
           </label>
-          <CustomEditor
+          <RichTextEditor
             value={formData.requirements}
             onChange={(html) => setFormData(prev => ({ ...prev, requirements: html }))}
             placeholder="List the qualifications, skills, experience, and any specific requirements for this role..."
+            features={REQUIREMENTS_FEATURES}
           />
           {errors.requirements && <p className="mt-1 text-xs sm:text-sm text-red-500">{errors.requirements}</p>}
           <p className="mt-1 text-[10px] sm:text-xs text-gray-500">
@@ -602,8 +617,7 @@ export const RequirementsStep = ({ formData, errors, handleChange, handleArrayCh
                         key={edu.value}
                         onClick={() => handleEducationSelect(edu.value)}
                         className={`px-3 sm:px-4 py-2 cursor-pointer flex items-center justify-between hover:bg-blue-50 transition-colors ${index === selectedEducationIndex ? 'bg-blue-100 border-l-4 border-blue-600' : ''
-                          } ${formData.education_requirement === edu.value ? 'bg-green-50' : ''
-                          }`}
+                          } ${formData.education_requirement === edu.value ? 'bg-green-50' : ''}`}
                       >
                         <div className="flex-1">
                           <p className="text-xs sm:text-sm text-gray-900">{edu.label}</p>

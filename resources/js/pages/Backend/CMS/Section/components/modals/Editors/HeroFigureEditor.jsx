@@ -1,8 +1,8 @@
- 
+
 // resources/js/pages/Backend/CMS/Section/components/modals/Editors/HeroFigureEditor.jsx
 
 // React
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 
 // Icons
 import { FaUpload, FaTimes, FaExternalLinkAlt, FaInfoCircle } from 'react-icons/fa';
@@ -11,7 +11,7 @@ import { FaUpload, FaTimes, FaExternalLinkAlt, FaInfoCircle } from 'react-icons/
 import Swal from 'sweetalert2';
 
 // Rich text editor
-import RichTextEditor from '../../../../../../../components/RichTextEditor/RichTextEditor';
+import RichTextEditor from '../../../../../../../components/editor/RichTextEditor';
 
 /**
  * HeroFigureEditor - Editor for HeroFigureSection data
@@ -387,11 +387,10 @@ const HeroFigureEditor = ({ section, hasData, onDataChange }) => {
       {/* WYSIWYG editor for content - disabled when using About Content */}
       <div className="mb-4">
         <h4 className="text-sm font-medium text-gray-600 mb-2">Content</h4>
-        <div className={`border border-gray-300 rounded-lg overflow-hidden ${isUsingAboutContent ? 'opacity-50' : ''}`}>
+        <div className={isUsingAboutContent ? 'opacity-50' : ''}>
           <RichTextEditor
             value={formData.content?.html || ''}
             onChange={(html) => {
-              // Editing breaks the About Content link
               if (isUsingAboutContent) {
                 const newData = { ...formData };
                 delete newData._about_content_id;

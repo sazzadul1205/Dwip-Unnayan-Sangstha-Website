@@ -1,7 +1,21 @@
 // resources/js/components/JobListingSteps/BasicInfoStep.jsx
 
 import { StepWrapper } from './StepWrapper';
-import CustomEditor from '../../components/CustomEditor';
+import RichTextEditor from '../../components/editor/RichTextEditor';
+
+// Editor features for the job description field (inline, no shared file).
+// Form-safe: no images, colors, alignment, preview, or code view.
+const DESCRIPTION_FEATURES = {
+  headings: true,
+  colors: false,
+  images: false,
+  alignment: false,
+  history: true,
+  strikethrough: false,
+  clearFormat: true,
+  preview: false,
+  codeView: false,
+};
 
 export const BasicInfoStep = ({ formData, errors, handleChange, setFormData }) => {
   return (
@@ -26,8 +40,12 @@ export const BasicInfoStep = ({ formData, errors, handleChange, setFormData }) =
             className={`w-full px-3 sm:px-4 py-2 sm:py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base ${errors.title ? 'border-red-500' : 'border-gray-300'
               }`}
           />
-          {errors.title && <p className="mt-1 text-xs sm:text-sm text-red-500">{errors.title}</p>}
-          <p className="mt-1 text-[10px] sm:text-xs text-gray-500">Minimum 5 characters, max 255 characters</p>
+          {errors.title && (
+            <p className="mt-1 text-xs sm:text-sm text-red-500">{errors.title}</p>
+          )}
+          <p className="mt-1 text-[10px] sm:text-xs text-gray-500">
+            Minimum 5 characters, max 255 characters
+          </p>
         </div>
 
         {/* Category */}
@@ -43,11 +61,15 @@ export const BasicInfoStep = ({ formData, errors, handleChange, setFormData }) =
               }`}
           >
             <option value="">Select a category</option>
-            {window.categories?.map(category => (
-              <option key={category.id} value={category.id}>{category.name}</option>
+            {window.categories?.map((category) => (
+              <option key={category.id} value={category.id}>
+                {category.name}
+              </option>
             ))}
           </select>
-          {errors.category_id && <p className="mt-1 text-xs sm:text-sm text-red-500">{errors.category_id}</p>}
+          {errors.category_id && (
+            <p className="mt-1 text-xs sm:text-sm text-red-500">{errors.category_id}</p>
+          )}
         </div>
 
         {/* Job Type & Experience Level - Two columns */}
@@ -71,7 +93,9 @@ export const BasicInfoStep = ({ formData, errors, handleChange, setFormData }) =
               <option value="remote">Remote</option>
               <option value="hybrid">Hybrid</option>
             </select>
-            {errors.job_type && <p className="mt-1 text-xs sm:text-sm text-red-500">{errors.job_type}</p>}
+            {errors.job_type && (
+              <p className="mt-1 text-xs sm:text-sm text-red-500">{errors.job_type}</p>
+            )}
           </div>
 
           <div>
@@ -93,21 +117,30 @@ export const BasicInfoStep = ({ formData, errors, handleChange, setFormData }) =
               <option value="lead">Lead</option>
               <option value="executive">Executive</option>
             </select>
-            {errors.experience_level && <p className="mt-1 text-xs sm:text-sm text-red-500">{errors.experience_level}</p>}
+            {errors.experience_level && (
+              <p className="mt-1 text-xs sm:text-sm text-red-500">
+                {errors.experience_level}
+              </p>
+            )}
           </div>
         </div>
 
-        {/* Job Description - Using CustomEditor */}
+        {/* Job Description - Using RichTextEditor (form-safe preset) */}
         <div>
           <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">
             Job Description <span className="text-red-500">*</span>
           </label>
-          <CustomEditor
+          <RichTextEditor
             value={formData.description}
-            onChange={(html) => setFormData(prev => ({ ...prev, description: html }))}
+            onChange={(html) =>
+              setFormData((prev) => ({ ...prev, description: html }))
+            }
             placeholder="Describe the role, responsibilities, and what makes this opportunity exciting..."
+            features={DESCRIPTION_FEATURES}
           />
-          {errors.description && <p className="mt-1 text-xs sm:text-sm text-red-500">{errors.description}</p>}
+          {errors.description && (
+            <p className="mt-1 text-xs sm:text-sm text-red-500">{errors.description}</p>
+          )}
           <p className="mt-1 text-[10px] sm:text-xs text-gray-500">
             Minimum 50 characters. Use formatting tools to make your description engaging.
           </p>

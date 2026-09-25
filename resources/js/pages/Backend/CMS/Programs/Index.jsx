@@ -19,7 +19,7 @@ import Swal from 'sweetalert2';
 
 // Layout
 import AuthenticatedLayout from '../../../../layouts/AuthenticatedLayout';
-import RichTextEditor from '../../../../components/RichTextEditor/RichTextEditor';
+import RichTextEditor from '../../../../components/editor/RichTextEditor';
 
 export default function Index({ items }) {
   // ============================================================
