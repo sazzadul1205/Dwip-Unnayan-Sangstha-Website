@@ -1,4 +1,9 @@
-// resources/js/Pages/Public/JobListings/Show.jsx
+// resources/js/pages/Backend/PublicJobListing/Show.jsx
+// NOTE: despite the stale "Pages/Public/..." label this file used to carry,
+// the live Inertia component is `Backend/PublicJobListing/Show` (see
+// PublicJobListingController@show + routes/job-seeker.php `backend/seeker/jobs/{slug}`).
+// Auth-gated job-seeker detail under AuthenticatedLayout — do NOT move to
+// pages/Frontend/* without updating controller + routes together.
 
 // React
 import { useState } from 'react';

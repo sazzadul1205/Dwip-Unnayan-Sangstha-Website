@@ -1,4 +1,5 @@
-// resources/js/Components/Shared/NotFoundContent.jsx
+// resources/js/Shared/NotFoundContent.jsx
+// Shared empty-state used by pages/Frontend/* detail pages inside PublicLayout.
 
 import React from 'react';
 import { Link } from '@inertiajs/react';
