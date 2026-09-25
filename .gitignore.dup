@@ -1,0 +1,46 @@
+```
+# Dependency directories
+/vendor/
+/node_modules/
+
+# Laravel specific
+/bootstrap/cache/
+/public/build/
+/public/hot
+/storage/logs/
+/storage/framework/
+/storage/*.key
+/public/storage/
+/.phpunit.result.cache
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# IDE files
+.vscode/
+.idea/
+/.fleet/
+/.nova/
+*.swp
+*.swo
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+
+# Laravel tooling
+auth.json
+Homestead.yaml
+Homestead.json
+
+
+node_modules/
+```
