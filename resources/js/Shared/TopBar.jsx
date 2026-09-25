@@ -23,6 +23,8 @@ import {
 } from "react-icons/fa6";
 import createContactImage from '../utils/createContactImage';
 
+import { hasValue } from '../utils/sectionHelpers';
+
 // SVG Icons
 const EmailIcon = () => (
   <svg width="20" height="15" viewBox="0 0 20 15" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -43,13 +45,6 @@ const HoursIcon = () => (
 );
 
 // UTILITY
-const hasValue = (value) => {
-  if (value === undefined || value === null) return false;
-  if (typeof value === 'string') return value.trim().length > 0;
-  if (Array.isArray(value)) return value.length > 0;
-  if (typeof value === 'object') return Object.keys(value).length > 0;
-  return true;
-};
 
 // ============================================
 // ICON MAPPING - Syncs with TopBarEditor SOCIAL_ICONS

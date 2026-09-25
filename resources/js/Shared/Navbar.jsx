@@ -5,13 +5,8 @@ import { Link, usePage } from '@inertiajs/react';
 import { Menu, X, ChevronDown } from 'lucide-react';
 import ArrowIcon from './ArrowIcon';
 
-const hasValue = (value) => {
-  if (value === undefined || value === null) return false;
-  if (typeof value === 'string') return value.trim().length > 0;
-  if (Array.isArray(value)) return value.length > 0;
-  if (typeof value === 'object') return Object.keys(value).length > 0;
-  return true;
-};
+import { hasValue } from '../utils/sectionHelpers';
+
 
 const Navbar = ({ navbarData, storageUrl = '', defaultLogo = '/images/default-logo.png' }) => {
   const [isOpen, setIsOpen] = useState(false);

@@ -6,13 +6,8 @@ import { usePage, router } from '@inertiajs/react';
 // Skeleton primitives
 import { Skeleton } from '../../Shared/Skeletons/SkeletonPrimitives';
 
-// Generate placeholder image URL (inline SVG — avoids external placeholder services)
-const getPlaceholderImage = (width = 485, height = 400, text = 'Gallery Image') => {
-  const safeText = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-  const fontSize = Math.max(14, Math.round(Math.min(width, height) / 12));
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><rect width="100%" height="100%" fill="#EAEAEA"/><text x="50%" y="50%" fill="#999999" font-family="Arial, Helvetica, sans-serif" font-size="${fontSize}" text-anchor="middle" dominant-baseline="middle">${safeText}</text></svg>`;
-  return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
-};
+import { getPlaceholderImage } from '../../utils/sectionHelpers';
+
 
 // ============================================
 // SKELETON: Header + Image grid + Show More button
@@ -134,11 +129,11 @@ const ImageGallerySection = ({
     const imageId = image.id || index;
     if (imageErrors[imageId]) {
       const title = image.title || image.caption || `Gallery image ${index + 1}`;
-      return getPlaceholderImage(485, 400, title);
+      return getPlaceholderImage(485, 400, title, '#EAEAEA', '#999999');
     }
     const src = image.src || image.url || image.image || image;
     if (typeof src === 'string' && src.trim().length > 0) return src;
-    return getPlaceholderImage(485, 400, image.title || image.caption || `Gallery image ${index + 1}`);
+    return getPlaceholderImage(485, 400, image.title || image.caption || `Gallery image ${index + 1}`, '#EAEAEA', '#999999');
   };
 
   const getImageAlt = (image, index) =>

@@ -6,24 +6,13 @@ import { Skeleton } from '../../Shared/Skeletons/SkeletonPrimitives';
 import ImagePreloader from '../../Shared/ImagePreloader';
 import { useImagePreload } from '../../hooks/useImagePreloader';
 
+import { hasValue, getPlaceholderImage } from '../../utils/sectionHelpers';
+
 const MAX_SLIDES = 10;
 const MAX_BUTTONS = 2;
 const DEFAULT_INTERVAL = 5000;
 
-const hasValue = (value) => {
-  if (value === undefined || value === null) return false;
-  if (typeof value === 'string') return value.trim().length > 0;
-  if (Array.isArray(value)) return value.length > 0;
-  if (typeof value === 'object') return Object.keys(value).length > 0;
-  return true;
-};
 
-const getPlaceholderImage = (width = 1920, height = 600, text = 'Welcome') => {
-  const safeText = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-  const fontSize = Math.max(14, Math.round(Math.min(width, height) / 12));
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><rect width="100%" height="100%" fill="#1a1a2e"/><text x="50%" y="50%" fill="#FFFFFF" font-family="Arial, Helvetica, sans-serif" font-size="${fontSize}" text-anchor="middle" dominant-baseline="middle">${safeText}</text></svg>`;
-  return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
-};
 
 const EMPTY_CONTENT = {
   tagline: { text: '', className: 'uppercase tracking-[4px] font-semibold' },
@@ -156,7 +145,7 @@ const HomeBanner = ({
         <div className="absolute inset-0">
           {slides.map((slide, index) => {
             const isActive = index === currentSlide;
-            const imageSrc = slide.src || getPlaceholderImage(1920, 600, slide.content?.title?.text || 'Welcome');
+            const imageSrc = slide.src || getPlaceholderImage(1920, 600, slide.content?.title?.text || 'Welcome', '#1a1a2e', '#FFFFFF');
             const imageAlt = slide.alt || slide.content?.title?.text || `Slide ${index + 1}`;
             const primaryButton = slide.buttons[0] || null;
             const secondaryButton = slide.buttons[1] || null;

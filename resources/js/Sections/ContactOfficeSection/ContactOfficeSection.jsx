@@ -9,14 +9,8 @@ import { FaGraduationCap } from 'react-icons/fa';
 // Skeleton primitives
 import { Skeleton, SkeletonText } from '../../Shared/Skeletons/SkeletonPrimitives';
 
-// Utility function to check if value exists
-const hasValue = (value) => {
-  if (value === undefined || value === null) return false;
-  if (typeof value === 'string') return value.trim().length > 0;
-  if (Array.isArray(value)) return value.length > 0;
-  if (typeof value === 'object') return Object.keys(value).length > 0;
-  return true;
-};
+import { hasValue } from '../../utils/sectionHelpers';
+
 
 // ============================================
 // SKELETON: Single office card

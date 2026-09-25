@@ -1,19 +1,11 @@
 // js/Sections/TextContentSection/TextContentSection.jsx
 
 import React from 'react';
-import { sanitizeHTML } from '../../utils/sectionHelpers';
+import { sanitizeHTML, hasValue } from '../../utils/sectionHelpers';
 
 // Skeleton primitives
 import { Skeleton, SkeletonText } from '../../Shared/Skeletons/SkeletonPrimitives';
 
-// Utility function to check if value exists
-const hasValue = (value) => {
-  if (value === undefined || value === null) return false;
-  if (typeof value === 'string') return value.trim().length > 0;
-  if (Array.isArray(value)) return value.length > 0;
-  if (typeof value === 'object') return Object.keys(value).length > 0;
-  return true;
-};
 
 // ============================================
 // SKELETON: Rich text placeholder
