@@ -1,7 +1,8 @@
 // resources/js/pages/Backend/CMS/Section/components/modals/Editors/TextContentEditor.jsx
 
 import React, { useEffect, useMemo } from 'react';
-import RichTextEditor from '../../../../../../../components/editor/RichTextEditor'; // ← CHANGED
+// Canonical WYSIWYG editor (components/editor/RichTextEditor).
+import RichTextEditor from '../../../../../../../components/editor/RichTextEditor';
 import { sanitizeHTML } from '../../../../../../../utils/sectionHelpers';
 import { TextField, SelectField } from './shared/Fields';
 import { useSectionEditor } from './shared/useSectionEditor';

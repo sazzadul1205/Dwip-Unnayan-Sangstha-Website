@@ -8,8 +8,10 @@ import React from 'react';
 import { FaExternalLinkAlt, FaQuestionCircle } from 'react-icons/fa';
 
 /**
- * FAQEditor - Editor for FAQSection data
- * This section uses Shared Data from the Shared Data Manager
+ * FAQEditor - READ-ONLY redirect notice for page-level FAQSection rows.
+ * This section uses Shared Data from the Shared Data Manager.
+ * The CANONICAL editable form lives at Shared/Modals/FaqEditor.jsx —
+ * do NOT add form fields here, or FAQ edits will split across two places.
  * Features:
  * - Shows information about the section
  * - Provides link to Shared Data Manager for editing

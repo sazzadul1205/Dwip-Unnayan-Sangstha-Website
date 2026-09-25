@@ -1,4 +1,7 @@
 // resources/js/pages/Backend/CMS/Shared/Modals/FaqEditor.jsx
+// CANONICAL editor for Shared Data type `faq` (used by Shared/Index.jsx).
+// NOTE: Section/.../Editors/FAQEditor.jsx is a DIFFERENT, read-only redirect
+// notice for page-level FAQSection rows — it only links back here, it does not edit.
 
 import { FaPlus, FaTrash, FaQuestionCircle, FaInfoCircle } from 'react-icons/fa';
 import Swal from 'sweetalert2';

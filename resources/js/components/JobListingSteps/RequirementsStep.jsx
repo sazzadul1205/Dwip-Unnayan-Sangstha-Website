@@ -2,7 +2,7 @@
 
 import React, { useCallback } from 'react';
 import { StepWrapper } from './StepWrapper';
-import RichTextEditor from '../../components/editor/RichTextEditor';
+import RichTextEditor from '../editor/RichTextEditor';
 import { FaInfoCircle, FaSearch, FaTimes } from 'react-icons/fa';
 
 // Editor features for the requirements field (inline, no shared file).

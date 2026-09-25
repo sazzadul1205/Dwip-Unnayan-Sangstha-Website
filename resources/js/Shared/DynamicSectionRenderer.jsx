@@ -1,4 +1,9 @@
-// resources/js/components/Shared/DynamicSectionRenderer.jsx
+// resources/js/Shared/DynamicSectionRenderer.jsx
+// FRONTEND lazy-loaded section renderer (used by pages/Frontend/* detail pages + DynamicPage).
+// Resolves components via config/sectionRegistry.js (SECTION_COMPONENTS/CONFIGS).
+// NOTE: NOT a duplicate of Sections/SectionIndex.jsx — that one is the
+// BACKEND-ONLY synchronous preview renderer with legacy normalizeData mapping.
+// Keep both; do not merge without aligning prop-mapping + normalization first.
 
 import React, { Suspense } from 'react';
 import SectionLoader from './SectionLoader';

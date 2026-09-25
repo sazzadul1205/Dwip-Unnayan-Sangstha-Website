@@ -10,7 +10,7 @@ import { FaUpload, FaTimes, FaExternalLinkAlt, FaInfoCircle } from 'react-icons/
 // Sweetalert
 import Swal from 'sweetalert2';
 
-// Rich text editor
+// Rich text editor (single canonical WYSIWYG: components/editor/RichTextEditor)
 import RichTextEditor from '../../../../../../../components/editor/RichTextEditor';
 
 /**

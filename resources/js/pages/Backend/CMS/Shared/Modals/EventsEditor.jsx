@@ -1,4 +1,7 @@
 // resources/js/pages/Backend/CMS/Shared/Modals/EventsEditor.jsx
+// CANONICAL editor for Shared Data type `upcoming-events` (used by Shared/Index.jsx).
+// NOTE: there is no local UpcomingEventsEditor file anymore — page-level
+// UpcomingEventsSection rows use a SharedDataNotice redirect in RenderDataTab.jsx.
 
 import { useState } from 'react';
 import { FaPlus, FaTrash, FaUpload, FaImage, FaCalendar, FaMapMarkerAlt, FaInfoCircle, FaLink } from 'react-icons/fa';

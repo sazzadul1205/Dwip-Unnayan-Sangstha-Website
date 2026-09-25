@@ -1,7 +1,7 @@
 // resources/js/components/JobListingSteps/BasicInfoStep.jsx
 
 import { StepWrapper } from './StepWrapper';
-import RichTextEditor from '../../components/editor/RichTextEditor';
+import RichTextEditor from '../editor/RichTextEditor';
 
 // Editor features for the job description field (inline, no shared file).
 // Form-safe: no images, colors, alignment, preview, or code view.

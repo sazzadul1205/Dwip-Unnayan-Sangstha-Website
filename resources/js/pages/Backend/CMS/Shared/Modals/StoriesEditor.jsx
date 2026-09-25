@@ -1,4 +1,7 @@
 // resources/js/pages/Backend/CMS/Shared/Modals/StoriesEditor.jsx
+// CANONICAL editor for Shared Data type `stories` (used by Shared/Index.jsx).
+// NOTE: there is no local StoriesEditor file anymore — page-level
+// StoriesSection rows use a SharedDataNotice redirect in RenderDataTab.jsx.
 
 import React from 'react';
 import { FaInfoCircle, FaExternalLinkAlt } from 'react-icons/fa';
