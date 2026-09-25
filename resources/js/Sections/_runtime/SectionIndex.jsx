@@ -8,33 +8,33 @@
 import React from 'react';
 
 // Import all section components
-import HomeBanner from './BannerSection/HomeBanner';
-import PageBannerSection from './BannerSection/PageBannerSection';
-import PageTagBannerSection from './BannerSection/PageTagBannerSection';
-import AboutUsSection from './AboutUsSection/AboutUsSection';
-import OurActionSection from './OurActionSection/OurActionSection';
-import WhereWeWorkSection from './WhereWeWorkSection/WhereWeWorkSection';
-import OurProgramsSection from './OurProgramsSection/OurProgramsSection';
-import StoriesSection from './StoriesSection/StoriesSection';
-import BlogSection from './BlogSection/BlogSection';
-import JobsSection from './JobsSection/JobsSection';
-import ProgramImpactSection from './ProgramImpactSection/ProgramImpactSection';
-import UpcomingEventsSection from './UpcomingEventsSection/UpcomingEventsSection';
-import HeroFigureSection from './HeroFigureSection/HeroFigureSection';
-import CardsSection from './CardsSection/CardsSection';
-import FAQSection from './FAQSection/FAQSection';
-import ContactOfficeSection from './ContactOfficeSection/ContactOfficeSection';
-import AddressSection from './AddressSection/AddressSection';
-import ContactReachSection from './ContactReachSection/ContactReachSection';
-import FollowUSSection from './FollowUSSection/FollowUSSection';
-import LegalSection from './LegalSection/LegalSection';
-import PublicationsSection from './PublicationsSection/PublicationsSection';
-import ImageGallerySection from './ImageGallerySection/ImageGallerySection';
-import VideoGallerySection from './VideoGallerySection/VideoGallerySection';
-import TextContentSection from './TextContentSection/TextContentSection';
+import HomeBanner from '../BannerSection/HomeBanner';
+import PageBannerSection from '../BannerSection/PageBannerSection';
+import PageTagBannerSection from '../BannerSection/PageTagBannerSection';
+import AboutUsSection from '../AboutUsSection/AboutUsSection';
+import OurActionSection from '../OurActionSection/OurActionSection';
+import WhereWeWorkSection from '../WhereWeWorkSection/WhereWeWorkSection';
+import OurProgramsSection from '../OurProgramsSection/OurProgramsSection';
+import StoriesSection from '../StoriesSection/StoriesSection';
+import BlogSection from '../BlogSection/BlogSection';
+import JobsSection from '../JobsSection/JobsSection';
+import ProgramImpactSection from '../ProgramImpactSection/ProgramImpactSection';
+import UpcomingEventsSection from '../UpcomingEventsSection/UpcomingEventsSection';
+import HeroFigureSection from '../HeroFigureSection/HeroFigureSection';
+import CardsSection from '../CardsSection/CardsSection';
+import FAQSection from '../FAQSection/FAQSection';
+import ContactOfficeSection from '../ContactOfficeSection/ContactOfficeSection';
+import AddressSection from '../AddressSection/AddressSection';
+import ContactReachSection from '../ContactReachSection/ContactReachSection';
+import FollowUSSection from '../FollowUSSection/FollowUSSection';
+import LegalSection from '../LegalSection/LegalSection';
+import PublicationsSection from '../PublicationsSection/PublicationsSection';
+import ImageGallerySection from '../ImageGallerySection/ImageGallerySection';
+import VideoGallerySection from '../VideoGallerySection/VideoGallerySection';
+import TextContentSection from '../TextContentSection/TextContentSection';
 
 // Import utilities
-import { normalizeData } from '../utils/sectionHelpers';
+import { normalizeData } from '../../utils/sectionHelpers';
 
 // Component mapping
 const sectionComponents = {

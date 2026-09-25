@@ -15,36 +15,36 @@ import { lazy } from 'react';
 
 export const SECTION_COMPONENTS = {
   // --- Banner Sections ---
-  HomeBanner: lazy(() => import('../Sections/BannerSection/HomeBanner')),
-  PageBannerSection: lazy(() => import('../Sections/BannerSection/PageBannerSection')),
-  PageTagBannerSection: lazy(() => import('../Sections/BannerSection/PageTagBannerSection')), // NEW
+  HomeBanner: lazy(() => import('../BannerSection/HomeBanner')),
+  PageBannerSection: lazy(() => import('../BannerSection/PageBannerSection')),
+  PageTagBannerSection: lazy(() => import('../BannerSection/PageTagBannerSection')), // NEW
   
   // --- Common Sections ---
-  FAQSection: lazy(() => import('../Sections/FAQSection/FAQSection')),
-  BlogSection: lazy(() => import('../Sections/BlogSection/BlogSection')),
-  JobsSection: lazy(() => import('../Sections/JobsSection/JobsSection')),
-  CardsSection: lazy(() => import('../Sections/CardsSection/CardsSection')),
-  LegalSection: lazy(() => import('../Sections/LegalSection/LegalSection')),
-  AddressSection: lazy(() => import('../Sections/AddressSection/AddressSection')),
-  AboutUsSection: lazy(() => import('../Sections/AboutUsSection/AboutUsSection')),
-  StoriesSection: lazy(() => import('../Sections/StoriesSection/StoriesSection')),
-  FollowUSSection: lazy(() => import('../Sections/FollowUSSection/FollowUSSection')),
-  OurActionSection: lazy(() => import('../Sections/OurActionSection/OurActionSection')),
-  HeroFigureSection: lazy(() => import('../Sections/HeroFigureSection/HeroFigureSection')),
-  OurProgramsSection: lazy(() => import('../Sections/OurProgramsSection/OurProgramsSection')),
-  WhereWeWorkSection: lazy(() => import('../Sections/WhereWeWorkSection/WhereWeWorkSection')),
-  ContactReachSection: lazy(() => import('../Sections/ContactReachSection/ContactReachSection')),
-  ContactOfficeSection: lazy(() => import('../Sections/ContactOfficeSection/ContactOfficeSection')),
-  ProgramImpactSection: lazy(() => import('../Sections/ProgramImpactSection/ProgramImpactSection')),
-  UpcomingEventsSection: lazy(() => import('../Sections/UpcomingEventsSection/UpcomingEventsSection')),
-  TextContentSection: lazy(() => import('../Sections/TextContentSection/TextContentSection')),
+  FAQSection: lazy(() => import('../FAQSection/FAQSection')),
+  BlogSection: lazy(() => import('../BlogSection/BlogSection')),
+  JobsSection: lazy(() => import('../JobsSection/JobsSection')),
+  CardsSection: lazy(() => import('../CardsSection/CardsSection')),
+  LegalSection: lazy(() => import('../LegalSection/LegalSection')),
+  AddressSection: lazy(() => import('../AddressSection/AddressSection')),
+  AboutUsSection: lazy(() => import('../AboutUsSection/AboutUsSection')),
+  StoriesSection: lazy(() => import('../StoriesSection/StoriesSection')),
+  FollowUSSection: lazy(() => import('../FollowUSSection/FollowUSSection')),
+  OurActionSection: lazy(() => import('../OurActionSection/OurActionSection')),
+  HeroFigureSection: lazy(() => import('../HeroFigureSection/HeroFigureSection')),
+  OurProgramsSection: lazy(() => import('../OurProgramsSection/OurProgramsSection')),
+  WhereWeWorkSection: lazy(() => import('../WhereWeWorkSection/WhereWeWorkSection')),
+  ContactReachSection: lazy(() => import('../ContactReachSection/ContactReachSection')),
+  ContactOfficeSection: lazy(() => import('../ContactOfficeSection/ContactOfficeSection')),
+  ProgramImpactSection: lazy(() => import('../ProgramImpactSection/ProgramImpactSection')),
+  UpcomingEventsSection: lazy(() => import('../UpcomingEventsSection/UpcomingEventsSection')),
+  TextContentSection: lazy(() => import('../TextContentSection/TextContentSection')),
   
   // --- Publications Section ---
-  PublicationsSection: lazy(() => import('../Sections/PublicationsSection/PublicationsSection')),
+  PublicationsSection: lazy(() => import('../PublicationsSection/PublicationsSection')),
 
   // --- Gallery Sections ---
-  ImageGallerySection: lazy(() => import('../Sections/ImageGallerySection/ImageGallerySection')),
-  VideoGallerySection: lazy(() => import('../Sections/VideoGallerySection/VideoGallerySection')),
+  ImageGallerySection: lazy(() => import('../ImageGallerySection/ImageGallerySection')),
+  VideoGallerySection: lazy(() => import('../VideoGallerySection/VideoGallerySection')),
 };
 
 // ============================================

@@ -33,7 +33,7 @@ import { showToast } from '../utils/toastHelper';
 import { getComponentLabel, getDataTableLabel, getSectionTypeInfo } from '../utils/sectionHelpers';
 
 // section components
-import SectionIndex from '../../../../../Sections/SectionIndex';
+import SectionIndex from '../../../../../Sections/_runtime/SectionIndex';
 
 const SectionRow = ({
   section,

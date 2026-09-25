@@ -13,7 +13,7 @@ import { FaRegClock, FaFacebookF, FaLinkedinIn, FaInstagram } from "react-icons/
 import PublicLayout from '../../../layouts/PublicLayout';
 
 // Components
-import DynamicSectionRenderer from '../../../Shared/DynamicSectionRenderer';
+import DynamicSectionRenderer from '../../../Sections/_runtime/DynamicSectionRenderer';
 
 // ------------------------------------------------------------------
 // Publication Banner Section

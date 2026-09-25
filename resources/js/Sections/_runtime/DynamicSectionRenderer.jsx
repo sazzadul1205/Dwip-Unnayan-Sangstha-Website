@@ -7,7 +7,7 @@
 
 import React, { Suspense } from 'react';
 import SectionLoader from './SectionLoader';
-import { SECTION_COMPONENTS, SECTION_CONFIGS } from '../config/sectionRegistry';
+import { SECTION_COMPONENTS, SECTION_CONFIGS } from './sectionRegistry';
 
 // Components that always receive their whole payload as ONE prop object.
 // These must never be spread (isMultiProp) — otherwise the shape breaks.

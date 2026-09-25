@@ -1,6 +1,6 @@
 // resources/js/Shared/SectionLoader.jsx
 
-import { Skeleton, SkeletonText } from './Skeletons/SkeletonPrimitives';
+import { Skeleton, SkeletonText } from '../../Shared/Skeletons/SkeletonPrimitives';
 
 /**
  * Generic skeleton fallback for lazy-loaded sections.

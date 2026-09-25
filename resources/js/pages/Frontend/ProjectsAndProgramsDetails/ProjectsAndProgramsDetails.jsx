@@ -8,7 +8,7 @@ import { Head } from "@inertiajs/react";
 import PublicLayout from '../../../layouts/PublicLayout';
 
 // Components
-import DynamicSectionRenderer from '../../../Shared/DynamicSectionRenderer';
+import DynamicSectionRenderer from '../../../Sections/_runtime/DynamicSectionRenderer';
 import NotFoundContent from '../../../Shared/NotFoundContent';
 
 // Program Content Section Component
