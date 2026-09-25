@@ -1,4 +1,4 @@
-// dus-frontend/src/config/sectionRegistry.js
+// resources/js/Sections/_runtime/sectionRegistry.js
 
 /**
  * ============================================

@@ -1,8 +1,8 @@
-// resources/js/Sections/SectionIndex.jsx
+// resources/js/Sections/_runtime/SectionIndex.jsx
 // BACKEND-ONLY inline preview renderer (used by SectionRow.jsx admin preview).
 // Handles legacy data shapes via normalizeData + per-component prop mapping.
-// NOTE: NOT a duplicate of Shared/DynamicSectionRenderer.jsx — that one is the
-// FRONTEND lazy-loaded renderer driven by config/sectionRegistry.js.
+// NOTE: NOT a duplicate of Sections/_runtime/DynamicSectionRenderer.jsx — that
+// one is the FRONTEND lazy-loaded renderer driven by _runtime/sectionRegistry.js.
 // Keep both; do not merge without aligning prop-mapping + normalization first.
 
 import React from 'react';

@@ -1,4 +1,4 @@
-// resources/js/Shared/SectionLoader.jsx
+// resources/js/Sections/_runtime/SectionLoader.jsx
 
 import { Skeleton, SkeletonText } from '../../Shared/Skeletons/SkeletonPrimitives';
 
