@@ -8,6 +8,7 @@ use App\Notifications\CustomVerifyEmailNotification;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Notifications\DatabaseNotification;
@@ -55,6 +56,24 @@ class User extends Authenticatable implements MustVerifyEmail
     public function jobViews()
     {
         return $this->hasMany(JobView::class);
+    }
+
+    /**
+     * Applications submitted to the jobs this user posted.
+     *
+     * Distinct from applications(): employers post jobs and never apply to
+     * them, so applications() is structurally empty for employer accounts.
+     * Traverse through job_listings to reach the applications they received.
+     * Trashed listings and soft-deleted applications are excluded automatically.
+     */
+    public function receivedApplications(): HasManyThrough
+    {
+        return $this->hasManyThrough(
+            Application::class,
+            JobListing::class,
+            'user_id',
+            'job_listing_id'
+        );
     }
 
     // ========== NOTIFICATIONS ==========

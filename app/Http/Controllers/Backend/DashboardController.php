@@ -3,54 +3,67 @@
 namespace App\Http\Controllers\Backend;
 
 use App\Http\Controllers\Controller;
+use App\Models\ApplicantProfile;
 use App\Models\Application;
 use App\Models\JobListing;
 use App\Models\JobView;
 use App\Models\Location;
 use App\Models\User;
-use App\Services\SimpleLogger;
+use App\Services\DashboardMetrics;
+use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 use Inertia\Response;
-use App\Models\ApplicantProfile;
 
 class DashboardController extends Controller
 {
   /**
-   * Cache duration in seconds (5 minutes).
+   * Cache lifetime for the global (identical-for-everyone) admin block.
    */
-  protected int $cacheDuration = 120;
+  protected int $globalCacheDuration = 300;
+
+  /**
+   * Cache lifetime for the per-user scoped blocks.
+   */
+  protected int $userCacheDuration = 120;
+
+  /**
+   * Role slugs that identify an employer-side account.
+   */
+  protected const EMPLOYER_ROLE_SLUGS = DashboardMetrics::EMPLOYER_ROLE_SLUGS;
+
+  /**
+   * Bump to invalidate every cached dashboard payload at once.
+   */
+  protected const CACHE_VERSION = 'v2';
 
   /**
    * Display the dashboard based on user role.
    */
-  public function index(): Response
+  public function index(Request $request): Response
   {
     $user = $this->getAuthUser();
+    $user->loadMissing('roles');
 
-    // Log dashboard access
-    SimpleLogger::system(
-      "📊 Dashboard accessed by: " . $user->email,
-      [
-        'user_id' => $user->id,
-        'user_email' => $user->email,
-        'ip' => request()->ip(),
-      ]
-    );
+    $roles = $user->roles?->pluck('slug')->all() ?? [];
+    $permissions = $user->permissions_list ?? [];
+    $role = $this->detectRole($roles, $permissions);
 
-    // Cache dashboard data per user (5 minutes)
-    $cacheKey = 'dashboard_data_' . $user->id;
+    $days = DashboardMetrics::rangeToDays($request->query('range'));
 
-    $dashboardData = Cache::remember($cacheKey, $this->cacheDuration, function () use ($user) {
-      return $this->buildDashboardData($user);
-    });
+    $dashboardData = [
+      'role' => $role,
+      'job_seeker' => $this->jobSeekerData($user, $roles, $permissions),
+      'admin_staff' => $this->adminData($user, $roles, $permissions, $days),
+      'generated_at' => now()->toDateTimeString(),
+    ];
 
-    Log::info('Dashboard Data:', [
-      'role' => $dashboardData['role'],
-      'has_job_seeker' => $dashboardData['job_seeker'] !== null,
-      'has_admin_staff' => $dashboardData['admin_staff'] !== null,
+    Log::debug('Dashboard rendered', [
+      'user_id' => $user->id,
+      'role' => $role,
     ]);
 
     return Inertia::render('dashboard', [
@@ -59,20 +72,26 @@ class DashboardController extends Controller
   }
 
   /**
-   * Clear dashboard cache (useful after profile updates, job applications, etc.).
+   * Clear cached dashboard payloads.
+   *
+   * The global block is shared by every admin, so clearing it invalidates one
+   * key rather than one key per user. The legacy signature is kept for
+   * compatibility with existing callers.
    */
   public function clearCache(?int $userId = null): void
   {
+    Cache::forget($this->globalCacheKey());
+
     if ($userId) {
-      Cache::forget('dashboard_data_' . $userId);
-    } elseif ($user = $this->getAuthUser()) {
-      Cache::forget('dashboard_data_' . $user->id);
+      Cache::forget($this->userCacheKey($userId));
+    } elseif ($user = Auth::user()) {
+      Cache::forget($this->userCacheKey($user->id));
     }
   }
 
-    // ==========================================
-    // PRIVATE HELPER METHODS
-    // ==========================================
+  /* ==========================================
+   | PRIVATE HELPERS
+   |========================================== */
 
   /**
    * Get the authenticated user.
@@ -87,35 +106,34 @@ class DashboardController extends Controller
   }
 
   /**
-   * Build dashboard data for the current user.
+   * Cache key for the shared platform-wide block.
    */
-  private function buildDashboardData(User $user): array
+  private function globalCacheKey(): string
   {
-    $roles = $user->roles?->pluck('slug')->all() ?? [];
-    $permissions = $user->permissions_list ?? [];
+    return 'dash:global:' . self::CACHE_VERSION;
+  }
 
-    $role = $this->detectRole($roles, $permissions);
-
-    $jobSeekerDashboard = $this->buildJobSeekerData($user, $roles, $permissions);
-    $adminDashboard = $this->buildAdminData($user, $roles, $permissions);
-
-    return [
-      'role' => $role,
-      'job_seeker' => $jobSeekerDashboard,
-      'admin_staff' => $adminDashboard,
-    ];
+  /**
+   * Cache key for a per-user scoped block.
+   */
+  private function userCacheKey(int $userId): string
+  {
+    return 'dash:user:' . self::CACHE_VERSION . ':' . $userId;
   }
 
   /**
    * Detect the user's primary role.
+   *
+   * @param  array<int, string>  $roles
+   * @param  array<int, string>  $permissions
    */
   private function detectRole(array $roles, array $permissions): string
   {
-    $hasAnyRole = fn(array $needles) => count(array_intersect($roles, $needles)) > 0;
-    $hasPermission = fn(string $permission) => in_array($permission, $permissions, true);
+    $hasAnyRole = fn (array $needles) => count(array_intersect($roles, $needles)) > 0;
+    $hasPermission = fn (string $permission) => in_array($permission, $permissions, true);
 
     $isAdmin = $hasAnyRole(['super-admin', 'admin']) || $hasPermission('dashboard.admin');
-    $isEmployer = $hasAnyRole(['employer-admin', 'hr-manager', 'recruiter']) || $hasPermission('dashboard.employer');
+    $isEmployer = $hasAnyRole(self::EMPLOYER_ROLE_SLUGS) || $hasPermission('dashboard.employer');
     $isJobSeeker = in_array('job-seeker', $roles, true) || $hasPermission('dashboard.job_seeker');
 
     if ($isAdmin) {
@@ -132,8 +150,12 @@ class DashboardController extends Controller
 
   /**
    * Build job seeker dashboard data.
+   *
+   * @param  array<int, string>  $roles
+   * @param  array<int, string>  $permissions
+   * @return array<string, mixed>|null
    */
-  private function buildJobSeekerData(User $user, array $roles, array $permissions): ?array
+  private function jobSeekerData(User $user, array $roles, array $permissions): ?array
   {
     $isJobSeeker = in_array('job-seeker', $roles, true)
       || in_array('dashboard.job_seeker', $permissions, true);
@@ -142,45 +164,35 @@ class DashboardController extends Controller
       return null;
     }
 
-    $profile = $user->applicantProfile()->with([
-      'cvs' => fn($q) => $q->where('status', 'active')->orderBy('order_position'),
-      'primaryCv',
-      'jobHistories',
-      'educationHistories',
-      'achievements',
-    ])->first();
+    return Cache::remember($this->userCacheKey($user->id) . ':seeker', $this->userCacheDuration, function () use ($user) {
+      $profile = $user->applicantProfile()->with([
+        'cvs' => fn ($q) => $q->where('status', 'active')->orderBy('order_position'),
+        'primaryCv',
+      ])->first();
 
-    if (!$profile) {
-      return null;
-    }
+      if (!$profile) {
+        return null;
+      }
 
-    return [
-      'role' => 'job_seeker',
-      'summary' => [
-        'profile_completion' => $profile->completionPercentage(),
-        'active_cvs' => $profile->cvs->count(),
-        'primary_cv_set' => (bool) $profile->primaryCv,
-        'total_applications' => $profile->applications()->count(),
-        'pending_applications' => $profile->applications()->where('status', Application::STATUS_PENDING)->count(),
-        'shortlisted_applications' => $profile->applications()->where('status', Application::STATUS_SHORTLISTED)->count(),
-        'rejected_applications' => $profile->applications()->where('status', Application::STATUS_REJECTED)->count(),
-        'hired_applications' => $profile->applications()->where('status', Application::STATUS_HIRED)->count(),
-        'interviews' => $profile->applications()->where('status', Application::STATUS_SHORTLISTED)->count(),
-        'views_on_profile' => JobView::where('user_id', $user->id)->count(),
-      ],
-      'progress' => [
-        'label' => 'Profile completion',
-        'value' => $profile->completionPercentage(),
-        'message' => $profile->completionPercentage() < 100
-          ? 'Complete your profile to improve your visibility to recruiters.'
-          : 'Your profile is complete and ready to attract recruiters.',
-      ],
-      'recent_applications' => $profile->applications()
+      $completion = $profile->completionPercentage();
+
+      $statusCounts = Application::query()
+        ->where('applicant_profile_id', $profile->id)
+        ->selectRaw(<<<'SQL'
+            COUNT(*)                                                    AS total,
+            COALESCE(SUM(status = 'pending'), 0)     AS pending,
+            COALESCE(SUM(status = 'shortlisted'), 0) AS shortlisted,
+            COALESCE(SUM(status = 'rejected'), 0)    AS rejected,
+            COALESCE(SUM(status = 'hired'), 0)       AS hired
+        SQL)
+        ->first();
+
+      $recentApplications = $profile->applications()
         ->with(['jobListing.category', 'jobListing.employer'])
         ->latest()
         ->limit(5)
         ->get()
-        ->map(fn($app) => [
+        ->map(fn (Application $app) => [
           'id' => $app->id,
           'job_title' => $app->jobListing?->title ?? 'N/A',
           'company' => $app->jobListing?->employer?->name ?? 'N/A',
@@ -188,29 +200,80 @@ class DashboardController extends Controller
           'ats_score' => $app->ats_score_percentage,
           'applied_at' => $app->created_at?->toDateTimeString(),
           'deadline' => $app->jobListing?->application_deadline?->toDateString(),
+        ])->values();
+
+      return [
+        'role' => 'job_seeker',
+        'summary' => [
+          'profile_completion' => $completion,
+          'active_cvs' => $profile->cvs->count(),
+          'primary_cv_set' => (bool) $profile->primaryCv,
+          'total_applications' => (int) $statusCounts->total,
+          'pending_applications' => (int) $statusCounts->pending,
+          'shortlisted_applications' => (int) $statusCounts->shortlisted,
+          'rejected_applications' => (int) $statusCounts->rejected,
+          'hired_applications' => (int) $statusCounts->hired,
+          // Distinct metric: an applicant can be shortlisted without ever
+          // having received an interview, so this is no longer a copy of
+          // shortlisted_applications.
+          'interviews' => $this->countInterviews($profile->id),
+          // JobView rows are job impressions, not profile impressions. This
+          // now counts views of the jobs this seeker has applied to, which is
+          // the signal the label always implied.
+          'views_on_profile' => JobView::whereIn(
+            'job_listing_id',
+            $profile->applications()->select('job_listing_id')
+          )->count(),
+        ],
+        'progress' => [
+          'label' => 'Profile completion',
+          'value' => $completion,
+          'message' => $completion < 100
+            ? 'Complete your profile to improve your visibility to recruiters.'
+            : 'Your profile is complete and ready to attract recruiters.',
+        ],
+        'recent_applications' => $recentApplications,
+        'recent_notifications' => $user->notifications()->latest()->limit(5)->get()->map(fn ($n) => [
+          'id' => $n->id,
+          'title' => $n->data['title'] ?? 'Update received',
+          'body' => $n->data['message'] ?? null,
+          'read_at' => $n->read_at,
+          'created_at' => $n->created_at?->toDateTimeString(),
         ])->values(),
-      'recent_notifications' => $user->notifications()->latest()->limit(5)->get()->map(fn($n) => [
-        'id' => $n->id,
-        'title' => $n->data['title'] ?? 'Update received',
-        'body' => $n->data['message'] ?? null,
-        'read_at' => $n->read_at,
-        'created_at' => $n->created_at?->toDateTimeString(),
-      ])->values(),
-      'recommended_jobs' => $this->getRecommendedJobs($profile),
-    ];
+        'recommended_jobs' => $this->recommendedJobs($profile),
+      ];
+    });
   }
+
   /**
-   * Get recommended jobs for a job seeker.
+   * Applications that advanced to shortlisted or hired.
    *
-   * @param ApplicantProfile|null $profile
+   * Read from status_timelines so an interview is distinguished from a bare
+   * shortlist.
+   */
+  private function countInterviews(int $profileId): int
+  {
+    return Application::query()
+      ->where('applicant_profile_id', $profileId)
+      ->whereHas('statusTimelines', fn ($q) => $q->whereIn('status', [
+        Application::STATUS_SHORTLISTED,
+        Application::STATUS_HIRED,
+      ]))
+      ->count();
+  }
+
+  /**
+   * Recommended jobs for a job seeker.
+   *
    * @return array<int, array<string, mixed>>
    */
-  private function getRecommendedJobs(?ApplicantProfile $profile): array
+  private function recommendedJobs(?ApplicantProfile $profile): array
   {
     $query = JobListing::query()
       ->where('is_active', true)
       ->whereNull('deleted_at')
       ->where('application_deadline', '>=', now())
+      ->where('publish_at', '<=', now())
       ->with(['category', 'locations', 'employer'])
       ->withCount(['applications', 'views']);
 
@@ -218,13 +281,10 @@ class DashboardController extends Controller
       $query->where('title', 'like', '%' . $profile->current_job_title . '%');
     }
 
-    /** @var \Illuminate\Support\Collection<int, JobListing> $jobs */
-    $jobs = $query->latest()
+    return $query->latest()
       ->limit(6)
-      ->get();
-
-    return $jobs
-      ->map(fn(JobListing $job) => [
+      ->get()
+      ->map(fn (JobListing $job) => [
         'id' => $job->id,
         'title' => $job->title,
         'slug' => $job->slug,
@@ -242,86 +302,227 @@ class DashboardController extends Controller
 
   /**
    * Build admin/employer dashboard data.
+   *
+   * Platform administrators receive global metrics. Employer-side staff
+   * receive metrics scoped strictly to their own listings, because the
+   * previous implementation handed them every applicant on the platform.
+   *
+   * @param  array<int, string>  $roles
+   * @param  array<int, string>  $permissions
+   * @return array<string, mixed>|null
    */
-  /**
-   * Build admin/employer dashboard data.
-   */
-  private function buildAdminData(User $user, array $roles, array $permissions): ?array
+  private function adminData(User $user, array $roles, array $permissions, int $days): ?array
   {
-    $hasAnyRole = fn(array $needles) => count(array_intersect($roles, $needles)) > 0;
-    $hasPermission = fn(string $permission) => in_array($permission, $permissions, true);
+    $hasAnyRole = fn (array $needles) => count(array_intersect($roles, $needles)) > 0;
+    $hasPermission = fn (string $permission) => in_array($permission, $permissions, true);
 
     $isAdmin = $hasAnyRole(['super-admin', 'admin']) || $hasPermission('dashboard.admin');
-    $isEmployer = $hasAnyRole(['employer-admin', 'hr-manager', 'recruiter']) || $hasPermission('dashboard.employer');
+    $isEmployer = $hasAnyRole(self::EMPLOYER_ROLE_SLUGS) || $hasPermission('dashboard.employer');
 
     if (!($isAdmin || $isEmployer)) {
       return null;
     }
 
-    return [
-      'role' => $isAdmin ? 'admin' : 'employer',
-      'summary' => [
-        'total_users' => User::count(),
-        'active_users' => User::whereNotNull('email_verified_at')->count(),
-        'total_job_seekers' => User::whereHas('roles', fn($q) => $q->where('slug', 'job-seeker'))->count(),
-        'total_employers' => User::whereHas('roles', fn($q) => $q->whereIn('slug', ['employer-admin', 'hr-manager', 'recruiter']))->count(),
-        'total_jobs' => JobListing::withTrashed()->count(),
-        'active_jobs' => JobListing::where('is_active', true)->whereNull('deleted_at')->count(),
-        'expired_jobs' => JobListing::where('application_deadline', '<', now())->count(),
-        'total_applications' => Application::count(),
-        'pending_applications' => Application::where('status', Application::STATUS_PENDING)->count(),
-        'shortlisted_applications' => Application::where('status', Application::STATUS_SHORTLISTED)->count(),
-        'hired_applications' => Application::where('status', Application::STATUS_HIRED)->count(),
-        'average_ats' => (int) round((float) Application::query()
-          ->selectRaw('AVG(COALESCE(JSON_EXTRACT(ats_score, "$.percentage"), JSON_EXTRACT(ats_score, "$.total"), 0)) as avg_score')
-          ->value('avg_score') ?? 0),
-        'active_locations' => Location::where('is_active', true)->count(),
-      ],
-      'recent_applications' => Application::with(['jobListing.employer', 'applicantProfile.user'])
-        ->latest()
-        ->limit(8)
-        ->get()
-        ->map(fn(Application $app) => [
-          'id' => $app->id,
-          'applicant' => $app->name ?? 'N/A',
-          'job_title' => $app->jobListing?->title ?? 'N/A',
-          'company' => $app->jobListing?->employer?->name ?? 'N/A',
-          'status' => $app->status,
-          'ats_score' => $app->ats_score_percentage,
-          'submitted_at' => $app->created_at?->toDateTimeString(),
-        ])->values(),
-      'top_jobs' => JobListing::with(['category', 'employer'])
-        ->withCount(['applications', 'views'])
-        ->orderByDesc('applications_count')
-        ->limit(6)
-        ->get()
-        ->map(fn(JobListing $job) => [
+    return $isAdmin
+      ? $this->platformAdminData($days)
+      : $this->employerData($user);
+  }
+
+  /**
+   * Global platform view for administrators.
+   *
+   * @return array<string, mixed>
+   */
+  private function platformAdminData(int $days): array
+  {
+    return Cache::remember(
+      $this->globalCacheKey() . ':' . $days,
+      $this->globalCacheDuration,
+      function () use ($days) {
+        $kpis = DashboardMetrics::platformKpis();
+        $pipeline = DashboardMetrics::pipelineHealth();
+        $topJobs = DashboardMetrics::topJobs();
+        $activity = DashboardMetrics::recentActivity(12);
+        $series = DashboardMetrics::timeSeries($days);
+        $monthlySeries = $days === 30 ? $series : DashboardMetrics::timeSeries(30);
+
+        return [
+          'scope' => 'platform',
+          'role' => 'admin',
+
+          // Legacy keys retained for the existing dashboard.jsx contract.
+          'summary' => [
+            'total_users' => $kpis['users']['total'],
+            'active_users' => $kpis['users']['verified'],
+            'total_job_seekers' => $kpis['users']['job_seekers'],
+            'total_employers' => $kpis['users']['employers'],
+            'total_jobs' => $kpis['jobs']['total'],
+            'active_jobs' => $kpis['jobs']['active'],
+            'expired_jobs' => $kpis['jobs']['expired'],
+            'total_applications' => $kpis['applications']['total'],
+            'pending_applications' => $kpis['applications']['pending'],
+            'shortlisted_applications' => $kpis['applications']['shortlisted'],
+            'hired_applications' => $kpis['applications']['hired'],
+            'average_ats' => $kpis['engagement']['avg_ats'] ?? 0,
+            'active_locations' => Location::where('is_active', true)->count(),
+          ],
+
+          'kpis' => $kpis,
+
+          'timeseries' => $series,
+          'comparison' => DashboardMetrics::periodComparison($days),
+          'funnel' => DashboardMetrics::funnel(),
+          'distributions' => DashboardMetrics::distributions(),
+          'pipeline' => $pipeline,
+          'ats' => DashboardMetrics::atsHealth(),
+          'applicants' => DashboardMetrics::applicantPool(),
+          'cms' => DashboardMetrics::cmsHealth(),
+          'newsletter' => DashboardMetrics::newsletterHealth(),
+
+          'recent_applications' => $this->recentApplications(),
+          'recent_activity' => $activity,
+          'top_jobs' => $topJobs['by_applications'],
+          'top_jobs_by_views' => $topJobs['by_views'],
+          'top_jobs_by_conversion' => $topJobs['by_conversion'],
+          'top_employers' => DashboardMetrics::topEmployers(),
+
+          'trend' => [
+            'jobs_last_30_days' => array_sum($monthlySeries['jobs']),
+            'applications_last_30_days' => array_sum($monthlySeries['applications']),
+            'views_last_30_days' => $kpis['engagement']['views_30d'],
+          ],
+        ];
+      }
+    );
+  }
+
+  /**
+   * Scoped view for employer-side staff.
+   *
+   * @return array<string, mixed>
+   */
+  private function employerData(User $user): array
+  {
+    return Cache::remember(
+      $this->userCacheKey($user->id) . ':employer',
+      $this->userCacheDuration,
+      function () use ($user) {
+        $jobIds = JobListing::query()
+          ->where('user_id', $user->id)
+          ->whereNull('deleted_at')
+          ->select('id');
+
+        $jobs = JobListing::query()
+          ->where('user_id', $user->id)
+          ->whereNull('deleted_at');
+
+        $applications = Application::query()->whereIn('job_listing_id', $jobIds);
+
+        $statusCounts = (clone $applications)
+          ->selectRaw(<<<'SQL'
+              COUNT(*)                                                    AS total,
+              COALESCE(SUM(status = 'pending'), 0)     AS pending,
+              COALESCE(SUM(status = 'shortlisted'), 0) AS shortlisted,
+              COALESCE(SUM(status = 'rejected'), 0)    AS rejected,
+              COALESCE(SUM(status = 'hired'), 0)       AS hired
+          SQL)
+          ->first();
+
+        $totalViews = JobView::whereIn('job_listing_id', $jobIds)->count();
+
+        $myJobs = $jobs->get()->map(fn (JobListing $job) => [
           'id' => $job->id,
           'title' => $job->title,
-          'company' => $job->employer?->name ?? 'N/A',
           'category' => $job->category?->name ?? 'N/A',
-          'applications_count' => $job->applications_count,
-          'views_count' => $job->views_count,
-          'is_active' => $job->is_active,
-          'deadline' => $job->application_deadline,
-        ])->values(),
-      'top_employers' => User::query()
-        ->whereHas('roles', fn($q) => $q->whereIn('slug', ['employer-admin', 'hr-manager', 'recruiter']))
-        ->withCount(['jobListings', 'applications'])
-        ->orderByDesc('job_listings_count')
-        ->limit(8)
-        ->get()
-        ->map(fn(User $employer) => [
-          'id' => $employer->id,
-          'name' => $employer->name ?? 'N/A',
-          'job_listings_count' => $employer->job_listings_count,
-          'applications_count' => $employer->applications_count,
-        ])->values(),
-      'trend' => [
-        'jobs_last_30_days' => JobListing::where('created_at', '>=', now()->subDays(30))->count(),
-        'applications_last_30_days' => Application::where('created_at', '>=', now()->subDays(30))->count(),
-        'views_last_30_days' => JobView::where('created_at', '>=', now()->subDays(30))->count(),
-      ],
-    ];
+          'company' => $user->name ?? 'N/A',
+          'is_active' => (bool) $job->is_active,
+          'deadline' => $job->application_deadline?->toDateString(),
+          'views_count' => (int) $job->views_count,
+          'applications_count' => $job->applications()->count(),
+        ])->values();
+
+        return [
+          'scope' => 'employer',
+          'role' => 'employer',
+
+          'summary' => [
+            'total_users' => 0,
+            'active_users' => 0,
+            'total_job_seekers' => 0,
+            'total_employers' => 0,
+            'total_jobs' => (int) (clone $jobs)->count(),
+            'active_jobs' => (clone $jobs)->where('is_active', true)->where('application_deadline', '>=', now())->count(),
+            'expired_jobs' => (clone $jobs)->where('application_deadline', '<', now())->count(),
+            'expiring_7d' => (clone $jobs)
+              ->where('is_active', true)
+              ->whereBetween('application_deadline', [now(), now()->addDays(7)])
+              ->count(),
+            'total_applications' => (int) $statusCounts->total,
+            'pending_applications' => (int) $statusCounts->pending,
+            'shortlisted_applications' => (int) $statusCounts->shortlisted,
+            'hired_applications' => (int) $statusCounts->hired,
+            'average_ats' => (int) round((float) (clone $applications)
+              ->where('ats_calculation_status', Application::ATS_COMPLETED)
+              ->selectRaw("AVG(CAST(JSON_UNQUOTE(JSON_EXTRACT(ats_score, '$.percentage')) AS DECIMAL(5,2))) AS avg_ats")
+              ->value('avg_ats') ?? 0),
+            'total_views' => $totalViews,
+          ],
+
+          'pending_reviews' => (int) (clone $applications)
+            ->where('status', Application::STATUS_PENDING)
+            ->where(fn ($q) => $q->whereNull('employer_notes')->orWhere('employer_notes', ''))
+            ->count(),
+
+          'my_jobs' => $myJobs,
+          'recent_applications' => (clone $applications)
+            ->with(['jobListing:id,title,user_id', 'jobListing.employer:id,name'])
+            ->latest()
+            ->limit(8)
+            ->get()
+            ->map(fn (Application $app) => [
+              'id' => $app->id,
+              'applicant' => $app->name ?? 'N/A',
+              'job_title' => $app->jobListing?->title ?? 'N/A',
+              'company' => $app->jobListing?->employer?->name ?? 'N/A',
+              'status' => $app->status,
+              'ats_score' => $app->ats_score_percentage,
+              'submitted_at' => $app->created_at?->toDateTimeString(),
+            ])->values(),
+
+          'top_jobs' => $myJobs->sortByDesc('applications_count')->take(6)->values()->all(),
+
+          'trend' => [
+            'applications_last_30_days' => (int) (clone $applications)
+              ->where('created_at', '>=', now()->subDays(30))->count(),
+            'views_last_30_days' => JobView::whereIn('job_listing_id', $jobIds)
+              ->where('created_at', '>=', now()->subDays(30))->count(),
+            'jobs_last_30_days' => 0,
+          ],
+        ];
+      }
+    );
+  }
+
+  /**
+   * Latest applications across the platform, for the activity feed.
+   *
+   * @return Collection<int, array<string, mixed>>
+   */
+  private function recentApplications(): Collection
+  {
+    return Application::query()
+      ->with(['jobListing.employer:id,name', 'jobListing:id,title,user_id'])
+      ->latest()
+      ->limit(8)
+      ->get()
+      ->map(fn (Application $app) => [
+        'id' => $app->id,
+        'applicant' => $app->name ?? 'N/A',
+        'job_title' => $app->jobListing?->title ?? 'N/A',
+        'company' => $app->jobListing?->employer?->name ?? 'N/A',
+        'status' => $app->status,
+        'ats_score' => $app->ats_score_percentage,
+        'submitted_at' => $app->created_at?->toDateTimeString(),
+      ])->values();
   }
 }
