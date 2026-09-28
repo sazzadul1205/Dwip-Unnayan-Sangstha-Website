@@ -42,7 +42,6 @@ const SECTION_ICONS = {
   'OurProgramsSection': FaLayerGroup,
   'FAQSection': FaQuestionCircle,
   'UpcomingEventsSection': FaCalendarAlt,
-  'ContentSection': FaFileAlt,
   'PublicationsSection': FaNewspaper,
   'StoriesSection': FaUserFriends,
   'HomeBanner': FaHome,
@@ -105,15 +104,6 @@ const SECTION_OPTIONS = {
     category: 'content',
     badge: 'Shared',
     badgeColor: 'green'
-  },
-  'ContentSection': {
-    label: 'Dynamic Content Section',
-    data_table: 'about_content',
-    description: 'Display dynamic content from About Content Manager',
-    isSpecial: true,
-    category: 'content',
-    badge: 'Dynamic',
-    badgeColor: 'purple'
   },
   'TextContentSection': {
     label: 'Text Content Section',

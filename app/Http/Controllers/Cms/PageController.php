@@ -3,13 +3,16 @@
 namespace App\Http\Controllers\Cms;
 
 use App\Http\Controllers\Controller;
+use App\Models\pages\CustomSectionData;
 use App\Models\pages\Page;
+use App\Models\pages\SectionConfig;
 use App\Models\User;
 use App\Services\SimpleLogger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Validation\ValidationException;
@@ -18,35 +21,119 @@ use Inertia\Response;
 
 class PageController extends Controller
 {
-  /**
-   * List of protected page slugs that cannot be deactivated or deleted.
-   */
-  protected array $protectedSlugs = [
-    'home',
-    'about',
-    'services',
-    'contact',
-    'blog',
-    'projects-programs',
-    'publications',
-    'gallery',
-    'jobs',
-    'terms',
-    'privacy',
-  ];
+    /**
+     * List of protected page slugs that cannot be deactivated or deleted.
+     */
+    protected array $protectedSlugs = [
+        'home',
+        'about',
+        'services',
+        'contact',
+        'blog',
+        'projects-programs',
+        'publications',
+        'gallery',
+        'jobs',
+        'terms',
+        'privacy',
+    ];
 
-  /**
-   * Check if a page is protected.
-   */
-  protected function isProtected(Page $page): bool
-  {
-    // Pages with "-details" suffix are always protected
-    if (str_ends_with($page->slug, '-details')) {
-      return true;
+    /**
+     * Check if a page is protected.
+     */
+    protected function isProtected(Page $page): bool
+    {
+        // Pages with "-details" suffix are always protected
+        if (str_ends_with($page->slug, '-details')) {
+            return true;
+        }
+
+        return in_array($page->slug, $this->protectedSlugs, true);
     }
 
-    return in_array($page->slug, $this->protectedSlugs, true);
-  }
+    /**
+     * Create a default PageBannerSection for the new page.
+     */
+    private function createDefaultPageBanner(Page $page): void
+    {
+        $sectionKey = 'page-banner-' . $page->slug;
+
+        // Check if a PageBannerSection already exists for this page
+        $existingBanner = SectionConfig::where('page_slug', $page->slug)
+            ->where('component', 'PageBannerSection')
+            ->first();
+
+        if ($existingBanner) {
+            return;
+        }
+
+        // Don't start a new transaction if we're already in one (e.g., during testing)
+        // The outer transaction will handle rollback if needed
+        $inTransaction = DB::transactionLevel() > 0;
+
+        if (!$inTransaction) {
+            DB::beginTransaction();
+        }
+
+        try {
+            $maxOrder = SectionConfig::where('page_slug', $page->slug)->max('display_order') ?? 0;
+
+            $dataKey = 'page_banner_' . $page->slug;
+
+            $sectionConfig = SectionConfig::create([
+                'page_slug' => $page->slug,
+                'section_key' => $sectionKey,
+                'component' => 'PageBannerSection',
+                'data_table' => 'custom_section_data',
+                'data_key' => $dataKey,
+                'prop_name' => 'pageBanner',
+                'display_order' => $maxOrder + 1,
+                'is_enabled' => true,
+                'is_fixed_section' => false,
+                'is_special_component' => false,
+                'custom_props' => [],
+            ]);
+
+            // Create default data with page title and description if provided
+            $template = [
+                'background' => [
+                    'src' => 'https://via.placeholder.com/1920x600/1a1a2e/FFFFFF?text=' . urlencode($page->name . ' Banner'),
+                    'alt' => $page->name . ' Banner Background',
+                ],
+                'overlay' => ['darkOverlay' => 'bg-black/40 sm:bg-black/30 md:bg-black/20 lg:bg-black/10', 'gradient' => ''],
+                'content' => [
+                    'title' => ['text' => $page->title ?? $page->name, 'className' => ''],
+                    'description' => ['text' => $page->description ?? 'Page description goes here. Customize this text to describe your page content.', 'className' => ''],
+                ],
+            ];
+
+            CustomSectionData::updateOrCreate(
+                [
+                    'page_slug' => $page->slug,
+                    'section_key' => $sectionKey,
+                ],
+                [
+                    'data' => $template,
+                    'is_active' => true,
+                ]
+            );
+
+            if (!$inTransaction) {
+                DB::commit();
+            }
+        } catch (\Exception $e) {
+            if (!$inTransaction) {
+                DB::rollBack();
+            }
+            Log::error('Failed to create default PageBannerSection: ' . $e->getMessage(), [
+                'page_id' => $page->id,
+                'trace' => $e->getTraceAsString(),
+            ]);
+            
+            // Re-throw to let the caller handle it
+            throw $e;
+        }
+    }
 
   /**
    * Display pages – with caching for admin list.
@@ -100,8 +187,12 @@ class PageController extends Controller
 
       $data = $validated;
       $data['is_active'] = filter_var($data['is_active'] ?? true, FILTER_VALIDATE_BOOLEAN);
+      // Use name as fallback for title since DB requires NOT NULL
+      $data['title'] = $data['title'] ?? $data['name'];
 
       $page = Page::create($data);
+
+      $this->createDefaultPageBanner($page);
 
       $this->clearCache();
       RateLimiter::clear($this->getThrottleKey('page_create', $user->id));

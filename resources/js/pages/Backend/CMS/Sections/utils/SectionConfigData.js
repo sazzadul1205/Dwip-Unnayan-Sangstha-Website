@@ -45,6 +45,35 @@ export const SECTION_CONFIGS = {
       { key: 'sectionClassName', label: 'Additional CSS Classes', type: 'text', default: '' },
     ]
   },
+  'PageTagBannerSection': {
+    fields: [
+      { key: 'bgColor', label: 'Background Color', type: 'color', default: '' },
+      {
+        key: 'height', label: 'Height', type: 'select', default: 'h-64 sm:h-80 md:h-100 lg:h-120 xl:h-135 2xl:h-147.25', options: [
+          { value: 'h-56 sm:h-64 md:h-80', label: 'Small' },
+          { value: 'h-64 sm:h-80 md:h-100', label: 'Medium' },
+          { value: 'h-80 sm:h-100 md:h-120', label: 'Large' },
+        ]
+      },
+      {
+        key: 'paddingY', label: 'Vertical Padding', type: 'select', default: '', options: [
+          { value: '', label: 'Default' },
+          { value: 'py-10 sm:py-15 md:py-20', label: 'Small' },
+          { value: 'py-15 sm:py-20 md:py-30', label: 'Medium' },
+          { value: 'py-20 sm:py-30 md:py-40', label: 'Large' },
+        ]
+      },
+      {
+        key: 'paddingX', label: 'Horizontal Padding', type: 'select', default: '', options: [
+          { value: '', label: 'Default' },
+          { value: 'px-5 sm:px-10 md:px-20', label: 'Small' },
+          { value: 'px-10 sm:px-20 md:px-30', label: 'Medium' },
+          { value: 'px-20 sm:px-30 md:px-40', label: 'Large' },
+        ]
+      },
+      { key: 'sectionClassName', label: 'Additional CSS Classes', type: 'text', default: '' },
+    ]
+  },
 
   // Content Sections
   'AboutUsSection': {
@@ -490,6 +519,52 @@ export const SECTION_CONFIGS = {
         ]
       },
       { key: 'sectionId', label: 'Section ID', type: 'text', default: 'custom-html' },
+      { key: 'sectionClassName', label: 'Additional CSS Classes', type: 'text', default: '' },
+    ]
+  },
+
+  'ImageGallerySection': {
+    fields: [
+      { key: 'bgColor', label: 'Background Color', type: 'color', default: 'bg-white' },
+      { key: 'sectionTitle', label: 'Section Title', type: 'text', default: 'DUS in action' },
+      { key: 'imageCountLabel', label: 'Image Count Label', type: 'text', default: 'Image Count' },
+      {
+        key: 'paddingY', label: 'Vertical Padding', type: 'select', default: 'py-10 sm:py-15 md:py-20 lg:py-37.5', options: [
+          { value: 'py-8 sm:py-12 md:py-16 lg:py-25', label: 'Small' },
+          { value: 'py-10 sm:py-15 md:py-20 lg:py-37.5', label: 'Medium' },
+          { value: 'py-15 sm:py-20 md:py-30 lg:py-50', label: 'Large' },
+        ]
+      },
+      {
+        key: 'paddingX', label: 'Horizontal Padding', type: 'select', default: 'px-5 sm:px-8 md:px-12 lg:px-50', options: [
+          { value: 'px-4 sm:px-6 md:px-10 lg:px-30', label: 'Small' },
+          { value: 'px-5 sm:px-8 md:px-12 lg:px-50', label: 'Medium' },
+          { value: 'px-8 sm:px-12 md:px-20 lg:px-60', label: 'Large' },
+        ]
+      },
+      { key: 'sectionClassName', label: 'Additional CSS Classes', type: 'text', default: '' },
+    ]
+  },
+
+  'VideoGallerySection': {
+    fields: [
+      { key: 'bgColor', label: 'Background Color', type: 'color', default: 'bg-white' },
+      { key: 'sectionTitle', label: 'Section Title', type: 'text', default: 'Video Gallery' },
+      { key: 'videoCountLabel', label: 'Video Count Label', type: 'text', default: 'Video Count' },
+      {
+        key: 'paddingY', label: 'Vertical Padding', type: 'select', default: 'py-10 sm:py-15 md:py-20 lg:py-37.5', options: [
+          { value: 'py-8 sm:py-12 md:py-16 lg:py-25', label: 'Small' },
+          { value: 'py-10 sm:py-15 md:py-20 lg:py-37.5', label: 'Medium' },
+          { value: 'py-15 sm:py-20 md:py-30 lg:py-50', label: 'Large' },
+        ]
+      },
+      {
+        key: 'paddingX', label: 'Horizontal Padding', type: 'select', default: 'px-5 sm:px-8 md:px-12 lg:px-50', options: [
+          { value: 'px-4 sm:px-6 md:px-10 lg:px-30', label: 'Small' },
+          { value: 'px-5 sm:px-8 md:px-12 lg:px-50', label: 'Medium' },
+          { value: 'px-8 sm:px-12 md:px-20 lg:px-60', label: 'Large' },
+        ]
+      },
       { key: 'sectionClassName', label: 'Additional CSS Classes', type: 'text', default: '' },
     ]
   },

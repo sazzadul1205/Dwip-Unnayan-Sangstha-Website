@@ -12,7 +12,6 @@ const BlogEditor = lazy(() => import('./Editors/BlogEditor'));
 const CardsEditor = lazy(() => import('./Editors/CardsEditor'));
 const LegalEditor = lazy(() => import('./Editors/LegalEditor'));
 const AddressEditor = lazy(() => import('./Editors/AddressEditor'));
-const ContentEditor = lazy(() => import('./Editors/ContentEditor'));
 const AboutUsEditor = lazy(() => import('./Editors/AboutUsEditor'));
 const FollowUsEditor = lazy(() => import('./Editors/FollowUsEditor'));
 const OurActionEditor = lazy(() => import('./Editors/OurActionEditor'));
@@ -84,12 +83,11 @@ const EDITOR_COMPONENTS = {
   'CardsSection': CardsEditor,
   'LegalSection': LegalEditor,
   'HomeBanner': HomeBannerEditor,
-  'ContentSection': ContentEditor,
   'AddressSection': AddressEditor,
   'AboutUsSection': AboutUsEditor,
   'FollowUSSection': FollowUsEditor,
   'OurActionSection': OurActionEditor,
-  'HeroFigureSection': HeroFigureEditor,
+  'HeroFigureEditor': HeroFigureEditor,
   'PageBannerSection': PageBannerEditor,
   'PageTagBannerSection': PageTagBannerEditor,
   'WhereWeWorkSection': WhereWeWorkEditor,

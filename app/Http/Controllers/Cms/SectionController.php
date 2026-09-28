@@ -1094,32 +1094,97 @@ class SectionController extends Controller
             // BANNER SECTIONS
             // ============================================
             'HomeBanner' => [
-                'background' => [
-                    'src' => [
-                        'https://via.placeholder.com/1920x600/1a1a2e/FFFFFF?text=Slide+1',
-                        'https://via.placeholder.com/1920x600/2d2d44/FFFFFF?text=Slide+2',
-                        'https://via.placeholder.com/1920x600/3d3d55/FFFFFF?text=Slide+3',
-                    ],
-                    'alt' => [
-                        'Banner Slide 1',
-                        'Banner Slide 2',
-                        'Banner Slide 3',
-                    ],
-                ],
-                'overlay' => ['darkOverlay' => 'bg-black/40 lg:bg-black/50', 'gradient' => ''],
-                'content' => [
-                    'tagline' => ['text' => 'Welcome to Our Organization', 'className' => 'uppercase tracking-[4px] font-semibold'],
-                    'title' => ['text' => 'Making a Difference Together', 'className' => 'font-bold leading-tight'],
-                    'description' => ['text' => 'Join us in our mission to create lasting positive change in communities through sustainable development and social welfare programs.', 'className' => 'font-normal leading-tight'],
-                ],
-                'buttons' => [
+                'slides' => [
                     [
-                        'text' => 'Get Involved',
-                        'link' => '/contact',
-                        'icon' => true,
-                        'className' => '',
+                        'id' => 'slide_1',
+                        'src' => 'https://via.placeholder.com/1920x600/1a1a2e/FFFFFF?text=Slide+1',
+                        'alt' => 'Banner Slide 1',
+                        'overlay' => ['darkOverlay' => 'bg-black/40 lg:bg-black/50', 'gradient' => ''],
+                        'content' => [
+                            'tagline' => ['text' => 'Welcome to Our Organization', 'className' => 'uppercase tracking-[4px] font-semibold'],
+                            'title' => ['text' => 'Making a Difference Together', 'className' => 'font-bold leading-tight'],
+                            'description' => ['text' => 'Join us in our mission to create lasting positive change in communities through sustainable development and social welfare programs.', 'className' => 'font-normal leading-tight'],
+                        ],
+                        'buttons' => [
+                            [
+                                'text' => 'Get Involved',
+                                'link' => '/contact',
+                                'icon' => true,
+                                'className' => '',
+                            ],
+                        ],
+                    ],
+                    [
+                        'id' => 'slide_2',
+                        'src' => 'https://via.placeholder.com/1920x600/2d2d44/FFFFFF?text=Slide+2',
+                        'alt' => 'Banner Slide 2',
+                        'overlay' => ['darkOverlay' => 'bg-black/40 lg:bg-black/50', 'gradient' => ''],
+                        'content' => [
+                            'tagline' => ['text' => 'Empowering Communities', 'className' => 'uppercase tracking-[4px] font-semibold'],
+                            'title' => ['text' => 'Building Sustainable Futures', 'className' => 'font-bold leading-tight'],
+                            'description' => ['text' => 'We work with local communities to create lasting positive change through education, healthcare, and economic development programs.', 'className' => 'font-normal leading-tight'],
+                        ],
+                        'buttons' => [
+                            [
+                                'text' => 'Learn More',
+                                'link' => '/about',
+                                'icon' => true,
+                                'className' => '',
+                            ],
+                        ],
+                    ],
+                    [
+                        'id' => 'slide_3',
+                        'src' => 'https://via.placeholder.com/1920x600/3d3d55/FFFFFF?text=Slide+3',
+                        'alt' => 'Banner Slide 3',
+                        'overlay' => ['darkOverlay' => 'bg-black/40 lg:bg-black/50', 'gradient' => ''],
+                        'content' => [
+                            'tagline' => ['text' => 'Join Our Mission', 'className' => 'uppercase tracking-[4px] font-semibold'],
+                            'title' => ['text' => 'Make an Impact Today', 'className' => 'font-bold leading-tight'],
+                            'description' => ['text' => 'Your support helps us reach more communities and transform more lives. Together, we can create a better future.', 'className' => 'font-normal leading-tight'],
+                        ],
+                        'buttons' => [
+                            [
+                                'text' => 'Donate Now',
+                                'link' => '/donate',
+                                'icon' => true,
+                                'className' => '',
+                            ],
+                        ],
                     ],
                 ],
+                'slideInterval' => 5000,
+            ],
+
+            'PageBannerSection' => [
+                'background' => [
+                    'src' => 'https://via.placeholder.com/1920x600/1a1a2e/FFFFFF?text=Page+Banner',
+                    'alt' => 'Page Banner Background',
+                ],
+                'overlay' => ['darkOverlay' => 'bg-black/40 sm:bg-black/30 md:bg-black/20 lg:bg-black/10', 'gradient' => ''],
+                'content' => [
+                    'title' => ['text' => 'Page Title', 'className' => ''],
+                    'description' => ['text' => 'Page description goes here. Customize this text to describe your page content.', 'className' => ''],
+                ],
+            ],
+
+            'PageTagBannerSection' => [
+                'background' => [
+                    'src' => 'https://via.placeholder.com/1920x600/1a1a2e/FFFFFF?text=Tag+Banner',
+                    'alt' => 'Tag Banner Background',
+                ],
+                'overlay' => ['darkOverlay' => 'bg-black/30 sm:bg-black/20 md:bg-black/10 lg:bg-black/5', 'gradient' => ''],
+                'content' => [
+                    'title' => ['text' => 'Photo Gallery', 'className' => ''],
+                ],
+                'tags' => [
+                    ['label' => 'All', 'color' => '#009BE2'],
+                    ['label' => 'Education', 'color' => '#FF6B6B'],
+                    ['label' => 'Health', 'color' => '#4ECDC4'],
+                    ['label' => 'Community', 'color' => '#FFE66D'],
+                    ['label' => 'Events', 'color' => '#6C5CE7'],
+                ],
+                'tagTitle' => 'Photo Gallery',
             ],
 
             // ============================================
@@ -1364,7 +1429,6 @@ class SectionController extends Controller
                     'limit' => null,
                 ],
                 'filter' => ['placeholder' => 'Browse By'],
-                'jobs' => [],
             ],
 
             // ============================================
@@ -1378,7 +1442,6 @@ class SectionController extends Controller
                     'description' => 'Explore our impactful programs that are transforming lives in coastal communities',
                     'button' => ['text' => 'View All Programs', 'link' => '/projects-programs'],
                 ],
-                'programs' => [],
             ],
 
             // ============================================
