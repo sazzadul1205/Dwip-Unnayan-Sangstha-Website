@@ -243,6 +243,21 @@ class SharedDataController extends Controller
       }
     }
 
+    // Sub-menus: normalise the menu tree (any depth) before the generic pass so
+    // editor-only keys are dropped and the legacy `dropdown` / `dropdowns`
+    // shapes are migrated onto `children` (see normalizeNavLinks()).
+    if (isset($newData['navLinks']) && is_array($newData['navLinks'])) {
+      $newData['navLinks'] = $this->normalizeNavLinks($newData['navLinks']);
+    }
+
+    if (isset($newData['dropdowns']) && is_array($newData['dropdowns'])) {
+      foreach ($newData['dropdowns'] as $index => $items) {
+        if (is_array($items)) {
+          $newData['dropdowns'][$index] = $this->normalizeNavLinks($items);
+        }
+      }
+    }
+
     foreach ($newData as $key => $value) {
       if (is_array($value) && $key !== 'logo') {
         $oldValue = $oldData[$key] ?? [];
@@ -251,6 +266,39 @@ class SharedDataController extends Controller
     }
 
     return $newData;
+  }
+
+  /**
+   * Normalise a navigation link tree (recursively, unlimited depth).
+   *
+   * - strips the editor-only `_tempId` helper field,
+   * - folds the legacy `dropdown` array into `children`,
+   * - guarantees every link exposes a `children` array so the frontend can
+   *   render sub-menus at any depth without extra guards.
+   *
+   * @param  array<int|string, mixed>  $links
+   * @return array<int, array<string, mixed>>
+   */
+  private function normalizeNavLinks(array $links): array
+  {
+    $normalized = [];
+
+    foreach ($links as $link) {
+      if (!is_array($link)) {
+        continue;
+      }
+
+      unset($link['_tempId']);
+
+      $children = $link['children'] ?? $link['dropdown'] ?? [];
+      unset($link['dropdown']);
+
+      $link['children'] = $this->normalizeNavLinks(is_array($children) ? $children : []);
+
+      $normalized[] = $link;
+    }
+
+    return $normalized;
   }
 
   private function processFooterData(array $newData, array $oldData): array

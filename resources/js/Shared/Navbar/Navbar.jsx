@@ -2,18 +2,212 @@
 
 import { useState, useEffect, memo } from 'react';
 import { Link, usePage } from '@inertiajs/react';
-import { Menu, X, ChevronDown } from 'lucide-react';
+import { Menu, X, ChevronDown, ChevronRight } from 'lucide-react';
 
 // Components
 import ArrowIcon from '../ArrowIcon';
 import { hasValue } from '../../utils/sectionHelpers';
 
 
+// ============================================
+// SUB-MENU HELPERS
+// ============================================
+
+/**
+ * Resolve the sub-menu items of a nav link.
+ *
+ * Supported shapes (in order of preference):
+ *   1. `link.children`     – modern shape, unlimited nesting
+ *   2. `link.dropdown`     – legacy single level dropdown
+ *   3. `dropdowns[index]`  – legacy top-level dropdown map
+ */
+const resolveChildren = (link, index, dropdowns = []) => {
+  if (!link) return [];
+
+  if (Array.isArray(link.children) && link.children.length > 0) return link.children;
+  if (Array.isArray(link.dropdown) && link.dropdown.length > 0) return link.dropdown;
+
+  const legacy = Array.isArray(dropdowns) ? dropdowns[index] : null;
+  if (Array.isArray(legacy) && legacy.length > 0) return legacy;
+
+  return [];
+};
+
+/**
+ * A link/parent counts as active when it – or any of its descendants – matches
+ * the current URL.
+ */
+const isLinkActive = (link, isActive, dropdowns = [], index = 0) => {
+  if (isActive(link?.href)) return true;
+
+  return resolveChildren(link, index, dropdowns).some((child) =>
+    isLinkActive(child, isActive, [], 0)
+  );
+};
+
+// ============================================
+// DESKTOP: RECURSIVE NAV ITEM (unlimited nesting)
+// ============================================
+const DesktopNavItem = ({ link, index, dropdowns = [], level = 0, isActive }) => {
+  const [open, setOpen] = useState(false);
+
+  const children = resolveChildren(link, index, dropdowns);
+  const isNested = level > 0;
+  const active = isLinkActive(link, isActive, dropdowns, index);
+
+  // ---- Leaf item ----
+  if (children.length === 0) {
+    return (
+      <li className="relative uppercase">
+        <Link
+          href={hasValue(link.href) ? link.href : '#'}
+          className={
+            isNested
+              ? `flex items-center w-full px-4 py-2 text-sm normal-case transition-colors duration-200 ${
+                  active ? 'bg-[#009BE2] text-white' : 'text-gray-700 hover:bg-[#009BE2] hover:text-white'
+                }`
+              : `relative group whitespace-nowrap font-semibold transition-all duration-300 ${
+                  active ? 'text-[#009BE2]' : 'text-gray-800 hover:text-[#009BE2]'
+                } text-sm xl:text-base 2xl:text-[20px]`
+          }
+        >
+          {link.name}
+          {!isNested && (
+            <span
+              className={`absolute -bottom-2 left-1/2 h-0.5 rounded-full bg-[#009BE2]
+                transition-all duration-300 ease-out
+                ${active ? 'w-full -translate-x-1/2' : 'w-0 -translate-x-1/2 group-hover:w-full'}`}
+            />
+          )}
+        </Link>
+      </li>
+    );
+  }
+
+  // ---- Item with sub-menu ----
+  return (
+    <li
+      className="relative uppercase"
+      onMouseEnter={() => setOpen(true)}
+      onMouseLeave={() => setOpen(false)}
+    >
+      <button
+        type="button"
+        onClick={() => setOpen((prev) => !prev)}
+        aria-expanded={open}
+        aria-haspopup="true"
+        className={
+          isNested
+            ? `flex items-center justify-between gap-2 w-full px-4 py-2 text-sm normal-case transition-colors duration-200 ${
+                open || active ? 'bg-[#009BE2] text-white' : 'text-gray-700 hover:bg-[#009BE2] hover:text-white'
+              }`
+            : `relative flex items-center gap-1 whitespace-nowrap font-semibold transition-all duration-300 ${
+                active ? 'text-[#009BE2]' : 'text-black hover:text-[#009BE2]'
+              } text-sm xl:text-base 2xl:text-lg`
+        }
+      >
+        <span className={isNested ? 'truncate' : ''}>{link.name}</span>
+        {isNested ? (
+          <ChevronRight className="w-3.5 h-3.5 shrink-0" />
+        ) : (
+          <ChevronDown
+            className={`w-3 h-3 shrink-0 transition-transform duration-300 ${open ? 'rotate-180' : ''}`}
+          />
+        )}
+      </button>
+
+      {open && (
+        <div className={`absolute w-56 z-60 ${isNested ? 'top-0 left-full pl-1' : 'top-full left-0 pt-2'}`}>
+          <ul className="bg-white rounded-lg shadow-lg border border-gray-100 py-2">
+            {children.map((child, childIndex) => (
+              <DesktopNavItem
+                key={child?._tempId || `${index}-${childIndex}`}
+                link={child}
+                index={childIndex}
+                // Legacy `dropdowns` map only ever applies to the first level.
+                dropdowns={isNested ? [] : dropdowns}
+                level={level + 1}
+                isActive={isActive}
+              />
+            ))}
+          </ul>
+        </div>
+      )}
+    </li>
+  );
+};
+
+// ============================================
+// MOBILE: RECURSIVE NAV ITEM (accordion, unlimited nesting)
+// ============================================
+const MobileNavItem = ({ link, index, dropdowns = [], level = 0, isActive, onNavigate }) => {
+  const [open, setOpen] = useState(false);
+
+  const children = resolveChildren(link, index, dropdowns);
+  const active = isLinkActive(link, isActive, dropdowns, index);
+  const indent = { paddingLeft: `${level * 16 + 8}px` };
+
+  // ---- Leaf item ----
+  if (children.length === 0) {
+    return (
+      <li>
+        <Link
+          href={hasValue(link.href) ? link.href : '#'}
+          onClick={onNavigate}
+          style={indent}
+          className={`block font-medium transition-colors duration-200 py-2 px-2 rounded-lg hover:bg-gray-50 ${
+            active ? 'text-[#009BE2] bg-blue-50/50' : 'text-black hover:text-[#009BE2]'
+          }`}
+        >
+          {link.name}
+          {active && <span className="ml-2 inline-block w-1.5 h-1.5 rounded-full bg-[#009BE2]" />}
+        </Link>
+      </li>
+    );
+  }
+
+  // ---- Item with sub-menu ----
+  return (
+    <li>
+      <button
+        type="button"
+        onClick={() => setOpen((prev) => !prev)}
+        aria-expanded={open}
+        style={indent}
+        className={`flex items-center justify-between w-full font-medium transition-colors duration-200 py-2 px-2 rounded-lg hover:bg-gray-50 ${
+          active ? 'text-[#009BE2]' : 'text-black hover:text-[#009BE2]'
+        }`}
+      >
+        <span className="text-left">{link.name}</span>
+        <ChevronDown
+          className={`w-4 h-4 shrink-0 transition-transform duration-300 ${open ? 'rotate-180' : ''}`}
+        />
+      </button>
+
+      {open && (
+        <ul className="mt-1 space-y-1 border-l-2 border-[#009BE2]/30 ml-2">
+          {children.map((child, childIndex) => (
+            <MobileNavItem
+              key={child?._tempId || `${index}-${childIndex}`}
+              link={child}
+              index={childIndex}
+              // Legacy `dropdowns` map only ever applies to the first level.
+              dropdowns={level === 0 ? dropdowns : []}
+              level={level + 1}
+              isActive={isActive}
+              onNavigate={onNavigate}
+            />
+          ))}
+        </ul>
+      )}
+    </li>
+  );
+};
+
 const Navbar = ({ navbarData, storageUrl = '', defaultLogo = '/images/default-logo.png' }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [imageError, setImageError] = useState(false);
-  const [openDropdowns, setOpenDropdowns] = useState({});
-  const [mobileDropdownOpen, setMobileDropdownOpen] = useState({});
+  const [menuResetKey, setMenuResetKey] = useState(0);
 
   const { url } = usePage();
   const currentPath = url;
@@ -24,16 +218,15 @@ const Navbar = ({ navbarData, storageUrl = '', defaultLogo = '/images/default-lo
     return currentPath.startsWith(href);
   };
 
-  const toggleDropdown = (index) => {
-    setOpenDropdowns(prev => ({ ...prev, [index]: !prev[index] }));
-  };
-
-  const toggleMobileDropdown = (index) => {
-    setMobileDropdownOpen(prev => ({ ...prev, [index]: !prev[index] }));
+  const closeMobileMenu = () => {
+    setIsOpen(false);
+    // Remount the mobile list so every expanded accordion collapses again.
+    setMenuResetKey((prev) => prev + 1);
   };
 
   useEffect(() => {
     setIsOpen(false);
+    setMenuResetKey((prev) => prev + 1);
   }, [currentPath]);
 
   if (!hasValue(navbarData)) return null;
@@ -96,59 +289,15 @@ const Navbar = ({ navbarData, storageUrl = '', defaultLogo = '/images/default-lo
             {/* Navigation Links */}
             {hasNavLinks && (
               <ul className="flex items-center gap-4 xl:gap-6 2xl:gap-9">
-                {navLinks.map((link, index) => {
-                  const active = isActive(link.href);
-                  const hasDropdown = hasValue(link.dropdown) || hasValue(dropdowns[index]);
-
-                  return (
-                    <li key={link.name || index} className="relative uppercase">
-                      {hasDropdown ? (
-                        <div>
-                          <button
-                            onClick={() => toggleDropdown(index)}
-                            className={`relative flex items-center gap-1 whitespace-nowrap font-semibold transition-all duration-300
-                              ${active ? "text-[#009BE2]" : "text-black hover:text-[#009BE2]"}
-                              text-sm xl:text-base 2xl:text-lg`}
-                          >
-                            {link.name}
-                            <ChevronDown
-                              className={`w-3 h-3 transition-transform duration-300 ${openDropdowns[index] ? "rotate-180" : ""}`}
-                            />
-                          </button>
-
-                          {openDropdowns[index] && (
-                            <div className="absolute top-full left-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-100 py-2 z-60">
-                              {(link.dropdown || dropdowns[index] || []).map((dropdownItem, idx) => (
-                                <Link
-                                  key={idx}
-                                  href={dropdownItem.href}
-                                  className="block px-4 py-2 text-sm text-gray-700 hover:bg-[#009BE2] hover:text-white transition-colors duration-200"
-                                  onClick={() => setOpenDropdowns({})}
-                                >
-                                  {dropdownItem.name}
-                                </Link>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      ) : (
-                        <Link
-                          href={link.href}
-                          className={`relative group whitespace-nowrap font-semibold transition-all duration-300
-                            ${active ? "text-[#009BE2]" : "text-gray-800 hover:text-[#009BE2]"}
-                            text-sm xl:text-base 2xl:text-[20px]`}
-                        >
-                          {link.name}
-                          <span
-                            className={`absolute -bottom-2 left-1/2 h-0.5 rounded-full bg-[#009BE2]
-                              transition-all duration-300 ease-out
-                              ${active ? "w-full -translate-x-1/2" : "w-0 -translate-x-1/2 group-hover:w-full"}`}
-                          />
-                        </Link>
-                      )}
-                    </li>
-                  );
-                })}
+                {navLinks.map((link, index) => (
+                  <DesktopNavItem
+                    key={link?._tempId || link?.name || index}
+                    link={link}
+                    index={index}
+                    dropdowns={dropdowns}
+                    isActive={isActive}
+                  />
+                ))}
               </ul>
             )}
 
@@ -210,54 +359,18 @@ const Navbar = ({ navbarData, storageUrl = '', defaultLogo = '/images/default-lo
           role="menu"
         >
           <div className="border-t border-gray-100 pt-3 sm:pt-4">
-            <ul className="flex flex-col space-y-1 sm:space-y-2 pb-3 sm:pb-4">
-              {hasNavLinks && navLinks.map((link, index) => {
-                const active = isActive(link.href);
-                const hasDropdown = hasValue(link.dropdown) || hasValue(dropdowns[index]);
-
-                return (
-                  <li key={link.name || index}>
-                    {hasDropdown ? (
-                      <div>
-                        <button
-                          onClick={() => toggleMobileDropdown(index)}
-                          className={`flex items-center justify-between w-full font-medium transition-colors duration-200 py-2 px-2 rounded-lg hover:bg-gray-50 ${active ? 'text-[#009BE2]' : 'text-black hover:text-[#009BE2]'}`}
-                          aria-expanded={mobileDropdownOpen[index]}
-                        >
-                          <span>{link.name}</span>
-                          <ChevronDown className={`w-4 h-4 transition-transform duration-300 ${mobileDropdownOpen[index] ? 'rotate-180' : ''}`} />
-                        </button>
-                        {mobileDropdownOpen[index] && (
-                          <div className="pl-4 mt-1 space-y-1 border-l-2 border-[#009BE2]/30 ml-2">
-                            {(link.dropdown || dropdowns[index] || []).map((dropdownItem, idx) => (
-                              <Link
-                                key={idx}
-                                href={dropdownItem.href}
-                                className="block py-2 px-2 text-sm text-gray-600 hover:text-[#009BE2] hover:bg-gray-50 rounded-lg transition-colors duration-200"
-                                onClick={() => {
-                                  setIsOpen(false);
-                                  setMobileDropdownOpen({});
-                                }}
-                              >
-                                {dropdownItem.name}
-                              </Link>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    ) : (
-                      <Link
-                        href={link.href}
-                        className={`block font-medium transition-colors duration-200 py-2 px-2 rounded-lg hover:bg-gray-50 ${active ? 'text-[#009BE2] bg-blue-50/50' : 'text-black hover:text-[#009BE2]'}`}
-                        onClick={() => setIsOpen(false)}
-                      >
-                        {link.name}
-                        {active && <span className="ml-2 inline-block w-1.5 h-1.5 rounded-full bg-[#009BE2]" />}
-                      </Link>
-                    )}
-                  </li>
-                );
-              })}
+            <ul key={menuResetKey} className="flex flex-col space-y-1 sm:space-y-2 pb-3 sm:pb-4">
+              {hasNavLinks && navLinks.map((link, index) => (
+                <MobileNavItem
+                  key={link?._tempId || link?.name || index}
+                  link={link}
+                  index={index}
+                  dropdowns={dropdowns}
+                  path={`m-${index}`}
+                  isActive={isActive}
+                  onNavigate={closeMobileMenu}
+                />
+              ))}
 
               {hasButton && (
                 <li className="pt-2">
