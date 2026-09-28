@@ -443,3 +443,247 @@ For each browser, check:
 - [ ] Pagination is fast
 - [ ] Search results return quickly
 - [ ] No console errors (F12 → Console)
+
+---
+
+## Section Builder (Admin) — `/backend/cms/sections/page/{pageId}`
+
+**Prerequisites:** Login as admin, navigate to CMS → Sections
+
+### Available Prebuilt Sections (23 components)
+
+| Component | Data Table | Description |
+|-----------|------------|-------------|
+| `HomeBanner` | custom_section_data | Hero banner with slides, tagline, title, description, buttons |
+| `AboutUsSection` | shared_data/custom | About us with title, description, button, mission items |
+| `OurActionSection` | shared_data | Our action/activities section |
+| `WhereWeWorkSection` | shared_data | Geographic coverage section |
+| `HeroFigureSection` | custom_section_data | Stats/figures with numbers and labels |
+| `CardsSection` | custom_section_data | Card grid for services/programs |
+| `ContactOfficeSection` | shared_data | Office contact details |
+| `AddressSection` | shared_data | Address and map location |
+| `ContactReachSection` | shared_data | Contact form section |
+| `FollowUSSection` | shared_data | Social media follow section |
+| `LegalSection` | shared_data | Legal/copyright footer |
+| `ProgramImpactSection` | shared_data | SDG/program impact highlights |
+| `ImageGallerySection` | custom_section_data | Image gallery with lightbox |
+| `VideoGallerySection` | custom_section_data | Video gallery embeds |
+| `TextContentSection` | custom_section_data | Rich text content block |
+| `JobsSection` | jobs | Latest/recent job listings display |
+| `OurProgramsSection` | programs | Program cards grid |
+| `BlogSection` | blogs | Blog posts listing |
+| `PublicationsSection` | publications | Publications listing |
+| `StoriesSection` | shared_data | Success stories/testimonials |
+| `FAQSection` | shared_data | Frequently asked questions |
+| `UpcomingEventsSection` | shared_data | Upcoming events calendar |
+| `HtmlCssSection` | custom_section_data | Custom HTML/CSS editor section |
+
+### Section Management Tests
+
+#### Viewing Sections
+1. Navigate to `/backend/cms/sections/page/{id}` (replace `{id}` with a page ID)
+2. **Verify:**
+   - [ ] Page name displayed in header
+   - [ ] Section list shows all active sections with drag handle
+   - [ ] Each section card shows: component name, data table, enabled toggle
+   - [ ] "Add Section" button visible
+   - [ ] "Update Order" button visible
+   - [ ] Trashed sections accessible via "Trash" tab
+
+#### Adding a Section
+1. Click "Add Section"
+2. **Verify:**
+   - [ ] Component dropdown includes all 23 prebuilt components
+   - [ ] Data table dropdown shows: custom_section_data, shared_data, blogs, programs, publications, about_content, jobs, job_details, pages (9 options)
+   - [ ] Section key field (auto-generated from component name)
+   - [ ] "Enabled" toggle (default: on)
+   - [ ] Custom props JSON editor (optional)
+   - [ ] "Save" and "Cancel" buttons
+3. Select `HomeBanner` → `custom_section_data`
+4. **Verify:**
+   - [ ] Default data created automatically (banner slides with placeholder images)
+   - [ ] Section appears in the section list
+
+#### Adding a Data-Backed Section
+1. Add a `BlogSection` with `blogs` data table
+2. **Verify:**
+   - [ ] No default custom data created (data_table is not `custom_section_data`)
+   - [ ] Section appears in list
+   - [ ] On frontend, section pulls live blog data
+
+#### Adding a Shared Data Section
+1. Add an `AboutUsSection` with `shared_data` data table
+2. **Verify:**
+   - [ ] Section connects to shared data system
+   - [ ] Frontend renders shared data for this section
+
+#### Reordering Sections
+1. Drag sections to reorder
+2. Click "Update Order"
+3. **Verify:**
+   - [ ] Order persists after page reload
+   - [ ] Frontend displays sections in correct order
+
+#### Updating a Section
+1. Click "Edit" on any section
+2. **Verify:**
+   - [ ] Form pre-fills current values
+   - [ ] Can toggle enabled/disabled
+   - [ ] Custom props editor loads current JSON
+   - [ ] "Save Changes" updates the section
+   - [ ] "Cancel" discards changes
+
+#### Deleting/Restoring Sections
+1. Delete a section
+2. **Verify:**
+   - [ ] Section moves to trash
+   - [ ] "Undo" option available
+3. Navigate to trash tab
+4. **Verify:**
+   - [ ] Trashed sections listed
+   - [ ] "Restore" button returns section to active
+   - [ ] "Force Delete" permanently removes
+
+#### Validation Tests
+1. **Invalid data table:** Enter a data_table value not in the allowed list
+   - [ ] Validation error: "The selected data_table is invalid."
+2. **Duplicate section_key:** Try creating a section with duplicate key on same page
+   - [ ] Validation error: "The section_key has already been taken."
+3. **Missing page_id:** Submit without page_id
+   - [ ] Validation error
+
+---
+
+## Frontend Section Rendering Tests
+
+### Home Page Sections
+Navigate to `/` (home page)
+
+**Verify each section renders correctly:**
+- [ ] **HomeBanner** — Carousel/slider of banner images with overlay text, CTA buttons
+- [ ] **HeroFigureSection** — Stat cards with numbers (e.g., "50+ Projects")
+- [ ] **AboutUsSection** — Title, description, learn more button
+- [ ] **OurActionSection** — Action items grid
+- [ ] **CardsSection** — Responsive card grid
+- [ ] **JobsSection** — Latest job listings (title, company, location, apply button)
+- [ ] **OurProgramsSection** — Program cards with image, title, link
+- [ ] **BlogSection** — Blog cards (featured image, title, excerpt, date)
+- [ ] **ImageGallerySection** — Image gallery with lightbox on click
+- [ ] **ContactReachSection** — Contact form or contact details
+- [ ] **StoriesSection** — Success story cards
+- [ ] **FAQSection** — Expandable accordion items
+- [ ] **Footer Sections** (FollowUSSection, LegalSection, AddressSection)
+
+### Blog Page Sections
+Navigate to `/blog`
+
+**Verify:**
+- [ ] Blog listing section with search/filter
+- [ ] Pagination controls
+- [ ] Featured blog posts highlighted
+
+### Program Page Sections
+Navigate to `/programs`
+
+**Verify:**
+- [ ] Program cards with images, titles, descriptions
+- [ ] Category filter (if applicable)
+- [ ] "Load More" button or pagination
+
+### What Page Sections
+Navigate to `/about`
+
+**Verify:**
+- [ ] About content sections display properly
+- [ ] Mission/Vision sections
+- [ ] Team member grid
+- [ ] Section ordering matches CMS configuration
+
+### Mobile Section Tests
+**For each section on mobile:**
+- [ ] Content stacks vertically (no horizontal scroll)
+- [ ] Images scale appropriately
+- [ ] Buttons are full-width or properly sized
+- [ ] Text is readable without horizontal scrolling
+- [ ] Section padding/margins look correct
+
+### Cross-Browser Section Tests
+Test sections on:
+- [ ] Chrome — all sections render correctly
+- [ ] Firefox — no layout issues
+- [ ] Safari — no flexbox/grid gaps
+- [ ] Mobile Safari — touch interactions work
+- [ ] Chrome Android — section heights correct
+
+---
+
+## Adding Prebuilt Sections Safely (Developer Notes)
+
+### What Happens When You Add a Prebuilt Section
+
+When adding a section via the CMS UI:
+
+1. **Custom Section Data (`custom_section_data` table):**
+   - A `SectionConfig` record is created in the `section_configs` table
+   - A `CustomSectionData` record is auto-created with the default data template
+   - The default data comes from `getDefaultDataForComponent()` in `SectionController`
+
+2. **Data-Backed Sections (e.g., `blogs`, `jobs`, `programs`):**
+   - Only a `SectionConfig` record is created
+   - Data is fetched live from the respective table at render time
+   - No seed data required
+
+3. **Shared Data Sections (`shared_data` table):**
+   - Only a `SectionConfig` record is created
+   - Data comes from `SharedData` model records keyed by section_key
+   - The `SHARED_DATA_MAP` maps data keys to shared data types
+
+### Potential Issues When Adding Sections
+
+#### ✅ Safe — No Missing Dependencies
+```php
+// Adding a BlogSection with data_table=blogs
+// Safe because:
+// - No seed data needed (fetched live)
+// - SectionConfig validates against SectionDataTable enum
+// - Frontend PageController has fetchBlogs() in DATA_TABLE_MAP
+```
+
+#### ⚠️ Requires Seed Data — `custom_section_data`
+When using `data_table=custom_section_data`:
+- Default data is auto-created from the component template
+- If the component has no template in `getDefaultDataForComponent()`, no data is created (section will be empty)
+- Solution: Add the component to the match expression in SectionController
+
+#### ⚠️ Requires SharedData Records — `shared_data`
+When using `data_table=shared_data`:
+- Data must exist in the `shared_data` table with matching `type`
+- The `SHARED_DATA_MAP` in PageController must include the data_key
+- Missing shared data = empty section (no error thrown)
+
+#### ⚠️ Requires Model Records — `blogs`, `programs`, `publications`, `jobs`
+These pull live data from their respective tables:
+- No seed data required for the section to exist
+- Section renders empty if no records exist in the data table
+
+### Adding a New Prebuilt Component (Developer Guide)
+
+1. **Add to `getDefaultDataForComponent()`** in `app/Http/Controllers/Cms/SectionController.php`:
+   ```php
+   'MyNewSection' => [
+       'title' => 'My Section Title',
+       'content' => 'Default content here',
+   ],
+   ```
+
+2. **Add React component** in `resources/js/Components/Sections/MyNewSection.vue`
+
+3. **Add to frontend mapping** in `app/Http/Controllers/Frontend/PageController.php`:
+   - Add data table to `DATA_TABLE_MAP` if using a custom data table
+   - Add shared data key to `SHARED_DATA_MAP` if using shared data
+
+4. **Verify the 3-layer consistency:**
+   - `SectionDataTable` enum defines valid `data_table` values
+   - `PageController::DATA_TABLE_MAP` resolves them at frontend
+   - `SectionController::loadSectionData()` resolves them at admin level
+   - Ensure all three lists include your new data table value
