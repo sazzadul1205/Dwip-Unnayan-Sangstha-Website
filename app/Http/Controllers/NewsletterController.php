@@ -645,6 +645,11 @@ class NewsletterController extends Controller
         $campaign = NewsletterCampaign::create([
             'subject' => $request->subject,
             'content' => $request->content,
+            // Keep the authored HTML on both columns so the Campaign Manager
+            // can show, copy and re-use exactly what was sent.
+            'html_content' => $request->content,
+            'audience_type' => NewsletterCampaign::AUDIENCE_SELECTED,
+            'audience_meta' => ['ids' => $request->ids],
             'total_subscribers' => $subscribers->count(),
             'created_by' => $user->id,
             'status' => 'pending',
@@ -655,12 +660,9 @@ class NewsletterController extends Controller
 
         $batch = Bus::batch($jobs)
             ->then(function (Batch $batch) use ($campaign) {
-                // All jobs completed successfully
-                $campaign->status = 'completed';
-                $campaign->sent_count = max(0, $batch->processedJobs() - $batch->failedJobs);
-                $campaign->failed_count = 0;
-                $campaign->completed_at = now();
-                $campaign->save();
+                // All jobs completed successfully. Recompute from the ledger so
+                // the stored counters match the per-recipient rows exactly.
+                $campaign->refresh()->syncCountersFromLedger();
 
                 SimpleLogger::security(
                     "Newsletter campaign completed",
@@ -668,12 +670,7 @@ class NewsletterController extends Controller
                 );
             })
             ->catch(function (Batch $batch, \Throwable $e) use ($campaign) {
-                // Some jobs failed
-                $campaign->status = 'failed';
-                $campaign->sent_count = max(0, $batch->processedJobs() - $batch->failedJobs);
-                $campaign->failed_count = max(0, $batch->failedJobs);
-                $campaign->completed_at = now();
-                $campaign->save();
+                $campaign->refresh()->syncCountersFromLedger();
 
                 Log::error('Campaign batch failed', [
                     'campaign_id' => $campaign->id,
@@ -681,10 +678,7 @@ class NewsletterController extends Controller
                 ]);
             })
             ->finally(function (Batch $batch) use ($campaign) {
-                // Always update progress
-                $campaign->sent_count = max(0, $batch->processedJobs() - $batch->failedJobs);
-                $campaign->failed_count = max(0, $batch->failedJobs);
-                $campaign->save();
+                $campaign->refresh()->syncCountersFromLedger();
             })
             ->dispatch();
 
