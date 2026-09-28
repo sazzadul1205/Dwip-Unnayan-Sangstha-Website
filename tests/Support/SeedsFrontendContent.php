@@ -5,12 +5,10 @@ namespace Tests\Support;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 
-/**
- * Seeds the minimum CMS content required to exercise the public frontend
- * pipeline (PageController -> ContentService -> cache -> Inertia props).
- */
 trait SeedsFrontendContent
 {
+    use RouteTestHelpers;
+
     protected int $seededUserId = 0;
 
     protected int $seededCategoryId = 0;

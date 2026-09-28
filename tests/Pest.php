@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\DB;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 
 /*
 |--------------------------------------------------------------------------
@@ -9,6 +10,13 @@ use Illuminate\Support\Facades\DB;
 */
 
 uses(Tests\TestCase::class)->in('Feature', 'Unit');
+
+/*
+|--------------------------------------------------------------------------
+| Refresh Database
+|--------------------------------------------------------------------------
+*/
+uses(RefreshDatabase::class)->in('Feature', 'Unit');
 
 /*
 |--------------------------------------------------------------------------
