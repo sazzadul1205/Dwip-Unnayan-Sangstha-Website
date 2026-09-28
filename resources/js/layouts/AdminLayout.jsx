@@ -5,7 +5,7 @@ import { Link, usePage } from '@inertiajs/react';
 import { useState, useEffect, useMemo, useCallback } from 'react';
 
 // Icons
-import { FaSearchLocation, FaLayerGroup, FaFileArchive, FaEnvelope } from "react-icons/fa";
+import { FaSearchLocation, FaLayerGroup, FaFileArchive, FaEnvelope, FaPaperPlane } from "react-icons/fa";
 import {
   FiHome, FiBell, FiBriefcase, FiFileText, FiSettings, FiLogOut,
   FiChevronDown, FiChevronRight, FiPlusCircle, FiUsers, FiBarChart2,
@@ -29,6 +29,7 @@ const AdminLayout = ({ children }) => {
     adminApps: false,
     adminRoles: false,
     adminApplicants: false,
+    adminNewsletter: false,
     cms: false,
   });
 
@@ -405,10 +406,35 @@ const AdminLayout = ({ children }) => {
 
     // Newsletter
     if (hasAnyPermission(['newsletter.view', 'newsletter.manage'])) {
+      const subs = [];
+
+      subs.push({
+        name: 'Subscribers',
+        routeName: 'backend.newsletter.index',
+        icon: FiUsers,
+      });
+
+      subs.push({
+        name: 'Campaigns',
+        routeName: 'backend.newsletter.campaigns.index',
+        icon: FaPaperPlane,
+      });
+
+      if (hasPermission('newsletter.send')) {
+        subs.push({
+          name: 'New Campaign',
+          routeName: 'backend.newsletter.campaigns.create',
+          icon: FiPlusCircle,
+        });
+      }
+
       items.push({
         name: 'Newsletter',
         routeName: 'backend.newsletter.index',
         icon: FaEnvelope,
+        isDropdown: true,
+        dropdownKey: 'adminNewsletter',
+        subItems: subs,
       });
     }
 

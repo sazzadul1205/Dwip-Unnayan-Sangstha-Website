@@ -1,6 +1,6 @@
 // resources/js/Pages/Backend/Newsletter/Index.jsx
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Head, router, usePage } from '@inertiajs/react';
 import AuthenticatedLayout from '../../../layouts/AuthenticatedLayout';
 import {
@@ -24,22 +24,33 @@ import Swal from 'sweetalert2';
 
 // Campaigns Table Component
 const CampaignsTable = ({ campaigns }) => {
-  const { data, from, to, total, links } = campaigns;
+  // Defensive defaults: this table is also fed by the legacy campaigns
+  // endpoint, which does not always return a full pagination payload.
+  const { data = [], from, to, total, links } = campaigns || {};
 
   const getStatusBadge = (status) => {
     const map = {
+      draft: 'bg-gray-100 text-gray-700',
       pending: 'bg-yellow-100 text-yellow-700',
       processing: 'bg-blue-100 text-blue-700',
       completed: 'bg-green-100 text-green-700',
       failed: 'bg-red-100 text-red-700',
+      cancelled: 'bg-slate-200 text-slate-700',
     };
     return map[status] || 'bg-gray-100 text-gray-700';
   };
 
   const getProgress = (campaign) => {
-    if (campaign.total_subscribers === 0) return 0;
-    return Math.round(((campaign.sent_count + campaign.failed_count) / campaign.total_subscribers) * 100);
+    const totalSubs = campaign.total_subscribers ?? 0;
+    if (totalSubs === 0) return 0;
+    const sent = campaign.sent_count ?? 0;
+    const failed = campaign.failed_count ?? 0;
+    return Math.round(((sent + failed) / totalSubs) * 100);
   };
+
+  // `status` is nullable on very old rows - never call .charAt on it blindly.
+  const formatStatus = (status) =>
+    status ? status.charAt(0).toUpperCase() + status.slice(1) : 'Unknown';
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
@@ -71,7 +82,7 @@ const CampaignsTable = ({ campaigns }) => {
                       {campaign.status === 'processing' && <FaSpinner className="animate-spin" size={12} />}
                       {campaign.status === 'completed' && <FaCheckCircle size={12} />}
                       {campaign.status === 'failed' && <FaTimesCircle size={12} />}
-                      {campaign.status.charAt(0).toUpperCase() + campaign.status.slice(1)}
+                      {formatStatus(campaign.status)}
                     </span>
                   </td>
                   <td className="px-4 py-3">
@@ -86,34 +97,23 @@ const CampaignsTable = ({ campaigns }) => {
                     </div>
                   </td>
                   <td className="px-4 py-3 text-sm text-gray-700">
-                    {campaign.sent_count} / {campaign.total_subscribers}
-                    {campaign.failed_count > 0 && (
+                    {campaign.sent_count ?? 0} / {campaign.total_subscribers ?? 0}
+                    {(campaign.failed_count ?? 0) > 0 && (
                       <span className="text-red-500 ml-1">({campaign.failed_count} failed)</span>
                     )}
                   </td>
                   <td className="px-4 py-3 text-sm text-gray-500">
-                    {new Date(campaign.created_at).toLocaleDateString()}
+                    {campaign.created_at
+                      ? new Date(campaign.created_at).toLocaleDateString()
+                      : '—'}
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <button
-                      onClick={() => {
-                        Swal.fire({
-                          title: campaign.subject || 'Campaign Details',
-                          html: `
-                            <div style="text-align:left">
-                              <p><strong>Status:</strong> ${campaign.status || 'unknown'}</p>
-                              <p><strong>Sent:</strong> ${campaign.sent_count ?? 0}</p>
-                              <p><strong>Failed:</strong> ${campaign.failed_count ?? 0}</p>
-                              <p><strong>Total:</strong> ${campaign.total_subscribers ?? 0}</p>
-                            </div>
-                          `,
-                          confirmButtonColor: '#3b82f6',
-                        });
-                      }}
+                    <a
+                      href={route('backend.newsletter.campaigns.show', campaign.id)}
                       className="text-blue-600 hover:text-blue-800 text-sm font-medium inline-flex items-center gap-1"
                     >
                       <FaEye size={14} /> View
-                    </button>
+                    </a>
                   </td>
                 </tr>
               ))
@@ -151,7 +151,19 @@ const CampaignsTable = ({ campaigns }) => {
   );
 };
 
-export default function NewsletterIndex({ subscribers, stats, filters, campaigns: initialCampaigns = { data: [] } }) {
+export default function NewsletterIndex({
+  subscribers,
+  stats = {},
+  filters = {},
+  campaigns: initialCampaigns = { data: [] },
+}) {
+  // The legacy /campaigns endpoint can render this page without the
+  // subscriber payload, so fall back to an empty paginator rather than
+  // throwing on `subscribers.data`. Memoised so the reference stays stable
+  // and does not retrigger the selection effect on every render.
+  const EMPTY_PAGE = { data: [], links: [] };
+  const subscriberRows = useMemo(() => subscribers?.data ?? [], [subscribers]);
+  const subscriberMeta = subscribers ?? EMPTY_PAGE;
   const { flash } = usePage().props;
 
   // States
@@ -207,11 +219,12 @@ export default function NewsletterIndex({ subscribers, stats, filters, campaigns
   // Handle select all
   useEffect(() => {
     if (selectAll) {
-      setSelectedIds(subscribers.data.map(s => s.id));
+      setSelectedIds(subscriberRows.map(s => s.id));
+      setSelectAll(false);
     } else {
       setSelectedIds([]);
     }
-  }, [selectAll, subscribers.data]);
+  }, [selectAll, subscriberRows]);
 
   useEffect(() => {
     if (flash?.success) {
@@ -574,6 +587,39 @@ export default function NewsletterIndex({ subscribers, stats, filters, campaigns
             </button>
           </div>
 
+          {/* Campaign Manager banner – the full-featured manager lives on its
+              own page; this keeps the legacy tab working while pointing admins
+              to the new tool. */}
+          {activeTab === 'campaigns' && (
+            <div className="mb-4 flex flex-col gap-3 rounded-xl border border-blue-200 bg-blue-50 p-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm font-semibold text-blue-900">Campaign Manager</p>
+                <p className="text-xs text-blue-700">
+                  Build newsletters in HTML, preview them live, and see exactly how many were
+                  delivered versus failed — with the reason for every failure.
+                </p>
+              </div>
+
+              <div className="flex shrink-0 flex-wrap items-center gap-2">
+                <a
+                  href={route('backend.newsletter.campaigns.index')}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-blue-300 bg-white px-3 py-2 text-xs font-medium text-blue-700 transition hover:bg-blue-100"
+                >
+                  Open manager
+                </a>
+
+                <a
+                  href={route('backend.newsletter.campaigns.create')}
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-blue-700"
+                >
+                  <FaPaperPlane size={12} />
+                  New campaign
+                </a>
+              </div>
+            </div>
+          )}
+
+
           {/* Subscribers Tab */}
           {activeTab === 'subscribers' && (
             <>
@@ -682,14 +728,14 @@ export default function NewsletterIndex({ subscribers, stats, filters, campaigns
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-200">
-                      {subscribers.data.length === 0 ? (
+                      {subscriberRows.length === 0 ? (
                         <tr>
                           <td colSpan="7" className="px-4 py-8 text-center text-gray-500 text-sm">
                             No subscribers found.
                           </td>
                         </tr>
                       ) : (
-                        subscribers.data.map((subscriber) => (
+                        subscriberRows.map((subscriber) => (
                           <tr key={subscriber.id} className="hover:bg-gray-50 transition">
                             <td className="px-2 sm:px-4 py-2.5 sm:py-3">
                               <input
@@ -828,13 +874,13 @@ export default function NewsletterIndex({ subscribers, stats, filters, campaigns
                 </div>
 
                 {/* Pagination */}
-                {subscribers.links && subscribers.links.length > 3 && (
-                  <div className="px-3 sm:px-4 py-2.5 sm:py-3 border-t border-gray-200 flex flex-col sm:flex-row items-center justify-between gap-2 sm:gap-0">
-                    <p className="text-xs sm:text-sm text-gray-500">
-                      Showing {subscribers.from || 0} to {subscribers.to || 0} of {subscribers.total || 0} results
-                    </p>
-                    <div className="flex flex-wrap items-center gap-0.5 sm:gap-1">
-                      {subscribers.links.map((link, index) => (
+              {subscriberMeta.links && subscriberMeta.links.length > 3 && (
+                <div className="px-3 sm:px-4 py-2.5 sm:py-3 border-t border-gray-200 flex flex-col sm:flex-row items-center justify-between gap-2 sm:gap-0">
+                  <p className="text-xs sm:text-sm text-gray-500">
+                    Showing {subscriberMeta.from || 0} to {subscriberMeta.to || 0} of {subscriberMeta.total || 0} results
+                  </p>
+                  <div className="flex flex-wrap items-center gap-0.5 sm:gap-1">
+                    {subscriberMeta.links.map((link, index) => (
                         <button
                           key={index}
                           onClick={() => {
