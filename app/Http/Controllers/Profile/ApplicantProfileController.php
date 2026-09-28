@@ -592,9 +592,6 @@ class ApplicantProfileController extends Controller
         }
 
         DB::transaction(function () use ($profile) {
-            ApplicantCv::withTrashed()
-                ->where('applicant_profile_id', $profile->id)
-                ->restore();
             $profile->restore();
         });
 
@@ -991,7 +988,7 @@ class ApplicantProfileController extends Controller
 
     private function authorizeProfileOwner(User $user, ApplicantProfile $profile): void
     {
-        if ($user->id !== $profile->user_id) {
+        if ($user->id !== $profile->user_id && !$user->hasRole('super-admin')) {
             abort(403, 'Unauthorized.');
         }
     }
@@ -1234,8 +1231,12 @@ class ApplicantProfileController extends Controller
             'MIN(experience_years) as min_exp, MAX(experience_years) as max_exp, AVG(experience_years) as avg_exp'
         )->first();
 
+        $birthYearSelect = DB::getDriverName() === 'sqlite'
+            ? 'MIN(strftime(\'%Y\', birth_date)) as min_birth_year, MAX(strftime(\'%Y\', birth_date)) as max_birth_year'
+            : 'MIN(YEAR(birth_date)) as min_birth_year, MAX(YEAR(birth_date)) as max_birth_year';
+
         $ageStats = (clone $statsQuery)
-            ->selectRaw('MIN(YEAR(birth_date)) as min_birth_year, MAX(YEAR(birth_date)) as max_birth_year')
+            ->selectRaw($birthYearSelect)
             ->whereNotNull('birth_date')
             ->first();
 

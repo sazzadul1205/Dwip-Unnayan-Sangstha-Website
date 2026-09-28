@@ -757,6 +757,13 @@ class JobListingController extends Controller
     /**
      * Display statistics dashboard for job listings
      */
+    protected function datePart(string $part, string $column): string
+    {
+        return DB::getDriverName() === 'sqlite'
+            ? sprintf("strftime('%s', %s)", $part === 'YEAR' ? '%Y' : '%m', $column)
+            : sprintf('%s(%s)', $part, $column);
+    }
+
     public function statistics(Request $request): \Inertia\Response|RedirectResponse
     {
         $user = $this->getAuthUser();
@@ -828,8 +835,8 @@ class JobListingController extends Controller
             });
 
         $monthlyJobs = JobListing::select(
-            DB::raw('YEAR(created_at) as year'),
-            DB::raw('MONTH(created_at) as month'),
+            DB::raw($this->datePart('YEAR', 'created_at') . ' as year'),
+            DB::raw($this->datePart('MONTH', 'created_at') . ' as month'),
             DB::raw('count(*) as total')
         )
             ->whereNull('deleted_at')
@@ -874,8 +881,8 @@ class JobListingController extends Controller
         ];
 
         $monthlyApplications = Application::select(
-            DB::raw('YEAR(created_at) as year'),
-            DB::raw('MONTH(created_at) as month'),
+            DB::raw($this->datePart('YEAR', 'created_at') . ' as year'),
+            DB::raw($this->datePart('MONTH', 'created_at') . ' as month'),
             DB::raw('count(*) as total')
         )
             ->where('created_at', '>=', now()->subMonths(12))
