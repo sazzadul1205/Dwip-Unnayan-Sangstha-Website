@@ -42,6 +42,8 @@ export const getComponentLabel = (component) => {
     'BlogContentSection': 'Blog Content',
     'ContentSection': 'Content',
     'PublicationsSection': 'Publications',
+    'TextContentSection': 'Text Content',
+    'HtmlCssSection': 'HTML / CSS',
   };
   return labels[component] || component;
 };

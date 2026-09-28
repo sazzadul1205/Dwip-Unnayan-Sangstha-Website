@@ -1425,6 +1425,17 @@ class SectionController extends Controller
                 'events' => [],
             ],
 
+            'HtmlCssSection' => [
+                'html' => '',
+                'css' => '',
+                'scopeCss' => true,
+                'bgColor' => '',
+                'paddingY' => '',
+                'paddingX' => '',
+                'sectionId' => 'custom-html',
+                'sectionClassName' => '',
+            ],
+
             // ============================================
             // DEFAULT / FALLBACK
             // ============================================

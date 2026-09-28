@@ -32,6 +32,7 @@ import PublicationsSection from '../PublicationsSection/PublicationsSection';
 import ImageGallerySection from '../ImageGallerySection/ImageGallerySection';
 import VideoGallerySection from '../VideoGallerySection/VideoGallerySection';
 import TextContentSection from '../TextContentSection/TextContentSection';
+import HtmlCssSection from '../HtmlCssSection/HtmlCssSection';
 
 // Import utilities
 import { normalizeData } from '../../utils/sectionHelpers';
@@ -62,6 +63,7 @@ const sectionComponents = {
   ImageGallerySection,
   VideoGallerySection,
   TextContentSection,
+  HtmlCssSection,
 };
 
 /**
@@ -354,6 +356,10 @@ const buildComponentProps = (component, sectionData, section) => {
 
     case 'CardsSection':
       props.cardsData = extractedData;
+      break;
+
+    case 'HtmlCssSection':
+      props.data = extractedData;
       break;
 
     default:

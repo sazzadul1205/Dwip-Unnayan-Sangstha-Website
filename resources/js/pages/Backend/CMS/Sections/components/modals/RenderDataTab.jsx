@@ -29,6 +29,7 @@ const PublicationsEditor = lazy(() => import('./Editors/PublicationsEditor'));
 const ImageGalleryEditor = lazy(() => import('./Editors/ImageGalleryEditor'));
 const VideoGalleryEditor = lazy(() => import('./Editors/VideoGalleryEditor'));
 const TextContentEditor = lazy(() => import('./Editors/TextContentEditor'));
+const HtmlCssEditor = lazy(() => import('./Editors/HtmlCssEditor'));
 
 // ===== SHARED DATA NOTICE =====
 // Some section types don't have a local form: their data lives in the
@@ -100,6 +101,7 @@ const EDITOR_COMPONENTS = {
   'ImageGallerySection': ImageGalleryEditor,
   'VideoGallerySection': VideoGalleryEditor,
   'TextContentSection': TextContentEditor,
+  'HtmlCssSection': HtmlCssEditor,
 
   // Shared-data sections (no local form; show a pointer instead)
   'StoriesSection': SharedDataNotice,

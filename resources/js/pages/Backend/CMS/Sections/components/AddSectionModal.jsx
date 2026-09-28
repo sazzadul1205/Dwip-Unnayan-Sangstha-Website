@@ -63,6 +63,7 @@ const SECTION_ICONS = {
   'ImageGallerySection': FaImages,
   'VideoGallerySection': FaVideo,
   'TextContentSection': FaFileAlt,
+  'HtmlCssSection': FaCode,
 };
 
 const SECTION_OPTIONS = {
@@ -300,6 +301,15 @@ const SECTION_OPTIONS = {
     badge: 'Custom',
     badgeColor: 'blue'
   },
+  'HtmlCssSection': {
+    label: 'HTML / CSS Section',
+    data_table: 'custom_section_data',
+    description: 'Write raw HTML and CSS — Tailwind classes are ignored, your own CSS is applied',
+    isSpecial: false,
+    category: 'content',
+    badge: 'Custom',
+    badgeColor: 'blue'
+  },
 };
 
 const CATEGORY_LABELS = {
@@ -504,30 +514,6 @@ const AddSectionModal = ({ isOpen, onClose, pageId, onSuccess }) => {
           >
             <FaTimes size={20} />
           </button>
-        </div>
-
-        {/* Search Bar - Improved */}
-        <div className="relative mb-5">
-          <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-            <FaSearch className="text-gray-400" size={15} />
-          </div>
-          <input
-            ref={searchInputRef}
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search sections by name or description..."
-            className="w-full pl-10.5 pr-10 py-3.5 border border-gray-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all bg-gray-50 hover:bg-white focus:bg-white"
-          />
-          {searchQuery && (
-            <button
-              type="button"
-              onClick={() => setSearchQuery('')}
-              className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-100 transition-colors"
-            >
-              <FaTimes size={14} />
-            </button>
-          )}
         </div>
 
         <form onSubmit={handleSubmit} className="p-6">
