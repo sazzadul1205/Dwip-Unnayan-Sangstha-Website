@@ -3,6 +3,7 @@
 use App\Console\Commands\ClearFrontendCache;
 use App\Console\Commands\UpdateJobStatuses;
 use App\Http\Middleware\HandleInertiaRequests;
+use App\Http\Middleware\StaticAssetCache;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -27,6 +28,7 @@ return Application::configure(basePath: dirname(__DIR__))
         // Add custom aliases
         $middleware->alias([
             'profile.complete' => \App\Http\Middleware\EnsureApplicantProfileComplete::class,
+            'static.cache' => \App\Http\Middleware\StaticAssetCache::class,
         ]);
 
         // Web middleware group

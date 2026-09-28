@@ -13,6 +13,8 @@ use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Intervention\Image\Drivers\Gd\Driver as GdDriver;
+use Intervention\Image\ImageManager;
 
 class EditorImageUploadController extends Controller
 {
@@ -36,103 +38,107 @@ class EditorImageUploadController extends Controller
     'image/tiff',
   ];
 
-  /**
-   * Upload an image from base64 – with rate limiting.
-   */
-  public function upload(Request $request): JsonResponse
-  {
-    $user = $this->getAuthUser();
+/**
+    * Upload an image from base64 – with rate limiting.
+    */
+   public function upload(Request $request): JsonResponse
+   {
+     $user = $this->getAuthUser();
 
-    if (!$user->hasPermission('cms.dashboard')) {
-      return response()->json(['error' => 'Unauthorized'], 403);
-    }
+     if (!$user->hasPermission('cms.dashboard')) {
+       return response()->json(['error' => 'Unauthorized'], 403);
+     }
 
-    $this->checkRateLimit('editor_upload', $user->id, 10, 60);
+     $this->checkRateLimit('editor_upload', $user->id, 10, 60);
 
-    try {
-      $request->validate([
-        'image' => 'required|string',
-      ]);
+     try {
+       $request->validate([
+         'image' => 'required|string',
+       ]);
 
-      $base64 = $request->input('image');
+       $base64 = $request->input('image');
 
-      // Validate base64 format
-      if (!str_starts_with($base64, 'data:image/')) {
-        return response()->json(['error' => 'Invalid image format'], 422);
-      }
+       // Validate base64 format
+       if (!str_starts_with($base64, 'data:image/')) {
+         return response()->json(['error' => 'Invalid image format'], 422);
+       }
 
-      // Extract MIME type and data
-      if (!preg_match('/^data:([^;]+);base64,/', $base64, $mimeMatches)) {
-        return response()->json(['error' => 'Invalid base64 format'], 422);
-      }
+       // Extract MIME type and data
+       if (!preg_match('/^data:([^;]+);base64,/', $base64, $mimeMatches)) {
+         return response()->json(['error' => 'Invalid base64 format'], 422);
+       }
 
-      $mimeType = $mimeMatches[1];
+       $mimeType = $mimeMatches[1];
 
-      if (!in_array($mimeType, $this->allowedMimeTypes, true)) {
-        return response()->json(['error' => 'Unsupported image type: ' . $mimeType], 422);
-      }
+       if (!in_array($mimeType, $this->allowedMimeTypes, true)) {
+         return response()->json(['error' => 'Unsupported image type: ' . $mimeType], 422);
+       }
 
-      $imageData = explode(',', $base64);
-      if (count($imageData) < 2) {
-        return response()->json(['error' => 'Invalid image data'], 422);
-      }
+       $imageData = explode(',', $base64);
+       if (count($imageData) < 2) {
+         return response()->json(['error' => 'Invalid image data'], 422);
+       }
 
-      $imageContent = base64_decode($imageData[1], true);
-      if ($imageContent === false) {
-        return response()->json(['error' => 'Failed to decode base64 data'], 422);
-      }
+       $imageContent = base64_decode($imageData[1], true);
+       if ($imageContent === false) {
+         return response()->json(['error' => 'Failed to decode base64 data'], 422);
+       }
 
-      // Check file size
-      if (strlen($imageContent) > $this->maxImageSize) {
-        return response()->json([
-          'error' => 'Image too large. Maximum size is ' . ($this->maxImageSize / 1024 / 1024) . 'MB.',
-        ], 422);
-      }
+       // Check file size
+       if (strlen($imageContent) > $this->maxImageSize) {
+         return response()->json([
+           'error' => 'Image too large. Maximum size is ' . ($this->maxImageSize / 1024 / 1024) . 'MB.',
+         ], 422);
+       }
 
-      $extension = $this->getExtensionFromMime($mimeType);
+       $extension = $this->getExtensionFromMime($mimeType);
 
-      if (!$extension) {
-        return response()->json(['error' => 'Unsupported image type'], 422);
-      }
+       if (!$extension) {
+         return response()->json(['error' => 'Unsupported image type'], 422);
+       }
 
-      // Generate filename: YYYYMMDD_UUID.extension
-      $filename = date('Ymd') . '_' . Str::uuid() . '.' . $extension;
-      $path = 'editor-images/' . $filename;
+       // Generate filename: YYYYMMDD_UUID.extension
+       $filename = date('Ymd') . '_' . Str::uuid() . '.' . $extension;
+       $path = 'editor-images/' . $filename;
 
-      // Store the image
-      if (!Storage::disk('public')->put($path, $imageContent)) {
-        Log::error('Failed to store editor image: ' . $path);
-        return response()->json(['error' => 'Failed to save image'], 500);
-      }
+       // Optimize image using Intervention Image
+       $optimizedContent = $this->optimizeImage($imageContent, $mimeType, $extension);
 
-      // Clear rate limiter on success
-      RateLimiter::clear($this->getThrottleKey('editor_upload', $user->id));
+       // Store the optimized image
+       if (!Storage::disk('public')->put($path, $optimizedContent)) {
+         Log::error('Failed to store editor image: ' . $path);
+         return response()->json(['error' => 'Failed to save image'], 500);
+       }
 
-      $url = asset('storage/' . $path);
+       // Clear rate limiter on success
+       RateLimiter::clear($this->getThrottleKey('editor_upload', $user->id));
 
-      SimpleLogger::cms(
-        "Editor image uploaded: {$filename}",
-        [
-          'path' => $path,
-          'size' => strlen($imageContent),
-          'mime_type' => $mimeType,
-          'uploaded_by' => $user->email,
-          'ip' => $request->ip(),
-        ]
-      );
+       $url = asset('storage/' . $path);
 
-      return response()->json(['url' => $url]);
-    } catch (ValidationException $e) {
-      return response()->json(['error' => $e->errors()], 422);
-    } catch (\Exception $e) {
-      Log::error('Editor image upload failed: ' . $e->getMessage(), [
-        'trace' => $e->getTraceAsString(),
-        'user_id' => $user->id,
-      ]);
+       SimpleLogger::cms(
+         "Editor image uploaded: {$filename}",
+         [
+           'path' => $path,
+           'size' => strlen($optimizedContent),
+           'original_size' => strlen($imageContent),
+           'mime_type' => $mimeType,
+           'uploaded_by' => $user->email,
+           'ip' => $request->ip(),
+         ]
+       );
 
-      return response()->json(['error' => 'Upload failed: ' . $e->getMessage()], 500);
-    }
-  }
+       return response()->json(['url' => $url]);
+     } catch (ValidationException $e) {
+       return response()->json(['error' => $e->errors()], 422);
+     } catch (\Exception $e) {
+       Log::error('Editor image upload failed: ' . $e->getMessage(), [
+         'trace' => $e->getTraceAsString(),
+         'user_id' => $user->id,
+       ]);
+
+       return response()->json(['error' => 'Upload failed: ' . $e->getMessage()], 500);
+     }
+   }
 
   /**
    * Delete images from the editor – with rate limiting.
@@ -244,23 +250,116 @@ class EditorImageUploadController extends Controller
     return "editor_{$action}|{$userId}";
   }
 
-  /**
-   * Get file extension from MIME type.
-   */
-  private function getExtensionFromMime(string $mimeType): ?string
-  {
-    $map = [
-      'image/jpeg' => 'jpg',
-      'image/jpg'  => 'jpg',
-      'image/png'  => 'png',
-      'image/gif'  => 'gif',
-      'image/webp' => 'webp',
-      'image/svg+xml' => 'svg',
-      'image/svg'  => 'svg',
-      'image/bmp'  => 'bmp',
-      'image/tiff' => 'tiff',
-    ];
+/**
+     * Get file extension from MIME type.
+     */
+    private function getExtensionFromMime(string $mimeType): ?string
+    {
+      $map = [
+        'image/jpeg' => 'jpg',
+        'image/jpg'  => 'jpg',
+        'image/png'  => 'png',
+        'image/gif'  => 'gif',
+        'image/webp' => 'webp',
+        'image/svg+xml' => 'svg',
+        'image/svg'  => 'svg',
+        'image/bmp'  => 'bmp',
+        'image/tiff' => 'tiff',
+      ];
 
-    return $map[$mimeType] ?? null;
-  }
+      return $map[$mimeType] ?? null;
+    }
+
+    /**
+     * Optimize image using Intervention Image.
+     */
+    private function optimizeImage(string $imageContent, string $mimeType, string $extension): string
+    {
+      // Skip optimization for SVG and GIF (animated)
+      if (in_array($extension, ['svg', 'gif'], true)) {
+        return $imageContent;
+      }
+
+      // Check if GD extension is available
+      if (!extension_loaded('gd') || !function_exists('gd_info')) {
+        Log::warning('GD extension not available, skipping image optimization');
+        return $imageContent;
+      }
+
+      try {
+        $manager = new ImageManager(new GdDriver());
+        $image = $manager->read($imageContent);
+
+        // Resize if image is too large (max 1920px width for web)
+        $maxWidth = 1920;
+        if ($image->width() > $maxWidth) {
+          $image->scaleDown(width: $maxWidth);
+        }
+
+        // Convert to WebP for better compression (except PNG with transparency)
+        $outputMimeType = $mimeType;
+        $outputExtension = $extension;
+
+        if ($extension === 'png' && !$this->hasTransparency($image)) {
+          // Convert non-transparent PNG to WebP
+          $outputMimeType = 'image/webp';
+          $outputExtension = 'webp';
+        } elseif ($extension === 'jpg' || $extension === 'jpeg') {
+          // Convert JPEG to WebP
+          $outputMimeType = 'image/webp';
+          $outputExtension = 'webp';
+        }
+
+        // Encode with quality settings
+        $quality = match ($outputExtension) {
+          'webp' => 85,
+          'jpg', 'jpeg' => 85,
+          'png' => 90,
+          default => 85,
+        };
+
+        $encoded = $image->to($outputMimeType, quality: $quality);
+        
+        // If WebP is larger than original (rare), use original
+        if ($outputExtension === 'webp' && strlen($encoded) > strlen($imageContent)) {
+          return $imageContent;
+        }
+
+        return $encoded;
+      } catch (\Exception $e) {
+        Log::warning('Image optimization failed, using original: ' . $e->getMessage());
+        return $imageContent;
+      }
+    }
+
+    /**
+     * Check if image has transparency.
+     */
+    private function hasTransparency($image): bool
+    {
+      try {
+        // Check a few sample pixels for alpha channel
+        $width = $image->width();
+        $height = $image->height();
+        
+        // Check corners and center
+        $points = [
+          [0, 0],
+          [$width - 1, 0],
+          [0, $height - 1],
+          [$width - 1, $height - 1],
+          [(int)($width / 2), (int)($height / 2)],
+        ];
+
+        foreach ($points as [$x, $y]) {
+          $color = $image->pickColor($x, $y);
+          if ($color->alpha() < 255) {
+            return true;
+          }
+        }
+        return false;
+      } catch (\Exception $e) {
+        return false;
+      }
+    }
 }

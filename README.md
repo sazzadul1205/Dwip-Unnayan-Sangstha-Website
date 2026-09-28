@@ -80,6 +80,7 @@
 - **About Content** — Dynamic about pages with details
 - **Shared Data** — Centralized topbar, navbar, and footer management
 - **Editor Image Upload** — Base64 image handling for rich text
+- **Image Optimization** — Auto-resize >1920px, JPEG/PNG→WebP conversion (85% quality), preserves PNG transparency
 
 ### 👥 Role-Based Access Control (RBAC)
 - **Granular Permissions** — Fine-grained access control
@@ -161,6 +162,13 @@
 | **Redis** | Cache & session storage |
 | **Laravel Storage** | File storage (local/S3) |
 | **Elasticsearch** | (Future) job search |
+
+### Image Optimization
+
+| Technology | Version | Purpose |
+|------------|---------|---------|
+| **Intervention/Image** | 4.x | Server-side image optimization (resize, WebP conversion) |
+| **GD** | PHP Extension | Required for image processing |
 
 ### Development Tools
 
@@ -658,6 +666,41 @@ Cache is automatically invalidated when:
 - Shared data is updated
 - Roles/permissions are changed
 - Cleared manually via the `/backend/cache/clear` endpoint
+
+### Static Asset Caching
+
+Images, CSS, JS, and fonts are cached for 1 year with immutable headers via `StaticAssetCache` middleware.
+
+Apply the `static.cache` middleware to your static asset routes:
+
+```php
+// routes/web.php
+Route::middleware('static.cache')->group(function () {
+    Route::get('/storage/{path}', function ($path) {
+        return Storage::disk('public')->response($path);
+    })->where('path', '.*');
+});
+```
+
+**Headers added:**
+- `Cache-Control: public, max-age=31536000, immutable`
+- `ETag` for conditional requests (304 Not Modified)
+- Security headers: `X-Content-Type-Options: nosniff`, `X-XSS-Protection: 1; mode=block`
+
+### Image Optimization
+
+Uploaded images are automatically optimized via `Intervention/Image`:
+
+| Feature | Details |
+|---------|---------|
+| **Max Width** | 1920px (auto-resizes larger images) |
+| **Format Conversion** | JPEG/PNG → WebP (85% quality) |
+| **Transparency** | Preserved for PNG with alpha channel |
+| **Fallback** | Original image if optimization fails or GD not available |
+| **Logging** | Original vs optimized size logged |
+| **Size Limit** | 5MB maximum upload |
+
+**Requires GD PHP extension** for optimization (see [IMPORTANT.md](IMPORTANT.md)).
 
 ---
 
