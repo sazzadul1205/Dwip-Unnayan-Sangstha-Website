@@ -214,10 +214,20 @@ php artisan optimize:clear
 success "Laravel caches cleared."
 
 # ------------------------------------------------------------
-# STEP 6.5 - Ensure the public storage symlink exists
+# STEP 6.5 - Warm up config cache for production
 # ------------------------------------------------------------
 
-echo "STEP 6.5: Ensuring public/storage symlink..."
+echo "STEP 6.5: Warming up config cache..."
+
+php artisan config:cache
+
+success "Config cache warmed."
+
+# ------------------------------------------------------------
+# STEP 6.6 - Ensure the public storage symlink exists
+# ------------------------------------------------------------
+
+echo "STEP 6.6: Ensuring public/storage symlink..."
 
 if [ -L public/storage ] || [ -e public/storage ]; then
     echo "public/storage already exists."
@@ -229,10 +239,20 @@ fi
 success "Storage symlink checked."
 
 # ------------------------------------------------------------
-# STEP 7 - Bring Laravel back online
+# STEP 7 - Warm up route cache for production
 # ------------------------------------------------------------
 
-echo "STEP 7: Bringing Laravel back online..."
+echo "STEP 7: Warming up route cache..."
+
+php artisan route:cache
+
+success "Route cache warmed."
+
+# ------------------------------------------------------------
+# STEP 8 - Bring Laravel back online
+# ------------------------------------------------------------
+
+echo "STEP 8: Bringing Laravel back online..."
 
 php artisan up
 
