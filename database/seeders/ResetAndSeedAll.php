@@ -6,6 +6,7 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class ResetAndSeedAll extends Seeder
 {
@@ -14,19 +15,17 @@ class ResetAndSeedAll extends Seeder
     // ==========================================
     // COMPLETE RESET - DISABLE FOREIGN KEY CHECKS
     // ==========================================
-    DB::statement('SET FOREIGN_KEY_CHECKS=0');
-
-    // Get all table names
-    $tables = DB::select('SHOW TABLES');
-    $databaseName = env('DB_DATABASE');
-    $tableKey = "Tables_in_{$databaseName}";
+    $driver = DB::getDriverName();
+    if ($driver === 'mysql') {
+      DB::statement('SET FOREIGN_KEY_CHECKS=0');
+    } elseif ($driver === 'sqlite') {
+      DB::statement('PRAGMA foreign_keys = OFF');
+    }
 
     // Tables to exclude (keep these)
     $excludeTables = ['migrations', 'failed_jobs', 'password_reset_tokens', 'personal_access_tokens', 'sessions'];
 
-    foreach ($tables as $table) {
-      $tableName = $table->{$tableKey};
-
+    foreach (Schema::getTableListing() as $tableName) {
       // Skip excluded tables
       if (in_array($tableName, $excludeTables)) {
         continue;
@@ -39,7 +38,11 @@ class ResetAndSeedAll extends Seeder
     // ==========================================
     // RE-ENABLE FOREIGN KEY CHECKS
     // ==========================================
-    DB::statement('SET FOREIGN_KEY_CHECKS=1');
+    if ($driver === 'mysql') {
+      DB::statement('SET FOREIGN_KEY_CHECKS=1');
+    } elseif ($driver === 'sqlite') {
+      DB::statement('PRAGMA foreign_keys = ON');
+    }
 
     $this->command->info('✅ All tables truncated successfully!');
     $this->command->info('🚀 Starting seeders...');
