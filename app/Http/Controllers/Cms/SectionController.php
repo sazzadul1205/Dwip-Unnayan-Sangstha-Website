@@ -130,7 +130,7 @@ class SectionController extends Controller
     {
         $user = $this->getAuthUser();
 
-        if (! $user->hasPermission('sections.update')) {
+        if (! $user->hasPermission('sections.update_order')) {
             return response()->json(['error' => 'Unauthorized'], 403);
         }
 
@@ -584,7 +584,7 @@ class SectionController extends Controller
     {
         $user = $this->getAuthUser();
 
-        if (! $user->hasPermission('sections.view')) {
+        if (! $user->hasPermission('sections.get_about_content_options')) {
             return response()->json(['error' => 'Unauthorized'], 403);
         }
 

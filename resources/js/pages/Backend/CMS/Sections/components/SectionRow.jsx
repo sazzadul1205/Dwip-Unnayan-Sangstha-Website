@@ -27,6 +27,7 @@ import { BsStack } from 'react-icons/bs';
 
 // utils
 import Swal from 'sweetalert2';
+import { Can } from '../../../../../components/Auth/Can';
 
 // utils
 import { showToast } from '../utils/toastHelper';
@@ -324,22 +325,26 @@ const SectionRow = ({
         </td>
         <td className="px-4 py-3.5">
           <div className="flex items-center gap-1">
-            <button
-              onClick={handleRestore}
-              disabled={isDeleting}
-              className="p-2 rounded-xl transition-all text-green-600 hover:bg-green-50 hover:text-green-700 hover:shadow-sm"
-              title="Restore Section"
-            >
-              <FaTrashRestore size={15} />
-            </button>
-            <button
-              onClick={handleForceDelete}
-              disabled={isDeleting}
-              className="p-2 rounded-xl transition-all text-red-600 hover:bg-red-50 hover:text-red-700 hover:shadow-sm"
-              title="Permanently Delete"
-            >
-              <FaTrashAlt size={15} />
-            </button>
+            <Can permission="sections.restore">
+              <button
+                onClick={handleRestore}
+                disabled={isDeleting}
+                className="p-2 rounded-xl transition-all text-green-600 hover:bg-green-50 hover:text-green-700 hover:shadow-sm"
+                title="Restore Section"
+              >
+                <FaTrashRestore size={15} />
+              </button>
+            </Can>
+            <Can permission="sections.force_delete">
+              <button
+                onClick={handleForceDelete}
+                disabled={isDeleting}
+                className="p-2 rounded-xl transition-all text-red-600 hover:bg-red-50 hover:text-red-700 hover:shadow-sm"
+                title="Permanently Delete"
+              >
+                <FaTrashAlt size={15} />
+              </button>
+            </Can>
           </div>
         </td>
       </tr>
@@ -472,69 +477,77 @@ const SectionRow = ({
         {/* Actions */}
         <td className="px-4 py-3.5">
           <div className="flex items-center gap-0.5">
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onMoveUp(index);
-              }}
-              disabled={index === 0 || !isMovable || isSaving}
-              className={`p-1.5 rounded-lg transition-all ${index === 0 || !isMovable || isSaving
-                ? 'text-gray-300 cursor-not-allowed'
-                : 'text-gray-400 hover:text-blue-600 hover:bg-blue-50 hover:shadow-sm'
-                }`}
-              title={!isMovable ? 'Fixed section cannot be moved' : 'Move Up'}
-              aria-label="Move section up"
-            >
-              ↑
-            </button>
-
-            <span className="text-xs text-gray-400 font-mono min-w-8 text-center">#{section.display_order}</span>
-
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onMoveDown(index);
-              }}
-              disabled={index === totalSections - 1 || !isMovable || isSaving}
-              className={`p-1.5 rounded-lg transition-all ${index === totalSections - 1 || !isMovable || isSaving
-                ? 'text-gray-300 cursor-not-allowed'
-                : 'text-gray-400 hover:text-blue-600 hover:bg-blue-50 hover:shadow-sm'
-                }`}
-              title={!isMovable ? 'Fixed section cannot be moved' : 'Move Down'}
-              aria-label="Move section down"
-            >
-              ↓
-            </button>
-
-            <div className="w-px h-6 bg-gray-200 mx-0.5" />
-
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onEditClick(section);
-              }}
-              className="p-1.5 rounded-lg transition-all text-gray-400 hover:text-blue-600 hover:bg-blue-50 hover:shadow-sm"
-              title="Edit Section"
-              aria-label="Edit section"
-            >
-              <FaEdit size={14} />
-            </button>
-
-            {canPreview ? (
+            <Can permission="sections.update_order">
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  onTogglePreview(section.id);
+                  onMoveUp(index);
                 }}
-                className={`p-1.5 rounded-lg transition-all ${isPreviewOpen
-                  ? 'text-blue-600 bg-blue-50 shadow-sm'
+                disabled={index === 0 || !isMovable || isSaving}
+                className={`p-1.5 rounded-lg transition-all ${index === 0 || !isMovable || isSaving
+                  ? 'text-gray-300 cursor-not-allowed'
                   : 'text-gray-400 hover:text-blue-600 hover:bg-blue-50 hover:shadow-sm'
                   }`}
-                title={isPreviewOpen ? 'Close Preview' : 'Preview Section'}
-                aria-label={isPreviewOpen ? 'Close preview' : 'Preview section'}
+                title={!isMovable ? 'Fixed section cannot be moved' : 'Move Up'}
+                aria-label="Move section up"
               >
-                {isPreviewOpen ? <FaEyeSlash size={14} /> : <FaEye size={14} />}
+                ↑
               </button>
+            </Can>
+
+            <span className="text-xs text-gray-400 font-mono min-w-8 text-center">#{section.display_order}</span>
+
+            <Can permission="sections.update_order">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onMoveDown(index);
+                }}
+                disabled={index === totalSections - 1 || !isMovable || isSaving}
+                className={`p-1.5 rounded-lg transition-all ${index === totalSections - 1 || !isMovable || isSaving
+                  ? 'text-gray-300 cursor-not-allowed'
+                  : 'text-gray-400 hover:text-blue-600 hover:bg-blue-50 hover:shadow-sm'
+                  }`}
+                title={!isMovable ? 'Fixed section cannot be moved' : 'Move Down'}
+                aria-label="Move section down"
+              >
+                ↓
+              </button>
+            </Can>
+
+            <div className="w-px h-6 bg-gray-200 mx-0.5" />
+
+            <Can permission="sections.update">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onEditClick(section);
+                }}
+                className="p-1.5 rounded-lg transition-all text-gray-400 hover:text-blue-600 hover:bg-blue-50 hover:shadow-sm"
+                title="Edit Section"
+                aria-label="Edit section"
+              >
+                <FaEdit size={14} />
+              </button>
+            </Can>
+
+            {canPreview ? (
+              <Can permission="sections.view">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onTogglePreview(section.id);
+                  }}
+                  className={`p-1.5 rounded-lg transition-all ${isPreviewOpen
+                    ? 'text-blue-600 bg-blue-50 shadow-sm'
+                    : 'text-gray-400 hover:text-blue-600 hover:bg-blue-50 hover:shadow-sm'
+                    }`}
+                  title={isPreviewOpen ? 'Close Preview' : 'Preview Section'}
+                  aria-label={isPreviewOpen ? 'Close preview' : 'Preview section'}
+                >
+                  {isPreviewOpen ? <FaEyeSlash size={14} /> : <FaEye size={14} />}
+                </button>
+              </Can>
             ) : (
               <button
                 className="p-1.5 rounded-lg text-gray-300 cursor-not-allowed"
@@ -557,18 +570,20 @@ const SectionRow = ({
             )}
 
             {!section.is_fixed_section && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleDelete();
-                }}
-                disabled={isDeleting}
-                className="p-1.5 rounded-lg transition-all text-gray-400 hover:text-red-600 hover:bg-red-50 hover:shadow-sm"
-                title="Move to Trash"
-                aria-label="Move to trash"
-              >
-                <FaTrash size={14} />
-              </button>
+              <Can permission="sections.destroy">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDelete();
+                  }}
+                  disabled={isDeleting}
+                  className="p-1.5 rounded-lg transition-all text-gray-400 hover:text-red-600 hover:bg-red-50 hover:shadow-sm"
+                  title="Move to Trash"
+                  aria-label="Move to trash"
+                >
+                  <FaTrash size={14} />
+                </button>
+              </Can>
             )}
 
             <div className="w-px h-6 bg-gray-200 mx-0.5" />

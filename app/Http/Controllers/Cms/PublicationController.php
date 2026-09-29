@@ -267,18 +267,18 @@ class PublicationController extends Controller
     }
   }
 
-  /**
-   * Toggle publication active status – with rate limiting.
-   */
-  public function toggleStatus(int $id): RedirectResponse
-  {
-    $user = $this->getAuthUser();
+/**
+     * Toggle publication active status – with rate limiting.
+     */
+    public function toggleStatus(int $id): RedirectResponse
+    {
+        $user = $this->getAuthUser();
 
-    if (!$user->hasPermission('publications.update')) {
-      return redirect()->back()->with('error', 'You do not have permission to change publication status.');
-    }
+        if (!$user->hasPermission('publications.toggle_status')) {
+            return redirect()->back()->with('error', 'You do not have permission to change publication status.');
+        }
 
-    $this->checkRateLimit('publication_toggle_status', $user->id);
+        $this->checkRateLimit('publication_toggle_status', $user->id);
 
     try {
       $publication = Publication::findOrFail($id);
@@ -307,18 +307,18 @@ class PublicationController extends Controller
     }
   }
 
-  /**
-   * Toggle featured status – with rate limiting.
-   */
-  public function toggleFeatured(int $id): RedirectResponse
-  {
-    $user = $this->getAuthUser();
+/**
+     * Toggle featured status – with rate limiting.
+     */
+    public function toggleFeatured(int $id): RedirectResponse
+    {
+        $user = $this->getAuthUser();
 
-    if (!$user->hasPermission('publications.update')) {
-      return redirect()->back()->with('error', 'You do not have permission to change featured status.');
-    }
+        if (!$user->hasPermission('publications.toggle_featured')) {
+            return redirect()->back()->with('error', 'You do not have permission to change featured status.');
+        }
 
-    $this->checkRateLimit('publication_toggle_featured', $user->id);
+        $this->checkRateLimit('publication_toggle_featured', $user->id);
 
     try {
       $publication = Publication::findOrFail($id);

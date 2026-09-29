@@ -20,7 +20,12 @@ class DatabaseSeeder extends Seeder
         // ==========================================
         // STEP 0: DISABLE FOREIGN KEY CHECKS
         // ==========================================
-        DB::statement('SET FOREIGN_KEY_CHECKS=0');
+        $driver = DB::getDriverName();
+        if ($driver === 'mysql') {
+            DB::statement('SET FOREIGN_KEY_CHECKS=0');
+        } elseif ($driver === 'sqlite') {
+            DB::statement('PRAGMA foreign_keys = OFF');
+        }
 
         // ==========================================
         // STEP 0.1: TRUNCATE ALL TABLES IN CORRECT ORDER
@@ -66,7 +71,12 @@ class DatabaseSeeder extends Seeder
         // ==========================================
         // RE-ENABLE FOREIGN KEY CHECKS FOR SEEDING
         // ==========================================
-        DB::statement('SET FOREIGN_KEY_CHECKS=1');
+        $driver = DB::getDriverName();
+        if ($driver === 'mysql') {
+            DB::statement('SET FOREIGN_KEY_CHECKS=1');
+        } elseif ($driver === 'sqlite') {
+            DB::statement('PRAGMA foreign_keys = ON');
+        }
 
         // ==========================================
         // STEP 1: Base data (no dependencies)

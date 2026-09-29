@@ -132,6 +132,9 @@ class PermissionsSeeder extends Seeder
       ['name' => 'Update Blog', 'slug' => 'blogs.update', 'module' => 'blogs', 'action' => 'update'],
       ['name' => 'Delete Blog', 'slug' => 'blogs.destroy', 'module' => 'blogs', 'action' => 'destroy'],
       ['name' => 'Restore Blog', 'slug' => 'blogs.restore', 'module' => 'blogs', 'action' => 'restore'],
+      ['name' => 'Force Delete Blog', 'slug' => 'blogs.force_delete', 'module' => 'blogs', 'action' => 'force_delete'],
+      ['name' => 'Toggle Blog Status', 'slug' => 'blogs.toggle_status', 'module' => 'blogs', 'action' => 'toggle_status'],
+      ['name' => 'Toggle Blog Featured', 'slug' => 'blogs.toggle_featured', 'module' => 'blogs', 'action' => 'toggle_featured'],
       // CMS Blog aliases (frontend uses cms.blogs.*)
       ['name' => 'CMS View Blogs', 'slug' => 'cms.blogs.view', 'module' => 'cms', 'action' => 'blogs_view'],
       ['name' => 'CMS Create Blog', 'slug' => 'cms.blogs.create', 'module' => 'cms', 'action' => 'blogs_create'],
@@ -173,6 +176,7 @@ class PermissionsSeeder extends Seeder
       ['name' => 'Update Page', 'slug' => 'pages.update', 'module' => 'pages', 'action' => 'update'],
       ['name' => 'Delete Page', 'slug' => 'pages.destroy', 'module' => 'pages', 'action' => 'destroy'],
       ['name' => 'Restore Page', 'slug' => 'pages.restore', 'module' => 'pages', 'action' => 'restore'],
+      ['name' => 'Force Delete Page', 'slug' => 'pages.force_delete', 'module' => 'pages', 'action' => 'force_delete'],
       ['name' => 'Manage Pages', 'slug' => 'pages.manage', 'module' => 'pages', 'action' => 'manage'],
       // Sitemap page permission (public access)
       ['name' => 'View Sitemap', 'slug' => 'pages.sitemap', 'module' => 'pages', 'action' => 'sitemap'],
@@ -191,6 +195,10 @@ class PermissionsSeeder extends Seeder
       ['name' => 'Update Program', 'slug' => 'programs.update', 'module' => 'programs', 'action' => 'update'],
       ['name' => 'Delete Program', 'slug' => 'programs.destroy', 'module' => 'programs', 'action' => 'destroy'],
       ['name' => 'Restore Program', 'slug' => 'programs.restore', 'module' => 'programs', 'action' => 'restore'],
+      ['name' => 'Force Delete Program', 'slug' => 'programs.force_delete', 'module' => 'programs', 'action' => 'force_delete'],
+      ['name' => 'Toggle Program Status', 'slug' => 'programs.toggle_status', 'module' => 'programs', 'action' => 'toggle_status'],
+      ['name' => 'Toggle Program Featured', 'slug' => 'programs.toggle_featured', 'module' => 'programs', 'action' => 'toggle_featured'],
+      ['name' => 'Update Program Order', 'slug' => 'programs.update_order', 'module' => 'programs', 'action' => 'update_order'],
       // CMS Program aliases
       ['name' => 'CMS View Programs', 'slug' => 'cms.programs.view', 'module' => 'cms', 'action' => 'programs_view'],
       ['name' => 'CMS Create Program', 'slug' => 'cms.programs.create', 'module' => 'cms', 'action' => 'programs_create'],
@@ -207,6 +215,9 @@ class PermissionsSeeder extends Seeder
       ['name' => 'Update Publication', 'slug' => 'publications.update', 'module' => 'publications', 'action' => 'update'],
       ['name' => 'Delete Publication', 'slug' => 'publications.destroy', 'module' => 'publications', 'action' => 'destroy'],
       ['name' => 'Restore Publication', 'slug' => 'publications.restore', 'module' => 'publications', 'action' => 'restore'],
+      ['name' => 'Force Delete Publication', 'slug' => 'publications.force_delete', 'module' => 'publications', 'action' => 'force_delete'],
+      ['name' => 'Toggle Publication Status', 'slug' => 'publications.toggle_status', 'module' => 'publications', 'action' => 'toggle_status'],
+      ['name' => 'Toggle Publication Featured', 'slug' => 'publications.toggle_featured', 'module' => 'publications', 'action' => 'toggle_featured'],
       // CMS Publication aliases
       ['name' => 'CMS View Publications', 'slug' => 'cms.publications.view', 'module' => 'cms', 'action' => 'publications_view'],
       ['name' => 'CMS Create Publication', 'slug' => 'cms.publications.create', 'module' => 'cms', 'action' => 'publications_create'],
@@ -223,6 +234,9 @@ class PermissionsSeeder extends Seeder
       ['name' => 'Update Section', 'slug' => 'sections.update', 'module' => 'sections', 'action' => 'update'],
       ['name' => 'Delete Section', 'slug' => 'sections.destroy', 'module' => 'sections', 'action' => 'destroy'],
       ['name' => 'Restore Section', 'slug' => 'sections.restore', 'module' => 'sections', 'action' => 'restore'],
+      ['name' => 'Force Delete Section', 'slug' => 'sections.force_delete', 'module' => 'sections', 'action' => 'force_delete'],
+      ['name' => 'Update Section Order', 'slug' => 'sections.update_order', 'module' => 'sections', 'action' => 'update_order'],
+      ['name' => 'Get About Content Options', 'slug' => 'sections.get_about_content_options', 'module' => 'sections', 'action' => 'get_about_content_options'],
       // CMS Section aliases
       ['name' => 'CMS View Sections', 'slug' => 'cms.sections.view', 'module' => 'cms', 'action' => 'sections_view'],
       ['name' => 'CMS Create Section', 'slug' => 'cms.sections.create', 'module' => 'cms', 'action' => 'sections_create'],
@@ -413,10 +427,19 @@ class PermissionsSeeder extends Seeder
       ['name' => 'Bulk Assign Permissions', 'slug' => 'permissions.bulk_assign', 'module' => 'permissions', 'action' => 'bulk_assign'],
     ];
 
-    // Disable foreign key checks
-    DB::statement('SET FOREIGN_KEY_CHECKS=0');
+    // Disable foreign key checks (works for both MySQL and SQLite)
+    $driver = DB::getDriverName();
+    if ($driver === 'mysql') {
+        DB::statement('SET FOREIGN_KEY_CHECKS=0');
+    } elseif ($driver === 'sqlite') {
+        DB::statement('PRAGMA foreign_keys = OFF');
+    }
     DB::table('permissions')->truncate();
-    DB::statement('SET FOREIGN_KEY_CHECKS=1');
+    if ($driver === 'mysql') {
+        DB::statement('SET FOREIGN_KEY_CHECKS=1');
+    } elseif ($driver === 'sqlite') {
+        DB::statement('PRAGMA foreign_keys = ON');
+    }
 
     foreach ($permissions as $permission) {
       DB::table('permissions')->updateOrInsert(

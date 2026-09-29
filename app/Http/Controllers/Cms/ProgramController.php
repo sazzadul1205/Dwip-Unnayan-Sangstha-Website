@@ -247,7 +247,7 @@ class ProgramController extends Controller
     {
         $user = $this->getAuthUser();
 
-        if (!$user->hasPermission('programs.update')) {
+        if (!$user->hasPermission('programs.toggle_status')) {
             return redirect()->back()->with('error', 'You do not have permission to change program status.');
         }
 
@@ -287,7 +287,7 @@ class ProgramController extends Controller
     {
         $user = $this->getAuthUser();
 
-        if (!$user->hasPermission('programs.update')) {
+        if (!$user->hasPermission('programs.toggle_featured')) {
             return redirect()->back()->with('error', 'You do not have permission to change featured status.');
         }
 
@@ -333,7 +333,7 @@ class ProgramController extends Controller
     {
         $user = $this->getAuthUser();
 
-        if (!$user->hasPermission('programs.update')) {
+        if (!$user->hasPermission('programs.update_order')) {
             return response()->json(['error' => 'Unauthorized'], 403);
         }
 

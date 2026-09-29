@@ -226,18 +226,18 @@ class BlogController extends Controller
     }
   }
 
-  /**
-   * Toggle blog active status – with rate limiting.
-   */
-  public function toggleStatus(int $id): RedirectResponse
-  {
-    $user = $this->getAuthUser();
+/**
+     * Toggle blog active status – with rate limiting.
+     */
+    public function toggleStatus(int $id): RedirectResponse
+    {
+        $user = $this->getAuthUser();
 
-    if (!$user->hasPermission('blogs.update')) {
-      return redirect()->back()->with('error', 'You do not have permission to change blog status.');
-    }
+        if (!$user->hasPermission('blogs.toggle_status')) {
+            return redirect()->back()->with('error', 'You do not have permission to change blog status.');
+        }
 
-    $this->checkRateLimit('blog_toggle_status', $user->id);
+        $this->checkRateLimit('blog_toggle_status', $user->id);
 
     try {
       $blog = Blog::findOrFail($id);
@@ -267,18 +267,18 @@ class BlogController extends Controller
     }
   }
 
-  /**
-   * Toggle featured status – with rate limiting.
-   */
-  public function toggleFeatured(int $id): RedirectResponse
-  {
-    $user = $this->getAuthUser();
+/**
+     * Toggle featured status – with rate limiting.
+     */
+    public function toggleFeatured(int $id): RedirectResponse
+    {
+        $user = $this->getAuthUser();
 
-    if (!$user->hasPermission('blogs.update')) {
-      return redirect()->back()->with('error', 'You do not have permission to change featured status.');
-    }
+        if (!$user->hasPermission('blogs.toggle_featured')) {
+            return redirect()->back()->with('error', 'You do not have permission to change featured status.');
+        }
 
-    $this->checkRateLimit('blog_toggle_featured', $user->id);
+        $this->checkRateLimit('blog_toggle_featured', $user->id);
 
     try {
       $blog = Blog::findOrFail($id);

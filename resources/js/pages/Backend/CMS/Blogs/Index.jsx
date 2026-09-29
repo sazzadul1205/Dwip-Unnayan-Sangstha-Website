@@ -23,6 +23,7 @@ import Swal from 'sweetalert2';
 // Layout
 import AuthenticatedLayout from '../../../../layouts/AuthenticatedLayout';
 import RichTextEditor from '../../../../components/editor/RichTextEditor';
+import { Can } from '../../../../components/Auth/Can';
 
 export default function Index({ items }) {
   // ============================================================
@@ -629,12 +630,14 @@ export default function Index({ items }) {
             >
               {showDeleted ? '📋 Show Active' : '🗑️ Trash'}
             </button>
-            <button
-              onClick={() => openModal()}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg flex items-center gap-2 hover:bg-blue-700 transition shadow-md hover:shadow-lg"
-            >
-              <FaPlus size={14} /> New Blog
-            </button>
+            <Can permission="blogs.create">
+              <button
+                onClick={() => openModal()}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg flex items-center gap-2 hover:bg-blue-700 transition shadow-md hover:shadow-lg"
+              >
+                <FaPlus size={14} /> New Blog
+              </button>
+            </Can>
           </div>
         </div>
 
@@ -695,23 +698,25 @@ export default function Index({ items }) {
                         </td>
                         <td className="px-6 py-4">
                           {!isDeleted ? (
-                            <button
-                              onClick={() => toggleStatus(item)}
-                              disabled={toggling === item.id}
-                              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition ${item.is_active
-                                ? 'bg-green-100 text-green-700 hover:bg-green-200'
-                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                                }`}
-                            >
-                              {toggling === item.id ? (
-                                <FaSpinner className="animate-spin" size={14} />
-                              ) : item.is_active ? (
-                                <FaToggleOn size={16} className="text-green-600" />
-                              ) : (
-                                <FaToggleOff size={16} className="text-gray-500" />
-                              )}
-                              {item.is_active ? 'Active' : 'Inactive'}
-                            </button>
+                            <Can permission="blogs.toggle_status">
+                              <button
+                                onClick={() => toggleStatus(item)}
+                                disabled={toggling === item.id}
+                                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition ${item.is_active
+                                  ? 'bg-green-100 text-green-700 hover:bg-green-200'
+                                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                  }`}
+                              >
+                                {toggling === item.id ? (
+                                  <FaSpinner className="animate-spin" size={14} />
+                                ) : item.is_active ? (
+                                  <FaToggleOn size={16} className="text-green-600" />
+                                ) : (
+                                  <FaToggleOff size={16} className="text-gray-500" />
+                                )}
+                                {item.is_active ? 'Active' : 'Inactive'}
+                              </button>
+                            </Can>
                           ) : (
                             <span className="text-xs text-red-500 font-medium">
                               <FaClock className="inline mr-1" size={12} />
@@ -721,59 +726,69 @@ export default function Index({ items }) {
                         </td>
                         <td className="px-6 py-4">
                           {!isDeleted && (
-                            <button
-                              onClick={() => toggleFeatured(item)}
-                              disabled={featureToggling === item.id}
-                              className={`p-1.5 rounded-lg transition hover:bg-yellow-50 cursor-pointer ${isFeatured ? 'text-yellow-500' : 'text-gray-300 hover:text-yellow-400'
-                                }`}
-                              title={isFeatured ? 'Remove featured' : 'Make featured'}
-                            >
-                              {featureToggling === item.id ? (
-                                <FaSpinner className="animate-spin" size={14} />
-                              ) : isFeatured ? (
-                                <FaStar size={18} />
-                              ) : (
-                                <FaRegStar size={18} />
-                              )}
-                            </button>
+                            <Can permission="blogs.toggle_featured">
+                              <button
+                                onClick={() => toggleFeatured(item)}
+                                disabled={featureToggling === item.id}
+                                className={`p-1.5 rounded-lg transition hover:bg-yellow-50 cursor-pointer ${isFeatured ? 'text-yellow-500' : 'text-gray-300 hover:text-yellow-400'
+                                  }`}
+                                title={isFeatured ? 'Remove featured' : 'Make featured'}
+                              >
+                                {featureToggling === item.id ? (
+                                  <FaSpinner className="animate-spin" size={14} />
+                                ) : isFeatured ? (
+                                  <FaStar size={18} />
+                                ) : (
+                                  <FaRegStar size={18} />
+                                )}
+                              </button>
+                            </Can>
                           )}
                         </td>
                         <td className="px-6 py-4 text-sm text-gray-500">{item.date || '-'}</td>
                         <td className="px-6 py-4 text-right flex items-center justify-end gap-2">
                           {isDeleted ? (
                             <>
-                              <button
-                                onClick={() => confirmRestore(item)}
-                                disabled={isRestoring}
-                                className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition cursor-pointer"
-                                title="Restore"
-                              >
-                                <FaUndo size={16} />
-                              </button>
-                              <button
-                                onClick={() => confirmForceDelete(item)}
-                                className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition cursor-pointer"
-                                title="Permanently Delete"
-                              >
-                                <FaTrash size={16} />
-                              </button>
+                              <Can permission="blogs.restore">
+                                <button
+                                  onClick={() => confirmRestore(item)}
+                                  disabled={isRestoring}
+                                  className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition cursor-pointer"
+                                  title="Restore"
+                                >
+                                  <FaUndo size={16} />
+                                </button>
+                              </Can>
+                              <Can permission="blogs.force_delete">
+                                <button
+                                  onClick={() => confirmForceDelete(item)}
+                                  className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition cursor-pointer"
+                                  title="Permanently Delete"
+                                >
+                                  <FaTrash size={16} />
+                                </button>
+                              </Can>
                             </>
                           ) : (
                             <>
-                              <button
-                                onClick={() => openModal(item)}
-                                className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition cursor-pointer"
-                                title="Edit"
-                              >
-                                <FaEdit size={16} />
-                              </button>
-                              <button
-                                onClick={() => confirmDelete(item)}
-                                className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition cursor-pointer"
-                                title="Move to Trash"
-                              >
-                                <FaTrash size={16} />
-                              </button>
+                              <Can permission="blogs.update">
+                                <button
+                                  onClick={() => openModal(item)}
+                                  className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition cursor-pointer"
+                                  title="Edit"
+                                >
+                                  <FaEdit size={16} />
+                                </button>
+                              </Can>
+                              <Can permission="blogs.destroy">
+                                <button
+                                  onClick={() => confirmDelete(item)}
+                                  className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition cursor-pointer"
+                                  title="Move to Trash"
+                                >
+                                  <FaTrash size={16} />
+                                </button>
+                              </Can>
                             </>
                           )}
                         </td>

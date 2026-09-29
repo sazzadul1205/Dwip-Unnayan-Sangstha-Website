@@ -57,9 +57,19 @@ class RolesSeeder extends Seeder
       ],
     ];
 
-    DB::statement('SET FOREIGN_KEY_CHECKS=0');
+    // Disable foreign key checks (works for both MySQL and SQLite)
+    $driver = DB::getDriverName();
+    if ($driver === 'mysql') {
+        DB::statement('SET FOREIGN_KEY_CHECKS=0');
+    } elseif ($driver === 'sqlite') {
+        DB::statement('PRAGMA foreign_keys = OFF');
+    }
     DB::table('roles')->truncate();
-    DB::statement('SET FOREIGN_KEY_CHECKS=1');
+    if ($driver === 'mysql') {
+        DB::statement('SET FOREIGN_KEY_CHECKS=1');
+    } elseif ($driver === 'sqlite') {
+        DB::statement('PRAGMA foreign_keys = ON');
+    }
 
     foreach ($roles as $role) {
       DB::table('roles')->updateOrInsert(
