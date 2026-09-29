@@ -49,6 +49,12 @@ require __DIR__ . '/admin/dashboard.php';
 require __DIR__ . '/admin/email-templates.php';
 
 // ============================================
+// SECTION 6.5: AUDIT TRAIL ROUTES
+// URL: /backend/audit-logs/*
+// ============================================
+require __DIR__ . '/admin/audit-logs.php';
+
+// ============================================
 // SECTION 7: FALLBACK ROUTE (MUST BE AT THE END)
 // ============================================
 require __DIR__ . '/fallback.php';

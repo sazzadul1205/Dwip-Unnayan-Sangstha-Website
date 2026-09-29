@@ -51,6 +51,7 @@ class ModuleAccessSeeder extends Seeder
       ['role_id' => $superAdminRoleId, 'module' => 'cache', 'access_level' => 'manage'],
       ['role_id' => $superAdminRoleId, 'module' => 'newsletter', 'access_level' => 'manage'],
       ['role_id' => $superAdminRoleId, 'module' => 'email_templates', 'access_level' => 'manage'],
+      ['role_id' => $superAdminRoleId, 'module' => 'audit', 'access_level' => 'manage'],
       ['role_id' => $superAdminRoleId, 'module' => 'backup', 'access_level' => 'manage'],
       ['role_id' => $superAdminRoleId, 'module' => 'apply', 'access_level' => 'manage'],
 
@@ -82,6 +83,7 @@ class ModuleAccessSeeder extends Seeder
       ['role_id' => $adminRoleId, 'module' => 'cache', 'access_level' => 'manage'],
       ['role_id' => $adminRoleId, 'module' => 'newsletter', 'access_level' => 'manage'],
       ['role_id' => $adminRoleId, 'module' => 'email_templates', 'access_level' => 'manage'],
+      ['role_id' => $adminRoleId, 'module' => 'audit', 'access_level' => 'manage'],
       ['role_id' => $adminRoleId, 'module' => 'backup', 'access_level' => 'manage'],
       ['role_id' => $adminRoleId, 'module' => 'apply', 'access_level' => 'manage'],
 

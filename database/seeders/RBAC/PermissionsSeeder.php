@@ -328,6 +328,11 @@ class PermissionsSeeder extends Seeder
       ['name' => 'Send Newsletter Email', 'slug' => 'newsletter.send', 'module' => 'newsletter', 'action' => 'send'],
       ['name' => 'Update Newsletter Subscriber', 'slug' => 'newsletter.update', 'module' => 'newsletter', 'action' => 'update'],
 
+      // ==================== AUDIT TRAIL ====================
+      ['name' => 'View Audit Trail', 'slug' => 'audit.view', 'module' => 'audit', 'action' => 'view'],
+      ['name' => 'Export Audit Trail', 'slug' => 'audit.export', 'module' => 'audit', 'action' => 'export'],
+      ['name' => 'Prune Audit Trail', 'slug' => 'audit.prune', 'module' => 'audit', 'action' => 'prune'],
+
       // ==================== EMAIL TEMPLATES ====================
       ['name' => 'View Email Templates', 'slug' => 'email_templates.view', 'module' => 'email_templates', 'action' => 'view'],
       ['name' => 'Update Email Templates', 'slug' => 'email_templates.update', 'module' => 'email_templates', 'action' => 'update'],

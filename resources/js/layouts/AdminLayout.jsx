@@ -475,6 +475,16 @@ const AdminLayout = ({ children }) => {
       description: 'View system activity logs'
     });
 
+    // Audit Trail — who changed what, when
+    if (hasPermission('audit.view')) {
+      items.push({
+        name: 'Audit Trail',
+        routeName: 'backend.audit-logs.index',
+        icon: FiShield,
+        description: 'Every recorded change, with before/after values'
+      });
+    }
+
     // Backup Management
     if (hasPermission('backup.manage')) {
       items.push({

@@ -1,6 +1,7 @@
 <?php
 
 use App\Console\Commands\ClearFrontendCache;
+use App\Console\Commands\PruneAuditLogs;
 use App\Console\Commands\UpdateJobStatuses;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\StaticAssetCache;
@@ -23,6 +24,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withCommands([
         ClearFrontendCache::class,
         UpdateJobStatuses::class,
+        PruneAuditLogs::class,
     ])
     ->withMiddleware(function (Middleware $middleware) {
         // Add custom aliases
@@ -30,6 +32,10 @@ return Application::configure(basePath: dirname(__DIR__))
             'profile.complete' => \App\Http\Middleware\EnsureApplicantProfileComplete::class,
             'static.cache' => \App\Http\Middleware\StaticAssetCache::class,
         ]);
+
+        // Audit every state-changing request application-wide, so no
+        // controller can silently mutate data without leaving a trail.
+        $middleware->appendToGroup('web', \App\Http\Middleware\AuditMutations::class);
 
         // Web middleware group
         $middleware->web(append: [
@@ -51,6 +57,9 @@ return Application::configure(basePath: dirname(__DIR__))
 
         // Optionally clear frontend cache daily (uncomment if needed)
         // $schedule->command('frontend:clear-cache --all')->daily();
+
+        // Keep the append-only audit trail inside its retention window.
+        $schedule->command('audit:prune')->dailyAt('03:30');
     })
     ->withExceptions(function (Exceptions $exceptions) {
         $exceptions->render(function (Throwable $exception) {
