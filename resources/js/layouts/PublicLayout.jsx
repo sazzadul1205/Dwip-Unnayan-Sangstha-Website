@@ -6,7 +6,6 @@ import Navbar from '../Shared/Navbar/Navbar';
 import TopBar from '../Shared/TopBar/TopBar';
 import Footer from '../Shared/Footer/Footer';
 import BackToTop from '../Shared/BackToTop';
-import CookieConsent from '../Shared/CookieConsent';
 
 const PublicLayout = ({ children, topBarData, navbarData, footerData, storageUrl }) => {
   return (
@@ -27,15 +26,6 @@ const PublicLayout = ({ children, topBarData, navbarData, footerData, storageUrl
 
       {/* Back to Top Button */}
       <BackToTop />
-
-      {/* Cookie Consent Banner */}
-      <CookieConsent
-        position="bottom-0"
-        theme="dark"
-        expiryDays={365}
-        cookieName="cookie_consent"
-        privacyPolicyUrl="/privacy-policy"
-      />
     </div>
   );
 };
