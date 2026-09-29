@@ -11,6 +11,8 @@ class SimpleLogger
 
     public static function log(string $type, string $message, array $context = []): void
     {
+        self::$maxLines = (int) config('system-logs.max_lines', 10000);
+
         $logFile = storage_path(self::$logDir . '/' . $type . '.log');
 
         if (!is_dir(storage_path(self::$logDir))) {

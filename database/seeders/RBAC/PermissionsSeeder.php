@@ -319,6 +319,7 @@ class PermissionsSeeder extends Seeder
       ['name' => 'View Logs', 'slug' => 'logs.view', 'module' => 'logs', 'action' => 'view'],
       ['name' => 'Export Logs', 'slug' => 'logs.export', 'module' => 'logs', 'action' => 'export'],
       ['name' => 'Clear Logs', 'slug' => 'logs.clear', 'module' => 'logs', 'action' => 'clear'],
+      ['name' => 'Prune Logs', 'slug' => 'logs.prune', 'module' => 'logs', 'action' => 'prune'],
       ['name' => 'Manage Logs', 'slug' => 'logs.manage', 'module' => 'logs', 'action' => 'manage'],
 
       // ==================== NEWSLETTER ====================

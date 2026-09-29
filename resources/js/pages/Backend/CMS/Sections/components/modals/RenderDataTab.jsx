@@ -87,7 +87,7 @@ const EDITOR_COMPONENTS = {
   'AboutUsSection': AboutUsEditor,
   'FollowUSSection': FollowUsEditor,
   'OurActionSection': OurActionEditor,
-  'HeroFigureEditor': HeroFigureEditor,
+  HeroFigureEditor,
   'PageBannerSection': PageBannerEditor,
   'PageTagBannerSection': PageTagBannerEditor,
   'WhereWeWorkSection': WhereWeWorkEditor,

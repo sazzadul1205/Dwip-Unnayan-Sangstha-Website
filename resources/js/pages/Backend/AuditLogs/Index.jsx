@@ -120,9 +120,11 @@ const DetailDrawer = ({ id, onClose }) => {
   if (!id) return null;
 
   const log = data?.log;
-  const changes = data?.changes ?? [];
+  const changesObj = data?.changes ?? {};
+  const changes = Object.entries(changesObj);
+  const changeKeys = new Set(changes.map(([k]) => k));
   const rows = Object.entries(log?.new_values ?? {}).filter(
-    ([key]) => !changes.some(([changeKey]) => changeKey === key)
+    ([key]) => !changeKeys.has(key)
   );
 
   return (
