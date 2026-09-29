@@ -2,6 +2,7 @@
 
 use App\Console\Commands\ClearFrontendCache;
 use App\Console\Commands\PruneAuditLogs;
+use App\Console\Commands\SeedApplication;
 use App\Console\Commands\UpdateJobStatuses;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\StaticAssetCache;
@@ -25,6 +26,7 @@ return Application::configure(basePath: dirname(__DIR__))
         ClearFrontendCache::class,
         UpdateJobStatuses::class,
         PruneAuditLogs::class,
+        SeedApplication::class,
     ])
     ->withMiddleware(function (Middleware $middleware) {
         // Add custom aliases
