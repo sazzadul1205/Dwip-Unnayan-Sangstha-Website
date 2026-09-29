@@ -1,6 +1,6 @@
 // js/Shared/Navbar/Navbar
 
-import { useState, useEffect, memo } from 'react';
+import { useState, useEffect, useRef, memo } from 'react';
 import { Link, usePage } from '@inertiajs/react';
 import { Menu, X, ChevronDown, ChevronRight } from 'lucide-react';
 
@@ -48,17 +48,76 @@ const isLinkActive = (link, isActive, dropdowns = [], index = 0) => {
 // ============================================
 // DESKTOP: RECURSIVE NAV ITEM (unlimited nesting)
 // ============================================
-const DesktopNavItem = ({ link, index, dropdowns = [], level = 0, isActive }) => {
+
+// Grace period before a hovered panel closes, so the pointer can cross the
+// gap between the trigger and the panel without dismissing it.
+const CLOSE_DELAY = 160;
+
+const DesktopNavItem = ({
+  link,
+  index,
+  dropdowns = [],
+  level = 0,
+  isActive,
+  isLastTopLevel = false,
+}) => {
   const [open, setOpen] = useState(false);
+  const closeTimer = useRef(null);
+  const itemRef = useRef(null);
 
   const children = resolveChildren(link, index, dropdowns);
   const isNested = level > 0;
   const active = isLinkActive(link, isActive, dropdowns, index);
 
+  const cancelPendingClose = () => {
+    if (closeTimer.current) {
+      clearTimeout(closeTimer.current);
+      closeTimer.current = null;
+    }
+  };
+
+  const handleEnter = () => {
+    cancelPendingClose();
+    setOpen(true);
+  };
+
+  const handleLeave = () => {
+    cancelPendingClose();
+    closeTimer.current = setTimeout(() => setOpen(false), CLOSE_DELAY);
+  };
+
+  // Never leave a timer running after the item unmounts.
+  useEffect(() => cancelPendingClose, []);
+
+  // Escape closes the panel; a click anywhere outside closes it too, so a
+  // hover panel cannot stay pinned open after the pointer has left.
+  useEffect(() => {
+    if (!open) return;
+
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        cancelPendingClose();
+        setOpen(false);
+      }
+    };
+    const handlePointerDown = (event) => {
+      if (itemRef.current && !itemRef.current.contains(event.target)) {
+        setOpen(false);
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('mousedown', handlePointerDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('mousedown', handlePointerDown);
+    };
+  }, [open]);
+
   // ---- Leaf item ----
   if (children.length === 0) {
     return (
-      <li className="relative uppercase">
+      <li className="relative uppercase" ref={itemRef}>
         <Link
           href={hasValue(link.href) ? link.href : '#'}
           className={
@@ -85,54 +144,95 @@ const DesktopNavItem = ({ link, index, dropdowns = [], level = 0, isActive }) =>
   }
 
   // ---- Item with sub-menu ----
+  // Top level: rendered exactly like a leaf link, so a parent that has sub
+  // pages is visually and behaviourally identical to a standalone page. The
+  // panel is opened by hover (and by keyboard focus), not by a separate button.
+  // It stays mounted so it can fade in from its origin instead of popping.
+  const panel = (
+    <div
+      className={`absolute w-56 z-60 transition-all duration-200 ease-out ${
+        isNested
+          ? 'origin-top-left top-0 left-full pl-1'
+          : isLastTopLevel
+            ? // The final top-level item sits closest to the CTA, so its
+              // panel hangs off the right edge to stay on screen.
+              'origin-top-right top-full right-0 pt-2'
+            : 'origin-top top-full left-1/2 -translate-x-1/2 pt-2'
+      } ${
+        open
+          ? 'visible opacity-100 scale-100'
+          : 'invisible opacity-0 scale-95 pointer-events-none'
+      }`}
+    >
+      <ul className="bg-white rounded-lg shadow-lg border border-gray-100 py-2">
+        {children.map((child, childIndex) => (
+          <DesktopNavItem
+            key={child?._tempId || `${index}-${childIndex}`}
+            link={child}
+            index={childIndex}
+            // Legacy `dropdowns` map only ever applies to the first level.
+            dropdowns={isNested ? [] : dropdowns}
+            level={level + 1}
+            isActive={isActive}
+            isLastTopLevel={isNested && childIndex === children.length - 1}
+          />
+        ))}
+      </ul>
+    </div>
+  );
+
+  if (!isNested) {
+    return (
+      <li
+        ref={itemRef}
+        className="relative uppercase"
+        onMouseEnter={handleEnter}
+        onMouseLeave={handleLeave}
+      >
+        <Link
+          href={hasValue(link.href) ? link.href : '#'}
+          onFocus={handleEnter}
+          onBlur={handleLeave}
+          aria-expanded={open}
+          aria-haspopup="true"
+          className={`relative group flex items-center gap-1 whitespace-nowrap font-semibold transition-all duration-300 ${
+            active ? 'text-[#009BE2]' : 'text-gray-800 hover:text-[#009BE2]'
+          } text-sm xl:text-base 2xl:text-[20px]`}
+        >
+          {link.name}
+          <span
+            className={`absolute -bottom-2 left-1/2 h-0.5 rounded-full bg-[#009BE2]
+              transition-all duration-300 ease-out
+              ${active ? 'w-full -translate-x-1/2' : 'w-0 -translate-x-1/2 group-hover:w-full'}`}
+          />
+        </Link>
+        {panel}
+      </li>
+    );
+  }
+
+  // Nested sub-parent: stays a button, since it only ever opens a deeper panel.
   return (
     <li
+      ref={itemRef}
       className="relative uppercase"
-      onMouseEnter={() => setOpen(true)}
-      onMouseLeave={() => setOpen(false)}
+      onMouseEnter={handleEnter}
+      onMouseLeave={handleLeave}
     >
       <button
         type="button"
         onClick={() => setOpen((prev) => !prev)}
         aria-expanded={open}
         aria-haspopup="true"
-        className={
-          isNested
-            ? `flex items-center justify-between gap-2 w-full px-4 py-2 text-sm normal-case transition-colors duration-200 ${
-                open || active ? 'bg-[#009BE2] text-white' : 'text-gray-700 hover:bg-[#009BE2] hover:text-white'
-              }`
-            : `relative flex items-center gap-1 whitespace-nowrap font-semibold transition-all duration-300 ${
-                active ? 'text-[#009BE2]' : 'text-black hover:text-[#009BE2]'
-              } text-sm xl:text-base 2xl:text-lg`
-        }
+        className={`flex items-center justify-between gap-2 w-full px-4 py-2 text-sm normal-case transition-colors duration-200 ${
+          open || active ? 'bg-[#009BE2] text-white' : 'text-gray-700 hover:bg-[#009BE2] hover:text-white'
+        }`}
       >
-        <span className={isNested ? 'truncate' : ''}>{link.name}</span>
-        {isNested ? (
-          <ChevronRight className="w-3.5 h-3.5 shrink-0" />
-        ) : (
-          <ChevronDown
-            className={`w-3 h-3 shrink-0 transition-transform duration-300 ${open ? 'rotate-180' : ''}`}
-          />
-        )}
+        <span className="truncate">{link.name}</span>
+        <ChevronRight className="w-3.5 h-3.5 shrink-0" />
       </button>
 
-      {open && (
-        <div className={`absolute w-56 z-60 ${isNested ? 'top-0 left-full pl-1' : 'top-full left-0 pt-2'}`}>
-          <ul className="bg-white rounded-lg shadow-lg border border-gray-100 py-2">
-            {children.map((child, childIndex) => (
-              <DesktopNavItem
-                key={child?._tempId || `${index}-${childIndex}`}
-                link={child}
-                index={childIndex}
-                // Legacy `dropdowns` map only ever applies to the first level.
-                dropdowns={isNested ? [] : dropdowns}
-                level={level + 1}
-                isActive={isActive}
-              />
-            ))}
-          </ul>
-        </div>
-      )}
+      {panel}
     </li>
   );
 };
@@ -296,6 +396,7 @@ const Navbar = ({ navbarData, storageUrl = '', defaultLogo = '/images/default-lo
                     index={index}
                     dropdowns={dropdowns}
                     isActive={isActive}
+                    isLastTopLevel={index === navLinks.length - 1}
                   />
                 ))}
               </ul>

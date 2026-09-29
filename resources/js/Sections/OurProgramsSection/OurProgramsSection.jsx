@@ -24,15 +24,27 @@ const DEFAULT_SECTION = {
   },
 };
 
+// Visual gap between two stacked cards while the next one slides over.
+const CARD_GAP = 16;
+
+// Extra scroll runway granted to every card after it pins, so the next card
+// only starts covering it once the current one has had a full screen of scroll.
+const MIN_READ_RUNWAY = 200;
+const RUNWAY_VIEWPORT_RATIO = 0.4;
+const FALLBACK_CARD_RUNWAY = 420;
+
 // ============================================
 // SKELETON: Single sticky program card
 // ============================================
-const ProgramSkeletonCard = ({ index = 0 }) => (
+const ProgramSkeletonCard = ({ index = 0, total = 0 }) => (
   <div
     className="sticky top-20 sm:top-22 md:top-24 lg:top-25 w-full"
-    style={{ zIndex: index + 1 }}
+    style={{
+      zIndex: index + 1,
+      marginBottom: index < total - 1 ? CARD_GAP : 0,
+    }}
   >
-    <div className="flex flex-col lg:flex-row justify-between items-center gap-6 sm:gap-8 md:gap-10 lg:gap-15 xl:gap-20 2xl:gap-25 p-5 sm:p-6 md:p-8 lg:p-12 xl:p-20 2xl:p-25 rounded-3xl min-h-162.5 lg:min-h-0 bg-white shadow-lg">
+    <div className="flex flex-col lg:flex-row justify-between items-center gap-6 sm:gap-8 md:gap-10 lg:gap-15 xl:gap-20 2xl:gap-25 p-5 sm:p-6 md:p-8 lg:p-12 lg:h-tall:p-10 lg:h-mid:p-8 lg:h-short:p-6 xl:p-20 xl:h-tall:p-16 xl:h-mid:p-8 xl:h-short:p-6 2xl:p-25 2xl:h-tall:p-20 2xl:h-mid:p-10 2xl:h-short:p-6 rounded-3xl min-h-[clamp(28rem,78vh,40.625rem)] lg:min-h-0 bg-white shadow-lg">
       {/* Left Content */}
       <div className="w-full lg:w-1/2 flex flex-col justify-center">
         {/* Title — matches real: 22→46px, 3 lines max */}
@@ -42,7 +54,7 @@ const ProgramSkeletonCard = ({ index = 0 }) => (
         {/* Description — 5 short lines */}
         <SkeletonText
           lines={5}
-          lineClassName="h-4 sm:h-4.5 md:h-5 lg:h-5.5 xl:h-6"
+          lineClassName="h-4 sm:h-4.5 md:h-5 lg:h-5.5 lg:h-mid:h-5 xl:h-6"
           className="mb-4 sm:mb-5 md:mb-6"
         />
 
@@ -53,7 +65,7 @@ const ProgramSkeletonCard = ({ index = 0 }) => (
       {/* Right Image */}
       <div className="w-full lg:w-1/2">
         <Skeleton
-          className="w-full h-60 sm:h-75 md:h-85 lg:h-100 xl:h-120 2xl:h-150 rounded-3xl"
+          className="w-full h-60 sm:h-75 md:h-85 lg:h-100 lg:h-tall:h-90 lg:h-mid:h-80 lg:h-short:h-60 xl:h-120 xl:h-tall:h-105 xl:h-mid:h-85 xl:h-short:h-60 2xl:h-150 2xl:h-tall:h-130 2xl:h-mid:h-95 2xl:h-short:h-65 rounded-3xl"
         />
       </div>
     </div>
@@ -86,7 +98,11 @@ const ProgramSkeletonStack = ({ count = 3 }) => (
       aria-live="polite"
     >
       {Array.from({ length: count }).map((_, index) => (
-        <ProgramSkeletonCard key={`program-skeleton-${index}`} index={index} />
+        <ProgramSkeletonCard
+          key={`program-skeleton-${index}`}
+          index={index}
+          total={count}
+        />
       ))}
     </div>
 
@@ -117,6 +133,8 @@ const OurProgramsSection = ({
   const [visibleCards, setVisibleCards] = useState([]);
   const [imageErrors, setImageErrors] = useState({});
   const cardsRef = useRef([]);
+  const [cardHeights, setCardHeights] = useState([]);
+  const [viewportHeight, setViewportHeight] = useState(0);
 
   // ============================================
   // RESOLVE DATA
@@ -169,6 +187,75 @@ const OurProgramsSection = ({
 
     return filtered;
   }, [programs, showFeatured, limit]);
+
+  // ============================================
+  // STACK GEOMETRY
+  // ============================================
+
+  // Track viewport height so the runway scales with the screen.
+  useEffect(() => {
+    const update = () => setViewportHeight(window.innerHeight);
+    update();
+    window.addEventListener('resize', update);
+    return () => window.removeEventListener('resize', update);
+  }, []);
+
+  // Measure real card heights. A fixed `count * 100vh` container is wrong on
+  // short screens: the runway each card gets is the height of the *next* card,
+  // so tall cards swallow the previous one before it can be read.
+  useEffect(() => {
+    if (loading) {
+      setCardHeights([]);
+      return;
+    }
+
+    // Slice to the current count: React does not null out ref entries for
+    // indexes that simply drop off the end of a shorter list.
+    const count = filteredPrograms.length;
+    const elements = cardsRef.current.slice(0, count).filter(Boolean);
+
+    if (elements.length !== count) {
+      setCardHeights([]);
+      return;
+    }
+
+    const measure = () => {
+      setCardHeights(elements.map((el) => el.offsetHeight));
+    };
+
+    measure();
+
+    if (typeof ResizeObserver === 'undefined') {
+      window.addEventListener('resize', measure);
+      return () => window.removeEventListener('resize', measure);
+    }
+
+    const observer = new ResizeObserver(measure);
+    elements.forEach((el) => observer.observe(el));
+    return () => observer.disconnect();
+  }, [filteredPrograms, loading]);
+
+  const stackHeight = useMemo(() => {
+    const count = filteredPrograms.length;
+    if (count === 0) return undefined;
+
+    const isMeasured =
+      cardHeights.length === count && cardHeights.every((height) => height > 0);
+
+    if (!isMeasured) {
+      return `${count * 100}vh`;
+    }
+
+    const runway = viewportHeight
+      ? Math.max(MIN_READ_RUNWAY, viewportHeight * RUNWAY_VIEWPORT_RATIO)
+      : FALLBACK_CARD_RUNWAY;
+
+    const cards = cardHeights.reduce((total, height) => total + height, 0);
+    const gaps = (count - 1) * CARD_GAP;
+    const runways = (count - 1) * runway;
+
+    return `${Math.round(cards + gaps + runways)}px`;
+  }, [cardHeights, filteredPrograms.length, viewportHeight]);
 
   // ============================================
   // HELPERS
@@ -318,7 +405,7 @@ const OurProgramsSection = ({
           <div
             className={`relative ${shouldShowHeader ? "mt-12 sm:mt-16 md:mt-20 lg:mt-24 xl:mt-28 2xl:mt-32" : ""
               }`}
-            style={{ height: `${filteredPrograms.length * 100}vh` }}
+            style={{ height: stackHeight }}
           >
             {filteredPrograms.map((program, index) => {
               if (!hasValue(program) && !program.title && !program.description) {
@@ -340,10 +427,14 @@ const OurProgramsSection = ({
                       ? "translate-y-0 opacity-100"
                       : "translate-y-16 opacity-0"
                     }`}
-                  style={{ zIndex: index + 1 }}
+                  style={{
+                    zIndex: index + 1,
+                    marginBottom:
+                      index < filteredPrograms.length - 1 ? CARD_GAP : 0,
+                  }}
                 >
                   <div
-                    className="flex flex-col lg:flex-row justify-between items-center gap-6 sm:gap-8 md:gap-10 lg:gap-15 xl:gap-20 2xl:gap-25 p-5 sm:p-6 md:p-8 lg:p-12 xl:p-20 2xl:p-25 rounded-3xl min-h-162.5 lg:min-h-0 shadow-lg"
+                    className="flex flex-col lg:flex-row justify-between items-center gap-6 sm:gap-8 md:gap-10 lg:gap-15 xl:gap-20 2xl:gap-25 p-5 sm:p-6 md:p-8 lg:p-12 lg:h-tall:p-10 lg:h-mid:p-8 lg:h-short:p-6 xl:p-20 xl:h-tall:p-16 xl:h-mid:p-8 xl:h-short:p-6 2xl:p-25 2xl:h-tall:p-20 2xl:h-mid:p-10 2xl:h-short:p-6 rounded-3xl min-h-[clamp(28rem,78vh,40.625rem)] lg:min-h-0 shadow-lg"
                     style={{ backgroundColor: program.bg_color || '#ffffff' }}
                   >
                     {/* Left Content */}
@@ -360,7 +451,7 @@ const OurProgramsSection = ({
                       )}
                       {hasValue(descriptionHtml) && (
                         <div
-                          className="bricolage-grotesque font-400 text-[15px] sm:text-[16px] md:text-[17px] lg:text-[18px] xl:text-[19px] 2xl:text-[20px] text-[#524B48] leading-relaxed line-clamp-5 sm:line-clamp-6 md:line-clamp-7 lg:line-clamp-8 xl:line-clamp-5 2xl:line-clamp-10"
+                          className="bricolage-grotesque font-400 text-[15px] sm:text-[16px] md:text-[17px] lg:text-[18px] xl:text-[19px] 2xl:text-[20px] text-[#524B48] leading-relaxed line-clamp-5 sm:line-clamp-6 md:line-clamp-7 lg:line-clamp-8 lg:h-tall:line-clamp-7 lg:h-mid:line-clamp-6 lg:h-short:line-clamp-4 xl:line-clamp-5 2xl:line-clamp-10 2xl:h-tall:line-clamp-8 2xl:h-mid:line-clamp-6 2xl:h-short:line-clamp-4"
                           dangerouslySetInnerHTML={{
                             __html: sanitizeHTML(truncatedDescription),
                           }}
@@ -382,7 +473,7 @@ const OurProgramsSection = ({
                       <img
                         src={getImageSrc(program)}
                         alt={program.title || 'Program image'}
-                        className="w-full h-60 sm:h-75 md:h-85 lg:h-100 xl:h-120 2xl:h-150 object-cover rounded-3xl hover:scale-105 transition-transform duration-300"
+                        className="w-full h-60 sm:h-75 md:h-85 lg:h-100 lg:h-tall:h-90 lg:h-mid:h-80 lg:h-short:h-60 xl:h-120 xl:h-tall:h-105 xl:h-mid:h-85 xl:h-short:h-60 2xl:h-150 2xl:h-tall:h-130 2xl:h-mid:h-95 2xl:h-short:h-65 object-cover rounded-3xl hover:scale-105 transition-transform duration-300"
                         onError={() => handleImageError(program.id)}
                       />
                     </div>

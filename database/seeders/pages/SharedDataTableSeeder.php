@@ -32,7 +32,7 @@ class SharedDataTableSeeder extends Seeder
       [
         'id' => 2,
         'type' => 'navbar',
-        'data' => '{"logo":{"src":"\/storage\/images\/Icon.svg","alt":"DUS Logo","className":"h-17.5 w-auto","href":"\/"},"navLinks":[{"name":"Home","href":"\/"},{"name":"About","href":"\/about"},{"name":"Projects & Programs","href":"\/projects-programs"},{"name":"Gallery","href":"\/gallery"},{"name":"Publications","href":"\/publications"},{"name":"Blogs","href":"\/blog"}],"button":{"text":"Contact Us","href":"\/contact","className":"capitalize text-white bg-[#009BE2] hover:bg-[#009BE2]\/80 px-6 py-2 rounded-lg transition-colors duration-200"}}',
+        'data' => '{"logo":{"src":"\/storage\/images\/Icon.svg","alt":"DUS Logo","className":"h-17.5 w-auto","href":"\/"},"navLinks":[{"name":"Home","href":"\/"},{"name":"About","href":"\/about"},{"name":"Projects & Programs","href":"\/projects-programs"},{"name":"Gallery","href":"\/gallery"},{"name":"Publications","href":"\/publications"},{"name":"Blogs","href":"\/blog"},{"name":"Jobs","href":"\/jobs"},{"name":"More","href":"#","children":[{"name":"Contact","href":"\/contact"},{"name":"Terms of Service","href":"\/terms"},{"name":"Privacy Policy","href":"\/privacy"}]}],"button":{"text":"Contact Us","href":"\/contact","className":"capitalize text-white bg-[#009BE2] hover:bg-[#009BE2]\/80 px-6 py-2 rounded-lg transition-colors duration-200"}}',
         'is_active' => 1,
         'created_at' => '2024-01-01 00:00:00',
         'updated_at' => '2024-01-01 00:00:00',

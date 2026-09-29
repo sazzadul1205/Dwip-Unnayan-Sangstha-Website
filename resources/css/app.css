@@ -5,6 +5,15 @@
 
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 
+/*
+    Height-based variants for short viewports (small laptops, split screens).
+    Sticky cards taller than the viewport can never be scrolled far enough to
+    expose their lower content, so these step the card down as height shrinks.
+*/
+@custom-variant h-tall (@media (max-height: 900px));
+@custom-variant h-mid (@media (max-height: 780px));
+@custom-variant h-short (@media (max-height: 660px));
+
 @layer base {
     html {
         scroll-behavior: smooth;
