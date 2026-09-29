@@ -100,10 +100,10 @@ class DatabaseSeeder extends Seeder
     }
 
     /**
-     * Every table in the database except the preserved infrastructure ones.
+     * Every table in the current database except the preserved infrastructure ones.
      *
-     * `getTableListing()` returns schema-qualified names on some drivers
-     * (e.g. `main.cache`), so the prefix is stripped before comparing.
+     * `getTableListing()` returns schema-qualified names (e.g. `database.table`),
+     * so we filter by the current database connection before stripping the prefix.
      *
      * @return array<int, string>
      */
@@ -111,14 +111,19 @@ class DatabaseSeeder extends Seeder
     {
         $tables = [];
 
+        $currentDatabase = DB::connection()->getDatabaseName();
+
         foreach (Schema::getTableListing() as $table) {
-            $name = Str::afterLast($table, '.');
+            // Filter to only tables in the current database
+            if (Str::startsWith($table, $currentDatabase . '.')) {
+                $name = Str::afterLast($table, '.');
 
-            if (in_array($name, self::PRESERVED_TABLES, true)) {
-                continue;
+                if (in_array($name, self::PRESERVED_TABLES, true)) {
+                    continue;
+                }
+
+                $tables[] = $name;
             }
-
-            $tables[] = $name;
         }
 
         return $tables;
