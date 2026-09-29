@@ -2,9 +2,12 @@
 
 use App\Console\Commands\ClearFrontendCache;
 use App\Console\Commands\PruneAuditLogs;
+use App\Console\Commands\PruneSystemLogs;
 use App\Console\Commands\SeedApplication;
 use App\Console\Commands\UpdateJobStatuses;
 use App\Http\Middleware\HandleInertiaRequests;
+use App\Http\Middleware\SanitizeInput;
+use App\Http\Middleware\SecurityHeaders;
 use App\Http\Middleware\StaticAssetCache;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -26,7 +29,11 @@ return Application::configure(basePath: dirname(__DIR__))
         ClearFrontendCache::class,
         UpdateJobStatuses::class,
         PruneAuditLogs::class,
+        PruneSystemLogs::class,
         SeedApplication::class,
+    ])
+    ->withProviders([
+        \App\Providers\RateLimiterServiceProvider::class,
     ])
     ->withMiddleware(function (Middleware $middleware) {
         // Add custom aliases
@@ -38,6 +45,12 @@ return Application::configure(basePath: dirname(__DIR__))
         // Audit every state-changing request application-wide, so no
         // controller can silently mutate data without leaving a trail.
         $middleware->appendToGroup('web', \App\Http\Middleware\AuditMutations::class);
+
+        // Security headers middleware
+        $middleware->appendToGroup('web', SecurityHeaders::class);
+
+        // Input sanitization middleware (detect SQL injection/XSS attempts)
+        $middleware->appendToGroup('web', SanitizeInput::class);
 
         // Web middleware group
         $middleware->web(append: [
@@ -62,6 +75,9 @@ return Application::configure(basePath: dirname(__DIR__))
 
         // Keep the append-only audit trail inside its retention window.
         $schedule->command('audit:prune')->dailyAt('03:30');
+
+        // Keep file-based system logs inside their retention window.
+        $schedule->command('logs:prune')->dailyAt('04:00');
     })
     ->withExceptions(function (Exceptions $exceptions) {
         $exceptions->render(function (Throwable $exception) {
