@@ -166,9 +166,20 @@ class PublicationSeeder extends Seeder
                 $data['slug'] = Str::slug($data['title']);
             }
 
-            // Ensure uniqueness of slug
+            // Re-running the seeder must update the seeded row, not append a
+            // "-1" duplicate. The suffix is only for a slug genuinely taken
+            // by a *different* publication.
+            $existing = Publication::withTrashed()->where('slug', $data['slug'])->first();
+
+            if ($existing && $existing->title === $data['title']) {
+                $existing->forceFill($data)->save();
+
+                continue;
+            }
+
             $originalSlug = $data['slug'];
             $counter = 1;
+
             while (Publication::withTrashed()->where('slug', $data['slug'])->exists()) {
                 $data['slug'] = $originalSlug . '-' . $counter;
                 $counter++;

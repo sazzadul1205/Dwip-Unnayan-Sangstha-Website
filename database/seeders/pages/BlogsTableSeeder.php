@@ -4,10 +4,13 @@
 namespace Database\Seeders\pages;
 
 use Illuminate\Database\Seeder;
+use Database\Seeders\Concerns\SeedsTable;
 use Illuminate\Support\Facades\DB;
 
 class BlogsTableSeeder extends Seeder
 {
+    use SeedsTable;
+
     public function run(): void
     {
         $blogs = [
@@ -173,6 +176,6 @@ class BlogsTableSeeder extends Seeder
             ],
         ];
 
-        DB::table('blogs')->insert($blogs);
+        $this->seedTable('blogs', $blogs, ['slug']);
     }
 }

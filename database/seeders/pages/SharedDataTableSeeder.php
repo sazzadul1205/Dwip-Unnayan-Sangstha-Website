@@ -4,10 +4,13 @@
 namespace Database\Seeders\pages;
 
 use Illuminate\Database\Seeder;
+use Database\Seeders\Concerns\SeedsTable;
 use Illuminate\Support\Facades\DB;
 
 class SharedDataTableSeeder extends Seeder
 {
+  use SeedsTable;
+
   public function run(): void
   {
     $sharedData = [
@@ -84,6 +87,6 @@ class SharedDataTableSeeder extends Seeder
       ],
     ];
 
-    DB::table('shared_data')->insert($sharedData);
+    $this->seedTable('shared_data', $sharedData, ['type']);
   }
 }

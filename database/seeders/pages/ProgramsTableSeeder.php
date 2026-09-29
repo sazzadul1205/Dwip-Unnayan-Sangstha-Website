@@ -4,10 +4,13 @@
 namespace Database\Seeders\pages;
 
 use Illuminate\Database\Seeder;
+use Database\Seeders\Concerns\SeedsTable;
 use Illuminate\Support\Facades\DB;
 
 class ProgramsTableSeeder extends Seeder
 {
+  use SeedsTable;
+
   public function run(): void
   {
     $programs = [
@@ -208,6 +211,6 @@ class ProgramsTableSeeder extends Seeder
       ],
     ];
 
-    DB::table('programs')->insert($programs);
+    $this->seedTable('programs', $programs, ['slug']);
   }
 }

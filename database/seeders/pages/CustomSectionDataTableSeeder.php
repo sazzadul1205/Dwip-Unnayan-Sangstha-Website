@@ -4,10 +4,13 @@
 namespace Database\Seeders\pages;
 
 use Illuminate\Database\Seeder;
+use Database\Seeders\Concerns\SeedsTable;
 use Illuminate\Support\Facades\DB;
 
 class CustomSectionDataTableSeeder extends Seeder
 {
+  use SeedsTable;
+
   public function run(): void
   {
     $customSectionData = [
@@ -336,6 +339,6 @@ class CustomSectionDataTableSeeder extends Seeder
       ],
     ];
 
-    DB::table('custom_section_data')->insert($customSectionData);
+    $this->seedTable('custom_section_data', $customSectionData, ['page_slug', 'section_key']);
   }
 }

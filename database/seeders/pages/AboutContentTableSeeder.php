@@ -4,10 +4,13 @@
 namespace Database\Seeders\pages;
 
 use Illuminate\Database\Seeder;
+use Database\Seeders\Concerns\SeedsTable;
 use Illuminate\Support\Facades\DB;
 
 class AboutContentTableSeeder extends Seeder
 {
+    use SeedsTable;
+
     public function run(): void
     {
         $aboutContent = [
@@ -165,6 +168,6 @@ class AboutContentTableSeeder extends Seeder
             ],
         ];
 
-        DB::table('about_content')->insert($aboutContent);
+        $this->seedTable('about_content', $aboutContent, ['slug']);
     }
 }

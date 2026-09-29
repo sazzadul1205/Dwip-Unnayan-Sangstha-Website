@@ -4,10 +4,13 @@
 namespace Database\Seeders\pages;
 
 use Illuminate\Database\Seeder;
+use Database\Seeders\Concerns\SeedsTable;
 use Illuminate\Support\Facades\DB;
 
 class SectionConfigsTableSeeder extends Seeder
 {
+  use SeedsTable;
+
   public function run(): void
   {
     $sectionConfigs = [
@@ -1123,6 +1126,6 @@ class SectionConfigsTableSeeder extends Seeder
 
     ];
 
-    DB::table('section_configs')->insert($sectionConfigs);
+    $this->seedTable('section_configs', $sectionConfigs, ['page_slug', 'section_key']);
   }
 }
