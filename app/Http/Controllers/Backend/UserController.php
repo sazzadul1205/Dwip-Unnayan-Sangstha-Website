@@ -42,8 +42,12 @@ class UserController extends Controller
                 ->with('error', 'You do not have permission to view users.');
         }
 
-        // ✅ Disable caching - remove Cache::remember entirely
-        $query = User::withTrashed()->with('roles');
+        // ✅ Exclude job seekers — they have their own dedicated page
+        $query = User::withTrashed()
+            ->with('roles')
+            ->whereDoesntHave('roles', function ($q) {
+                $q->where('slug', 'job-seeker');
+            });
 
         // Filter by status (active/deleted)
         $status = $request->input('status', 'all');
@@ -114,15 +118,21 @@ class UserController extends Controller
             ];
         });
 
+        // ✅ Stats exclude job seekers too
+        $excludeJobSeekers = fn($q) => $q->whereDoesntHave('roles', function ($r) {
+            $r->where('slug', 'job-seeker');
+        });
+
         $stats = [
-            'total' => User::count(),
-            'active' => User::whereNull('deleted_at')->count(),
-            'deleted' => User::onlyTrashed()->count(),
-            'verified' => User::whereNotNull('email_verified_at')->count(),
-            'unverified' => User::whereNull('email_verified_at')->whereNull('deleted_at')->count(),
+            'total' => User::tap($excludeJobSeekers)->count(),
+            'active' => User::tap($excludeJobSeekers)->whereNull('deleted_at')->count(),
+            'deleted' => User::tap($excludeJobSeekers)->onlyTrashed()->count(),
+            'verified' => User::tap($excludeJobSeekers)->whereNotNull('email_verified_at')->count(),
+            'unverified' => User::tap($excludeJobSeekers)->whereNull('email_verified_at')->whereNull('deleted_at')->count(),
         ];
 
         $roles = Role::active()
+            ->where('slug', '!=', 'job-seeker')   // ✅ Hide job_seeker role from filter
             ->orderBy('level', 'asc')
             ->orderBy('name', 'asc')
             ->get(['id', 'name', 'slug', 'description', 'level']);
@@ -135,6 +145,121 @@ class UserController extends Controller
         ];
 
         return Inertia::render('Backend/Users/Index', $data);
+    }
+
+    /**
+     * Display a listing of jobseeker users with pagination and filters.
+     */
+    public function jobseekers(Request $request): Response|RedirectResponse
+    {
+        $user = $this->getAuthUser();
+
+        if (!$user->hasPermission('users.view')) {
+            return redirect()->route('unauthorized.access')
+                ->with('error', 'You do not have permission to view users.');
+        }
+
+        // ✅ Disable caching - remove Cache::remember entirely
+        $query = User::withTrashed()->with('roles');
+
+        // Filter to only job_seeker role
+        $query->whereHas('roles', function ($q) {
+            $q->where('slug', 'job-seeker');
+        });
+
+        // Filter by status (active/deleted)
+        $status = $request->input('status', 'all');
+        if ($status !== 'all') {
+            if ($status === 'active') {
+                $query->whereNull('deleted_at');
+            } elseif ($status === 'deleted') {
+                $query->onlyTrashed();
+            }
+        }
+
+        // Filter by verification status
+        if ($request->filled('email_verified')) {
+            if ($request->email_verified === 'verified') {
+                $query->whereNotNull('email_verified_at');
+            } elseif ($request->email_verified === 'unverified') {
+                $query->whereNull('email_verified_at');
+            }
+        }
+
+        // Search by name or email
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                    ->orWhere('email', 'like', "%{$search}%");
+            });
+        }
+
+        // Sort
+        $sortField = $request->input('sort', 'created_at');
+        $sortDirection = $request->input('direction', 'desc');
+        $allowedSortFields = ['id', 'name', 'email', 'created_at', 'updated_at', 'email_verified_at'];
+
+        if (in_array($sortField, $allowedSortFields)) {
+            $query->orderBy($sortField, $sortDirection);
+        } else {
+            $query->orderBy('created_at', 'desc');
+        }
+
+        $users = $query->paginate(15)->withQueryString();
+
+        $users->through(function ($user) {
+            return [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'roles' => $user->roles->map(function ($role) {
+                    return [
+                        'id' => $role->id,
+                        'name' => $role->name,
+                        'slug' => $role->slug,
+                        'level' => $role->level,
+                    ];
+                }),
+                'email_verified_at' => $user->email_verified_at,
+                'is_verified' => !is_null($user->email_verified_at),
+                'created_at' => $user->created_at,
+                'updated_at' => $user->updated_at,
+                'deleted_at' => $user->deleted_at,
+            ];
+        });
+
+        $stats = [
+            'total' => User::whereHas('roles', function ($q) {
+                $q->where('slug', 'job-seeker');
+            })->count(),
+            'active' => User::whereHas('roles', function ($q) {
+                $q->where('slug', 'job-seeker');
+            })->whereNull('deleted_at')->count(),
+            'deleted' => User::whereHas('roles', function ($q) {
+                $q->where('slug', 'job-seeker');
+            })->onlyTrashed()->count(),
+            'verified' => User::whereHas('roles', function ($q) {
+                $q->where('slug', 'job-seeker');
+            })->whereNotNull('email_verified_at')->count(),
+            'unverified' => User::whereHas('roles', function ($q) {
+                $q->where('slug', 'job-seeker');
+            })->whereNull('email_verified_at')->whereNull('deleted_at')->count(),
+        ];
+
+        $roles = Role::active()
+            ->orderBy('level', 'asc')
+            ->orderBy('name', 'asc')
+            ->get(['id', 'name', 'slug', 'description', 'level']);
+
+        $data = [
+            'users' => $users,
+            'filters' => $request->only(['search', 'status', 'email_verified', 'sort', 'direction']),
+            'stats' => $stats,
+            'roles' => $roles,
+        ];
+
+        return Inertia::render('Backend/Users/Jobseekers/Index', $data);
     }
 
     /**

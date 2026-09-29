@@ -10,6 +10,7 @@ use App\Http\Controllers\Backend\UserController;
 
 Route::prefix('users')->name('users.')->group(function () {
   Route::get('/', [UserController::class, 'index'])->name('index');
+  Route::get('/jobseekers', [UserController::class, 'jobseekers'])->name('jobseekers');
   Route::post('/', [UserController::class, 'store'])->name('store');
   Route::put('/{id}', [UserController::class, 'update'])->name('update');
   Route::delete('/{id}', [UserController::class, 'destroy'])->name('destroy');

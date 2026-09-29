@@ -30,6 +30,7 @@ const AdminLayout = ({ children }) => {
     adminRoles: false,
     adminApplicants: false,
     adminNewsletter: false,
+    adminUsers: false,
     cms: false,
   });
 
@@ -182,6 +183,7 @@ const AdminLayout = ({ children }) => {
       adminJobs: url.includes('/backend/listing') || url.includes('/backend/locations') || url.includes('/backend/categories') || url.includes('/backend/statistics'),
       adminApps: url.includes('/backend/applications') || url.includes('/backend/apply'),
       adminRoles: url.includes('/backend/roles'),
+      adminUsers: url.includes('/backend/users/jobseekers'),
       cms: isCmsPage || isSectionPage,
     };
 
@@ -190,6 +192,7 @@ const AdminLayout = ({ children }) => {
       adminJobs: prev.adminJobs || shouldOpen.adminJobs,
       adminApps: prev.adminApps || shouldOpen.adminApps,
       adminRoles: prev.adminRoles || shouldOpen.adminRoles,
+      adminUsers: prev.adminUsers || shouldOpen.adminUsers,
       cms: prev.cms || shouldOpen.cms,
     }));
   }, [url]);
@@ -295,10 +298,25 @@ const AdminLayout = ({ children }) => {
 
     // Users Management
     if (hasAnyPermission(['user.view', 'user.create', 'user.edit'])) {
-      items.push({
-        name: 'Users Management',
+      const subs = [];
+      subs.push({
+        name: 'All Users (Excl. Job Seekers)',
         routeName: 'backend.users.index',
         icon: FiUsers
+      });
+      if (hasPermission('user.view')) {
+        subs.push({
+          name: 'Job Seekers',
+          routeName: 'backend.users.jobseekers',
+          icon: FiBriefcase
+        });
+      }
+      if (subs.length) items.push({
+        name: 'Users Management',
+        icon: FiUsers,
+        isDropdown: true,
+        dropdownKey: 'adminUsers',
+        subItems: subs
       });
     }
 
