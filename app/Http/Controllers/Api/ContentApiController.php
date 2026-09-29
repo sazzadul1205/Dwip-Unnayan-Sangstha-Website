@@ -344,6 +344,56 @@ class ContentApiController extends Controller
   }
 
   /**
+   * Get publications – with rate limiting and logging.
+   */
+  public function publications(Request $request): JsonResponse
+  {
+    $this->checkApiRateLimit($request, 'publications');
+    $this->logApiRequest($request, 'publications');
+
+    $cacheKey = $this->getCacheKey($request, 'publications');
+
+    return Cache::remember($cacheKey, self::CACHE_DURATION, function () use ($request) {
+      try {
+        $query = DB::table('publications')
+          ->where('is_active', 1)
+          ->whereNull('deleted_at');
+
+        $this->applyFilters($query, $request, [
+          'slug' => 'where',
+          'is_featured' => 'whereInt',
+          'author' => 'whereLike',
+          'category' => 'where',
+          'search' => 'search',
+        ]);
+
+        if ($request->has('slugs')) {
+          $slugs = array_filter(explode(',', $request->slugs));
+          if (!empty($slugs)) {
+            $query->whereIn('slug', $slugs);
+          }
+        }
+
+        $this->applyRangeFilters($query, $request, [
+          'created_at' => ['min' => 'created_from', 'max' => 'created_to'],
+          'date' => ['min' => 'date_from', 'max' => 'date_to'],
+        ]);
+
+        $this->applySorting($query, $request, ['id', 'title', 'author', 'date', 'is_featured', 'created_at', 'updated_at']);
+
+        if ($request->has('limit')) {
+          $query->limit($this->sanitizeLimit($request->limit));
+        }
+
+        return $this->paginateOrGet($query, $request);
+      } catch (\Exception $e) {
+        Log::error('Publications API error: ' . $e->getMessage());
+        return $this->errorResponse('Failed to fetch publications');
+      }
+    });
+  }
+
+  /**
    * Get about content – with rate limiting and logging.
    */
   public function aboutContent(Request $request): JsonResponse

@@ -210,10 +210,14 @@ return [
     | a cross-site context. Partitioned cookies are accepted by the browser
     | when flagged "secure" and the Same-Site attribute is set to "none".
     |
-    | Note: Requires 'secure' => true
+    | Note: Requires 'secure' => true. Leave this false unless you actually
+    | embed the app in a cross-site context. With the default off, the session
+    | cookie is not emitted as Partitioned, so it still works over plain HTTP
+    | in local development. Turned on without HTTPS, browsers drop the cookie
+    | and every POST fails with a 419.
     |
     */
 
-    'partitioned' => env('SESSION_PARTITIONED_COOKIE', true),
+    'partitioned' => env('SESSION_PARTITIONED_COOKIE', false),
 
 ];

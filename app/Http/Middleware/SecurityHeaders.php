@@ -57,7 +57,11 @@ class SecurityHeaders
             "font-src 'self' data: https://fonts.gstatic.com https://fonts.bunny.net https://cdn.jsdelivr.net",
             "img-src 'self' data: https: blob:",
             "connect-src 'self' https://api.mapbox.com https://*.mapbox.com",
-            "frame-src 'self'",
+            // Third-party embeds: the video gallery (VideoGallerySection) and
+            // the office map (AddressSection). Each iframe is governed by its
+            // own origin's policy once loaded, so only the frame itself needs
+            // to be permitted here.
+            "frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com https://maps.google.com https://www.google.com",
             "object-src 'none'",
             "base-uri 'self'",
             "form-action 'self'",

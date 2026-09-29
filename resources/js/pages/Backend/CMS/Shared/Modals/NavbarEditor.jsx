@@ -11,6 +11,35 @@ import { FiExternalLink } from 'react-icons/fi';
 import Swal from 'sweetalert2';
 
 // ============================================
+// CONTENT SOURCES
+// ============================================
+// Lets a nav link point at a single content item (one blog post, one program,
+// one publication, one About section) instead of only a whole page.
+//
+// `base` is the page segment the detail route is nested under. Verified
+// against the running app: /blog/{slug}, /projects-programs/{slug},
+// /publications/{slug}, /about/{slug}.
+//
+// Note: about_content.btn_link is NOT used. It is stale for several rows
+// (e.g. slug `background` has btn_link `/about/functions`, which 404s), so the
+// slug is the only reliable identifier.
+const CONTENT_SOURCES = {
+  blog: { label: 'Blog post', endpoint: '/data/blogs.json', base: '/blog' },
+  program: { label: 'Program', endpoint: '/data/programs.json', base: '/projects-programs' },
+  publication: { label: 'Publication', endpoint: '/data/publications.json', base: '/publications' },
+  about: { label: 'About section', endpoint: '/data/about_content.json', base: '/about' },
+};
+
+/** Pull a plain array of items out of the several shapes these endpoints use. */
+const extractItems = (json) => {
+  if (Array.isArray(json)) return json;
+  if (Array.isArray(json?.data)) return json.data;
+  if (Array.isArray(json?.items)) return json.items;
+  if (Array.isArray(json?.pages)) return json.pages;
+  return [];
+};
+
+// ============================================
 // SUB-MENU HELPERS
 // ============================================
 
@@ -91,6 +120,11 @@ const NavLinkEditor = ({
   legacyDropdowns,
   onUpdateField,
   onPageSelect,
+  onContentSelect,
+  onEnsureContent,
+  contentItems,
+  contentLoading,
+  contentErrors,
   onAddChild,
   onRemove,
 }) => {
@@ -102,9 +136,33 @@ const NavLinkEditor = ({
 
   const isHome = depth === 0 && link?.href === '/';
   const pageSlug = link?.href ? (link.href === '/' ? 'home' : link.href.replace(/^\//, '')) : '';
+
+  // Detail links (one item) are stored with a marker so the row can show which
+  // source the link came from instead of pretending it is a whole page.
+  const contentMatch = Object.entries(CONTENT_SOURCES).find(
+    ([, cfg]) => typeof link?.href === 'string' && link.href.startsWith(`${cfg.base}/`)
+  );
+  const [linkKind, setLinkKind] = useState(() => (contentMatch ? 'content' : 'page'));
+  const [contentSource, setContentSource] = useState(() => contentMatch?.[0] ?? 'blog');
+
   const inputClass = `w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition outline-none text-sm ${
     isHome ? 'border-blue-300 bg-blue-50' : 'border-gray-300'
   }`;
+
+  // Lazily load the chosen source the first time it is opened. Loading lives
+  // in the parent so every row shares one fetch per source.
+  useEffect(() => {
+    if (linkKind === 'content') onEnsureContent(contentSource);
+  }, [linkKind, contentSource, onEnsureContent]);
+
+  const sourceCfg = CONTENT_SOURCES[contentSource];
+  const sourceItems = contentItems[contentSource] || [];
+  const loadingSource = !!contentLoading[contentSource];
+  const sourceError = contentErrors[contentSource];
+  // Current value within the chosen source, for repopulating the select.
+  const selectedContentSlug = contentMatch?.[0] === contentSource && typeof link?.href === 'string'
+    ? link.href.slice(sourceCfg.base.length + 1)
+    : '';
 
   return (
     <div className={depth === 0 ? '' : 'mt-1.5'}>
@@ -117,6 +175,31 @@ const NavLinkEditor = ({
             : 'bg-white/90 border-gray-200 hover:border-green-300'
         }`}
       >
+        {/* Link type switch */}
+        <div className="flex items-center gap-2 mb-2">
+          <span className="text-[10px] font-semibold uppercase tracking-wide text-gray-500">Links to</span>
+          <div className="inline-flex rounded-lg border border-gray-300 overflow-hidden">
+            {[
+              { key: 'page', label: 'A page' },
+              { key: 'content', label: 'A single item' },
+            ].map((opt) => (
+              <button
+                key={opt.key}
+                type="button"
+                onClick={() => setLinkKind(opt.key)}
+                disabled={isDisabled}
+                className={`px-2.5 py-1 text-xs font-medium transition disabled:opacity-50 ${
+                  linkKind === opt.key
+                    ? 'bg-green-600 text-white'
+                    : 'bg-white text-gray-600 hover:bg-gray-50'
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
         <div className="flex flex-wrap items-center gap-3">
           {depth > 0 && (
             <span className="text-[10px] font-semibold uppercase tracking-wide text-gray-500 bg-gray-100 px-2 py-1 rounded">
@@ -124,27 +207,63 @@ const NavLinkEditor = ({
             </span>
           )}
 
-          {/* Page Dropdown */}
-          <div className="min-w-40 flex-1">
-            <select
-              value={pageSlug}
-              onChange={(e) => onPageSelect(linkPath, e.target.value)}
-              className={inputClass}
-              disabled={isDisabled}
-            >
-              <option value="">-- Select Page --</option>
-              {loadingPages && <option value="" disabled>Loading pages...</option>}
-              {pageError && <option value="" disabled>Could not load pages</option>}
-              {!loadingPages && !pageError && pages.length === 0 && (
-                <option value="" disabled>No pages available</option>
-              )}
-              {!loadingPages && !pageError && pages.map((page) => (
-                <option key={page.id || page.slug} value={page.slug}>
-                  {page.slug === 'home' ? 'Home' : `Page: ${page.name || page.title || page.slug}`}
-                </option>
-              ))}
-            </select>
-          </div>
+          {linkKind === 'page' ? (
+            <div className="min-w-40 flex-1">
+              <select
+                value={pageSlug}
+                onChange={(e) => onPageSelect(linkPath, e.target.value)}
+                className={inputClass}
+                disabled={isDisabled}
+              >
+                <option value="">-- Select Page --</option>
+                {loadingPages && <option value="" disabled>Loading pages...</option>}
+                {pageError && <option value="" disabled>Could not load pages</option>}
+                {!loadingPages && !pageError && pages.length === 0 && (
+                  <option value="" disabled>No pages available</option>
+                )}
+                {!loadingPages && !pageError && pages.map((page) => (
+                  <option key={page.id || page.slug} value={page.slug}>
+                    {page.slug === 'home' ? 'Home' : `Page: ${page.name || page.title || page.slug}`}
+                  </option>
+                ))}
+              </select>
+            </div>
+          ) : (
+            <>
+              <div className="min-w-36 flex-1">
+                <select
+                  value={contentSource}
+                  onChange={(e) => setContentSource(e.target.value)}
+                  className={inputClass}
+                  disabled={isDisabled}
+                >
+                  {Object.entries(CONTENT_SOURCES).map(([key, cfg]) => (
+                    <option key={key} value={key}>{cfg.label}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="min-w-40 flex-1">
+                <select
+                  value={selectedContentSlug}
+                  onChange={(e) => onContentSelect(linkPath, contentSource, e.target.value)}
+                  className={inputClass}
+                  disabled={isDisabled}
+                >
+                  <option value="">-- Select {sourceCfg?.label} --</option>
+                  {loadingSource && <option value="" disabled>Loading {sourceCfg?.label.toLowerCase()}s...</option>}
+                  {sourceError && <option value="" disabled>Could not load: {sourceError}</option>}
+                  {!loadingSource && !sourceError && sourceItems.length === 0 && (
+                    <option value="" disabled>No {sourceCfg?.label.toLowerCase()}s available</option>
+                  )}
+                  {!loadingSource && !sourceError && sourceItems.map((item) => (
+                    <option key={item.id || item.slug} value={item.slug}>
+                      {item.title || item.name || item.slug}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </>
+          )}
 
           {/* Link Name */}
           <div className="flex-1 min-w-30">
@@ -244,6 +363,11 @@ const NavLinkEditor = ({
               legacyDropdowns={legacyDropdowns}
               onUpdateField={onUpdateField}
               onPageSelect={onPageSelect}
+              onContentSelect={onContentSelect}
+              onEnsureContent={onEnsureContent}
+              contentItems={contentItems}
+              contentLoading={contentLoading}
+              contentErrors={contentErrors}
               onAddChild={onAddChild}
               onRemove={onRemove}
             />
@@ -270,7 +394,12 @@ export default function NavbarEditor({
   const [uploading, setUploading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
   const [loadingPages, setLoadingPages] = useState(false);
+  const [contentItems, setContentItems] = useState({});
+  const [contentLoading, setContentLoading] = useState({});
+  const [contentErrors, setContentErrors] = useState({});
   const fileInputRef = useRef(null);
+  // Mirrors contentItems so the loader can read it without a stale closure.
+  const contentItemsRef = useRef({});
 
   // ============================================
   // FETCH PAGES
@@ -316,6 +445,35 @@ export default function NavbarEditor({
   useEffect(() => {
     fetchPages();
   }, [fetchPages]);
+
+  // ============================================
+  // FETCH CONTENT SOURCES (one request per source, shared by all rows)
+  // ============================================
+  const ensureContentLoaded = useCallback((sourceKey) => {
+    const cfg = CONTENT_SOURCES[sourceKey];
+    if (!cfg) return;
+    if (contentItemsRef.current[sourceKey]) return;
+
+    setContentLoading((prev) => (prev[sourceKey] ? prev : { ...prev, [sourceKey]: true }));
+    setContentErrors((prev) => ({ ...prev, [sourceKey]: null }));
+
+    fetch(`${cfg.endpoint}?per_page=500`)
+      .then((r) => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json();
+      })
+      .then((json) => {
+        let items = extractItems(json).filter((i) => i && i.slug);
+        // The `main` about row is the /about page itself, not a sub-page.
+        if (sourceKey === 'about') {
+          items = items.filter((i) => i.type !== 'main');
+        }
+        contentItemsRef.current = { ...contentItemsRef.current, [sourceKey]: items };
+        setContentItems(contentItemsRef.current);
+      })
+      .catch((err) => setContentErrors((prev) => ({ ...prev, [sourceKey]: err.message })))
+      .finally(() => setContentLoading((prev) => ({ ...prev, [sourceKey]: false })));
+  }, []);
 
   // ============================================
   // LOGO UPLOAD HANDLERS
@@ -427,6 +585,24 @@ export default function NavbarEditor({
       const href = pageSlug === 'home' ? '/' : `/${pageSlug}`;
       updateFormData(`${linkPath}.href`, href);
     }
+  };
+
+  // ============================================
+  // CONTENT ITEM SELECTION
+  // ============================================
+  // Builds `/{base}/{slug}`, matching the detail route the frontend already
+  // uses (verified in PublicationsSection and StoriesSection).
+  const handleContentSelect = (linkPath, sourceKey, slug) => {
+    const cfg = CONTENT_SOURCES[sourceKey];
+    if (!cfg) return;
+
+    const sourceItems = contentItems[sourceKey] || [];
+    const item = sourceItems.find((i) => i.slug === slug);
+
+    if (item) {
+      updateFormData(`${linkPath}.name`, item.title || item.name || slug);
+    }
+    updateFormData(`${linkPath}.href`, slug ? `${cfg.base}/${slug}` : '');
   };
 
   // ============================================
@@ -689,6 +865,11 @@ export default function NavbarEditor({
                 legacyDropdowns={formData.dropdowns || []}
                 onUpdateField={updateFormData}
                 onPageSelect={handlePageSelect}
+                onContentSelect={handleContentSelect}
+                onEnsureContent={ensureContentLoaded}
+                contentItems={contentItems}
+                contentLoading={contentLoading}
+                contentErrors={contentErrors}
                 onAddChild={handleAddChild}
                 onRemove={handleRemoveLink}
               />

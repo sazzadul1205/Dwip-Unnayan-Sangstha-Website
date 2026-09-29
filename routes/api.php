@@ -19,6 +19,7 @@ use App\Models\pages\Program;
 Route::prefix('data')->group(function () {
   Route::get('jobs.json', [ContentApiController::class, 'jobs']);
   Route::get('blogs.json', [ContentApiController::class, 'blogs']);
+  Route::get('publications.json', [ContentApiController::class, 'publications']);
   Route::get('pages.json', [ContentApiController::class, 'pages']);
   Route::get('programs.json', [ContentApiController::class, 'programs']);
   Route::get('shared_data.json', [ContentApiController::class, 'sharedData']);
@@ -33,6 +34,7 @@ Route::prefix('data')->group(function () {
 Route::prefix('api')->group(function () {
   // Blogs endpoint
   Route::get('blogs', [ContentApiController::class, 'blogs'])->name('api.blogs');
+  Route::get('publications', [ContentApiController::class, 'publications'])->name('api.publications');
 
   // Other API endpoints
   Route::get('pages', [ContentApiController::class, 'pages'])->name('api.pages');
