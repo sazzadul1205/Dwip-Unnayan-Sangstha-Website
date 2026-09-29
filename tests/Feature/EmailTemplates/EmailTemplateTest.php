@@ -2,8 +2,11 @@
 
 use App\Mail\EmailTemplatePreview;
 use App\Services\EmailTemplateRepository;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Route;
 
 uses(Tests\Support\RouteTestHelpers::class);
 
@@ -187,6 +190,95 @@ describe('Email template test send', function () {
 
         $this->postJson('/backend/email-templates/newsletter-test/test-send', ['email' => 'not-an-email'])
             ->assertStatus(422);
+    });
+});
+
+describe('Email template independence from the CMS', function () {
+    it('registers its routes outside every CMS route group', function () {
+        $routes = collect(Route::getRoutes())
+            ->filter(fn ($route) => str_starts_with((string) $route->getName(), 'backend.email-templates.'));
+
+        expect($routes)->not->toBeEmpty();
+
+        foreach ($routes as $route) {
+            expect($route->getName())->toStartWith('backend.email-templates.');
+        }
+
+        // The editor is a standalone route file, not part of admin/cms.php.
+        expect(Route::getRoutes()->getByName('backend.email-templates.index'))->not->toBeNull();
+    });
+
+    it('uses only its own permission slugs', function () {
+        $files = [
+            app_path('Http/Controllers/Backend/EmailTemplateController.php'),
+            app_path('Services/EmailTemplateRepository.php'),
+        ];
+
+        $checked = 0;
+
+        foreach ($files as $file) {
+            $source = file_get_contents($file);
+
+            // Only the permission checks themselves — not view names or
+            // config keys, which legitimately contain dots too.
+            preg_match_all("/(?:can|hasPermission)\(\s*'([^']+)'/", $source, $matches);
+
+            foreach ($matches[1] as $slug) {
+                $checked++;
+                expect($slug)->toStartWith('email_templates.');
+            }
+        }
+
+        // Guard against the regex silently matching nothing.
+        expect($checked)->toBeGreaterThanOrEqual(5);
+    });
+
+    it('does not touch CMS tables when a template is saved', function () {
+        $cmsTables = ['pages', 'blogs', 'programs', 'publications', 'section_configs', 'shared_data', 'about_content', 'custom_section_data'];
+
+        $before = [];
+        foreach ($cmsTables as $table) {
+            $before[$table] = DB::table($table)->count();
+        }
+
+        $this->actingAs($this->createAdminUser());
+
+        $this->put('/backend/email-templates/newsletter-test', [
+            'source' => '<html><body>Independent</body></html>',
+        ])->assertRedirect();
+
+        foreach ($cmsTables as $table) {
+            expect(DB::table($table)->count())->toBe($before[$table]);
+        }
+    });
+
+    it('needs no CMS permission to reach', function () {
+        // A user with only the email template permissions can use the
+        // editor; no cms.* grant is consulted anywhere in the flow.
+        $user = $this->createJobSeekerUser();
+
+        $role = \App\Models\Role::firstOrCreate(
+            ['slug' => 'email-editor'],
+            ['name' => 'Email Editor', 'level' => 50, 'is_active' => true]
+        );
+
+        $user->roles()->attach($role->id);
+
+        foreach (['view', 'update'] as $action) {
+            $permission = \App\Models\Permission::firstOrCreate(
+                ['slug' => "email_templates.{$action}"],
+                ['name' => "Email Templates {$action}", 'module' => 'email_templates', 'action' => $action]
+            );
+
+            $role->permissions()->attach($permission->id, ['granted' => true]);
+        }
+
+        Cache::flush();
+
+        $this->actingAs($user->fresh());
+
+        $this->get('/backend/email-templates')->assertOk();
+        $this->get('/backend/email-templates/newsletter-test/edit')->assertOk();
     });
 });
 
