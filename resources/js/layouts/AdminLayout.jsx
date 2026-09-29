@@ -10,7 +10,7 @@ import {
   FiHome, FiBell, FiBriefcase, FiFileText, FiSettings, FiLogOut,
   FiChevronDown, FiChevronRight, FiPlusCircle, FiUsers, FiBarChart2,
   FiStar, FiClock, FiXCircle, FiAward, FiList, FiShield, FiKey, FiTrash2,
-  FiMenu, FiX, FiUser,
+  FiMenu, FiX, FiUser, FiCode,
 } from 'react-icons/fi';
 import { MdCategory } from "react-icons/md";
 
@@ -435,6 +435,16 @@ const AdminLayout = ({ children }) => {
         isDropdown: true,
         dropdownKey: 'adminNewsletter',
         subItems: subs,
+      });
+    }
+
+    // Email template editor (raw Blade files, no CMS involved)
+    if (hasPermission('email_templates.view')) {
+      items.push({
+        name: 'Email Templates',
+        routeName: 'backend.email-templates.index',
+        icon: FiCode,
+        description: 'Edit the HTML/CSS of every outgoing email',
       });
     }
 

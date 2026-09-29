@@ -43,12 +43,18 @@ require __DIR__ . '/job-seeker.php';
 require __DIR__ . '/admin/dashboard.php';
 
 // ============================================
-// SECTION 6: FALLBACK ROUTE (MUST BE AT THE END)
+// SECTION 6: EMAIL TEMPLATE EDITOR ROUTES
+// URL: /backend/email-templates/*
+// ============================================
+require __DIR__ . '/admin/email-templates.php';
+
+// ============================================
+// SECTION 7: FALLBACK ROUTE (MUST BE AT THE END)
 // ============================================
 require __DIR__ . '/fallback.php';
 
 // ============================================
-// SECTION 7: ADMIN/BACKEND PAGE MAP ROUTES
+// SECTION 8: ADMIN/BACKEND PAGE MAP ROUTES
 // URL: /backend/page-map/*
 // ============================================
 require __DIR__ . '/admin/page-map.php';

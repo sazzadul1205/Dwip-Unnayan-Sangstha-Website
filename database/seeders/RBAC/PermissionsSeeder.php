@@ -328,6 +328,11 @@ class PermissionsSeeder extends Seeder
       ['name' => 'Send Newsletter Email', 'slug' => 'newsletter.send', 'module' => 'newsletter', 'action' => 'send'],
       ['name' => 'Update Newsletter Subscriber', 'slug' => 'newsletter.update', 'module' => 'newsletter', 'action' => 'update'],
 
+      // ==================== EMAIL TEMPLATES ====================
+      ['name' => 'View Email Templates', 'slug' => 'email_templates.view', 'module' => 'email_templates', 'action' => 'view'],
+      ['name' => 'Update Email Templates', 'slug' => 'email_templates.update', 'module' => 'email_templates', 'action' => 'update'],
+      ['name' => 'Send Email Template Test', 'slug' => 'email_templates.send', 'module' => 'email_templates', 'action' => 'send'],
+
       // ==================== NOTIFICATIONS ====================
       ['name' => 'View Notifications', 'slug' => 'notifications.view', 'module' => 'notifications', 'action' => 'view'],
       ['name' => 'Mark Notification Read', 'slug' => 'notifications.mark_read', 'module' => 'notifications', 'action' => 'mark_read'],
