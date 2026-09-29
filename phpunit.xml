@@ -18,6 +18,12 @@
         </include>
     </source>
     <php>
+        <!--
+            The seeder tests build a full demo dataset (users, jobs,
+            applications, job views) several times inside transactions, which
+            does not fit in PHP's default 128M.
+        -->
+        <ini name="memory_limit" value="1G"/>
         <env name="APP_ENV" value="testing"/>
         <env name="APP_MAINTENANCE_DRIVER" value="file"/>
         <env name="BCRYPT_ROUNDS" value="4"/>
