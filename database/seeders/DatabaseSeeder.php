@@ -3,15 +3,14 @@
 
 namespace Database\Seeders;
 
+use App\Models\User;
+use App\Services\CurrentDatabaseTables;
 use Database\Seeders\RBAC\RBACSeeder;
 use Illuminate\Database\Seeder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
-use App\Models\User;
 
 /**
  * ============================================================
@@ -23,7 +22,13 @@ use App\Models\User;
  * NOT included; run `php artisan app:seed --with-cms` for that, or seed
  * it on its own with `db:seed --class=Database\\Seeders\\pages\\CmsSeeder`.
  *
- * DESTRUCTIVE: every table listed below is emptied first.
+ * DESTRUCTIVE: the demo tables listed below are emptied first.
+ *
+ * Site content is PRESERVED. This seeder does not create the CMS content,
+ * so wiping it here would leave the public site permanently empty while
+ * claiming success — which is exactly what used to happen when
+ * `db:seed` was run without `--with-cms`. Pass --wipe-content (or set
+ * DB_SEED_WIPE_CONTENT=1) to clear site content as well.
  *
  * Prefer the `app:seed` command, which asks for confirmation, takes the
  * CMS flag, and can migrate first. This class is the underlying work and
@@ -48,6 +53,26 @@ class DatabaseSeeder extends Seeder
         'personal_access_tokens',
     ];
 
+    /**
+     * Site content owned by the CMS. Never emptied unless the caller opts in
+     * explicitly, because this seeder does not put it back.
+     *
+     * @var array<int, string>
+     */
+    public const CONTENT_TABLES = [
+        'pages',
+        'blogs',
+        'programs',
+        'publications',
+        'about_content',
+        'custom_section_data',
+        'shared_data',
+        'section_configs',
+        'newsletter_subscriptions',
+        'newsletter_campaigns',
+        'newsletter_campaign_recipients',
+    ];
+
     public function run(): void
     {
         $this->disableForeignKeyChecks();
@@ -57,6 +82,10 @@ class DatabaseSeeder extends Seeder
         $this->enableForeignKeyChecks();
 
         $this->command->info(sprintf('Cleared %d tables.', $truncated));
+
+        if (! $this->wipesContent()) {
+            $this->command->comment('Site content left untouched (pass --wipe-content to clear it too).');
+        }
 
         $this->seedReferenceData();
         $this->seedPeople();
@@ -70,12 +99,45 @@ class DatabaseSeeder extends Seeder
         $this->printSummary();
     }
 
+    /**
+     * Whether the caller explicitly asked for site content to be destroyed too.
+     */
+    private function wipesContent(): bool
+    {
+        if (filter_var(env('DB_SEED_WIPE_CONTENT', false), FILTER_VALIDATE_BOOL)) {
+            return true;
+        }
+
+        // `app:seed` forwards this through the container so the flag survives
+        // the nested Artisan::call().
+        return (bool) static::$wipeContent;
+    }
+
+    /** Set by SeedApplication when --wipe-content is passed. */
+    protected static bool $wipeContent = false;
+
+    public static function setWipeContent(bool $wipe): void
+    {
+        static::$wipeContent = $wipe;
+    }
+
+    /**
+     * Read the current flag so callers can restore it afterwards.
+     */
+    public static function isWipeContent(): bool
+    {
+        return static::$wipeContent;
+    }
+
     /* ==========================================================
      |  WIPE
      *========================================================== */
 
     /**
-     * Empty every table that holds seed-managed data.
+     * Empty every table that holds seed-managed demo data.
+     *
+     * Site content is left alone unless the caller opted in, because this
+     * seeder never recreates it.
      *
      * The list is derived from the live schema rather than hardcoded, so a
      * new migration cannot be silently skipped — the previous hardcoded
@@ -100,10 +162,8 @@ class DatabaseSeeder extends Seeder
     }
 
     /**
-     * Every table in the current database except the preserved infrastructure ones.
-     *
-     * `getTableListing()` returns schema-qualified names (e.g. `database.table`),
-     * so we filter by the current database connection before stripping the prefix.
+     * Every table in the current database except the preserved infrastructure
+     * ones and — unless wiping was requested — the CMS content tables.
      *
      * @return array<int, string>
      */
@@ -111,19 +171,18 @@ class DatabaseSeeder extends Seeder
     {
         $tables = [];
 
-        $currentDatabase = DB::connection()->getDatabaseName();
+        $preserveContent = ! $this->wipesContent();
 
-        foreach (Schema::getTableListing() as $table) {
-            // Filter to only tables in the current database
-            if (Str::startsWith($table, $currentDatabase . '.')) {
-                $name = Str::afterLast($table, '.');
-
-                if (in_array($name, self::PRESERVED_TABLES, true)) {
-                    continue;
-                }
-
-                $tables[] = $name;
+        foreach (CurrentDatabaseTables::names() as $name) {
+            if (in_array($name, self::PRESERVED_TABLES, true)) {
+                continue;
             }
+
+            if ($preserveContent && in_array($name, self::CONTENT_TABLES, true)) {
+                continue;
+            }
+
+            $tables[] = $name;
         }
 
         return $tables;

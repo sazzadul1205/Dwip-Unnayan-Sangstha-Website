@@ -51,7 +51,22 @@ describe('Application seeder', function () {
             ->and(DB::table('job_listings')->count())->toBeGreaterThan(0);
     });
 
-    it('empties the newsletter tables it previously skipped', function () {
+    it('keeps real newsletter subscribers, who are not demo data', function () {
+        DB::table('newsletter_subscriptions')->insert([
+            'email' => 'real-subscriber@example.test',
+            'token' => 'real-token',
+            'status' => 'subscribed',
+            'subscribed_at' => now(),
+        ]);
+
+        $this->seed(DatabaseSeeder::class);
+
+        // These addresses were collected from real people through the public
+        // form. Re-seeding demo jobs must not throw them away.
+        expect(DB::table('newsletter_subscriptions')->count())->toBe(1);
+    });
+
+    it('empties the newsletter tables once the wipe is requested', function () {
         DB::table('newsletter_subscriptions')->insert([
             'email' => 'stale@example.test',
             'token' => 'stale-token',
@@ -59,9 +74,15 @@ describe('Application seeder', function () {
             'subscribed_at' => now(),
         ]);
 
-        $this->seed(DatabaseSeeder::class);
+        DatabaseSeeder::setWipeContent(true);
 
-        expect(DB::table('newsletter_subscriptions')->count())->toBe(0);
+        try {
+            $this->seed(DatabaseSeeder::class);
+
+            expect(DB::table('newsletter_subscriptions')->count())->toBe(0);
+        } finally {
+            DatabaseSeeder::setWipeContent(false);
+        }
     });
 
     it('leaves infrastructure tables alone', function () {

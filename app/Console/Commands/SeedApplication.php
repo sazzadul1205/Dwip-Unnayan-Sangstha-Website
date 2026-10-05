@@ -2,13 +2,12 @@
 
 namespace App\Console\Commands;
 
+use App\Services\CurrentDatabaseTables;
 use Database\Seeders\DatabaseSeeder;
 use Database\Seeders\pages\CmsSeeder;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
-use Illuminate\Support\Str;
 
 /**
  * ============================================================
@@ -29,6 +28,7 @@ class SeedApplication extends Command
                             {--with-cms : Also seed the CMS demo content (pages, sections, blogs, programs, publications)}
                             {--without-cms : Skip CMS demo content even if you are asked}
                             {--fresh : Run migrate:fresh first, dropping every table and rebuilding the schema}
+                            {--wipe-content : Also erase existing site content (implied by --with-cms)}
                             {--force : Skip the confirmation prompt (for scripts and CI)}';
 
     protected $description = 'Seed the application database (destructive — asks for confirmation first)';
@@ -45,6 +45,25 @@ class SeedApplication extends Command
 
         $withCms = $this->resolveCmsChoice();
 
+        // Asking for the demo CMS content means replacing whatever is there,
+        // so it implies wiping site content.
+        $wipeContent = $this->option('wipe-content') || $withCms;
+
+        // The flag is static so it survives the nested Artisan::call(). Restore
+        // it afterwards: a long-lived worker (Octane, queue) would otherwise
+        // keep wiping site content on the next, unrelated seed.
+        $previousWipe = DatabaseSeeder::isWipeContent();
+        DatabaseSeeder::setWipeContent($wipeContent);
+
+        try {
+            return $this->runSeeders($withCms);
+        } finally {
+            DatabaseSeeder::setWipeContent($previousWipe);
+        }
+    }
+
+    private function runSeeders(bool $withCms): int
+    {
         $this->newLine();
         $this->components->info('Seeding ' . DB::connection()->getDatabaseName());
         $this->newLine();
@@ -76,7 +95,7 @@ class SeedApplication extends Command
                 return true;
             });
         } else {
-            $this->components->info('CMS demo content skipped — pass --with-cms to include it.');
+            $this->components->info('CMS demo content skipped — existing site content was left in place.');
         }
 
         $this->newLine();
@@ -90,12 +109,21 @@ class SeedApplication extends Command
      */
     private function confirmDestructiveAction(): bool
     {
-        $tables = $this->destructiveTables();
+        $withCms = (bool) $this->option('with-cms');
+        $wipeContent = (bool) $this->option('wipe-content') || $withCms;
+        $tables = $this->destructiveTables($wipeContent);
 
         $this->newLine();
-        $this->components->warn('This will ERASE all existing data in the current database.');
+        $this->components->warn('This will ERASE the demo data in the current database.');
         $this->newLine();
 
+        if ($wipeContent) {
+            $this->components->error('Site content (pages, sections, blogs, programs, publications) WILL BE ERASED.');
+        } else {
+            $this->components->info('Site content (pages, sections, blogs, programs, publications) is PRESERVED.');
+        }
+
+        $this->newLine();
         $this->table(['About to be emptied'], array_map(fn (string $t) => [$t], $tables));
         $this->newLine();
 
@@ -135,11 +163,12 @@ class SeedApplication extends Command
     }
 
     /**
-     * Tables the seeder will empty, i.e. everything except infrastructure.
+     * Tables the seeder will empty, i.e. everything except infrastructure
+     * and — unless content is being wiped — the CMS content tables.
      *
      * @return array<int, string>
      */
-    private function destructiveTables(): array
+    private function destructiveTables(bool $wipeContent): array
     {
         $preserved = [
             'migrations', 'cache', 'cache_locks', 'sessions',
@@ -147,9 +176,11 @@ class SeedApplication extends Command
             'password_reset_tokens', 'personal_access_tokens',
         ];
 
-        return collect(Schema::getTableListing())
-            ->map(fn (string $table) => Str::afterLast($table, '.'))
-            ->reject(fn (string $table) => in_array($table, $preserved, true))
+        $content = $wipeContent ? [] : DatabaseSeeder::CONTENT_TABLES;
+
+        return collect(CurrentDatabaseTables::names())
+            ->reject(fn (string $table) => in_array($table, $preserved, true) || in_array($table, $content, true))
+            ->unique()
             ->values()
             ->all();
     }
@@ -183,8 +214,7 @@ class SeedApplication extends Command
         $this->newLine();
 
         if (! $withCms) {
-            $this->components->warn('The public site will be empty — no pages, navigation or footer data.');
-            $this->components->warn('Run `php artisan app:seed --with-cms --force` to add the demo content.');
+            $this->components->warn('No demo site content was added — your existing pages and sections are untouched.');
         }
     }
 }

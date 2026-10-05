@@ -4,9 +4,9 @@
 
 namespace Database\Seeders;
 
+use App\Services\CurrentDatabaseTables;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 
 class ResetAndSeedAll extends Seeder
 {
@@ -25,14 +25,18 @@ class ResetAndSeedAll extends Seeder
     // Tables to exclude (keep these)
     $excludeTables = ['migrations', 'failed_jobs', 'password_reset_tokens', 'personal_access_tokens', 'sessions'];
 
-    foreach (Schema::getTableListing() as $tableName) {
+    // Listing the tables unqualified keeps `migrations` comparable against the
+    // bare name below; comparing it against a schema-qualified "db.migrations"
+    // never matched, so migrations were truncated along with everything else
+    // and the app then believed no migration had ever run.
+    foreach (CurrentDatabaseTables::names() as $name) {
       // Skip excluded tables
-      if (in_array($tableName, $excludeTables)) {
+      if (in_array($name, $excludeTables)) {
         continue;
       }
 
-      DB::table($tableName)->truncate();
-      $this->command->info("🗑️ Truncated: {$tableName}");
+      DB::table($name)->truncate();
+      $this->command->info("🗑️ Truncated: {$name}");
     }
 
     // ==========================================
