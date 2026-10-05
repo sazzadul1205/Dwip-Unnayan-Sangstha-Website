@@ -12,15 +12,10 @@
     section renders its own skeleton while its data/chunk loads.
 
     Include in app.blade.php <body>:
-        @include('partials.preloader', ['preloaderUrl' => $preloaderUrl, 'isFrontendRoute' => $isFrontendRoute])
-
-    Expected variables (inherited from parent scope or passed):
-        $preloaderUrl       (string)  — logo image URL
-        $isFrontendRoute    (bool)    — hide loader entirely for backend routes
+        @include('partials.preloader', ['preloaderUrl' => $preloaderUrl])
 --}}
 
-<div id="app-loading" role="status" aria-label="Loading Dwip Unnayan Songstha" aria-busy="true"
-    style="{{ $isFrontendRoute ?? true ? '' : 'display: none' }}">
+<div id="app-loading" role="status" aria-label="Loading Dwip Unnayan Songstha" aria-busy="true">
     <div class="loader-container">
         <div class="loader-logo" aria-hidden="true">
             <img src="{{ $preloaderUrl }}"

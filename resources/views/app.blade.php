@@ -75,11 +75,8 @@
 
         $schemaLogo = $logoUrl ?? asset('storage/images/dus-logo.png');
 
-        // Compute once so both <head> and the preloader partial can use it.
-        $isFrontendRoute =
-            request()->routeIs('home', 'sitemap') ||
-            request()->route('pageSlug') !== null ||
-            request()->route('detailSlug') !== null;
+        // Compute once so the preloader partial can use it.
+        $preloaderUrl = getIconUrl('preloader', asset('images/pre-loader-icon.png'));
     @endphp
 
     <meta property="og:image" content="{{ $ogImageFullUrl }}">
@@ -327,7 +324,6 @@
     {{-- INITIAL-PAINT LOADER (markup + hide script) --}}
     @include('partials.preloader', [
         'preloaderUrl' => $preloaderUrl,
-        'isFrontendRoute' => $isFrontendRoute,
     ])
 
     {{-- INERTIA MOUNT POINT --}}
