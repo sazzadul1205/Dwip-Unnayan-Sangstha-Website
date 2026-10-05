@@ -21,7 +21,14 @@ const AdminLayout = ({ children }) => {
   const user = auth?.user;
 
   // STATE
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(() => {
+    try {
+      const stored = localStorage.getItem('admin_sidebar_collapsed');
+      return stored ? JSON.parse(stored) : false;
+    } catch {
+      return false;
+    }
+  });
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isDrawerAnimating, setIsDrawerAnimating] = useState(false);
   const [openMenus, setOpenMenus] = useState({
@@ -33,6 +40,12 @@ const AdminLayout = ({ children }) => {
     adminUsers: false,
     cms: false,
   });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('admin_sidebar_collapsed', JSON.stringify(isCollapsed));
+    } catch {}
+  }, [isCollapsed]);
 
   // USER DATA
   const userName = user?.name || 'User';
