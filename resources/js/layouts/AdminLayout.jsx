@@ -674,8 +674,8 @@ const AdminLayout = ({ children }) => {
               onMouseEnter={(e) => openFlyout(item.dropdownKey, e.currentTarget)}
               className={base}
             >
-              <item.icon className="h-5 w-5 shrink-0" />
-              {active && <span className={`absolute left-0 h-6 w-1 ${colors.bg} rounded-r-full`} />}
+              <item.icon className={`h-5 w-5 shrink-0 ${active ? colors.text : ''}`} />
+              {active && <span className={`absolute left-0 h-full w-1 ${colors.bg} rounded-r-full`} />}
               {badge}
             </button>
           </div>
@@ -689,8 +689,8 @@ const AdminLayout = ({ children }) => {
           title={item.name}
           className={`${base} mb-1`}
         >
-          <item.icon className="h-5 w-5 shrink-0" />
-          {active && <span className={`absolute left-0 h-6 w-1 ${colors.bg} rounded-r-full`} />}
+          <item.icon className={`h-5 w-5 shrink-0 ${active ? colors.text : ''}`} />
+          {active && <span className={`absolute left-0 h-full w-1 ${colors.bg} rounded-r-full`} />}
           {badge}
         </Link>
       );
