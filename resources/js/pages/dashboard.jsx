@@ -23,6 +23,10 @@ import {
   FiShield,
   FiMapPin,
   FiEye,
+  FiBookOpen,
+  FiFolder,
+  FiMail,
+  FiLayers,
 } from 'react-icons/fi';
 
 import AuthenticatedLayout from '../layouts/AuthenticatedLayout';
@@ -113,11 +117,39 @@ const Dashboard = () => {
   const buildAdminStats = () => {
     if (!admin_staff) return [];
     const s = admin_staff.summary;
-    return [
+    const cms = admin_staff?.cms || {};
+    const stats = [
       { title: 'Total Users', value: s.total_users || 0, icon: FiUsers, color: 'from-blue-500 to-blue-600', suffix: '' },
       { title: 'Active Jobs', value: s.active_jobs || 0, icon: FiBriefcase, color: 'from-green-500 to-emerald-600', suffix: '' },
       { title: 'Total Applications', value: s.total_applications || 0, icon: FiFileText, color: 'from-purple-500 to-purple-600', suffix: '' },
-      { title: 'Avg. ATS Score', value: s.average_ats || 0, icon: FiTrendingUp, color: 'from-yellow-500 to-orange-600', suffix: '%' }
+      { title: 'CMS Pages', value: (cms?.pages?.active || 0) + (cms?.blogs?.active || 0) + (cms?.programs?.active || 0) + (cms?.publications?.active || 0), icon: FiBookOpen, color: 'from-pink-500 to-rose-600', suffix: '' },
+    ];
+    return stats;
+  };
+
+  const buildCmsStats = () => {
+    if (!admin_staff?.cms) return null;
+    const cms = admin_staff.cms;
+    const sections = cms?.sections || {};
+    const integrity = cms?.integrity || {};
+    return [
+      { title: 'Pages', value: `${cms?.pages?.active || 0}/${cms?.pages?.total || 0}`, icon: FiFileText, color: 'from-blue-500 to-blue-600', description: `${cms?.pages?.drafts || 0} drafts` },
+      { title: 'Blogs', value: `${cms?.blogs?.active || 0}/${cms?.blogs?.total || 0}`, icon: FiBookOpen, color: 'from-green-500 to-emerald-600', description: `${cms?.blogs?.featured || 0} featured` },
+      { title: 'Programs', value: `${cms?.programs?.active || 0}/${cms?.programs?.total || 0}`, icon: FiFolder, color: 'from-purple-500 to-purple-600', description: 'Active / Total' },
+      { title: 'Publications', value: `${cms?.publications?.active || 0}/${cms?.publications?.total || 0}`, icon: FiBookOpen, color: 'from-orange-500 to-red-600', description: 'Active / Total' },
+      { title: 'Sections', value: `${sections?.enabled || 0}/${sections?.total || 0}`, icon: FiLayers, color: 'from-teal-500 to-cyan-600', description: `${sections?.disabled || 0} disabled` },
+      { title: 'Orphan Pages', value: integrity?.orphan_pages || 0, icon: FiMapPin, color: integrity?.orphan_pages ? 'from-red-500 to-pink-600' : 'from-gray-400 to-gray-500', description: 'Pages without sections' },
+    ];
+  };
+
+  const buildNewsletterStats = () => {
+    if (!admin_staff?.newsletter) return null;
+    const n = admin_staff.newsletter;
+    const subs = n?.subscribers || {};
+    const campaigns = n?.campaigns || {};
+    return [
+      { title: 'Subscribers', value: subs?.total || 0, icon: FiMail, color: 'from-indigo-500 to-purple-600', description: `${subs?.new_30d || 0} new this month` },
+      { title: 'Campaigns', value: campaigns?.total || 0, icon: FiBarChart2, color: 'from-amber-500 to-orange-600', description: `${campaigns?.sent || 0} sent` },
     ];
   };
 
@@ -154,16 +186,26 @@ const Dashboard = () => {
       ];
     }
 
-    // Admin/Staff - use recent applications
-    if ((role === 'admin' || role === 'staff') && admin_staff) {
+    if (role === 'admin' || role === 'staff') {
       const apps = admin_staff.recent_applications || [];
       if (apps.length > 0) {
-        return apps.slice(0, 4).map((app) => ({
+        return apps.slice(0, 3).map((app) => ({
           icon: FiUsers,
           title: `${app.applicant} applied for ${app.job_title} at ${app.company}`,
           time: app.submitted_at ? new Date(app.submitted_at).toLocaleString() : 'Recently',
           color: app.status === 'shortlisted' ? 'from-green-500 to-emerald-600' : 'from-blue-500 to-cyan-600',
           status: app.status === 'shortlisted' ? 'success' : app.status === 'pending' ? 'warning' : 'new',
+        }));
+      }
+
+      const recentContent = admin_staff?.cms?.recent_content || [];
+      if (recentContent.length > 0) {
+        return recentContent.slice(0, 3).map((item) => ({
+          icon: FiBookOpen,
+          title: `Content updated: ${item.title}`,
+          time: item.updated_at ? new Date(item.updated_at).toLocaleString() : 'Recently',
+          color: item.is_active ? 'from-green-500 to-emerald-600' : 'from-yellow-500 to-orange-600',
+          status: item.is_active ? 'success' : 'warning',
         }));
       }
 
@@ -194,7 +236,9 @@ const Dashboard = () => {
         { icon: FiUsers, label: 'Manage Users', color: 'from-blue-500 to-blue-600', onClick: () => window.location.href = '/backend/users' },
         { icon: FiBriefcase, label: 'Manage Jobs', color: 'from-green-500 to-emerald-600', onClick: () => window.location.href = '/backend/listing' },
         { icon: FiFileText, label: 'Applications', color: 'from-purple-500 to-purple-600', onClick: () => window.location.href = '/backend/applications' },
-        { icon: FiBarChart2, label: 'Statistics', color: 'from-orange-500 to-red-600', onClick: () => window.location.href = '/backend/statistics' }
+        { icon: FiBarChart2, label: 'Statistics', color: 'from-orange-500 to-red-600', onClick: () => window.location.href = '/backend/statistics' },
+        { icon: FiBookOpen, label: 'CMS', color: 'from-pink-500 to-rose-600', onClick: () => window.location.href = '/backend/cms' },
+        { icon: FiMail, label: 'Newsletter', color: 'from-indigo-500 to-purple-600', onClick: () => window.location.href = '/backend/newsletter' }
       );
     }
 
@@ -375,6 +419,62 @@ const Dashboard = () => {
           </div>
         </div>
       )}
+
+      {/* CMS Overview for Admin - Responsive */}
+      {role !== 'job_seeker' && (() => {
+        const cmsStats = buildCmsStats();
+        if (!cmsStats) return null;
+        return (
+          <div className="mb-4 sm:mb-6 md:mb-8 animate-fade-in-up animation-delay-500">
+            <div className="flex items-center justify-between mb-3 sm:mb-4">
+              <h2 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">CMS Overview</h2>
+              <a href="/backend/cms" className="text-xs sm:text-sm text-blue-600 hover:text-blue-700 font-medium">
+                Manage CMS →
+              </a>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3">
+              {cmsStats.map((stat, idx) => (
+                <div key={idx} className="bg-white dark:bg-gray-800 rounded-xl p-3 sm:p-4 shadow-md hover:shadow-lg transition-all duration-300">
+                  <div className={`inline-flex items-center justify-center w-8 h-8 rounded-lg bg-linear-to-br ${stat.color} text-white mb-2`}>
+                    <stat.icon className="w-4 h-4" />
+                  </div>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">{stat.title}</p>
+                  <p className="text-sm font-semibold text-gray-900 dark:text-white">{stat.value}</p>
+                  {stat.description && <p className="text-[10px] text-gray-400 mt-0.5">{stat.description}</p>}
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* Newsletter Overview for Admin - Responsive */}
+      {role !== 'job_seeker' && (() => {
+        const newsletterStats = buildNewsletterStats();
+        if (!newsletterStats) return null;
+        return (
+          <div className="mb-4 sm:mb-6 md:mb-8 animate-fade-in-up animation-delay-500">
+            <div className="flex items-center justify-between mb-3 sm:mb-4">
+              <h2 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">Newsletter</h2>
+              <a href="/backend/newsletter" className="text-xs sm:text-sm text-blue-600 hover:text-blue-700 font-medium">
+                Manage Newsletter →
+              </a>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3">
+              {newsletterStats.map((stat, idx) => (
+                <div key={idx} className="bg-white dark:bg-gray-800 rounded-xl p-3 sm:p-4 shadow-md hover:shadow-lg transition-all duration-300">
+                  <div className={`inline-flex items-center justify-center w-8 h-8 rounded-lg bg-linear-to-br ${stat.color} text-white mb-2`}>
+                    <stat.icon className="w-4 h-4" />
+                  </div>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">{stat.title}</p>
+                  <p className="text-sm font-semibold text-gray-900 dark:text-white">{stat.value}</p>
+                  {stat.description && <p className="text-[10px] text-gray-400 mt-0.5">{stat.description}</p>}
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Bottom Row: Activity + Progress - Responsive */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4 md:gap-6">
