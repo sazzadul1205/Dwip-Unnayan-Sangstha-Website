@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\RateLimiter;
 use Inertia\Inertia;
 use Inertia\Response;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
  * ============================================================
@@ -138,7 +139,7 @@ class LogController extends Controller
     /**
      * Export parsed log entries as CSV.
      */
-    public function export(Request $request): BinaryFileResponse|RedirectResponse
+    public function export(Request $request): BinaryFileResponse|StreamedResponse|RedirectResponse
     {
         if (!$this->can('logs.export')) {
             return $this->deny('You do not have permission to export logs.');
