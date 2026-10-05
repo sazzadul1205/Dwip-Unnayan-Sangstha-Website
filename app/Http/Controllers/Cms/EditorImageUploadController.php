@@ -13,11 +13,17 @@ use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Illuminate\Filesystem\Filesystem;
 use Intervention\Image\Drivers\Gd\Driver as GdDriver;
 use Intervention\Image\ImageManager;
 
 class EditorImageUploadController extends Controller
 {
+  /**
+   * Folder (on the public disk) that receives every editor image.
+   */
+  protected string $imageDirectory = 'editor-images';
+
   /**
    * Max image size in bytes (5MB).
    */
@@ -97,15 +103,23 @@ class EditorImageUploadController extends Controller
          return response()->json(['error' => 'Unsupported image type'], 422);
        }
 
-       // Generate filename: YYYYMMDD_UUID.extension
-       $filename = date('Ymd') . '_' . Str::uuid() . '.' . $extension;
-       $path = 'editor-images/' . $filename;
+// Generate filename: YYYYMMDD_UUID.extension
+        $filename = date('Ymd') . '_' . Str::uuid() . '.' . $extension;
+        $path = $this->imageDirectory . '/' . $filename;
 
-       // Optimize image using Intervention Image
-       $optimizedContent = $this->optimizeImage($imageContent, $mimeType, $extension);
+        // Optimize image using Intervention Image
+        $optimizedContent = $this->optimizeImage($imageContent, $mimeType, $extension);
 
-       // Store the optimized image
-       if (!Storage::disk('public')->put($path, $optimizedContent)) {
+        // Storage::put() fails silently when the folder is missing (fresh
+        // checkout / new deploy), so make sure it exists first.
+        if (! $this->ensureImageDirectoryExists()) {
+          Log::error('Editor image directory is not writable: ' . $this->imageDirectory);
+
+          return response()->json(['error' => 'The server image folder is not writable.'], 500);
+        }
+
+        // Store the optimized image
+        if (!Storage::disk('public')->put($path, $optimizedContent)) {
          Log::error('Failed to store editor image: ' . $path);
          return response()->json(['error' => 'Failed to save image'], 500);
        }
@@ -113,7 +127,9 @@ class EditorImageUploadController extends Controller
        // Clear rate limiter on success
        RateLimiter::clear($this->getThrottleKey('editor_upload', $user->id));
 
-       $url = asset('storage/' . $path);
+       // Store a host-relative path (not asset()) so saved HTML keeps working
+        // when the domain changes, and so the delete endpoint can resolve it.
+        $url = '/storage/' . $path;
 
        SimpleLogger::cms(
          "Editor image uploaded: {$filename}",
@@ -163,11 +179,16 @@ class EditorImageUploadController extends Controller
       $errors = [];
 
       foreach ($request->urls as $url) {
-        // Extract relative path from URL (e.g., /storage/editor-images/...)
-        $relativePath = str_replace('/storage/', '', $url);
+        // Normalise to a disk-relative path. Accepts every form this app has
+        // produced: the host-relative "/storage/editor-images/…" that upload()
+        // returns, the bare disk path "editor-images/…", and an absolute URL
+        // saved before upload() switched to relative paths. parse_url() keeps
+        // a scheme out of the way so only the path is validated below.
+        $path = parse_url((string) $url, PHP_URL_PATH) ?: (string) $url;
+        $relativePath = ltrim(str_replace('/storage/', '', $path), '/');
 
         // Security: only allow deletion from editor-images folder – prevent path traversal
-        if (!str_starts_with($relativePath, 'editor-images/') || str_contains($relativePath, '..')) {
+        if (!str_starts_with($relativePath, $this->imageDirectory . '/') || str_contains($relativePath, '..')) {
           $errors[] = "Invalid path: {$relativePath}";
           continue;
         }
@@ -214,6 +235,37 @@ class EditorImageUploadController extends Controller
     // ==========================================
     // PRIVATE HELPER METHODS
     // ==========================================
+
+/**
+     * Make sure the editor image folder exists on the public disk.
+     *
+     * storage/app/public is git-ignored, so on a fresh clone even the parent
+     * folder is missing and the directory has to be created recursively.
+     */
+    private function ensureImageDirectoryExists(): bool
+    {
+      $disk = Storage::disk('public');
+
+      if ($disk->exists($this->imageDirectory)) {
+        return true;
+      }
+
+      try {
+        (new Filesystem)->makeDirectory($disk->path($this->imageDirectory), 0755, true, true);
+      } catch (\Throwable $e) {
+        Log::error('Could not create editor image directory: ' . $e->getMessage());
+      }
+
+      // Re-check instead of trusting mkdir(): two concurrent uploads can race,
+      // and a non-local disk throws from path() before mkdir ever runs.
+      if (! $disk->exists($this->imageDirectory)) {
+        Log::error('Editor image directory still missing: ' . $this->imageDirectory);
+
+        return false;
+      }
+
+      return true;
+    }
 
   /**
    * Get the authenticated user.
@@ -272,6 +324,8 @@ class EditorImageUploadController extends Controller
 
     /**
      * Optimize image using Intervention Image.
+     * Optimization is best-effort: when the library or GD is unavailable the
+     * original bytes are stored as-is instead of failing the upload.
      */
     private function optimizeImage(string $imageContent, string $mimeType, string $extension): string
     {
@@ -283,6 +337,13 @@ class EditorImageUploadController extends Controller
       // Check if GD extension is available
       if (!extension_loaded('gd') || !function_exists('gd_info')) {
         Log::warning('GD extension not available, skipping image optimization');
+        return $imageContent;
+      }
+
+      // Intervention Image is an optional dependency — a missing package must
+      // not turn every upload into a 500.
+      if (!class_exists(ImageManager::class) || !class_exists(GdDriver::class)) {
+        Log::warning('intervention/image is not installed, skipping image optimization');
         return $imageContent;
       }
 

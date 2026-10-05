@@ -405,7 +405,7 @@ export default function RichTextEditor({
       const endpoint =
         uploadEndpoint ||
         (typeof window !== 'undefined' && typeof window.route === 'function'
-          ? window.route('admin.upload-editor-image')
+          ? window.route('backend.cms.upload-editor-image')
           : null);
       if (!endpoint) {
         return Promise.reject(new Error('No image upload endpoint configured.'));
@@ -414,7 +414,12 @@ export default function RichTextEditor({
         .post(endpoint, { image: base64 }, {
           headers: { 'Content-Type': 'application/json' },
         })
-        .then((res) => res.data.url);
+        .then((res) => {
+          if (!res.data?.url) {
+            throw new Error(typeof res.data?.error === 'string' ? res.data.error : 'No image URL returned.');
+          }
+          return res.data.url;
+        });
     },
     [onImageUpload, uploadEndpoint]
   );
@@ -464,7 +469,13 @@ export default function RichTextEditor({
       setShowImageSettingsModal(true);
     } catch (err) {
       console.error('[RichTextEditor] upload failed:', err);
-      notify('error', 'Upload Failed', 'Could not upload image. Please try again.');
+      const serverError =
+        err?.response?.data?.error ?? err?.message ?? 'Could not upload image. Please try again.';
+      notify(
+        'error',
+        'Upload Failed',
+        typeof serverError === 'string' ? serverError : 'Could not upload image. Please try again.'
+      );
     } finally {
       setUploadingImage(false);
       event.target.value = '';

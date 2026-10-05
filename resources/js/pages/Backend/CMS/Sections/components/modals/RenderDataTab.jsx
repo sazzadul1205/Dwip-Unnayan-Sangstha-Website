@@ -107,7 +107,7 @@ const EDITOR_COMPONENTS = {
 };
 
 // ===== COMPONENT =====
-const RenderDataTab = ({ section, hasData, onDataChange }) => {
+const RenderDataTab = ({ section, hasData, onDataChange, onUploadsChange }) => {
   const EditorComponent = EDITOR_COMPONENTS[section.component];
 
   if (!EditorComponent) {
@@ -128,6 +128,7 @@ const RenderDataTab = ({ section, hasData, onDataChange }) => {
           section={section}
           hasData={hasData}
           onDataChange={onDataChange}
+          onUploadsChange={onUploadsChange}
         />
       </Suspense>
     </div>

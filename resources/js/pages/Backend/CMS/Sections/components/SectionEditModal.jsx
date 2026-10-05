@@ -1,7 +1,7 @@
 // resources/js/pages/Backend/CMS/Sections/components/SectionEditModal.jsx
 
 import { router } from '@inertiajs/react';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   FaTimes,
   FaSave,
@@ -20,7 +20,8 @@ import {
   FaArrowsAltH,
   FaRulerCombined,
 } from 'react-icons/fa';
-import { showToast } from '../utils/toastHelper';
+import axios from 'axios';
+import { showToast, showWarningToast } from '../utils/toastHelper';
 import { getComponentLabel, getDataTableLabel } from '../utils/sectionHelpers';
 import { DEFAULT_CONFIG, SECTION_CONFIGS } from '../utils/SectionConfigData';
 import RenderDataTab from './modals/RenderDataTab';
@@ -28,6 +29,47 @@ import RenderDataTab from './modals/RenderDataTab';
 // Helper: Check if section has data
 const hasSectionData = (section) => {
   return section?.data !== null && section?.data !== undefined;
+};
+
+// Where inserted images are reclaimed when a section edit is abandoned.
+const editorImageDeleteRoute = 'backend.cms.editor-image.delete';
+
+/** Best-effort absolute URL for a route, falling back to the literal path. */
+const routeUrl = (name, fallback) => {
+  if (typeof window !== 'undefined' && typeof window.route === 'function') {
+    try {
+      return window.route(name);
+    } catch {
+      // Route not exposed to this bundle — use the literal path below.
+    }
+  }
+
+  return fallback;
+};
+
+/**
+ * Images inserted into a code section are written to disk immediately, before
+ * the admin saves. Anything this session uploaded but did not end up saving has
+ * to be removed on close, otherwise it stays on disk forever with no record of
+ * it anywhere.
+ */
+const reclaimUnsavedUploads = async (pending, savedPayload) => {
+  if (!pending || pending.length === 0) return;
+
+  const saved = JSON.stringify(savedPayload ?? {});
+  const orphans = pending.filter((url) => !saved.includes(url));
+  if (orphans.length === 0) return;
+
+  try {
+    await axios.delete(routeUrl(editorImageDeleteRoute, '/backend/cms/editor-image'), {
+      data: { urls: orphans },
+      headers: { 'Content-Type': 'application/json' },
+    });
+  } catch {
+    // Non-blocking: the admin is closing the dialog either way, and a failure
+    // here must never trap them in the modal.
+    showWarningToast('⚠️ Cleanup Skipped', 'Some unsaved images could not be removed.', 4000);
+  }
 };
 
 // Field icon mapping
@@ -58,6 +100,27 @@ const SectionEditModal = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState({});
   const [sectionData, setSectionData] = useState(null);
+  // Image URLs uploaded during this edit that may need reclaiming on close.
+  const [pendingUploads, setPendingUploads] = useState([]);
+
+  /**
+   * Single exit point for the dialog: saves the payload so unsaved uploads can
+   * be distinguished from the ones that made it into the section.
+   */
+  const savedPayloadRef = useRef(null);
+  const hasReclaimedRef = useRef(false);
+
+  const handleClose = () => {
+    // The backdrop, the Cancel button and a successful save all land here, but
+    // only the first exit may run the cleanup.
+    if (!hasReclaimedRef.current) {
+      hasReclaimedRef.current = true;
+      reclaimUnsavedUploads(pendingUploads, savedPayloadRef.current);
+      setPendingUploads([]);
+    }
+
+    onClose();
+  };
 
   /**
    * Get section configuration for custom props
@@ -79,6 +142,9 @@ const SectionEditModal = ({
         custom_props: section.custom_props || {},
       });
       setSectionData(null);
+      setPendingUploads([]);
+      savedPayloadRef.current = null;
+      hasReclaimedRef.current = false;
     }
   }, [section]);
 
@@ -88,6 +154,9 @@ const SectionEditModal = ({
       setErrors({});
       setActiveTab('basic');
       setSectionData(null);
+      setPendingUploads([]);
+      savedPayloadRef.current = null;
+      hasReclaimedRef.current = false;
     }
   }, [isOpen]);
 
@@ -176,6 +245,10 @@ const SectionEditModal = ({
       }
     }
 
+    // Remember what was persisted so handleClose() does not reclaim images
+    // that ended up inside the saved section.
+    savedPayloadRef.current = submitData;
+
     router.put(
       route('backend.cms.sections.update', { section: section.id }),
       submitData,
@@ -186,7 +259,7 @@ const SectionEditModal = ({
           setIsSubmitting(false);
           showToast('success', '✅ Updated!', 'Section updated successfully.', 2000);
           if (onSuccess) onSuccess();
-          onClose();
+          handleClose();
         },
         onError: (errors) => {
           setIsSubmitting(false);
@@ -614,7 +687,7 @@ const SectionEditModal = ({
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn"
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) {
-          onClose();
+          handleClose();
         }
       }}
       role="dialog"
@@ -716,6 +789,7 @@ const SectionEditModal = ({
                 section={section}
                 hasData={hasData}
                 onDataChange={setSectionData}
+                onUploadsChange={setPendingUploads}
               />
             </div>
           </div>
@@ -724,7 +798,7 @@ const SectionEditModal = ({
           <div className="flex items-center justify-end gap-3 pt-5 mt-6 border-t-2 border-gray-100">
             <button
               type="button"
-              onClick={onClose}
+              onClick={handleClose}
               className="px-6 py-2.5 text-gray-600 hover:bg-gray-100 rounded-xl transition-all duration-200 font-medium hover:shadow-sm"
               disabled={isSubmitting}
             >

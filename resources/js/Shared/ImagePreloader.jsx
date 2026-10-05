@@ -13,7 +13,7 @@ import { Skeleton } from './Skeletons/SkeletonPrimitives';
  *   - Passes `alt` through to the <img> (and to the error box as aria-label)
  *   - If `aspectRatio` is provided, wrapper reserves space (no CLS)
  *   - If not, wrapper takes whatever the parent gives it (100% by default)
- *   - `priority` → loading="eager" + fetchpriority="high"
+ *   - `priority` → loading="eager" + fetchPriority="high"
  *   - `fallbackSrc` is tried once before showing the error box
  */
 const ImagePreloader = ({
@@ -88,7 +88,7 @@ const ImagePreloader = ({
           src={currentSrc}
           alt={alt}
           loading={eager || priority ? 'eager' : 'lazy'}
-          fetchpriority={priority ? 'high' : 'auto'}
+          fetchPriority={priority ? 'high' : 'auto'}
           decoding="async"
           onLoad={handleLoad}
           onError={handleError}
