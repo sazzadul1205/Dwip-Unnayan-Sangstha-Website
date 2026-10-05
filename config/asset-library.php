@@ -77,6 +77,19 @@ return [
     | guarded: if the database is unreachable the page still renders, it just
     | falls back to the code-only result and says so in the UI.
     |
+    | Critically, an incomplete scan is never presented as a clean result. Every
+    | asset carries one of three states:
+    |
+    |   referenced — the name was found
+    |   unused     — every source file and every stored value was searched, and
+    |                nothing matched. Only this state may be deleted.
+    |   unknown    — the scan could not search everywhere (no database, an
+    |                unreadable table, a table past max_rows_per_table). Nothing
+    |                can be concluded, so deletion is refused, force or not.
+    |
+    | A reference that was never read is indistinguishable from a reference that
+    | does not exist, and that gap is exactly how a live image gets deleted.
+    |
     | Set `database.enabled` to false for a strictly filesystem-only scan.
     |
     */
@@ -117,10 +130,56 @@ return [
         'database' => [
             'enabled' => true,
 
-            // null means "discover every table and use the ones that are not
-            // excluded", so new content tables are covered automatically.
-            'tables' => null,
+            /*
+             * An explicit allowlist, measured against this project.
+             *
+             * Scanning every table looked thorough but was almost entirely
+             * wasted: of 3680 rows read, 3594 belonged to tables that never
+             * mention an asset name, and job_views alone contributed 2317. Worse,
+             * reading them all on every render is what made the page slow enough
+             * to want paginating in the first place.
+             *
+             * An asset only exists in one of two places:
+             *   - CMS content — the images an admin uploads through the section
+             *     editor, referenced from the content tables below
+             *   - applicant documents — CVs and résumé files, which the applicant
+             *     tables store by path
+             *
+             * Nothing else points at an uploaded file. Adding a table here is
+             * the only thing needed when a new content type is introduced.
+             */
+            'tables' => [
+                // CMS content.
+                'custom_section_data',
+                'shared_data',
+                'programs',
+                'blogs',
+                'publications',
+                'about_content',
+                'pages',
+                'section_configs',
 
+                // Applicant documents and photos.
+                'applicant_cvs',
+                'applicant_profiles',
+                'applications',
+            ],
+
+            /*
+             * Narrow the scanned columns where the table stores a mix of
+             * relevant and bulky irrelevant text.
+             *
+             * Without this, applications contributes ats_score, matched_keywords,
+             * missing_keywords and employer_notes — hundreds of longtext values
+             * that cannot contain a file name.
+             */
+            'columns' => [
+                'applicant_cvs' => ['cv_path', 'original_name'],
+                'applications' => ['resume_path'],
+                'applicant_profiles' => ['photo_path', 'social_links'],
+            ],
+
+            // Defence in depth: still skipped if named in the allowlist above.
             'exclude' => [
                 // Infrastructure: nothing here ever points at an uploaded file.
                 'migrations', 'password_reset_tokens', 'password_resets',
@@ -140,7 +199,15 @@ return [
             ],
 
             // Safety valve for a table that somehow holds a huge number of rows.
-            'max_rows_per_table' => 2000,
+            //
+            // This is a genuine limit on how much can be verified, not just a
+            // performance knob: a reference past it cannot be found, and an
+            // unread row looks exactly like an absent reference. Reaching it
+            // therefore downgrades every unreferenced file to "unknown" and
+            // blocks its deletion, rather than quietly reporting it as unused.
+            // The old value of 2000 was low enough to be hit by ordinary tables
+            // such as users, and did exactly that.
+            'max_rows_per_table' => 50000,
         ],
     ],
 

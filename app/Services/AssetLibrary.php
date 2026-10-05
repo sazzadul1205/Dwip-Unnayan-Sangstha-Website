@@ -85,13 +85,27 @@ class AssetLibrary
 
         $alwaysReferenced = (array) config('asset-library.reference_scan.always_referenced', []);
 
+        // Anything the content scan could not read becomes "unknown", never
+        // "unused". The delete endpoint treats unknown as undeletable, so a
+        // broken or truncated scan cannot turn into a live file disappearing.
+        $scanGaps = $content['gaps'] ?? [];
+        $contentReliable = $contentScanned && $scanGaps === [];
+
         foreach ($assets as $index => $asset) {
             $forced = in_array($asset['id'], $alwaysReferenced, true);
             $references = $forced ? [['source' => 'Declared in asset-library.php']] : $this->findReferences($asset['name'], $corpus);
 
-            $assets[$index]['referenced'] = $forced || $references !== [];
+            $isReferenced = $forced || $references !== [];
+
+            $assets[$index]['referenced'] = $isReferenced;
             $assets[$index]['reference_count'] = count($references);
             $assets[$index]['references'] = array_slice($references, 0, 5);
+
+            // Only an asset that was searched everywhere and found nowhere is
+            // genuinely unused. Everything else is unknown.
+            $assets[$index]['usage_state'] = $isReferenced
+                ? 'referenced'
+                : ($contentReliable ? 'unused' : 'unknown');
         }
 
         $result = [
@@ -100,6 +114,9 @@ class AssetLibrary
             'summary' => $this->summary($assets),
             'truncated' => $truncated,
             'content_scanned' => $contentScanned,
+            'content_reliable' => $contentReliable,
+            'scan_gaps' => $scanGaps,
+            'content_reason' => $content['reason'] ?? null,
         ];
 
         if ($ttl > 0) {
@@ -182,7 +199,105 @@ class AssetLibrary
         return null;
     }
 
-    public function forget(): void
+    /**
+ * Filter, sort and page an already-computed scan.
+ *
+ * The scan is cached, so this only arranges a few hundred in-memory rows. It
+ * must not touch the filesystem or the database: the point is that page two
+ * costs no more than page one.
+ *
+ * @param  array<string, mixed>  $filters
+ * @return array{data: array<int, array<string, mixed>>, filters: array<string, string>, pagination: array<string, mixed>}
+ */
+public function paginate(array $scan, array $filters): array
+{
+    $folder = trim((string) ($filters['folder'] ?? ''));
+    $category = trim((string) ($filters['category'] ?? ''));
+    $search = trim((string) ($filters['search'] ?? ''));
+    $usage = (string) ($filters['usage'] ?? 'all');
+    $sort = (string) ($filters['sort'] ?? 'newest');
+
+    $rows = array_values(array_filter($scan['assets'], function (array $asset) use ($folder, $category, $search, $usage): bool {
+        // Folder "all" is a real value here, and an empty folder means the root
+        // of the scan, so the check has to be explicit either way.
+        if ($folder === 'all') {
+            // no folder restriction
+        } elseif ($folder === '') {
+            if ($asset['folder'] !== '') {
+                return false;
+            }
+        } elseif (! str_starts_with($asset['id'], $folder . '/')) {
+            return false;
+        }
+
+        if ($category !== '' && $category !== 'all' && $asset['category'] !== $category) {
+            return false;
+        }
+
+        if ($usage === 'unused' && $asset['usage_state'] !== 'unused') {
+            return false;
+        }
+
+        if ($usage === 'referenced' && $asset['usage_state'] !== 'referenced') {
+            return false;
+        }
+
+        if ($usage === 'unknown' && $asset['usage_state'] !== 'unknown') {
+            return false;
+        }
+
+        if ($search !== '') {
+            $needle = mb_strtolower($search);
+
+            if (! str_contains(mb_strtolower($asset['name']), $needle)
+                && ! str_contains(mb_strtolower($asset['id']), $needle)) {
+                return false;
+            }
+        }
+
+        return true;
+    }));
+
+    usort($rows, match ($sort) {
+        'oldest' => fn (array $a, array $b): int => $this->compareTime($a, $b) ?: ($a['name'] <=> $b['name']),
+        'name' => fn (array $a, array $b): int => strnatcasecmp($a['name'], $b['name']),
+        'size' => fn (array $a, array $b): int => [$a['size'], $a['name']] <=> [$b['size'], $b['name']],
+        'size_desc' => fn (array $a, array $b): int => [$b['size'], $a['name']] <=> [$a['size'], $b['name']],
+        default => fn (array $a, array $b): int => $this->compareTime($b, $a) ?: ($a['name'] <=> $b['name']),
+    });
+
+    $perPage = (int) ($filters['per_page'] ?? 24);
+    $perPage = max(12, min($perPage, 120));
+    $total = count($rows);
+    $lastPage = max(1, (int) ceil($total / $perPage));
+    $current = max(1, min((int) ($filters['page'] ?? 1), $lastPage));
+
+    return [
+        'data' => array_slice($rows, ($current - 1) * $perPage, $perPage),
+        'filters' => [
+            'folder' => $folder,
+            'category' => $category,
+            'search' => $search,
+            'usage' => $usage === '' ? 'all' : $usage,
+            'sort' => $sort,
+        ],
+        'pagination' => [
+            'current_page' => $current,
+            'last_page' => $lastPage,
+            'per_page' => $perPage,
+            'total' => $total,
+            'from' => $total === 0 ? 0 : ($current - 1) * $perPage + 1,
+            'to' => min($current * $perPage, $total),
+        ],
+    ];
+}
+
+private function compareTime(array $a, array $b): int
+{
+    return ($a['modified_at'] ?? '') <=> ($b['modified_at'] ?? '');
+}
+
+public function forget(): void
     {
         Cache::forget(self::CACHE_KEY);
     }
@@ -229,14 +344,20 @@ class AssetLibrary
      * Never throws: an unreachable database simply yields an unscanned result so
      * the page keeps working.
      *
-     * @return array{scanned: bool, rows: array<string, string>, reason: ?string}
+     * The `complete` flag is the important part. A partial scan must never be
+     * presented as "unused": a reference that was not read looks exactly like a
+     * reference that does not exist, and that is how a live image ends up one
+     * click away from deletion.
+     *
+     * @return array{scanned: bool, rows: array<string, string>, reason: ?string, gaps: array<int, string>}
      */
     private function contentCorpus(): array
     {
         $settings = (array) config('asset-library.reference_scan.database', []);
 
         if (($settings['enabled'] ?? true) !== true) {
-            return ['scanned' => false, 'rows' => [], 'reason' => 'disabled'];
+            return ['scanned' => false, 'rows' => [], 'reason' => 'disabled', 'gaps' => ['Content scanning is turned off in config.'],
+            ];
         }
 
         try {
@@ -245,9 +366,10 @@ class AssetLibrary
 
             $tables = $this->contentTables($settings);
             $types = array_map('strtolower', (array) ($settings['column_types'] ?? []));
-            $limit = (int) ($settings['max_rows_per_table'] ?? 2000);
+            $limit = (int) ($settings['max_rows_per_table'] ?? 50000);
 
             $rows = [];
+            $gaps = [];
 
             foreach ($tables as $table) {
                 $columns = $this->searchableColumns($table, $types);
@@ -256,7 +378,22 @@ class AssetLibrary
                     continue;
                 }
 
-                $records = DB::table($table)->limit($limit)->get($columns);
+                try {
+                    $records = DB::table($table)->limit($limit + 1)->get($columns);
+                } catch (Throwable $e) {
+                    // One unreadable table must not silently hide every
+                    // reference it held, so it is recorded as a gap.
+                    $gaps[] = 'Could not read ' . $table . ': ' . $e->getMessage();
+
+                    continue;
+                }
+
+                // Read one row past the cap to find out whether the cap was hit.
+                if ($records->count() > $limit) {
+                    $records = $records->take($limit);
+
+                    $gaps[] = $table . ' has more than ' . $limit . ' rows; references after that point were not read, so files used only there may look unused.';
+                }
 
                 foreach ($records as $record) {
                     $parts = [];
@@ -268,8 +405,13 @@ class AssetLibrary
                             continue;
                         }
 
-                        if (is_scalar($value) && $value !== '') {
-                            $parts[] = (string) $value;
+                        // A JSON column can arrive as a string or, when a cast
+                        // is in play, as an already-decoded array. Both forms
+                        // hold file names, so neither may be skipped.
+                        foreach ($this->flatten($value) as $piece) {
+                            if ($piece !== '') {
+                                $parts[] = $piece;
+                            }
                         }
                     }
 
@@ -284,10 +426,57 @@ class AssetLibrary
                 }
             }
 
-            return ['scanned' => true, 'rows' => $rows, 'reason' => null];
+            return ['scanned' => true, 'rows' => $rows, 'reason' => null, 'gaps' => $gaps];
         } catch (Throwable $e) {
-            return ['scanned' => false, 'rows' => [], 'reason' => $e->getMessage()];
+            return ['scanned' => false, 'rows' => [], 'reason' => $e->getMessage(), 'gaps' => ['The database could not be reached, so no stored content was searched.'],
+            ];
         }
+    }
+
+    /**
+     * Flatten a stored value into searchable strings.
+     *
+     * JSON columns hold file names at any depth, sometimes with escaped
+     * slashes ("images\/banner\/x.jpg") and sometimes URL-encoded. Each string
+     * leaf is emitted as-is, and a slash-escaped copy is added so the name is
+     * still found when a driver stored the payload escaped.
+     *
+     * @return array<int, string>
+     */
+    private function flatten(mixed $value): array
+    {
+        if ($value === null || is_bool($value)) {
+            return [];
+        }
+
+        if (is_scalar($value)) {
+            $text = (string) $value;
+
+            if (trim($text) === '') {
+                return [];
+            }
+
+            $pieces = [$text];
+
+            // JSON escaped forward slashes turn "images/a.jpg" into
+            // "images\/a.jpg"; the bare file name survives either way, but the
+            // unescaped form makes a path match possible too.
+            if (str_contains($text, '\\/')) {
+                $pieces[] = str_replace('\\/', '/', $text);
+            }
+
+            return $pieces;
+        }
+
+        $pieces = [];
+
+        foreach ((array) $value as $item) {
+            foreach ($this->flatten($item) as $nested) {
+                $pieces[] = $nested;
+            }
+        }
+
+        return $pieces;
     }
 
     /** @return array<int, string> */
@@ -305,9 +494,11 @@ class AssetLibrary
 
         $names = [];
 
-        foreach (Schema::getTables() as $table) {
-            $name = is_array($table) ? (string) ($table['name'] ?? '') : (string) $table;
-
+        // CurrentDatabaseTables, not Schema::getTables(): with no schema
+        // argument the MySQL grammar only excludes the system schemas, so the
+        // listing spans every database the account can see. That returned 384
+        // tables from unrelated projects on this machine instead of 41.
+        foreach (CurrentDatabaseTables::names() as $name) {
             if ($name !== '' && ! in_array(strtolower($name), $exclude, true)) {
                 $names[] = $name;
             }
@@ -317,10 +508,41 @@ class AssetLibrary
     }
 
     /**
+     * Columns to read from one table.
+     *
+     * An explicit list from config keeps the scan off the bulky text columns
+     * that cannot hold a file name (ATS keyword dumps, employer notes), and on
+     * the narrow ones that can (cv_path, photo_path, the CMS content fields).
+     *
      * @return array<int, string>
      */
     private function searchableColumns(string $table, array $types): array
     {
+        $configured = (array) config('asset-library.reference_scan.database.columns', []);
+        $columns = [];
+
+        if (array_key_exists($table, $configured)) {
+            // Configured columns are trusted but still have to exist, so a
+            // renamed column degrades to a gap rather than a silent miss.
+            foreach ((array) $configured[$table] as $name) {
+                $name = (string) $name;
+
+                if ($name !== 'id' && ! Schema::hasColumn($table, $name)) {
+                    continue;
+                }
+
+                $columns[] = $name;
+            }
+
+            if ($columns !== []) {
+                return array_values(array_unique(array_merge(['id'], $columns)));
+            }
+        }
+
+        // "id" is added unconditionally. It is not searchable text — it only labels
+        // the reference as "content: pages #14" instead of "content: pages" —
+        // and dropping it silently collapsed every row of a table onto one
+        // label, so all but the last row became invisible to the search.
         $columns = ['id'];
 
         foreach (Schema::getColumns($table) as $column) {
@@ -645,14 +867,19 @@ class AssetLibrary
                     'count' => 0,
                     'bytes' => 0,
                     'unused' => 0,
+                    'unknown' => 0,
                 ];
             }
 
             $folders[$key]['count']++;
             $folders[$key]['bytes'] += $asset['size'];
 
-            if (! $asset['referenced']) {
+            // An unknown file is not "unused" even though nothing referenced it:
+            // nothing looked everywhere.
+            if (($asset['usage_state'] ?? 'referenced') === 'unused') {
                 $folders[$key]['unused']++;
+            } elseif (($asset['usage_state'] ?? 'referenced') === 'unknown') {
+                $folders[$key]['unknown'] = ($folders[$key]['unknown'] ?? 0) + 1;
             }
         }
 
@@ -682,16 +909,23 @@ class AssetLibrary
         $byCategory = [];
         $bytes = 0;
         $unused = 0;
+        $unknown = 0;
         $unusedBytes = 0;
+        $unknownBytes = 0;
 
         foreach ($assets as $asset) {
             $category = $asset['category'];
             $byCategory[$category] = ($byCategory[$category] ?? 0) + 1;
             $bytes += $asset['size'];
 
-            if (! $asset['referenced']) {
+            if (($asset['usage_state'] ?? 'referenced') === 'unused') {
                 $unused++;
                 $unusedBytes += $asset['size'];
+            } elseif (($asset['usage_state'] ?? 'referenced') === 'unknown') {
+                // Counted separately: unknown is not a licence to delete, so it
+                // must never inflate the "you can safely remove this" total.
+                $unknown++;
+                $unknownBytes += $asset['size'];
             }
         }
 
@@ -702,7 +936,9 @@ class AssetLibrary
             'unused' => $unused,
             'unused_bytes' => $unusedBytes,
             'unused_size_label' => $this->humanBytes($unusedBytes),
-            'referenced' => count($assets) - $unused,
+            'unknown' => $unknown,
+            'unknown_size_label' => $this->humanBytes($unknownBytes),
+            'referenced' => count($assets) - $unused - $unknown,
             'categories' => $byCategory,
         ];
     }

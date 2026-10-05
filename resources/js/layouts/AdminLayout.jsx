@@ -526,6 +526,56 @@ const AdminLayout = ({ children }) => {
   }, [hasAnyPermission, hasPermission, notificationMeta.unread_count]);
 
   // RENDER HELPERS
+
+  // Collapsed-sidebar state. The flyout is positioned with `fixed` rather than
+  // `absolute` on purpose: the nav is overflow-y-auto, and CSS forces the
+  // horizontal axis to clip too, so an absolute panel would be cut off by the
+  // scroll container. Measured from the trigger instead.
+  const [flyout, setFlyout] = useState(null);
+
+  const openFlyout = useCallback((key, trigger) => {
+    if (!trigger) return;
+    const rect = trigger.getBoundingClientRect();
+
+    setFlyout({
+      key,
+      top: Math.min(Math.max(rect.top, 8), window.innerHeight - 80),
+      left: rect.right + 8,
+    });
+  }, []);
+
+  const closeFlyout = useCallback(() => setFlyout(null), []);
+
+  // Any navigation, resize or Escape closes the flyout. Leaving it open across a
+  // route change would leave a panel pointing at the previous page.
+  useEffect(() => { closeFlyout(); }, [url, isCollapsed, closeFlyout]);
+
+  useEffect(() => {
+    if (!flyout) return undefined;
+
+    const onKey = (e) => { if (e.key === 'Escape') closeFlyout(); };
+    const onResize = () => closeFlyout();
+
+    // The panel opens on hover and is deliberately not closed when the pointer
+    // leaves the trigger, because the pointer has to cross the 8px gap to reach
+    // it. A click anywhere else is the unambiguous way out.
+    const onPointerDown = (e) => {
+      if (!e.target.closest('[data-flyout-panel]') && !e.target.closest('[data-flyout-trigger]')) {
+        closeFlyout();
+      }
+    };
+
+    document.addEventListener('keydown', onKey);
+    document.addEventListener('pointerdown', onPointerDown);
+    window.addEventListener('resize', onResize);
+
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.removeEventListener('pointerdown', onPointerDown);
+      window.removeEventListener('resize', onResize);
+    };
+  }, [flyout, closeFlyout]);
+
   const renderSubMenuItem = useCallback((sub, isMobile = false) => {
     const active = sub.routeName
       ? isRouteActive(sub.routeName, sub.routeParams || {}, sub.activeAliases || [], { exact: sub.exact, excludePaths: sub.activeExclude })
@@ -540,29 +590,118 @@ const AdminLayout = ({ children }) => {
           ${active ? `${colors.active} font-medium border-l-3 ${colors.border}` : 'text-gray-600 hover:bg-gray-50'}
           ${sub.highlight ? 'bg-linear-to-r from-blue-50 to-blue-100' : ''}`}
       >
-        {sub.icon && <sub.icon className={`w-4 h-4 ${active ? colors.text : 'text-gray-400 group-hover:text-gray-600'}`} />}
+        {sub.icon && <sub.icon className={`w-4 h-4 shrink-0 ${active ? colors.text : 'text-gray-400 group-hover:text-gray-600'}`} />}
         <span className="flex-1">{sub.name}</span>
         {active && <span className={`w-1.5 h-1.5 rounded-full ${colors.bg}`} />}
       </Link>
     );
   }, [colors, isPathActive, isPathActiveWithQuery, isRouteActive]);
 
+  const renderFlyoutSubItems = useCallback((item) => (
+    <div className="w-60 rounded-xl border border-gray-200 bg-white p-1.5 shadow-xl">
+      <p className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-gray-400">
+        {item.name}
+      </p>
+      <div className="space-y-0.5">
+        {item.subItems.map((sub) => {
+          const active = sub.routeName
+            ? isRouteActive(sub.routeName, sub.routeParams || {}, sub.activeAliases || [], { exact: sub.exact, excludePaths: sub.activeExclude })
+            : (sub.matchQuery ? isPathActiveWithQuery(sub.href) : isPathActive(sub.href));
+
+          return (
+            <Link
+              key={sub.name}
+              href={sub.routeName ? route(sub.routeName, sub.routeParams || {}) : sub.href}
+              onClick={closeFlyout}
+              className={`flex items-center gap-2.5 rounded-lg px-3 py-2 text-xs transition-colors ${
+                active ? `${colors.active} font-medium` : 'text-gray-600 hover:bg-gray-100'
+              }`}
+            >
+              {sub.icon && <sub.icon className={`w-4 h-4 shrink-0 ${active ? colors.text : 'text-gray-400'}`} />}
+              <span className="flex-1 truncate">{sub.name}</span>
+            </Link>
+          );
+        })}
+      </div>
+    </div>
+  ), [colors, isPathActive, isPathActiveWithQuery, isRouteActive, closeFlyout]);
+
   const renderMenuItem = useCallback((item, isMobile = false) => {
+    // ---- COLLAPSED DESKTOP SIDEBAR ----
+    // The rail is 5rem wide, so a full item row (px-4 + icon + label) cannot
+    // fit. Each entry becomes a fixed-size square holding only its icon: the
+    // label moves to a tooltip for flat items and to a flyout for dropdowns.
+    if (isCollapsed && !isMobile) {
+      const active = item.isDropdown
+        ? isDropdownActive(item.subItems)
+        : (item.routeName
+          ? isRouteActive(item.routeName, item.routeParams || {}, item.activeAliases || [], { exact: item.exact, excludePaths: item.activeExclude })
+          : isPathActive(item.href));
+
+      const base = `group relative flex w-full h-11 items-center justify-center rounded-lg transition-colors ${
+        active ? `${colors.active} ${colors.text}` : 'text-gray-500 hover:bg-gray-100'
+      }`;
+
+      const badge = item.badgeCount > 0 && (
+        <span className={`absolute right-2 top-2 h-2 w-2 rounded-full ${colors.bg} ring-2 ring-white`} />
+      );
+
+      if (item.isDropdown) {
+        const isFlyoutOpen = flyout?.key === item.dropdownKey;
+
+        return (
+          <div key={item.name} className="relative mb-1">
+            <button
+              type="button"
+              data-flyout-trigger={item.dropdownKey}
+              aria-expanded={isFlyoutOpen}
+              aria-haspopup="true"
+              title={item.name}
+              onClick={(e) => (isFlyoutOpen ? closeFlyout() : openFlyout(item.dropdownKey, e.currentTarget))}
+              onMouseEnter={(e) => openFlyout(item.dropdownKey, e.currentTarget)}
+              className={base}
+            >
+              <item.icon className="h-5 w-5 shrink-0" />
+              {active && <span className={`absolute left-0 h-6 w-1 ${colors.bg} rounded-r-full`} />}
+              {badge}
+            </button>
+          </div>
+        );
+      }
+
+      return (
+        <Link
+          key={item.name}
+          href={item.routeName ? route(item.routeName, item.routeParams || {}) : item.href}
+          title={item.name}
+          className={`${base} mb-1`}
+        >
+          <item.icon className="h-5 w-5 shrink-0" />
+          {active && <span className={`absolute left-0 h-6 w-1 ${colors.bg} rounded-r-full`} />}
+          {badge}
+        </Link>
+      );
+    }
+
+    // ---- EXPANDED SIDEBAR AND MOBILE DRAWER ----
     if (item.isDropdown) {
       const open = openMenus[item.dropdownKey];
       const active = isDropdownActive(item.subItems);
+
       return (
         <div key={item.name} className="mb-1">
           <button
+            type="button"
+            aria-expanded={open}
             onClick={() => toggleMenu(item.dropdownKey)}
             className={`w-full flex items-center justify-between px-4 py-2.5 text-sm rounded-lg transition-all duration-200 group
               ${active ? `${colors.active} font-semibold` : 'text-gray-700 hover:bg-gray-100'}`}
           >
-            <div className="flex items-center gap-3">
-              <item.icon className={`w-5 h-5 ${active ? colors.text : 'text-gray-400'}`} />
+            <div className="flex items-center gap-3 min-w-0">
+              <item.icon className={`w-5 h-5 shrink-0 ${active ? colors.text : 'text-gray-400'}`} />
               <span className="font-medium truncate">{item.name}</span>
             </div>
-            {open ? <FiChevronDown className="w-4 h-4" /> : <FiChevronRight className="w-4 h-4" />}
+            <FiChevronDown className={`w-4 h-4 shrink-0 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
           </button>
           {open && (
             <div className="ml-8 mt-1 space-y-1 border-l-2 border-gray-200 pl-2">
@@ -585,17 +724,17 @@ const AdminLayout = ({ children }) => {
         className={`flex items-center gap-3 px-4 py-2.5 text-sm rounded-lg transition-all duration-200 mb-1 relative group
           ${active ? `${colors.active} font-semibold shadow-sm` : 'text-gray-700 hover:bg-gray-100'}`}
       >
-        <item.icon className={`w-5 h-5 ${active ? colors.text : 'text-gray-400'}`} />
+        <item.icon className={`w-5 h-5 shrink-0 ${active ? colors.text : 'text-gray-400'}`} />
         <span className="flex-1 truncate">{item.name}</span>
         {item.badgeCount > 0 && (
-          <span className="min-w-5 h-5 px-1.5 rounded-full bg-red-500 text-white text-xs font-semibold flex items-center justify-center">
+          <span className="min-w-5 h-5 px-1.5 rounded-full bg-red-500 text-white text-xs font-semibold flex items-center justify-center shrink-0">
             {item.badgeCount > 99 ? '99+' : item.badgeCount}
           </span>
         )}
         {active && <span className={`absolute left-0 w-1 h-8 ${colors.bg} rounded-r-full`} />}
       </Link>
     );
-  }, [openMenus, colors, isDropdownActive, renderSubMenuItem, isRouteActive, isPathActive]);
+  }, [isCollapsed, openMenus, colors, isDropdownActive, isRouteActive, isPathActive, renderSubMenuItem, flyout, openFlyout, closeFlyout]);
 
   // If no menu items, render children without sidebar
   if (menuItems.length === 0) {
@@ -607,18 +746,19 @@ const AdminLayout = ({ children }) => {
       {/* ========== DESKTOP SIDEBAR ========== */}
       <aside className={`fixed left-0 top-0 h-full bg-white border-r border-gray-200 flex-col shadow-xl transition-all duration-300 hidden lg:flex z-50 ${isCollapsed ? 'w-20' : 'w-64'}`}>
         {/* Logo */}
-        <div className="p-4 border-b border-gray-200">
-          <div className="flex items-center justify-between">
-            <Link href={route('home')} className="flex items-center gap-2 group">
-              <div className={`w-8 h-8 bg-linear-to-br ${colors.light} rounded-lg flex items-center justify-center shadow-md`}>
+        <div className={`border-b border-gray-200 ${isCollapsed ? 'p-3 flex justify-center' : 'p-4'}`}>
+          <div className={`flex items-center ${isCollapsed ? 'flex-col gap-2' : 'justify-between'}`}>
+            <Link href={route('home')} className={`flex items-center group ${isCollapsed ? 'justify-center' : 'gap-2'}`}>
+              <div className={`w-8 h-8 bg-linear-to-br ${colors.light} rounded-lg flex items-center justify-center shadow-md shrink-0`}>
                 <FiUser className="w-5 h-5 text-white" />
               </div>
               {!isCollapsed && <span className="text-xl font-bold bg-linear-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">Staff Panel</span>}
             </Link>
             <button
               onClick={() => setIsCollapsed(!isCollapsed)}
-              className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors"
+              aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
               title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+              className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors"
             >
               <FiChevronRight className={`w-4 h-4 text-gray-500 transition-transform duration-300 ${isCollapsed ? '' : 'rotate-180'}`} />
             </button>
@@ -632,7 +772,10 @@ const AdminLayout = ({ children }) => {
               {primaryRole === 'admin' ? 'Administration' : 'Staff Portal'}
             </p>
           )}
-          <div className="space-y-1">{menuItems.map(item => renderMenuItem(item))}</div>
+          {/* Centre the squares in the 5rem rail so the icons sit on one axis. */}
+          <div className={`space-y-1 ${isCollapsed ? 'flex flex-col items-center' : ''}`}>
+            {menuItems.map(item => renderMenuItem(item))}
+          </div>
           {isCollapsed && userRoles.length > 0 && (
             <div className="mt-4 flex justify-center">
               <div className="relative group">
@@ -693,6 +836,25 @@ const AdminLayout = ({ children }) => {
           )}
         </div>
       </aside>
+
+      {/* ========== COLLAPSED-SIDEBAR FLYOUT ========== */}
+      {/* Rendered outside the aside: the nav clips its overflow, and this panel
+          has to escape it to sit beside the rail. */}
+      {isCollapsed && flyout && (() => {
+        const item = menuItems.find((i) => i.dropdownKey === flyout.key);
+
+        return item?.isDropdown ? (
+          <div
+            role="menu"
+            data-flyout-panel="true"
+            style={{ top: flyout.top, left: flyout.left }}
+            className="fixed z-[60] animate-flyout-in"
+            onMouseLeave={closeFlyout}
+          >
+            {renderFlyoutSubItems(item)}
+          </div>
+        ) : null;
+      })()}
 
       {/* ========== MOBILE BOTTOM DOCKER ========== */}
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg lg:hidden z-50">

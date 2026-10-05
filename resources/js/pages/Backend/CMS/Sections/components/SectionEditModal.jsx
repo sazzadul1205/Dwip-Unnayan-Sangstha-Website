@@ -1,7 +1,7 @@
 // resources/js/pages/Backend/CMS/Sections/components/SectionEditModal.jsx
 
 import { router } from '@inertiajs/react';
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   FaTimes,
   FaSave,
@@ -24,6 +24,7 @@ import axios from 'axios';
 import { showToast, showWarningToast } from '../utils/toastHelper';
 import { getComponentLabel, getDataTableLabel } from '../utils/sectionHelpers';
 import { DEFAULT_CONFIG, SECTION_CONFIGS } from '../utils/SectionConfigData';
+import { isUnconfigured, withPrefilledDefaults } from '../utils/proMode';
 import RenderDataTab from './modals/RenderDataTab';
 
 // Helper: Check if section has data
@@ -133,13 +134,20 @@ const SectionEditModal = ({
   // Populate form when section changes
   useEffect(() => {
     if (section) {
+      // Pre-fill declared defaults, but only while the section is still
+      // unconfigured. Once real content exists, defaults would quietly rewrite
+      // settings the admin deliberately left blank.
+      const isFresh = isUnconfigured(section);
+
       setFormData({
         section_key: section.section_key || '',
         component: section.component || '',
         data_table: section.data_table || '',
         data_key: section.data_key || '',
         is_enabled: section.is_enabled ?? true,
-        custom_props: section.custom_props || {},
+        custom_props: isFresh
+          ? withPrefilledDefaults(section.component, section.custom_props)
+          : (section.custom_props || {}),
       });
       setSectionData(null);
       setPendingUploads([]);
@@ -159,6 +167,27 @@ const SectionEditModal = ({
       hasReclaimedRef.current = false;
     }
   }, [isOpen]);
+
+  /**
+   * Config fields the admin has actually changed.
+   *
+   * Only non-default, non-empty values are sent, so a save writes what was
+   * touched rather than a full snapshot of the form. Computed before the early
+   * return below because a hook cannot sit after one.
+   */
+  const touchedCustomProps = useMemo(() => {
+    const defaults = withPrefilledDefaults(section?.component, null);
+
+    return Object.entries(formData.custom_props || {}).reduce((acc, [key, value]) => {
+      const isDefault = defaults[key] === value;
+
+      if (!isDefault && value !== '' && value !== null && value !== undefined) {
+        acc[key] = value;
+      }
+
+      return acc;
+    }, {});
+  }, [formData.custom_props, section?.component]);
 
   // Early return if modal is closed or no section
   if (!isOpen || !section) return null;
@@ -223,7 +252,9 @@ const SectionEditModal = ({
       data_table: formData.data_table,
       data_key: formData.data_key,
       is_enabled: formData.is_enabled,
-      custom_props: formData.custom_props || {},
+      // Merged with whatever was already stored, so a change to section_key or
+      // is_enabled alone can never drop the layout props.
+      custom_props: { ...(section?.custom_props || {}), ...touchedCustomProps },
     };
 
     // Merge section data changes
@@ -682,6 +713,18 @@ const SectionEditModal = ({
     </div>
   );
 
+  /**
+   * Render the Section Data editor.
+   */
+  const renderDataTab = () => (
+    <RenderDataTab
+      section={section}
+      hasData={hasData}
+      onDataChange={setSectionData}
+      onUploadsChange={setPendingUploads}
+    />
+  );
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn"
@@ -695,12 +738,11 @@ const SectionEditModal = ({
       aria-labelledby="modal-title"
     >
       <div
-        className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto animate-slideUp"
-        style={{ animationDuration: '250ms' }}
+        className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col min-h-0 animate-slideUp"
         onMouseDown={(e) => e.stopPropagation()}
       >
         {/* Header - Premium Design */}
-        <div className="sticky top-0 z-10 flex items-center justify-between p-6 bg-linear-to-r from-white to-blue-50/50 border-b border-gray-200 rounded-t-2xl">
+        <div className="flex items-center justify-between p-5 bg-linear-to-r from-white to-blue-50/50 border-b border-gray-200 rounded-t-2xl">
           <div className="flex items-center gap-4">
             <div className="p-3 bg-linear-to-br from-blue-500 to-indigo-600 rounded-2xl shadow-lg shadow-blue-200">
               <FaEdit className="text-white text-xl" />
@@ -735,7 +777,7 @@ const SectionEditModal = ({
           </button>
         </div>
 
-        {/* Tabs - Enhanced */}
+        {/* Tabs */}
         <div className="border-b border-gray-200 bg-gray-50/50 px-4 pt-2">
           <div className="flex gap-1">
             <button
@@ -776,26 +818,18 @@ const SectionEditModal = ({
         </div>
 
         {/* Body */}
-        <form onSubmit={handleSubmit} className="p-6">
-          <div className="min-h-100 relative">
-            {/* Basic Data Tab */}
+        <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
+          <div className="flex-1 overflow-y-auto px-6 pt-6">
             <div className={activeTab === 'basic' ? 'block animate-fadeIn' : 'hidden'}>
               {renderBasicTab()}
             </div>
-
-            {/* Section Data Tab */}
             <div className={activeTab === 'data' ? 'block animate-fadeIn' : 'hidden'}>
-              <RenderDataTab
-                section={section}
-                hasData={hasData}
-                onDataChange={setSectionData}
-                onUploadsChange={setPendingUploads}
-              />
+              {renderDataTab()}
             </div>
           </div>
 
           {/* Actions - Enhanced */}
-          <div className="flex items-center justify-end gap-3 pt-5 mt-6 border-t-2 border-gray-100">
+          <div className="flex items-center justify-end gap-3 px-6 py-4 border-t-2 border-gray-100 shrink-0">
             <button
               type="button"
               onClick={handleClose}

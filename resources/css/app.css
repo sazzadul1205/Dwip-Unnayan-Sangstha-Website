@@ -51,6 +51,32 @@
 @custom-variant h-mid (@media (max-height: 780px));
 @custom-variant h-short (@media (max-height: 660px));
 
+/*
+    Sidebar flyout for the collapsed admin rail. Revealed on hover, so it fades
+    and slides in from the rail edge rather than popping into existence, which
+    would make it hard to tell which icon opened it.
+*/
+@keyframes flyout-in {
+    from {
+        opacity: 0;
+        transform: translateX(-6px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@utility animate-flyout-in {
+    animation: flyout-in 150ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .animate-flyout-in {
+        animation: none;
+    }
+}
+
 @layer base {
     html {
         scroll-behavior: smooth;

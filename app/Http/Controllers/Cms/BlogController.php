@@ -50,6 +50,43 @@ class BlogController extends Controller
   }
 
   /**
+   * Show the create blog form.
+   */
+  public function create(): Response|RedirectResponse
+  {
+    $user = $this->getAuthUser();
+
+    if (!$user->hasPermission('blogs.create')) {
+      return redirect()->route('unauthorized.access')
+        ->with('error', 'You do not have permission to create blogs.');
+    }
+
+    return Inertia::render('Backend/CMS/Blogs/Create');
+  }
+
+  /**
+   * Show the edit blog form.
+   */
+  public function edit(int $id): Response|RedirectResponse
+  {
+    $user = $this->getAuthUser();
+
+    if (!$user->hasPermission('blogs.update')) {
+      return redirect()->route('unauthorized.access')
+        ->with('error', 'You do not have permission to update blogs.');
+    }
+
+    try {
+      $item = Blog::withTrashed()->findOrFail($id);
+      return Inertia::render('Backend/CMS/Blogs/Edit', ['item' => $item]);
+    } catch (\Exception $e) {
+      Log::error('Failed to fetch blog for editing: ' . $e->getMessage(), ['blog_id' => $id]);
+      return redirect()->route('backend.cms.blogs.index')
+        ->with('error', 'Blog not found.');
+    }
+  }
+
+  /**
    * Store a new blog – with rate limiting.
    */
   public function store(Request $request): RedirectResponse
@@ -113,16 +150,18 @@ class BlogController extends Controller
 
       session()->forget('_old_input');
 
-      return redirect()->back()->with('success', '✅ Blog created successfully!');
+      return redirect()->route('backend.cms.blogs.index')->with('success', '✅ Blog created successfully!');
     } catch (ValidationException $e) {
-      return back()->withErrors($e->errors())->withInput();
+      return redirect()->route('backend.cms.blogs.create')
+        ->withErrors($e->errors())
+        ->withInput();
     } catch (\Exception $e) {
       Log::error('Blog creation failed: ' . $e->getMessage(), [
         'trace' => $e->getTraceAsString(),
         'input' => $request->except(['image', 'full_content']),
       ]);
 
-      return back()
+      return redirect()->route('backend.cms.blogs.create')
         ->withErrors(['error' => 'Failed to create blog: ' . $e->getMessage()])
         ->withInput();
     }
@@ -210,9 +249,11 @@ class BlogController extends Controller
 
       session()->forget('_old_input');
 
-      return redirect()->back()->with('success', '✅ Blog updated successfully!');
+      return redirect()->route('backend.cms.blogs.index')->with('success', '✅ Blog updated successfully!');
     } catch (ValidationException $e) {
-      return back()->withErrors($e->errors())->withInput();
+      return redirect()->route('backend.cms.blogs.edit', ['id' => $id])
+        ->withErrors($e->errors())
+        ->withInput();
     } catch (\Exception $e) {
       Log::error('Blog update failed: ' . $e->getMessage(), [
         'trace' => $e->getTraceAsString(),
@@ -220,7 +261,7 @@ class BlogController extends Controller
         'input' => $request->except(['image', 'full_content']),
       ]);
 
-      return back()
+      return redirect()->route('backend.cms.blogs.edit', ['id' => $id])
         ->withErrors(['error' => 'Failed to update blog: ' . $e->getMessage()])
         ->withInput();
     }

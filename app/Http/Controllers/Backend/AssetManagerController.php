@@ -40,12 +40,40 @@ class AssetManagerController extends Controller
         // A delete busts the cache; so does an explicit refresh from the UI.
         $scan = $this->library->scan($request->boolean('refresh'));
 
+        // Filtering, sorting and paging happen over the cached scan rather than
+        // re-reading the filesystem per page. The scan is the expensive part;
+        // slicing an array of a few hundred rows is not, so a cached scan makes
+        // every page after the first effectively free.
+        $filters = $request->validate([
+            'folder' => ['nullable', 'string', 'max:255'],
+            'category' => ['nullable', 'string', 'max:50'],
+            'search' => ['nullable', 'string', 'max:120'],
+            'usage' => ['nullable', 'in:all,unused,referenced,unknown'],
+            'sort' => ['nullable', 'in:newest,oldest,name,size,size_desc'],
+            'page' => ['nullable', 'integer', 'min:1'],
+            // Only the type is enforced; the value is clamped in AssetLibrary::paginate().
+            // A bookmarked URL with a silly per_page should still render the
+            // page rather than bounce to a validation error.
+            'per_page' => ['nullable', 'integer'],
+        ]);
+
+        // An absent folder means "everything". Without this, a bare URL would filter
+        // to the scan root and silently hide every nested folder.
+        $filters['folder'] = $filters['folder'] ?? 'all';
+
+        $page = $this->library->paginate($scan, $filters);
+
         return Inertia::render('Backend/Assets/Index', [
-            'assets' => $scan['assets'],
+            // Only the current page is sent; the totals drive the pager.
+            'assets' => $page['data'],
             'folders' => $scan['folders'],
             'summary' => $scan['summary'],
+            'filters' => $page['filters'],
+            'pagination' => $page['pagination'],
             'truncated' => $scan['truncated'],
             'contentScanned' => $scan['content_scanned'],
+            'contentReliable' => $scan['content_reliable'] ?? false,
+            'scanGaps' => $scan['scan_gaps'] ?? [],
             'can' => [
                 'delete' => $this->can('assets.delete'),
             ],
@@ -107,6 +135,7 @@ class AssetManagerController extends Controller
         $skipped = [];
         $failed = [];
         $protected = [];
+        $unknown = [];
 
         foreach ($validated['assets'] as $id) {
             $resolved = $this->library->resolve((string) $id);
@@ -122,6 +151,24 @@ class AssetManagerController extends Controller
             }
 
             $isReferenced = (bool) ($byId[$id]['referenced'] ?? false);
+
+            // Deletion is the one irreversible thing on this screen, so each
+            // state is handled separately rather than folded into a boolean:
+            //
+            //   referenced — found in use; refuse unless forced
+            //   unknown    — the scan could not search everywhere (no database,
+            //                a table that failed, a row cap hit), so nothing
+            //                can be said about this file. Refuse even with
+            //                force: the operator cannot know what they are
+            //                deleting, and this is exactly the state where a
+            //                live image gets destroyed by accident.
+            //   unused     — searched everywhere, found nowhere; safe
+            $state = (string) ($byId[$id]['usage_state'] ?? 'unknown');
+
+            if ($state === 'unknown') {
+                $unknown[] = $id;
+                continue;
+            }
 
             if ($isReferenced && ! $force) {
                 $skipped[] = $id;
@@ -148,6 +195,9 @@ class AssetManagerController extends Controller
         if ($protected !== []) {
             $parts[] = count($protected) . ' protected file' . (count($protected) === 1 ? '' : 's') . ' skipped';
         }
+        if ($unknown !== []) {
+            $parts[] = count($unknown) . ' could not be checked for use — the reference scan was incomplete, so they were left alone';
+        }
         if ($failed !== []) {
             $parts[] = count($failed) . ' could not be removed';
         }
@@ -157,7 +207,7 @@ class AssetManagerController extends Controller
             : ucfirst(implode('. ', $parts)) . '.';
 
         return back()->with(
-            $failed === [] && $skipped === [] && $protected === [] ? 'success' : 'error',
+            $failed === [] && $skipped === [] && $protected === [] && $unknown === [] ? 'success' : 'error',
             $message
         );
     }

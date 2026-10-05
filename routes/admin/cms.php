@@ -51,6 +51,8 @@ Route::prefix('cms')->name('cms.')->group(function () {
   // Blogs Management
   Route::prefix('blogs')->name('blogs.')->group(function () {
     Route::get('/', [CmsBlogController::class, 'index'])->name('index');
+    Route::get('/create', [CmsBlogController::class, 'create'])->name('create');
+    Route::get('/edit/{id}', [CmsBlogController::class, 'edit'])->name('edit');
     Route::post('/store', [CmsBlogController::class, 'store'])->name('store');
     Route::put('/update/{id}', [CmsBlogController::class, 'update'])->name('update');
     Route::post('/toggle-status/{id}', [CmsBlogController::class, 'toggleStatus'])->name('toggle-status');
@@ -63,6 +65,8 @@ Route::prefix('cms')->name('cms.')->group(function () {
   // Programs Management
   Route::prefix('programs')->name('programs.')->group(function () {
     Route::get('/', [CmsProgramController::class, 'index'])->name('index');
+    Route::get('/create', [CmsProgramController::class, 'create'])->name('create');
+    Route::get('/edit/{id}', [CmsProgramController::class, 'edit'])->name('edit');
     Route::post('/store', [CmsProgramController::class, 'store'])->name('store');
     Route::put('/update/{id}', [CmsProgramController::class, 'update'])->name('update');
     Route::post('/toggle-status/{id}', [CmsProgramController::class, 'toggleStatus'])->name('toggle-status');
@@ -76,6 +80,8 @@ Route::prefix('cms')->name('cms.')->group(function () {
   // About Content Management
   Route::prefix('about')->name('about.')->group(function () {
     Route::get('/', [CmsAboutContentController::class, 'index'])->name('index');
+    Route::get('/create', [CmsAboutContentController::class, 'create'])->name('create');
+    Route::get('/edit/{id}', [CmsAboutContentController::class, 'edit'])->name('edit');
     Route::post('/store', [CmsAboutContentController::class, 'store'])->name('store');
     Route::put('/update/{id}', [CmsAboutContentController::class, 'update'])->name('update');
     Route::post('/toggle-status/{id}', [CmsAboutContentController::class, 'toggleStatus'])->name('toggle-status');
@@ -89,6 +95,8 @@ Route::prefix('cms')->name('cms.')->group(function () {
   // Publications Management
   Route::prefix('publications')->name('publications.')->group(function () {
     Route::get('/', [CmsPublicationController::class, 'index'])->name('index');
+    Route::get('/create', [CmsPublicationController::class, 'create'])->name('create');
+    Route::get('/edit/{id}', [CmsPublicationController::class, 'edit'])->name('edit');
     Route::post('/store', [CmsPublicationController::class, 'store'])->name('store');
     Route::put('/update/{id}', [CmsPublicationController::class, 'update'])->name('update');
     Route::post('/toggle-status/{id}', [CmsPublicationController::class, 'toggleStatus'])->name('toggle-status');

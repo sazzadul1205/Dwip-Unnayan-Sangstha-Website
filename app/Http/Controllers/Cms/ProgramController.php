@@ -26,219 +26,260 @@ class ProgramController extends Controller
      */
     protected int $maxImageSize = 5 * 1024 * 1024;
 
-    /**
-     * Display programs – with caching for admin list.
-     */
-    public function index(): Response|RedirectResponse
-    {
-        $user = $this->getAuthUser();
+  /**
+   * Display programs – with caching for admin list.
+   */
+  public function index(): Response|RedirectResponse
+  {
+    $user = $this->getAuthUser();
 
-        if (!$user->hasPermission('programs.view')) {
-            return redirect()->route('unauthorized.access')
-                ->with('error', 'You do not have permission to view programs.');
-        }
-
-        try {
-            $items = Program::withTrashed()->orderBy('display_order')->get();
-            return Inertia::render('Backend/CMS/Programs/Index', ['items' => $items]);
-        } catch (\Exception $e) {
-            Log::error('Failed to fetch programs: ' . $e->getMessage());
-            return Inertia::render('Backend/CMS/Programs/Index', [
-                'items' => [],
-                'flash' => ['error' => 'Failed to load programs. Please try again.'],
-            ]);
-        }
+    if (!$user->hasPermission('programs.view')) {
+      return redirect()->route('unauthorized.access')
+        ->with('error', 'You do not have permission to view programs.');
     }
 
-    /**
-     * Store a new program – with rate limiting.
-     */
-    public function store(Request $request): RedirectResponse
-    {
-        $user = $this->getAuthUser();
+    try {
+      $items = Program::withTrashed()->orderBy('display_order')->get();
+      return Inertia::render('Backend/CMS/Programs/Index', ['items' => $items]);
+    } catch (\Exception $e) {
+      Log::error('Failed to fetch programs: ' . $e->getMessage());
+      return Inertia::render('Backend/CMS/Programs/Index', [
+        'items' => [],
+        'flash' => ['error' => 'Failed to load programs. Please try again.'],
+      ]);
+    }
+  }
 
-        if (!$user->hasPermission('programs.create')) {
-            return redirect()->back()->with('error', 'You do not have permission to create programs.');
-        }
+  /**
+   * Show the create program form.
+   */
+  public function create(): Response|RedirectResponse
+  {
+    $user = $this->getAuthUser();
 
-        $this->checkRateLimit('program_create', $user->id);
-
-        try {
-            $validated = $request->validate([
-                'title' => 'required|string|max:255',
-                'slug' => 'nullable|string|unique:programs,slug',
-                'breadcrumb' => 'nullable|string|max:255',
-                'full_content_html' => 'nullable|string',
-                'image' => 'nullable|string',
-                'bg_color' => 'nullable|string|max:255',
-                'link' => 'nullable|string|max:255',
-                'display_order' => 'nullable|integer|min:0',
-                'is_featured' => 'nullable|boolean',
-                'is_active' => 'nullable|boolean',
-            ]);
-
-            $data = $this->prepareData($validated);
-
-            // Process image if it's a base64 string
-            if (!empty($data['image']) && $this->isBase64Image($data['image'])) {
-                $uploadedPath = $this->uploadImage($data['image']);
-                $data['image'] = $uploadedPath ?? null;
-            }
-
-            // Generate slug if not provided
-            if (empty($data['slug'])) {
-                $data['slug'] = $this->generateUniqueSlug($data['title']);
-            }
-
-            // Set default display order if not provided
-            if (!isset($data['display_order']) || $data['display_order'] === '') {
-                $data['display_order'] = Program::withTrashed()->max('display_order') + 1;
-            }
-
-            // Set default breadcrumb if not provided
-            if (empty($data['breadcrumb'])) {
-                $data['breadcrumb'] = $data['title'];
-            }
-
-            // Cast booleans
-            $data['is_featured'] = filter_var($data['is_featured'] ?? false, FILTER_VALIDATE_BOOLEAN);
-            $data['is_active'] = filter_var($data['is_active'] ?? true, FILTER_VALIDATE_BOOLEAN);
-
-            $program = Program::create($data);
-
-            $this->clearCache();
-            RateLimiter::clear($this->getThrottleKey('program_create', $user->id));
-
-            SimpleLogger::cms(
-                "Program created: {$program->title}",
-                [
-                    'program_id' => $program->id,
-                    'title' => $program->title,
-                    'slug' => $program->slug,
-                    'is_active' => $program->is_active,
-                    'is_featured' => $program->is_featured,
-                    'created_by' => $user->email,
-                    'ip' => $request->ip(),
-                ]
-            );
-
-            session()->forget('_old_input');
-
-            return redirect()->back()->with('success', '✅ Program created successfully.');
-        } catch (ValidationException $e) {
-            return back()->withErrors($e->errors())->withInput();
-        } catch (\Exception $e) {
-            Log::error('Program creation failed: ' . $e->getMessage(), [
-                'trace' => $e->getTraceAsString(),
-                'input' => $request->except(['image', 'full_content_html']),
-            ]);
-
-            return back()
-                ->withErrors(['error' => 'Failed to create program: ' . $e->getMessage()])
-                ->withInput();
-        }
+    if (!$user->hasPermission('programs.create')) {
+      return redirect()->route('unauthorized.access')
+        ->with('error', 'You do not have permission to create programs.');
     }
 
-    /**
-     * Update a program – with rate limiting.
-     */
-    public function update(Request $request, int $id): RedirectResponse
-    {
-        $user = $this->getAuthUser();
+    return Inertia::render('Backend/CMS/Programs/Create');
+  }
 
-        if (!$user->hasPermission('programs.update')) {
-            return redirect()->back()->with('error', 'You do not have permission to update programs.');
-        }
+  /**
+   * Show the edit program form.
+   */
+  public function edit(int $id): Response|RedirectResponse
+  {
+    $user = $this->getAuthUser();
 
-        $this->checkRateLimit('program_update', $user->id);
-
-        try {
-            $program = Program::withTrashed()->findOrFail($id);
-
-            $validated = $request->validate([
-                'title' => 'required|string|max:255',
-                'slug' => 'nullable|string|unique:programs,slug,' . $id,
-                'breadcrumb' => 'nullable|string|max:255',
-                'full_content_html' => 'nullable|string',
-                'image' => 'nullable|string',
-                'bg_color' => 'nullable|string|max:255',
-                'link' => 'nullable|string|max:255',
-                'display_order' => 'nullable|integer|min:0',
-                'is_featured' => 'nullable|boolean',
-                'is_active' => 'nullable|boolean',
-            ]);
-
-            $data = $this->prepareData($validated);
-
-            $oldTitle = $program->title;
-            $oldStatus = $program->is_active;
-            $oldFeatured = $program->is_featured;
-
-            // Process image if it's a base64 string
-            if (!empty($data['image']) && $this->isBase64Image($data['image'])) {
-                if ($program->image && !filter_var($program->image, FILTER_VALIDATE_URL)) {
-                    $this->deleteImageFile($program->image);
-                }
-
-                $uploadedPath = $this->uploadImage($data['image']);
-                $data['image'] = $uploadedPath ?? null;
-            }
-
-            // Regenerate slug if title changed and slug not manually set
-            if (empty($data['slug']) || ($data['title'] !== $program->title && $data['slug'] === $program->slug)) {
-                $data['slug'] = $this->generateUniqueSlug($data['title'], $id);
-            }
-
-            // Cast booleans
-            $data['is_featured'] = filter_var($data['is_featured'] ?? false, FILTER_VALIDATE_BOOLEAN);
-            $data['is_active'] = filter_var($data['is_active'] ?? true, FILTER_VALIDATE_BOOLEAN);
-
-            $program->update($data);
-
-            $this->clearCache();
-            RateLimiter::clear($this->getThrottleKey('program_update', $user->id));
-
-            // Log changes
-            $changes = [];
-            if ($oldTitle !== $program->title) {
-                $changes['title'] = ['old' => $oldTitle, 'new' => $program->title];
-            }
-            if ($oldStatus !== $program->is_active) {
-                $changes['status'] = ['old' => $oldStatus ? 'active' : 'inactive', 'new' => $program->is_active ? 'active' : 'inactive'];
-            }
-            if ($oldFeatured !== $program->is_featured) {
-                $changes['featured'] = ['old' => $oldFeatured ? 'yes' : 'no', 'new' => $program->is_featured ? 'yes' : 'no'];
-            }
-
-            if (!empty($changes)) {
-                SimpleLogger::cms(
-                    "Program updated: {$program->title}",
-                    [
-                        'program_id' => $program->id,
-                        'changes' => $changes,
-                        'updated_by' => $user->email,
-                        'ip' => $request->ip(),
-                    ]
-                );
-            }
-
-            session()->forget('_old_input');
-
-            return redirect()->back()->with('success', '✅ Program updated successfully.');
-        } catch (ValidationException $e) {
-            return back()->withErrors($e->errors())->withInput();
-        } catch (\Exception $e) {
-            Log::error('Program update failed: ' . $e->getMessage(), [
-                'trace' => $e->getTraceAsString(),
-                'program_id' => $id,
-                'input' => $request->except(['image', 'full_content_html']),
-            ]);
-
-            return back()
-                ->withErrors(['error' => 'Failed to update program: ' . $e->getMessage()])
-                ->withInput();
-        }
+    if (!$user->hasPermission('programs.update')) {
+      return redirect()->route('unauthorized.access')
+        ->with('error', 'You do not have permission to update programs.');
     }
+
+    try {
+      $item = Program::withTrashed()->findOrFail($id);
+      return Inertia::render('Backend/CMS/Programs/Edit', ['item' => $item]);
+    } catch (\Exception $e) {
+      Log::error('Failed to fetch program for editing: ' . $e->getMessage(), ['program_id' => $id]);
+      return redirect()->route('backend.cms.programs.index')
+        ->with('error', 'Program not found.');
+    }
+  }
+
+  /**
+   * Store a new program – with rate limiting.
+   */
+  public function store(Request $request): RedirectResponse
+  {
+    $user = $this->getAuthUser();
+
+    if (!$user->hasPermission('programs.create')) {
+      return redirect()->back()->with('error', 'You do not have permission to create programs.');
+    }
+
+    $this->checkRateLimit('program_create', $user->id);
+
+    try {
+      $validated = $request->validate([
+        'title' => 'required|string|max:255',
+        'slug' => 'nullable|string|unique:programs,slug',
+        'breadcrumb' => 'nullable|string|max:255',
+        'full_content_html' => 'nullable|string',
+        'image' => 'nullable|string',
+        'bg_color' => 'nullable|string|max:255',
+        'link' => 'nullable|string|max:255',
+        'display_order' => 'nullable|integer|min:0',
+        'is_featured' => 'nullable|boolean',
+        'is_active' => 'nullable|boolean',
+      ]);
+
+      $data = $this->prepareData($validated);
+
+      // Process image if it's a base64 string
+      if (!empty($data['image']) && $this->isBase64Image($data['image'])) {
+        $uploadedPath = $this->uploadImage($data['image']);
+        $data['image'] = $uploadedPath ?? null;
+      }
+
+      // Generate slug if not provided
+      if (empty($data['slug'])) {
+        $data['slug'] = $this->generateUniqueSlug($data['title']);
+      }
+
+      // Set default display order if not provided
+      if (!isset($data['display_order']) || $data['display_order'] === '') {
+        $data['display_order'] = Program::withTrashed()->max('display_order') + 1;
+      }
+
+      // Set default breadcrumb if not provided
+      if (empty($data['breadcrumb'])) {
+        $data['breadcrumb'] = $data['title'];
+      }
+
+      // Cast booleans
+      $data['is_featured'] = filter_var($data['is_featured'] ?? false, FILTER_VALIDATE_BOOLEAN);
+      $data['is_active'] = filter_var($data['is_active'] ?? true, FILTER_VALIDATE_BOOLEAN);
+
+      $program = Program::create($data);
+
+      $this->clearCache();
+      RateLimiter::clear($this->getThrottleKey('program_create', $user->id));
+
+      SimpleLogger::cms(
+        "Program created: {$program->title}",
+        [
+          'program_id' => $program->id,
+          'title' => $program->title,
+          'slug' => $program->slug,
+          'is_active' => $program->is_active,
+          'is_featured' => $program->is_featured,
+          'created_by' => $user->email,
+          'ip' => $request->ip(),
+        ]
+      );
+
+      session()->forget('_old_input');
+
+      return redirect()->route('backend.cms.programs.index')->with('success', '✅ Program created successfully.');
+    } catch (ValidationException $e) {
+      return redirect()->route('backend.cms.programs.create')
+        ->withErrors($e->errors())
+        ->withInput();
+    } catch (\Exception $e) {
+      Log::error('Program creation failed: ' . $e->getMessage(), [
+        'trace' => $e->getTraceAsString(),
+        'input' => $request->except(['image', 'full_content_html']),
+      ]);
+
+      return redirect()->route('backend.cms.programs.create')
+        ->withErrors(['error' => 'Failed to create program: ' . $e->getMessage()])
+        ->withInput();
+    }
+  }
+
+  /**
+   * Update a program – with rate limiting.
+   */
+  public function update(Request $request, int $id): RedirectResponse
+  {
+    $user = $this->getAuthUser();
+
+    if (!$user->hasPermission('programs.update')) {
+      return redirect()->back()->with('error', 'You do not have permission to update programs.');
+    }
+
+    $this->checkRateLimit('program_update', $user->id);
+
+    try {
+      $program = Program::withTrashed()->findOrFail($id);
+
+      $validated = $request->validate([
+        'title' => 'required|string|max:255',
+        'slug' => 'nullable|string|unique:programs,slug,' . $id,
+        'breadcrumb' => 'nullable|string|max:255',
+        'full_content_html' => 'nullable|string',
+        'image' => 'nullable|string',
+        'bg_color' => 'nullable|string|max:255',
+        'link' => 'nullable|string|max:255',
+        'display_order' => 'nullable|integer|min:0',
+        'is_featured' => 'nullable|boolean',
+        'is_active' => 'nullable|boolean',
+      ]);
+
+      $data = $this->prepareData($validated);
+
+      $oldTitle = $program->title;
+      $oldStatus = $program->is_active;
+      $oldFeatured = $program->is_featured;
+
+      // Process image if it's a base64 string
+      if (!empty($data['image']) && $this->isBase64Image($data['image'])) {
+        if ($program->image && !filter_var($program->image, FILTER_VALIDATE_URL)) {
+          $this->deleteImageFile($program->image);
+        }
+
+        $uploadedPath = $this->uploadImage($data['image']);
+        $data['image'] = $uploadedPath ?? null;
+      }
+
+      // Regenerate slug if title changed and slug not manually set
+      if (empty($data['slug']) || ($data['title'] !== $program->title && $data['slug'] === $program->slug)) {
+        $data['slug'] = $this->generateUniqueSlug($data['title'], $id);
+      }
+
+      // Cast booleans
+      $data['is_featured'] = filter_var($data['is_featured'] ?? false, FILTER_VALIDATE_BOOLEAN);
+      $data['is_active'] = filter_var($data['is_active'] ?? true, FILTER_VALIDATE_BOOLEAN);
+
+      $program->update($data);
+
+      $this->clearCache();
+      RateLimiter::clear($this->getThrottleKey('program_update', $user->id));
+
+      // Log changes
+      $changes = [];
+      if ($oldTitle !== $program->title) {
+        $changes['title'] = ['old' => $oldTitle, 'new' => $program->title];
+      }
+      if ($oldStatus !== $program->is_active) {
+        $changes['status'] = ['old' => $oldStatus ? 'active' : 'inactive', 'new' => $program->is_active ? 'active' : 'inactive'];
+      }
+      if ($oldFeatured !== $program->is_featured) {
+        $changes['featured'] = ['old' => $oldFeatured ? 'yes' : 'no', 'new' => $program->is_featured ? 'yes' : 'no'];
+      }
+
+      if (!empty($changes)) {
+        SimpleLogger::cms(
+          "Program updated: {$program->title}",
+          [
+            'program_id' => $program->id,
+            'changes' => $changes,
+            'updated_by' => $user->email,
+            'ip' => $request->ip(),
+          ]
+        );
+      }
+
+      session()->forget('_old_input');
+
+      return redirect()->route('backend.cms.programs.index')->with('success', '✅ Program updated successfully.');
+    } catch (ValidationException $e) {
+      return redirect()->route('backend.cms.programs.edit', ['id' => $id])
+        ->withErrors($e->errors())
+        ->withInput();
+    } catch (\Exception $e) {
+      Log::error('Program update failed: ' . $e->getMessage(), [
+        'trace' => $e->getTraceAsString(),
+        'program_id' => $id,
+        'input' => $request->except(['image', 'full_content_html']),
+      ]);
+
+      return redirect()->route('backend.cms.programs.edit', ['id' => $id])
+        ->withErrors(['error' => 'Failed to update program: ' . $e->getMessage()])
+        ->withInput();
+    }
+  }
 
     /**
      * Toggle program status – with rate limiting.

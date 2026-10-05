@@ -26,246 +26,287 @@ class PublicationController extends Controller
   protected int $maxImageSize = 5 * 1024 * 1024;  // 5MB
   protected int $maxPdfSize = 20 * 1024 * 1024;   // 20MB
 
-  /**
-   * Display publications – with caching.
-   */
-  public function index(): Response|RedirectResponse
-  {
-    $user = $this->getAuthUser();
+    /**
+     * Display publications – with caching.
+     */
+    public function index(): Response|RedirectResponse
+    {
+        $user = $this->getAuthUser();
 
-    if (!$user->hasPermission('publications.view')) {
-      return redirect()->route('unauthorized.access')
-        ->with('error', 'You do not have permission to view publications.');
-    }
-
-    try {
-      $items = Publication::withTrashed()->orderBy('created_at', 'desc')->get();
-      return Inertia::render('Backend/CMS/Publications/Index', ['items' => $items]);
-    } catch (\Exception $e) {
-      Log::error('Failed to fetch publications: ' . $e->getMessage());
-      return Inertia::render('Backend/CMS/Publications/Index', [
-        'items' => [],
-        'flash' => ['error' => 'Failed to load publications. Please try again.'],
-      ]);
-    }
-  }
-
-  /**
-   * Store a new publication – with rate limiting.
-   */
-  public function store(Request $request): RedirectResponse
-  {
-    $user = $this->getAuthUser();
-
-    if (!$user->hasPermission('publications.create')) {
-      return redirect()->back()->with('error', 'You do not have permission to create publications.');
-    }
-
-    $this->checkRateLimit('publication_create', $user->id);
-
-    try {
-      $validated = $request->validate([
-        'title' => 'required|string|max:255',
-        'slug' => 'nullable|string|unique:publications,slug',
-        'excerpt' => 'nullable|string',
-        'full_content' => 'nullable|string',
-        'image' => 'nullable|string',
-        'pdf_url' => 'nullable|string',
-        'date' => 'nullable|string|max:255',
-        'author' => 'nullable|string|max:255',
-        'read_time' => 'nullable|string|max:255',
-        'tags' => 'nullable|array',
-        'tags.*' => 'string|max:50',
-        'category' => 'nullable|string|max:255',
-        'views' => 'nullable|integer|min:0',
-        'is_featured' => 'nullable|boolean',
-        'is_active' => 'nullable|boolean',
-      ]);
-
-      $data = $this->prepareData($validated);
-
-      // Process image if base64
-      if (!empty($data['image']) && $this->isBase64Image($data['image'])) {
-        $uploadedPath = $this->uploadImage($data['image']);
-        $data['image'] = $uploadedPath ?? null;
-      }
-
-      // Process PDF if base64
-      if (!empty($data['pdf_url']) && $this->isBase64Pdf($data['pdf_url'])) {
-        $uploadedPath = $this->uploadPdf($data['pdf_url']);
-        $data['pdf_url'] = $uploadedPath ?? null;
-      }
-
-      // Generate slug if not provided
-      if (empty($data['slug'])) {
-        $data['slug'] = $this->generateUniqueSlug($data['title']);
-      }
-
-      // Set defaults
-      $data['date'] = $data['date'] ?? now()->format('Y-m-d');
-      $data['author'] = $data['author'] ?? 'Admin';
-      $data['read_time'] = $data['read_time'] ?? '3 minutes';
-      $data['views'] = (int) ($data['views'] ?? 0);
-      $data['is_featured'] = filter_var($data['is_featured'] ?? false, FILTER_VALIDATE_BOOLEAN);
-      $data['is_active'] = filter_var($data['is_active'] ?? true, FILTER_VALIDATE_BOOLEAN);
-
-      // Normalize tags
-      if (isset($data['tags']) && is_array($data['tags'])) {
-        $data['tags'] = array_values(array_unique(array_filter($data['tags'])));
-      }
-
-      $publication = Publication::create($data);
-
-      $this->clearCache();
-      RateLimiter::clear($this->getThrottleKey('publication_create', $user->id));
-
-      SimpleLogger::cms(
-        "Publication created: {$publication->title}",
-        [
-          'publication_id' => $publication->id,
-          'title' => $publication->title,
-          'slug' => $publication->slug,
-          'is_active' => $publication->is_active,
-          'is_featured' => $publication->is_featured,
-          'created_by' => $user->email,
-          'ip' => $request->ip(),
-        ]
-      );
-
-      session()->forget('_old_input');
-
-      return redirect()->back()->with('success', '✅ Publication created successfully.');
-    } catch (ValidationException $e) {
-      return back()->withErrors($e->errors())->withInput();
-    } catch (\Exception $e) {
-      Log::error('Publication creation failed: ' . $e->getMessage(), [
-        'trace' => $e->getTraceAsString(),
-        'input' => $request->except(['image', 'pdf_url', 'full_content']),
-      ]);
-
-      return back()
-        ->withErrors(['error' => 'Failed to create publication: ' . $e->getMessage()])
-        ->withInput();
-    }
-  }
-
-  /**
-   * Update a publication – with rate limiting.
-   */
-  public function update(Request $request, int $id): RedirectResponse
-  {
-    $user = $this->getAuthUser();
-
-    if (!$user->hasPermission('publications.update')) {
-      return redirect()->back()->with('error', 'You do not have permission to update publications.');
-    }
-
-    $this->checkRateLimit('publication_update', $user->id);
-
-    try {
-      $publication = Publication::withTrashed()->findOrFail($id);
-
-      $validated = $request->validate([
-        'title' => 'required|string|max:255',
-        'slug' => 'nullable|string|unique:publications,slug,' . $id,
-        'excerpt' => 'nullable|string',
-        'full_content' => 'nullable|string',
-        'image' => 'nullable|string',
-        'pdf_url' => 'nullable|string',
-        'date' => 'nullable|string|max:255',
-        'author' => 'nullable|string|max:255',
-        'read_time' => 'nullable|string|max:255',
-        'tags' => 'nullable|array',
-        'tags.*' => 'string|max:50',
-        'category' => 'nullable|string|max:255',
-        'views' => 'nullable|integer|min:0',
-        'is_featured' => 'nullable|boolean',
-        'is_active' => 'nullable|boolean',
-      ]);
-
-      $data = $this->prepareData($validated);
-
-      $oldTitle = $publication->title;
-      $oldStatus = $publication->is_active;
-      $oldFeatured = $publication->is_featured;
-
-      // Process image if base64
-      if (!empty($data['image']) && $this->isBase64Image($data['image'])) {
-        if ($publication->image && !filter_var($publication->image, FILTER_VALIDATE_URL)) {
-          $this->deleteImageFile($publication->image);
+        if (!$user->hasPermission('publications.view')) {
+            return redirect()->route('unauthorized.access')
+                ->with('error', 'You do not have permission to view publications.');
         }
-        $uploadedPath = $this->uploadImage($data['image']);
-        $data['image'] = $uploadedPath ?? null;
-      }
 
-      // Process PDF if base64
-      if (!empty($data['pdf_url']) && $this->isBase64Pdf($data['pdf_url'])) {
-        if ($publication->pdf_url && !filter_var($publication->pdf_url, FILTER_VALIDATE_URL)) {
-          $this->deletePdfFile($publication->pdf_url);
+        try {
+            $items = Publication::withTrashed()->orderBy('created_at', 'desc')->get();
+            return Inertia::render('Backend/CMS/Publications/Index', ['items' => $items]);
+        } catch (\Exception $e) {
+            Log::error('Failed to fetch publications: ' . $e->getMessage());
+            return Inertia::render('Backend/CMS/Publications/Index', [
+                'items' => [],
+                'flash' => ['error' => 'Failed to load publications. Please try again.'],
+            ]);
         }
-        $uploadedPath = $this->uploadPdf($data['pdf_url']);
-        $data['pdf_url'] = $uploadedPath ?? null;
-      }
-
-      // Regenerate slug if title changed and slug not manually set
-      if (empty($data['slug']) || ($data['title'] !== $publication->title && $data['slug'] === $publication->slug)) {
-        $data['slug'] = $this->generateUniqueSlug($data['title'], $id);
-      }
-
-      $data['views'] = (int) ($data['views'] ?? $publication->views ?? 0);
-      $data['is_featured'] = filter_var($data['is_featured'] ?? false, FILTER_VALIDATE_BOOLEAN);
-      $data['is_active'] = filter_var($data['is_active'] ?? true, FILTER_VALIDATE_BOOLEAN);
-
-      if (isset($data['tags']) && is_array($data['tags'])) {
-        $data['tags'] = array_values(array_unique(array_filter($data['tags'])));
-      }
-
-      $publication->update($data);
-
-      $this->clearCache();
-      RateLimiter::clear($this->getThrottleKey('publication_update', $user->id));
-
-      // Log changes
-      $changes = [];
-      if ($oldTitle !== $publication->title) {
-        $changes['title'] = ['old' => $oldTitle, 'new' => $publication->title];
-      }
-      if ($oldStatus !== $publication->is_active) {
-        $changes['status'] = ['old' => $oldStatus ? 'active' : 'inactive', 'new' => $publication->is_active ? 'active' : 'inactive'];
-      }
-      if ($oldFeatured !== $publication->is_featured) {
-        $changes['featured'] = ['old' => $oldFeatured ? 'yes' : 'no', 'new' => $publication->is_featured ? 'yes' : 'no'];
-      }
-
-      if (!empty($changes)) {
-        SimpleLogger::cms(
-          "Publication updated: {$publication->title}",
-          [
-            'publication_id' => $publication->id,
-            'changes' => $changes,
-            'updated_by' => $user->email,
-            'ip' => $request->ip(),
-          ]
-        );
-      }
-
-      session()->forget('_old_input');
-
-      return redirect()->back()->with('success', '✅ Publication updated successfully.');
-    } catch (ValidationException $e) {
-      return back()->withErrors($e->errors())->withInput();
-    } catch (\Exception $e) {
-      Log::error('Publication update failed: ' . $e->getMessage(), [
-        'trace' => $e->getTraceAsString(),
-        'publication_id' => $id,
-        'input' => $request->except(['image', 'pdf_url', 'full_content']),
-      ]);
-
-      return back()
-        ->withErrors(['error' => 'Failed to update publication: ' . $e->getMessage()])
-        ->withInput();
     }
-  }
+
+    /**
+     * Show the create publication form.
+     */
+    public function create(): Response|RedirectResponse
+    {
+        $user = $this->getAuthUser();
+
+        if (!$user->hasPermission('publications.create')) {
+            return redirect()->route('unauthorized.access')
+                ->with('error', 'You do not have permission to create publications.');
+        }
+
+        return Inertia::render('Backend/CMS/Publications/Create');
+    }
+
+    /**
+     * Show the edit publication form.
+     */
+    public function edit(int $id): Response|RedirectResponse
+    {
+        $user = $this->getAuthUser();
+
+        if (!$user->hasPermission('publications.update')) {
+            return redirect()->route('unauthorized.access')
+                ->with('error', 'You do not have permission to update publications.');
+        }
+
+        try {
+            $item = Publication::withTrashed()->findOrFail($id);
+            return Inertia::render('Backend/CMS/Publications/Edit', ['item' => $item]);
+        } catch (\Exception $e) {
+            Log::error('Failed to fetch publication for editing: ' . $e->getMessage(), ['publication_id' => $id]);
+            return redirect()->route('backend.cms.publications.index')
+                ->with('error', 'Publication not found.');
+        }
+    }
+
+    /**
+     * Store a new publication – with rate limiting.
+     */
+    public function store(Request $request): RedirectResponse
+    {
+        $user = $this->getAuthUser();
+
+        if (!$user->hasPermission('publications.create')) {
+            return redirect()->back()->with('error', 'You do not have permission to create publications.');
+        }
+
+        $this->checkRateLimit('publication_create', $user->id);
+
+        try {
+            $validated = $request->validate([
+                'title' => 'required|string|max:255',
+                'slug' => 'nullable|string|unique:publications,slug',
+                'excerpt' => 'nullable|string',
+                'full_content' => 'nullable|string',
+                'image' => 'nullable|string',
+                'pdf_url' => 'nullable|string',
+                'date' => 'nullable|string|max:255',
+                'author' => 'nullable|string|max:255',
+                'read_time' => 'nullable|string|max:255',
+                'tags' => 'nullable|array',
+                'tags.*' => 'string|max:50',
+                'category' => 'nullable|string|max:255',
+                'views' => 'nullable|integer|min:0',
+                'is_featured' => 'nullable|boolean',
+                'is_active' => 'nullable|boolean',
+            ]);
+
+            $data = $this->prepareData($validated);
+
+            // Process image if base64
+            if (!empty($data['image']) && $this->isBase64Image($data['image'])) {
+                $uploadedPath = $this->uploadImage($data['image']);
+                $data['image'] = $uploadedPath ?? null;
+            }
+
+            // Process PDF if base64
+            if (!empty($data['pdf_url']) && $this->isBase64Pdf($data['pdf_url'])) {
+                $uploadedPath = $this->uploadPdf($data['pdf_url']);
+                $data['pdf_url'] = $uploadedPath ?? null;
+            }
+
+            // Generate slug if not provided
+            if (empty($data['slug'])) {
+                $data['slug'] = $this->generateUniqueSlug($data['title']);
+            }
+
+            // Set defaults
+            $data['date'] = $data['date'] ?? now()->format('Y-m-d');
+            $data['author'] = $data['author'] ?? 'Admin';
+            $data['read_time'] = $data['read_time'] ?? '3 minutes';
+            $data['views'] = (int) ($data['views'] ?? 0);
+            $data['is_featured'] = filter_var($data['is_featured'] ?? false, FILTER_VALIDATE_BOOLEAN);
+            $data['is_active'] = filter_var($data['is_active'] ?? true, FILTER_VALIDATE_BOOLEAN);
+
+            // Normalize tags
+            if (isset($data['tags']) && is_array($data['tags'])) {
+                $data['tags'] = array_values(array_unique(array_filter($data['tags'])));
+            }
+
+            $publication = Publication::create($data);
+
+            $this->clearCache();
+            RateLimiter::clear($this->getThrottleKey('publication_create', $user->id));
+
+            SimpleLogger::cms(
+                "Publication created: {$publication->title}",
+                [
+                    'publication_id' => $publication->id,
+                    'title' => $publication->title,
+                    'slug' => $publication->slug,
+                    'is_active' => $publication->is_active,
+                    'is_featured' => $publication->is_featured,
+                    'created_by' => $user->email,
+                    'ip' => $request->ip(),
+                ]
+            );
+
+            session()->forget('_old_input');
+
+            return redirect()->route('backend.cms.publications.index')->with('success', '✅ Publication created successfully.');
+        } catch (ValidationException $e) {
+            return redirect()->route('backend.cms.publications.create')
+                ->withErrors($e->errors())
+                ->withInput();
+        } catch (\Exception $e) {
+            Log::error('Publication creation failed: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString(),
+                'input' => $request->except(['image', 'pdf_url', 'full_content']),
+            ]);
+
+            return redirect()->route('backend.cms.publications.create')
+                ->withErrors(['error' => 'Failed to create publication: ' . $e->getMessage()])
+                ->withInput();
+        }
+    }
+
+    /**
+     * Update a publication – with rate limiting.
+     */
+    public function update(Request $request, int $id): RedirectResponse
+    {
+        $user = $this->getAuthUser();
+
+        if (!$user->hasPermission('publications.update')) {
+            return redirect()->back()->with('error', 'You do not have permission to update publications.');
+        }
+
+        $this->checkRateLimit('publication_update', $user->id);
+
+        try {
+            $publication = Publication::withTrashed()->findOrFail($id);
+
+            $validated = $request->validate([
+                'title' => 'required|string|max:255',
+                'slug' => 'nullable|string|unique:publications,slug,' . $id,
+                'excerpt' => 'nullable|string',
+                'full_content' => 'nullable|string',
+                'image' => 'nullable|string',
+                'pdf_url' => 'nullable|string',
+                'date' => 'nullable|string|max:255',
+                'author' => 'nullable|string|max:255',
+                'read_time' => 'nullable|string|max:255',
+                'tags' => 'nullable|array',
+                'tags.*' => 'string|max:50',
+                'category' => 'nullable|string|max:255',
+                'views' => 'nullable|integer|min:0',
+                'is_featured' => 'nullable|boolean',
+                'is_active' => 'nullable|boolean',
+            ]);
+
+            $data = $this->prepareData($validated);
+
+            $oldTitle = $publication->title;
+            $oldStatus = $publication->is_active;
+            $oldFeatured = $publication->is_featured;
+
+            // Process image if base64
+            if (!empty($data['image']) && $this->isBase64Image($data['image'])) {
+                if ($publication->image && !filter_var($publication->image, FILTER_VALIDATE_URL)) {
+                    $this->deleteImageFile($publication->image);
+                }
+                $uploadedPath = $this->uploadImage($data['image']);
+                $data['image'] = $uploadedPath ?? null;
+            }
+
+            // Process PDF if base64
+            if (!empty($data['pdf_url']) && $this->isBase64Pdf($data['pdf_url'])) {
+                if ($publication->pdf_url && !filter_var($publication->pdf_url, FILTER_VALIDATE_URL)) {
+                    $this->deletePdfFile($publication->pdf_url);
+                }
+                $uploadedPath = $this->uploadPdf($data['pdf_url']);
+                $data['pdf_url'] = $uploadedPath ?? null;
+            }
+
+            // Regenerate slug if title changed and slug not manually set
+            if (empty($data['slug']) || ($data['title'] !== $publication->title && $data['slug'] === $publication->slug)) {
+                $data['slug'] = $this->generateUniqueSlug($data['title'], $id);
+            }
+
+            $data['views'] = (int) ($data['views'] ?? $publication->views ?? 0);
+            $data['is_featured'] = filter_var($data['is_featured'] ?? false, FILTER_VALIDATE_BOOLEAN);
+            $data['is_active'] = filter_var($data['is_active'] ?? true, FILTER_VALIDATE_BOOLEAN);
+
+            if (isset($data['tags']) && is_array($data['tags'])) {
+                $data['tags'] = array_values(array_unique(array_filter($data['tags'])));
+            }
+
+            $publication->update($data);
+
+            $this->clearCache();
+            RateLimiter::clear($this->getThrottleKey('publication_update', $user->id));
+
+            // Log changes
+            $changes = [];
+            if ($oldTitle !== $publication->title) {
+                $changes['title'] = ['old' => $oldTitle, 'new' => $publication->title];
+            }
+            if ($oldStatus !== $publication->is_active) {
+                $changes['status'] = ['old' => $oldStatus ? 'active' : 'inactive', 'new' => $publication->is_active ? 'active' : 'inactive'];
+            }
+            if ($oldFeatured !== $publication->is_featured) {
+                $changes['featured'] = ['old' => $oldFeatured ? 'yes' : 'no', 'new' => $publication->is_featured ? 'yes' : 'no'];
+            }
+
+            if (!empty($changes)) {
+                SimpleLogger::cms(
+                    "Publication updated: {$publication->title}",
+                    [
+                        'publication_id' => $publication->id,
+                        'changes' => $changes,
+                        'updated_by' => $user->email,
+                        'ip' => $request->ip(),
+                    ]
+                );
+            }
+
+            session()->forget('_old_input');
+
+            return redirect()->route('backend.cms.publications.index')->with('success', '✅ Publication updated successfully.');
+        } catch (ValidationException $e) {
+            return redirect()->route('backend.cms.publications.edit', ['id' => $id])
+                ->withErrors($e->errors())
+                ->withInput();
+        } catch (\Exception $e) {
+            Log::error('Publication update failed: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString(),
+                'publication_id' => $id,
+                'input' => $request->except(['image', 'pdf_url', 'full_content']),
+            ]);
+
+            return redirect()->route('backend.cms.publications.edit', ['id' => $id])
+                ->withErrors(['error' => 'Failed to update publication: ' . $e->getMessage()])
+                ->withInput();
+        }
+    }
 
 /**
      * Toggle publication active status – with rate limiting.

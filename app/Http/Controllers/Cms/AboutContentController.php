@@ -27,165 +27,206 @@ class AboutContentController extends Controller
   protected int $maxImageSize = 5 * 1024 * 1024;
   protected int $maxIconSize = 2 * 1024 * 1024;
 
-  /**
-   * Display about content items – with caching.
-   */
-  public function index(): Response|RedirectResponse
-  {
-    $user = $this->getAuthUser();
+   /**
+    * Display about content items – with caching.
+    */
+   public function index(): Response|RedirectResponse
+   {
+     $user = $this->getAuthUser();
 
-    if (!$user->hasPermission('about.view')) {
-      return redirect()->route('unauthorized.access')
-        ->with('error', 'You do not have permission to view about content.');
-    }
+     if (!$user->hasPermission('about.view')) {
+       return redirect()->route('unauthorized.access')
+         ->with('error', 'You do not have permission to view about content.');
+     }
 
-    try {
-      $items = AboutContent::withTrashed()->orderBy('display_order')->get();
-      return Inertia::render('Backend/CMS/About/Index', ['items' => $items]);
-    } catch (\Exception $e) {
-      Log::error('Failed to fetch about content: ' . $e->getMessage());
-      return Inertia::render('Backend/CMS/About/Index', [
-        'items' => [],
-        'flash' => ['error' => 'Failed to load about content. Please try again.'],
-      ]);
-    }
-  }
+     try {
+       $items = AboutContent::withTrashed()->orderBy('display_order')->get();
+       return Inertia::render('Backend/CMS/About/Index', ['items' => $items]);
+     } catch (\Exception $e) {
+       Log::error('Failed to fetch about content: ' . $e->getMessage());
+       return Inertia::render('Backend/CMS/About/Index', [
+         'items' => [],
+         'flash' => ['error' => 'Failed to load about content. Please try again.'],
+       ]);
+     }
+   }
 
-  /**
-   * Store new about content – with rate limiting.
-   */
-  public function store(Request $request): RedirectResponse
-  {
-    $user = $this->getAuthUser();
+   /**
+    * Show the create about content form.
+    */
+   public function create(): Response|RedirectResponse
+   {
+     $user = $this->getAuthUser();
 
-    if (!$user->hasPermission('about.create')) {
-      return redirect()->back()->with('error', 'You do not have permission to create about content.');
-    }
+     if (!$user->hasPermission('about.create')) {
+       return redirect()->route('unauthorized.access')
+         ->with('error', 'You do not have permission to create about content.');
+     }
 
-    $this->checkRateLimit('about_create', $user->id);
+     return Inertia::render('Backend/CMS/About/Create');
+   }
 
-    try {
-      $validated = $this->validateAboutContent($request);
+   /**
+    * Show the edit about content form.
+    */
+   public function edit(int $id): Response|RedirectResponse
+   {
+     $user = $this->getAuthUser();
 
-      $data = $this->prepareData($validated, $request);
+     if (!$user->hasPermission('about.update')) {
+       return redirect()->route('unauthorized.access')
+         ->with('error', 'You do not have permission to update about content.');
+     }
 
-      // Process image uploads
-      $this->processImages($data, $request);
+     try {
+       $item = AboutContent::withTrashed()->findOrFail($id);
+       return Inertia::render('Backend/CMS/About/Edit', ['item' => $item]);
+     } catch (\Exception $e) {
+       Log::error('Failed to fetch about content for editing: ' . $e->getMessage(), ['about_id' => $id]);
+       return redirect()->route('backend.cms.about.index')
+         ->with('error', 'About content not found.');
+     }
+   }
 
-      // Ensure tags are stored as JSON
-      if (isset($data['tags']) && is_array($data['tags'])) {
-        $data['tags'] = array_values(array_unique(array_filter($data['tags'])));
-      }
+   /**
+    * Store new about content – with rate limiting.
+    */
+   public function store(Request $request): RedirectResponse
+   {
+     $user = $this->getAuthUser();
 
-      // Set default display order if not provided
-      if (!isset($data['display_order']) || $data['display_order'] === '') {
-        $data['display_order'] = AboutContent::withTrashed()->max('display_order') + 1;
-      }
+     if (!$user->hasPermission('about.create')) {
+       return redirect()->back()->with('error', 'You do not have permission to create about content.');
+     }
 
-      // Generate slug if not provided
-      if (empty($data['slug'])) {
-        $data['slug'] = $this->generateUniqueSlug($data['title']);
-      }
+     $this->checkRateLimit('about_create', $user->id);
 
-      // Cast booleans
-      $data['is_featured'] = filter_var($data['is_featured'] ?? false, FILTER_VALIDATE_BOOLEAN);
-      $data['is_active'] = filter_var($data['is_active'] ?? true, FILTER_VALIDATE_BOOLEAN);
+     try {
+       $validated = $this->validateAboutContent($request);
 
-      AboutContent::create($data);
+       $data = $this->prepareData($validated, $request);
 
-      // Clear cache
-      $this->clearCache();
+       // Process image uploads
+       $this->processImages($data, $request);
 
-      RateLimiter::clear($this->getThrottleKey('about_create', $user->id));
+       // Ensure tags are stored as JSON
+       if (isset($data['tags']) && is_array($data['tags'])) {
+         $data['tags'] = array_values(array_unique(array_filter($data['tags'])));
+       }
 
-      SimpleLogger::cms(
-        "About content created: {$data['title']}",
-        [
-          'type' => $data['type'] ?? 'detail',
-          'created_by' => $user->email,
-          'ip' => $request->ip(),
-        ]
-      );
+       // Set default display order if not provided
+       if (!isset($data['display_order']) || $data['display_order'] === '') {
+         $data['display_order'] = AboutContent::withTrashed()->max('display_order') + 1;
+       }
 
-      return redirect()->back()->with('success', '✅ About content created successfully.');
-    } catch (ValidationException $e) {
-      return back()->withErrors($e->errors())->withInput();
-    } catch (\Exception $e) {
-      Log::error('About content creation failed: ' . $e->getMessage(), [
-        'trace' => $e->getTraceAsString(),
-        'input' => $request->except(['image', 'icon', 'full_content']),
-      ]);
+       // Generate slug if not provided
+       if (empty($data['slug'])) {
+         $data['slug'] = $this->generateUniqueSlug($data['title']);
+       }
 
-      return back()
-        ->withErrors(['error' => 'Failed to create about content: ' . $e->getMessage()])
-        ->withInput();
-    }
-  }
+       // Cast booleans
+       $data['is_featured'] = filter_var($data['is_featured'] ?? false, FILTER_VALIDATE_BOOLEAN);
+       $data['is_active'] = filter_var($data['is_active'] ?? true, FILTER_VALIDATE_BOOLEAN);
 
-  /**
-   * Update about content – with rate limiting.
-   */
-  public function update(Request $request, int $id): RedirectResponse
-  {
-    $user = $this->getAuthUser();
+       AboutContent::create($data);
 
-    if (!$user->hasPermission('about.update')) {
-      return redirect()->back()->with('error', 'You do not have permission to update about content.');
-    }
+       // Clear cache
+       $this->clearCache();
 
-    $this->checkRateLimit('about_update', $user->id);
+       RateLimiter::clear($this->getThrottleKey('about_create', $user->id));
 
-    try {
-      $about = AboutContent::withTrashed()->findOrFail($id);
+       SimpleLogger::cms(
+         "About content created: {$data['title']}",
+         [
+           'type' => $data['type'] ?? 'detail',
+           'created_by' => $user->email,
+           'ip' => $request->ip(),
+         ]
+       );
 
-      $validated = $this->validateAboutContent($request, $id);
+       return redirect()->route('backend.cms.about.index')->with('success', '✅ About content created successfully.');
+     } catch (ValidationException $e) {
+       return redirect()->route('backend.cms.about.create')
+         ->withErrors($e->errors())
+         ->withInput();
+     } catch (\Exception $e) {
+       Log::error('About content creation failed: ' . $e->getMessage(), [
+         'trace' => $e->getTraceAsString(),
+         'input' => $request->except(['image', 'icon', 'full_content']),
+       ]);
 
-      $data = $this->prepareData($validated, $request);
+       return redirect()->route('backend.cms.about.create')
+         ->withErrors(['error' => 'Failed to create about content: ' . $e->getMessage()])
+         ->withInput();
+     }
+   }
 
-      // Process images – delete old ones when replacing
-      $this->processImages($data, $request, $about);
+   /**
+    * Update about content – with rate limiting.
+    */
+   public function update(Request $request, int $id): RedirectResponse
+   {
+     $user = $this->getAuthUser();
 
-      // Ensure tags are stored as JSON
-      if (isset($data['tags']) && is_array($data['tags'])) {
-        $data['tags'] = array_values(array_unique(array_filter($data['tags'])));
-      }
+     if (!$user->hasPermission('about.update')) {
+       return redirect()->back()->with('error', 'You do not have permission to update about content.');
+     }
 
-      // Cast booleans
-      $data['is_featured'] = filter_var($data['is_featured'] ?? false, FILTER_VALIDATE_BOOLEAN);
-      $data['is_active'] = filter_var($data['is_active'] ?? true, FILTER_VALIDATE_BOOLEAN);
+     $this->checkRateLimit('about_update', $user->id);
 
-      $about->update($data);
+     try {
+       $about = AboutContent::withTrashed()->findOrFail($id);
 
-      // Clear cache
-      $this->clearCache();
+       $validated = $this->validateAboutContent($request, $id);
 
-      RateLimiter::clear($this->getThrottleKey('about_update', $user->id));
+       $data = $this->prepareData($validated, $request);
 
-      SimpleLogger::cms(
-        "About content updated: {$data['title']}",
-        [
-          'about_id' => $id,
-          'type' => $data['type'] ?? 'detail',
-          'updated_by' => $user->email,
-          'ip' => $request->ip(),
-        ]
-      );
+       // Process images – delete old ones when replacing
+       $this->processImages($data, $request, $about);
 
-      return redirect()->back()->with('success', '✅ About content updated successfully.');
-    } catch (ValidationException $e) {
-      return back()->withErrors($e->errors())->withInput();
-    } catch (\Exception $e) {
-      Log::error('About content update failed: ' . $e->getMessage(), [
-        'trace' => $e->getTraceAsString(),
-        'about_id' => $id,
-        'input' => $request->except(['image', 'icon', 'full_content']),
-      ]);
+       // Ensure tags are stored as JSON
+       if (isset($data['tags']) && is_array($data['tags'])) {
+         $data['tags'] = array_values(array_unique(array_filter($data['tags'])));
+       }
 
-      return back()
-        ->withErrors(['error' => 'Failed to update about content: ' . $e->getMessage()])
-        ->withInput();
-    }
-  }
+       // Cast booleans
+       $data['is_featured'] = filter_var($data['is_featured'] ?? false, FILTER_VALIDATE_BOOLEAN);
+       $data['is_active'] = filter_var($data['is_active'] ?? true, FILTER_VALIDATE_BOOLEAN);
+
+       $about->update($data);
+
+       // Clear cache
+       $this->clearCache();
+
+       RateLimiter::clear($this->getThrottleKey('about_update', $user->id));
+
+       SimpleLogger::cms(
+         "About content updated: {$data['title']}",
+         [
+           'about_id' => $id,
+           'type' => $data['type'] ?? 'detail',
+           'updated_by' => $user->email,
+           'ip' => $request->ip(),
+         ]
+       );
+
+       return redirect()->route('backend.cms.about.index')->with('success', '✅ About content updated successfully.');
+     } catch (ValidationException $e) {
+       return redirect()->route('backend.cms.about.edit', ['id' => $id])
+         ->withErrors($e->errors())
+         ->withInput();
+     } catch (\Exception $e) {
+       Log::error('About content update failed: ' . $e->getMessage(), [
+         'trace' => $e->getTraceAsString(),
+         'about_id' => $id,
+         'input' => $request->except(['image', 'icon', 'full_content']),
+       ]);
+
+       return redirect()->route('backend.cms.about.edit', ['id' => $id])
+         ->withErrors(['error' => 'Failed to update about content: ' . $e->getMessage()])
+         ->withInput();
+     }
+   }
 
   /**
    * Toggle active status – with rate limiting.
