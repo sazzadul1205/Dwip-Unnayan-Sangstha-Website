@@ -55,6 +55,12 @@ require __DIR__ . '/admin/email-templates.php';
 require __DIR__ . '/admin/audit-logs.php';
 
 // ============================================
+// SECTION 6.6: ASSET / IMAGE MANAGEMENT
+// URL: /backend/assets/*
+// ============================================
+require __DIR__ . '/admin/assets.php';
+
+// ============================================
 // SECTION 7: FALLBACK ROUTE (MUST BE AT THE END)
 // ============================================
 require __DIR__ . '/fallback.php';

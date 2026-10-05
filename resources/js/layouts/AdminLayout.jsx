@@ -10,7 +10,7 @@ import {
   FiHome, FiBell, FiBriefcase, FiFileText, FiSettings, FiLogOut,
   FiChevronDown, FiChevronRight, FiPlusCircle, FiUsers, FiBarChart2,
   FiStar, FiClock, FiXCircle, FiAward, FiList, FiShield, FiKey, FiTrash2,
-  FiMenu, FiX, FiUser, FiCode,
+  FiMenu, FiX, FiUser, FiCode, FiImage,
 } from 'react-icons/fi';
 import { MdCategory } from "react-icons/md";
 
@@ -492,6 +492,16 @@ const AdminLayout = ({ children }) => {
       icon: FiFileText,
       description: 'View system activity logs'
     });
+
+    // Asset / image management — browse storage, spot unused files
+    if (hasPermission('assets.view')) {
+      items.push({
+        name: 'Assets',
+        routeName: 'backend.assets.index',
+        icon: FiImage,
+        description: 'Browse uploads and find unused images or files'
+      });
+    }
 
     // Audit Trail — who changed what, when
     if (hasPermission('audit.view')) {

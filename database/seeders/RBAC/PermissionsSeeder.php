@@ -334,6 +334,10 @@ class PermissionsSeeder extends Seeder
       ['name' => 'Export Audit Trail', 'slug' => 'audit.export', 'module' => 'audit', 'action' => 'export'],
       ['name' => 'Prune Audit Trail', 'slug' => 'audit.prune', 'module' => 'audit', 'action' => 'prune'],
 
+      // ==================== ASSET MANAGEMENT ====================
+      ['name' => 'View Assets', 'slug' => 'assets.view', 'module' => 'assets', 'action' => 'view'],
+      ['name' => 'Delete Assets', 'slug' => 'assets.delete', 'module' => 'assets', 'action' => 'delete'],
+
       // ==================== EMAIL TEMPLATES ====================
       ['name' => 'View Email Templates', 'slug' => 'email_templates.view', 'module' => 'email_templates', 'action' => 'view'],
       ['name' => 'Update Email Templates', 'slug' => 'email_templates.update', 'module' => 'email_templates', 'action' => 'update'],
