@@ -6,6 +6,43 @@
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 
 /*
+    CMS HTML / CSS sections can be authored with Tailwind utility classes that
+    an admin types by hand and saves into the database. Tailwind only emits the
+    classes it finds while scanning files, so a utility that exists purely in
+    the CMS would be dropped from the build and render completely unstyled.
+
+    The lines below force-generate the utilities an admin is realistically going
+    to type inside the section editor. Keep this list to classes that are not
+    already covered by source scanning, and prefer broad families over one-off
+    utilities so the bundle does not grow without bound.
+*/
+@source inline("{bg,text,border}-{slate,gray,zinc,neutral,stone,red,orange,amber,yellow,lime,green,emerald,teal,cyan,sky,blue,indigo,violet,purple,fuchsia,pink,rose}-{50,100,200,300,400,500,600,700,800,900}");
+@source inline("{bg,text,border}-{white,black,transparent,current,inherit}");
+@source inline("{hover:,focus:,focus-visible:,active:}{bg,text,border}-{slate,gray,zinc,neutral,stone,red,orange,amber,yellow,lime,green,emerald,teal,cyan,sky,blue,indigo,violet,purple,fuchsia,pink,rose}-{300,400,500,600,700,800}");
+@source inline("{hover:,focus:,focus-visible:,active:}{bg,text,border}-{white,black,transparent}");
+@source inline("{p,px,py,pt,pb,pl,pr,m,mx,my,mt,mb,ml,mr,gap}-{0,0.5,1,1.5,2,2.5,3,3.5,4,5,6,7,8,9,10,11,12,14,16,20,24}");
+@source inline("{w,h,min-w,min-h,max-w,max-h}-{full,screen,none,auto,xs,sm,md,lg,xl,2xl,3xl,4xl,5xl,6xl,7xl}");
+@source inline("rounded{-none,-sm,-md,-lg,-xl,-2xl,-3xl,-full}");
+@source inline("text-{xs,sm,base,lg,xl,2xl,3xl,4xl,5xl,6xl,7xl,8xl,9xl}");
+@source inline("font-{thin,extralight,light,normal,medium,semibold,bold,extrabold,black}");
+@source inline("{leading,tracking}-{tight,normal,relaxed,loose,none,wide,wider,widest,tighter}");
+@source inline("shadow-{sm,md,lg,xl,2xl,inner,none}");
+@source inline("opacity-{0,5,10,20,25,30,40,50,60,70,75,80,90,95,100}");
+@source inline("{flex,grid,hidden,block,inline,inline-block,inline-flex,table,contents,flow-root}");
+@source inline("{items,justify}-{start,end,center,between,around,evenly,baseline,stretch}");
+@source inline("col-span-{1,2,3,4,5,6,full}");
+@source inline("{overflow}-{auto,hidden,visible,scroll,x-auto,y-auto}");
+@source inline("{border}-{0,2,4,8}");
+@source inline("{whitespace}-{normal,nowrap,pre,pre-line,pre-wrap}");
+@source inline("{cursor}-{auto,default,pointer,not-allowed,grab}");
+@source inline("{list}-{none,disc,decimal}");
+@source inline("{sm:,md:,lg:,xl:,2xl:}{grid-cols,col-span}-{1,2,3,4,5,6,12,full}");
+@source inline("{sm:,md:,lg:,xl:,2xl:}{flex,grid,block,hidden}");
+@source inline("{sm:,md:,lg:,xl:,2xl:}{text}-{xs,sm,base,lg,xl,2xl,3xl,4xl,5xl,6xl}");
+@source inline("{sm:,md:,lg:,xl:,2xl:}{p,px,py,m,mx,my}-{0,2,4,6,8,10,12,16}");
+@source inline("{sm:,md:,lg:,xl:,2xl:}{gap,space-x,space-y}-{0,1,2,3,4,6,8,10,12}");
+
+/*
     Height-based variants for short viewports (small laptops, split screens).
     Sticky cards taller than the viewport can never be scrolled far enough to
     expose their lower content, so these step the card down as height shrinks.

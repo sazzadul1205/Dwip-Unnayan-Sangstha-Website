@@ -1,8 +1,14 @@
 // js/Sections/HtmlCssSection/HtmlCssSection.jsx
 //
 // "HTML / CSS Section" – renders raw HTML together with the CSS the admin
-// pasted in the CMS. Tailwind utility classes are NOT applied to this markup;
-// only the custom CSS (scoped to this section) styles it.
+// pasted in the CMS.
+//
+// Two styling modes are supported:
+//   * Custom CSS (default) – the admin's stylesheet is injected, scoped to this
+//     section. Tailwind utility classes in the markup are not used.
+//   * Tailwind mode (`useTailwind`) – the site's own Tailwind build styles the
+//     markup, so any CSS saved for the section is deliberately ignored. This
+//     keeps the CSS box free to be left empty or minimised.
 
 import React, { useId, useMemo } from 'react';
 import { sanitizeHTML, hasValue } from '../../utils/sectionHelpers';
@@ -60,7 +66,10 @@ const HtmlCssSection = ({
   const scopeSelector = `dus-html-${safeSectionId}-${String(reactId).replace(/[^a-zA-Z0-9]/g, '')}`;
 
   const html = typeof resolved.html === 'string' ? resolved.html : '';
-  const css = typeof resolved.css === 'string' ? resolved.css : '';
+  const useTailwind = resolved.useTailwind === true;
+  // In Tailwind mode the custom stylesheet is kept in the database but never
+  // emitted, so a stale rule can not fight the utility classes.
+  const css = useTailwind ? '' : typeof resolved.css === 'string' ? resolved.css : '';
   const shouldScope = resolved.scopeCss ?? scopeCss ?? true;
 
   const scopedCss = useMemo(

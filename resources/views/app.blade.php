@@ -268,10 +268,10 @@
         <link rel="preload" as="image" href="{{ $preloaderUrl }}" fetchpriority="high">
     @endif
 
-    @if (!empty($ogImageFullUrl) && $isFrontendRoute)
-        {{-- Only preload OG image on frontend — used by the hero on home --}}
-        <link rel="preload" as="image" href="{{ $ogImageFullUrl }}">
-    @endif
+    {{-- The OG image is deliberately NOT preloaded: it is only referenced by
+         the <meta property="og:image"> tags above, which social crawlers read
+         directly. No <img> on the page uses it, so preloading it just wasted
+         bandwidth on every frontend request. --}}
 
     {{-- ============================================ --}}
     {{-- FONTS                                        --}}
