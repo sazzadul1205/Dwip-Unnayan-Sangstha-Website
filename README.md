@@ -3,10 +3,10 @@
 > **A comprehensive Laravel + Inertia.js + React platform for job listings, applicant tracking, and dynamic content management.**
 
 [![PHP](https://img.shields.io/badge/PHP-8.2%2B-777BB4?logo=php&logoColor=white)](https://www.php.net/)
-[![Laravel](https://img.shields.io/badge/Laravel-11.x-FF2D20?logo=laravel&logoColor=white)](https://laravel.com/)
-[![React](https://img.shields.io/badge/React-18.x-61DAFB?logo=react&logoColor=black)](https://react.dev/)
-[![Inertia.js](https://img.shields.io/badge/Inertia.js-1.x-9553E9?logo=inertia&logoColor=white)](https://inertiajs.com/)
-[![Tailwind CSS](https://img.shields.io/badge/Tailwind-3.x-06B6D4?logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
+[![Laravel](https://img.shields.io/badge/Laravel-12.x-FF2D20?logo=laravel&logoColor=white)](https://laravel.com/)
+[![React](https://img.shields.io/badge/React-19.x-61DAFB?logo=react&logoColor=black)](https://react.dev/)
+[![Inertia.js](https://img.shields.io/badge/Inertia.js-2.x-9553E9?logo=inertia&logoColor=white)](https://inertiajs.com/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind-4.x-06B6D4?logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
 [![License](https://img.shields.io/badge/License-MIT-22C55E.svg)](LICENSE)
 
 ### 🔎 Quick Navigation
@@ -210,11 +210,20 @@
 ### Key Architecture Decisions
 
 1. **Inertia.js Integration** — Single-page application feel without complex API management
-2. **Repository Pattern** — Separates business logic from controllers
-3. **Service Layer** — Encapsulates complex business operations
-4. **Trait-Based Reusability** — Shared functionality across controllers
-5. **Smart Caching** — Reduces database load for public content
-6. **Comprehensive Logging** — Audit trails for all critical actions
+2. **Service Layer** — Encapsulates complex business operations (`DashboardMetrics`, `ContentService`, `ATSService`, `PageMapService`)
+3. **Permission-Gated Controllers** — All CMS and backend actions enforce granular permissions at the controller level
+4. **Smart Caching** — Reduces database load for public content with automatic invalidation
+5. **Comprehensive Logging** — Audit trails for all critical actions
+6. **Dedicated Admin Pages** — CMS content types use dedicated Create/Edit pages instead of modals for better UX
+7. **Permission-Aware Dashboard** — Admin dashboard surfaces only data the user has permissions to view
+
+### Recent Updates
+
+- **Permission-Gated Dashboard** — Admin dashboard now shows CMS, newsletter, platform health, and statistics sections only when the user has the corresponding permissions
+- **Dedicated CMS Pages** — Blogs, Programs, Publications, and About content now use dedicated Create/Edit pages with permission checks
+- **Sidebar State Persistence** — Admin sidebar collapsed state persists across navigation via `localStorage`
+- **Backend Preloader** — Initial-paint loader now visible on both frontend and backend routes
+- **Improved Test Coverage** — 468 passing tests covering CMS, dashboard, cache invalidation, seeding, and more
 
 ---
 
@@ -231,9 +240,8 @@
 ### Step 1: Clone the Repository
 
 ```bash
-git clone https://github.com/your-org/dwip-unnayan-songstha.git
-# Replace the repository URL above with your actual GitHub repository.
-cd dwip-unnayan-songstha
+git clone https://github.com/sazzadul1205/Dwip-Unnayan-Sangstha-Website.git
+cd Dwip-Unnayan-Sangstha-Website
 ```
 
 ### Step 2: Install PHP Dependencies
@@ -558,20 +566,30 @@ dwip-unnayan-songstha/
 │       │   └── verification.blade.php
 │       └── app.blade.php
 ├── routes/
+│   ├── web.php
 │   ├── admin/
 │   │   ├── dashboard.php
-│   │   └── page-map.php
+│   │   ├── cms.php
+│   │   ├── job-listings.php
+│   │   ├── applications.php
+│   │   ├── users.php
+│   │   ├── roles.php
+│   │   ├── settings.php
+│   │   ├── backup.php
+│   │   ├── logs.php
+│   │   ├── applicant-profiles.php
+│   │   └── applicant.php
 │   ├── api.php
 │   ├── auth.php
-│   ├── categories.php
-│   ├── console.php
-│   ├── fallback.php
-│   ├── job-seeker.php
-│   ├── locations.php
 │   ├── newsletter.php
-│   ├── notifications.php
 │   ├── public.php
-│   └── web.php
+│   ├── job-seeker.php
+│   ├── fallback.php
+│   ├── categories.php
+│   ├── locations.php
+│   ├── notifications.php
+│   ├── apply.php
+│   └── page-map.php
 ├── storage/
 ├── public/
 ├── tests/

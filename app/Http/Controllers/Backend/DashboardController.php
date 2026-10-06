@@ -56,6 +56,7 @@ class DashboardController extends Controller
 
     $dashboardData = [
       'role' => $role,
+      'permissions' => $permissions,
       'job_seeker' => $this->jobSeekerData($user, $roles, $permissions),
       'admin_staff' => $this->adminData($user, $roles, $permissions, $days),
       'generated_at' => now()->toDateTimeString(),

@@ -18,8 +18,8 @@
         "laravel/tinker": "^2.10.1",
         "setasign/fpdf": "^1.8",
         "setasign/fpdi": "^2.6",
-        "smalot/pdfparser": "*",
-        "spatie/pdf-to-text": "*",
+        "smalot/pdfparser": "^2.11",
+        "spatie/pdf-to-text": "^1.6",
         "tightenco/ziggy": "^2.4"
     },
     "require-dev": {

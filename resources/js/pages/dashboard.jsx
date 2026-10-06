@@ -27,6 +27,8 @@ import {
   FiFolder,
   FiMail,
   FiLayers,
+  FiArrowUpRight,
+  FiArrowDownRight,
 } from 'react-icons/fi';
 
 import AuthenticatedLayout from '../layouts/AuthenticatedLayout';
@@ -36,7 +38,19 @@ const Dashboard = () => {
   const user = auth?.user;
 
   // Extract dashboard data from props
-  const { role, job_seeker, admin_staff } = dashboardData || {};
+  const { role, job_seeker, admin_staff, permissions = [] } = dashboardData || {};
+
+  const hasPermission = (perm) => {
+    if (!Array.isArray(permissions)) return false;
+    if (permissions.includes('*') || permissions.includes('dashboard.admin') || permissions.includes('dashboard.*')) return true;
+    return permissions.includes(perm);
+  };
+
+  const canViewCms = hasPermission('cms.dashboard') || hasPermission('cms.view') || hasPermission('blogs.view') || hasPermission('programs.view') || hasPermission('publications.view') || hasPermission('about.view');
+  const canViewNewsletter = hasPermission('newsletter.view');
+  const canViewStatistics = hasPermission('dashboard.admin') || hasPermission('dashboard.employer') || hasPermission('statistics.view');
+  const canViewUsers = hasPermission('users.view');
+  const canViewJobs = hasPermission('jobs.view') || hasPermission('listing.view');
 
   const [greeting, setGreeting] = useState('');
   useEffect(() => {
@@ -233,16 +247,18 @@ const Dashboard = () => {
 
     if (role === 'admin' || role === 'staff') {
       actions.push(
-        { icon: FiUsers, label: 'Manage Users', color: 'from-blue-500 to-blue-600', onClick: () => window.location.href = '/backend/users' },
-        { icon: FiBriefcase, label: 'Manage Jobs', color: 'from-green-500 to-emerald-600', onClick: () => window.location.href = '/backend/listing' },
-        { icon: FiFileText, label: 'Applications', color: 'from-purple-500 to-purple-600', onClick: () => window.location.href = '/backend/applications' },
-        { icon: FiBarChart2, label: 'Statistics', color: 'from-orange-500 to-red-600', onClick: () => window.location.href = '/backend/statistics' },
-        { icon: FiBookOpen, label: 'CMS', color: 'from-pink-500 to-rose-600', onClick: () => window.location.href = '/backend/cms' },
-        { icon: FiMail, label: 'Newsletter', color: 'from-indigo-500 to-purple-600', onClick: () => window.location.href = '/backend/newsletter' }
+        { icon: FiUsers, label: 'Manage Users', color: 'from-blue-500 to-blue-600', onClick: () => window.location.href = '/backend/users', permission: 'users.view' },
+        { icon: FiBriefcase, label: 'Manage Jobs', color: 'from-green-500 to-emerald-600', onClick: () => window.location.href = '/backend/listing', permission: 'jobs.view' },
+        { icon: FiFileText, label: 'Applications', color: 'from-purple-500 to-purple-600', onClick: () => window.location.href = '/backend/applications', permission: 'applications.view' },
+        { icon: FiBarChart2, label: 'Statistics', color: 'from-orange-500 to-red-600', onClick: () => window.location.href = '/backend/statistics', permission: 'dashboard.admin' },
+        { icon: FiBookOpen, label: 'CMS', color: 'from-pink-500 to-rose-600', onClick: () => window.location.href = '/backend/cms', permission: 'cms.dashboard' },
+        { icon: FiMail, label: 'Newsletter', color: 'from-indigo-500 to-purple-600', onClick: () => window.location.href = '/backend/newsletter', permission: 'newsletter.view' }
       );
     }
 
-    return actions.slice(0, 4);
+    return actions
+      .filter(action => !action.permission || hasPermission(action.permission))
+      .slice(0, 4);
   };
 
   // Get stats based on role
@@ -389,7 +405,7 @@ const Dashboard = () => {
       )}
 
       {/* Top Jobs for Admin - Responsive */}
-      {role !== 'job_seeker' && admin_staff?.top_jobs?.length > 0 && (
+      {canViewJobs && role !== 'job_seeker' && admin_staff?.top_jobs?.length > 0 && (
         <div className="mb-4 sm:mb-6 md:mb-8 animate-fade-in-up animation-delay-500">
           <div className="flex items-center justify-between mb-3 sm:mb-4">
             <h2 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">Top Jobs</h2>
@@ -421,7 +437,7 @@ const Dashboard = () => {
       )}
 
       {/* CMS Overview for Admin - Responsive */}
-      {role !== 'job_seeker' && (() => {
+      {canViewCms && role !== 'job_seeker' && (() => {
         const cmsStats = buildCmsStats();
         if (!cmsStats) return null;
         return (
@@ -449,7 +465,7 @@ const Dashboard = () => {
       })()}
 
       {/* Newsletter Overview for Admin - Responsive */}
-      {role !== 'job_seeker' && (() => {
+      {canViewNewsletter && role !== 'job_seeker' && (() => {
         const newsletterStats = buildNewsletterStats();
         if (!newsletterStats) return null;
         return (
@@ -469,6 +485,107 @@ const Dashboard = () => {
                   <p className="text-xs text-gray-500 dark:text-gray-400">{stat.title}</p>
                   <p className="text-sm font-semibold text-gray-900 dark:text-white">{stat.value}</p>
                   {stat.description && <p className="text-[10px] text-gray-400 mt-0.5">{stat.description}</p>}
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* Platform Health Summary for Admin - Responsive */}
+      {canViewStatistics && role !== 'job_seeker' && admin_staff?.pipeline && (() => {
+        const pipeline = admin_staff.pipeline || {};
+        const ats = admin_staff?.ats || {};
+        const applicants = admin_staff?.applicants || {};
+
+        const healthItems = [
+          { label: 'Pending Apps', value: pipeline.pending_total || 0, sub: `${pipeline.pending_unreviewed || 0} unreviewed`, color: 'from-yellow-500 to-orange-600' },
+          { label: 'Avg Response', value: pipeline.avg_hours_to_shortlist ? `${pipeline.avg_hours_to_shortlist}h` : '-', sub: 'to shortlist', color: 'from-blue-500 to-cyan-600' },
+          { label: 'Stale Rate', value: pipeline.stale_rate ? `${pipeline.stale_rate}%` : '0%', sub: 'older than 7d', color: 'from-red-500 to-pink-600' },
+          { label: 'ATS Success', value: ats.success_rate ? `${ats.success_rate}%` : '-', sub: `${ats.completed || 0} scored`, color: 'from-green-500 to-emerald-600' },
+          { label: 'Active CVs', value: applicants.with_active_cv || 0, sub: `${applicants.cv_upload_rate || 0}% upload rate`, color: 'from-purple-500 to-pink-600' },
+          { label: 'Repeat Seekers', value: applicants.repeat_applicants_30d || 0, sub: 'in 30 days', color: 'from-indigo-500 to-purple-600' },
+        ];
+
+        return (
+          <div className="mb-4 sm:mb-6 md:mb-8 animate-fade-in-up animation-delay-500">
+            <h2 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-3 sm:mb-4">Platform Health</h2>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3">
+              {healthItems.map((item, idx) => (
+                <div key={idx} className="bg-white dark:bg-gray-800 rounded-xl p-3 sm:p-4 shadow-md hover:shadow-lg transition-all duration-300">
+                  <div className={`inline-flex items-center justify-center w-8 h-8 rounded-lg bg-linear-to-br ${item.color} text-white mb-2`}>
+                    <FiActivity className="w-4 h-4" />
+                  </div>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">{item.label}</p>
+                  <p className="text-sm font-semibold text-gray-900 dark:text-white">{item.value}</p>
+                  <p className="text-[10px] text-gray-400 mt-0.5">{item.sub}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* Top Employers for Admin - Responsive */}
+      {canViewUsers && role !== 'job_seeker' && admin_staff?.top_employers?.length > 0 && (
+        <div className="mb-4 sm:mb-6 md:mb-8 animate-fade-in-up animation-delay-500">
+          <div className="flex items-center justify-between mb-3 sm:mb-4">
+            <h2 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">Top Employers</h2>
+            <a href="/backend/users" className="text-xs sm:text-sm text-blue-600 hover:text-blue-700 font-medium">
+              View all →
+            </a>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+            {admin_staff.top_employers.slice(0, 3).map((employer) => (
+              <div key={employer.id} className="bg-white dark:bg-gray-800 rounded-xl p-4 sm:p-5 shadow-md hover:shadow-lg transition-all duration-300">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-linear-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-semibold shrink-0">
+                    {employer.name?.charAt(0) || 'E'}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-semibold text-gray-900 dark:text-white text-sm sm:text-base truncate">{employer.name}</h3>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      {employer.active_jobs || 0} active jobs • {employer.applications_count || 0} apps
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 mt-3 pt-3 border-t border-gray-100 dark:border-gray-700 text-[10px] sm:text-xs text-gray-500">
+                  <span>📋 {employer.job_listings_count || 0} total jobs</span>
+                  <span>📈 {employer.response_rate || 0}% response</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Period Comparison for Admin - Responsive */}
+      {canViewStatistics && role !== 'job_seeker' && admin_staff?.comparison && (() => {
+        const comp = admin_staff.comparison;
+        const metrics = [
+          { label: 'Applications', current: comp.applications?.current, previous: comp.applications?.previous, change: comp.applications?.change },
+          { label: 'Job Views', current: comp.views?.current, previous: comp.views?.previous, change: comp.views?.change },
+          { label: 'New Jobs', current: comp.jobs?.current, previous: comp.jobs?.previous, change: comp.jobs?.change },
+          { label: 'Signups', current: comp.signups?.current, previous: comp.signups?.previous, change: comp.signups?.change },
+        ];
+
+        return (
+          <div className="mb-4 sm:mb-6 md:mb-8 animate-fade-in-up animation-delay-500">
+            <h2 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-3 sm:mb-4">Period Comparison</h2>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
+              {metrics.map((item, idx) => (
+                <div key={idx} className="bg-white dark:bg-gray-800 rounded-xl p-3 sm:p-4 shadow-md hover:shadow-lg transition-all duration-300">
+                  <p className="text-xs text-gray-500 dark:text-gray-400">{item.label}</p>
+                  <div className="flex items-end gap-2 mt-1">
+                    <p className="text-sm font-semibold text-gray-900 dark:text-white">{item.current || 0}</p>
+                    {item.change !== null && item.change !== undefined && (
+                      <span className={`text-[10px] font-medium flex items-center gap-0.5 ${item.change >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        {item.change >= 0 ? <FiArrowUpRight size={10} /> : <FiArrowDownRight size={10} />}
+                        {Math.abs(item.change)}%
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-[10px] text-gray-400 mt-0.5">prev: {item.previous || 0}</p>
                 </div>
               ))}
             </div>
