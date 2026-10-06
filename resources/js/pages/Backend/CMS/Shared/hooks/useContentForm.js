@@ -47,6 +47,9 @@ export const useContentForm = ({
   useEffect(() => {
     if (initialData && Object.keys(errors).length > 0) {
       const flashErrors = (window.__INERTIA_LAZY_DATA || {}).props?.errors;
+      if (flashErrors) {
+        setErrors(flashErrors);
+      }
     }
   }, [initialData, errors]);
 
@@ -138,6 +141,7 @@ export const useContentForm = ({
     if (files && files[0]) {
       processImageFile(files[0]);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleFileSelect = useCallback((e) => {
@@ -146,6 +150,7 @@ export const useContentForm = ({
       processImageFile(file);
     }
     e.target.value = '';
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const processImageFile = useCallback(async (file) => {
@@ -305,7 +310,7 @@ export const useContentForm = ({
       deleteEditorImages();
     }
     router.visit(window.route(indexRoute), { preserveScroll: true });
-  }, [indexRoute, deleteEditorImages]);
+  }, [indexRoute, deleteEditorImages, uploadedEditorImages]);
 
   // ------- Sync server-side validation errors into local state -------
   useEffect(() => {
@@ -315,6 +320,8 @@ export const useContentForm = ({
     if (errors && Object.keys(errors).length > 0) {
       setErrors(errors);
     }
+    // Intentionally runs once on mount to sync initial server-side errors.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return {

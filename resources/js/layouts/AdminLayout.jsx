@@ -44,7 +44,9 @@ const AdminLayout = ({ children }) => {
   useEffect(() => {
     try {
       localStorage.setItem('admin_sidebar_collapsed', JSON.stringify(isCollapsed));
-    } catch {}
+    } catch {
+      // ignore localStorage errors
+    }
   }, [isCollapsed]);
 
   // USER DATA
