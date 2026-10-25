@@ -57,6 +57,7 @@ const PageBannerSkeleton = ({ paddingX, paddingY }) => (
 const PageBannerSection = ({
   data,
   bannerData,
+  pageBanner,
   pageBannerSection,
   loading = false,               // ← NEW
   bgColor = '',
@@ -87,7 +88,7 @@ const PageBannerSection = ({
   // ============================================
   // RESOLVE DATA
   // ============================================
-  let resolvedData = data || bannerData || pageBannerSection;
+  let resolvedData = data || bannerData || pageBanner || pageBannerSection;
 
   if (resolvedData?.data && typeof resolvedData.data === 'object') {
     resolvedData = resolvedData.data;
