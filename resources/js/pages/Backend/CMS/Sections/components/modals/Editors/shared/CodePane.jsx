@@ -1,13 +1,13 @@
 // resources/js/pages/Backend/CMS/Sections/components/modals/Editors/shared/CodePane.jsx
 
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { memo, useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { FaExclamationTriangle } from 'react-icons/fa';
-import { FaAlignLeft, FaWandMagicSparkles } from 'react-icons/fa6';
+import { FaWandMagicSparkles } from 'react-icons/fa6';
 import { highlight } from './codeHighlight';
 import { formatCode } from './formatCode';
 
-// Both layers must agree on every metric that affects glyph position, otherwise
-// the caret drifts away from the character it is supposed to sit on.
+// The highlight layer and the textarea must agree on every metric that affects
+// glyph position, otherwise the caret drifts away from the character it sits on.
 const CODE_FONT = {
   fontFamily:
     'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
@@ -22,8 +22,19 @@ const CODE_FONT = {
 };
 
 const INDENT = '  ';
-const PAIR_CLOSERS = { '(': ')', '[': ']', '{': '}', '"': '"', "'": "'" };
+const PAIRS = { '(': ')', '[': ']', '{': '}', '"': '"', "'": "'" };
+const CLOSERS = new Set(Object.values(PAIRS));
+const BRACKETS = { '(': ')', '[': ']', '{': '}' };
+const VOID_TAGS = new Set([
+  'area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input',
+  'link', 'meta', 'param', 'source', 'track', 'wbr',
+]);
+// Lazy attribute match so `<br />` is seen as self-closing.
+const OPEN_TAG = /<([A-Za-z][\w:-]*)(?:\s[^<>]*?)?(\/?)>$/;
 
+// ------------------------------------------------------------------
+// Text helpers
+// ------------------------------------------------------------------
 const countLines = (value) => {
   let lines = 1;
   for (let i = 0; i < value.length; i += 1) {
@@ -32,7 +43,80 @@ const countLines = (value) => {
   return lines;
 };
 
+// lastIndexOf('\n', -1) matches index 0, so position 0 needs its own case.
+const lineStartOf = (text, position) =>
+  position === 0 ? 0 : text.lastIndexOf('\n', position - 1) + 1;
+
 const leadingWhitespace = (line) => /^[ \t]*/.exec(line)[0];
+
+const locate = (text, position) => {
+  let line = 1;
+  let last = -1;
+  for (let i = text.indexOf('\n'); i !== -1 && i < position; i = text.indexOf('\n', i + 1)) {
+    line += 1;
+    last = i;
+  }
+  return { line, column: position - last };
+};
+
+const isOpeningTag = (textBeforeCaret) => {
+  const match = OPEN_TAG.exec(textBeforeCaret.trimEnd());
+  return Boolean(match) && !match[2] && !VOID_TAGS.has(match[1].toLowerCase());
+};
+
+/** Indent / outdent every line touched by the selection. */
+const shiftLines = (text, start, end, outdent) => {
+  // A selection ending right after a newline does not include the next line.
+  const effectiveEnd = end > start && text[end - 1] === '\n' ? end - 1 : end;
+  const from = lineStartOf(text, start);
+  const newline = text.indexOf('\n', effectiveEnd);
+  const to = newline === -1 ? text.length : newline;
+
+  let firstDelta = 0;
+  let total = 0;
+
+  const lines = text
+    .slice(from, to)
+    .split('\n')
+    .map((line, index) => {
+      let next;
+      if (outdent) next = line.replace(/^(?: {1,2}|\t)/, '');
+      else next = line.length === 0 ? line : INDENT + line;
+
+      const delta = next.length - line.length;
+      if (index === 0) firstDelta = delta;
+      total += delta;
+      return next;
+    });
+
+  return {
+    from,
+    to,
+    text: lines.join('\n'),
+    changed: total !== 0,
+    selStart: Math.max(from, start + firstDelta),
+    selEnd: Math.max(from, end + total),
+  };
+};
+
+// ------------------------------------------------------------------
+// Line-number gutter (memoised: only re-renders when its props change)
+// ------------------------------------------------------------------
+const Gutter = memo(function Gutter({ count, active }) {
+  return (
+    <div
+      aria-hidden="true"
+      className="sticky left-0 z-10 min-w-12 shrink-0 select-none border-r border-[#3c3c3c] bg-[#1e1e1e] px-2 py-3 text-right text-[#6a737d]"
+      style={CODE_FONT}
+    >
+      {Array.from({ length: count }, (_, i) => (
+        <div key={i} className={i + 1 === active ? 'text-[#c6c6c6]' : undefined}>
+          {i + 1}
+        </div>
+      ))}
+    </div>
+  );
+});
 
 const CodePane = ({
   language = 'html',
@@ -43,21 +127,21 @@ const CodePane = ({
   onCaret,
   height = 320,
   actions = null,
-  headerHint = null,
+  headerHint = null, // shown in the footer bar
 }) => {
-  const preRef = useRef(null);
-  const gutterRef = useRef(null);
   const internalRef = useRef(null);
+  const pendingSelectionRef = useRef(null);
 
-  const [wrap, setWrap] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [status, setStatus] = useState({ line: 1, column: 1 });
 
   const source = typeof value === 'string' ? value : '';
   const lineCount = useMemo(() => countLines(source), [source]);
+  const highlighted = useMemo(() => highlight(source, language), [source, language]);
 
-  const html = useMemo(() => highlight(source, language), [source, language]);
+  // A trailing newline collapses inside <pre>, so give that last line a glyph.
+  const layerHtml = highlighted + (source === '' || source.endsWith('\n') ? ' ' : '');
 
   const setTextareaRef = useCallback(
     (node) => {
@@ -68,151 +152,218 @@ const CodePane = ({
     [textareaRef]
   );
 
-  /** The textarea is the only scroller; the highlight layer and gutter follow. */
-  const syncScroll = useCallback((event) => {
-    const { scrollTop, scrollLeft } = event.currentTarget;
-    if (preRef.current) {
-      preRef.current.scrollTop = scrollTop;
-      preRef.current.scrollLeft = scrollLeft;
-    }
-    if (gutterRef.current) gutterRef.current.scrollTop = scrollTop;
+  // ------------------------------------------------------------------
+  // Caret reporting
+  // ------------------------------------------------------------------
+  const updateStatus = useCallback((el) => {
+    const position = el.selectionDirection === 'backward' ? el.selectionStart : el.selectionEnd;
+    const { line, column } = locate(el.value, position ?? 0);
+    setStatus((prev) => (prev.line === line && prev.column === column ? prev : { line, column }));
   }, []);
 
   const reportCaret = useCallback(
     (event) => {
-      const el = event.currentTarget;
-      const upto = el.value.slice(0, el.selectionStart ?? 0);
-      const breaks = upto.split('\n');
-      setStatus({ line: breaks.length, column: breaks[breaks.length - 1].length + 1 });
+      updateStatus(event.currentTarget);
       if (onCaret) onCaret(event);
     },
-    [onCaret]
+    [onCaret, updateStatus]
   );
 
-  const emit = useCallback(
-    (next, caret) => {
-      onChange(next);
-      if (caret === undefined) return;
-      window.requestAnimationFrame(() => {
-        const el = internalRef.current;
-        if (!el) return;
-        el.focus();
-        el.setSelectionRange(caret, caret);
-      });
+  const handleChange = useCallback(
+    (event) => {
+      onChange(event.target.value);
+      setError((prev) => (prev ? '' : prev));
+      reportCaret(event);
     },
-    [onChange]
+    [onChange, reportCaret]
   );
 
-  const indentLines = useCallback(
-    (text, start, end, outdent) => {
-      const from = text.lastIndexOf('\n', start - 1) + 1;
-      const lineEnd = text.indexOf('\n', end) === -1 ? text.length : text.indexOf('\n', end);
-      const block = text.slice(from, lineEnd);
-      const shifted = block
-        .split('\n')
-        .map((line) => {
-          if (outdent) return line.replace(/^[ \t]{1,2}/, '');
-          return line.length === 0 ? line : INDENT + line;
-        })
-        .join('\n');
-      const delta = shifted.length - block.length;
+  // Restore the selection after the fallback (non-execCommand) path re-rendered.
+  useLayoutEffect(() => {
+    const pending = pendingSelectionRef.current;
+    const el = internalRef.current;
+    if (!pending || !el) return;
+    pendingSelectionRef.current = null;
+    el.setSelectionRange(pending.start, pending.end);
+    updateStatus(el);
+    if (onCaret) onCaret({ currentTarget: el });
+  }, [source, onCaret, updateStatus]);
 
-      return {
-        text: text.slice(0, from) + shifted + text.slice(lineEnd),
-        caret: Math.max(from, end + delta),
-      };
+  // ------------------------------------------------------------------
+  // Editing. execCommand keeps the browser's native undo stack intact;
+  // replacing the value through React would wipe it on every keystroke.
+  // ------------------------------------------------------------------
+  const applyEdit = useCallback(
+    (from, to, insert, selStart, selEnd = selStart) => {
+      const el = internalRef.current;
+      if (!el) return;
+
+      el.focus();
+      el.setSelectionRange(from, to);
+
+      let done = false;
+      try {
+        done =
+          insert === ''
+            ? document.execCommand('delete')
+            : document.execCommand('insertText', false, insert);
+      } catch {
+        done = false;
+      }
+
+      if (!done) {
+        const text = el.value;
+        pendingSelectionRef.current = { start: selStart, end: selEnd };
+        onChange(text.slice(0, from) + insert + text.slice(to));
+        return;
+      }
+
+      el.setSelectionRange(selStart, selEnd);
+      updateStatus(el);
+      if (onCaret) onCaret({ currentTarget: el });
     },
-    []
+    [onCaret, onChange, updateStatus]
+  );
+
+  const moveCaret = useCallback(
+    (el, position) => {
+      el.setSelectionRange(position, position);
+      updateStatus(el);
+      if (onCaret) onCaret({ currentTarget: el });
+    },
+    [onCaret, updateStatus]
   );
 
   const handleKeyDown = useCallback(
     (event) => {
+      if (event.nativeEvent.isComposing || event.keyCode === 229) return;
+
+      const altGraph = event.getModifierState?.('AltGraph');
+      if ((event.ctrlKey || event.metaKey || event.altKey) && !altGraph) return;
+
       const el = event.currentTarget;
       const { selectionStart: start, selectionEnd: end, value: text } = el;
+      const { key } = event;
 
-      if (event.key === 'Tab') {
-        const multiline = text.slice(start, end).includes('\n');
-
-        if (event.shiftKey || multiline) {
-          event.preventDefault();
-          const result = indentLines(text, start, end, event.shiftKey);
-          emit(result.text, result.caret);
-          return;
-        }
-
+      // ---- Tab / Shift+Tab -------------------------------------------
+      if (key === 'Tab') {
         event.preventDefault();
-        emit(`${text.slice(0, start)}${INDENT}${text.slice(end)}`, start + INDENT.length);
-        return;
-      }
 
-      if (event.key === 'Enter') {
-        event.preventDefault();
-        const lineStart = text.lastIndexOf('\n', start - 1) + 1;
-        const currentLine = text.slice(lineStart, start);
-        let indent = leadingWhitespace(currentLine);
-
-        // An opening brace opens a new level, matching how CSS blocks read.
-        if (/[{(]\s*$/.test(currentLine)) indent += INDENT;
-
-        const insert = `\n${indent}`;
-        emit(text.slice(0, start) + insert + text.slice(end), start + insert.length);
-        return;
-      }
-
-      if (event.key === 'Backspace' && start === end && start > 0) {
-        const before = text.slice(start - 1, start);
-        const after = text[start];
-
-        if (INDENT.startsWith(before) && (after === ' ' || after === undefined)) {
-          const target = before === '\t' ? 1 : before === '  ' ? 2 : 1;
-          const from = start - target;
-          if (leadingWhitespace(text.slice(0, start)) === text.slice(from, start)) {
-            event.preventDefault();
-            emit(text.slice(0, from) + text.slice(end), from);
+        if (event.shiftKey || start !== end) {
+          const result = shiftLines(text, start, end, event.shiftKey);
+          if (result.changed) {
+            applyEdit(result.from, result.to, result.text, result.selStart, result.selEnd);
           }
           return;
         }
 
-        const closer = PAIR_CLOSERS[before];
-        if (closer && after === closer) {
+        applyEdit(start, end, INDENT, start + INDENT.length);
+        return;
+      }
+
+      // ---- Enter ------------------------------------------------------
+      if (key === 'Enter') {
+        event.preventDefault();
+
+        const beforeCaret = text.slice(lineStartOf(text, start), start);
+        const baseIndent = leadingWhitespace(beforeCaret);
+        const prev = text[start - 1];
+
+        const opensBracket = Boolean(BRACKETS[prev]);
+        const opensTag = language === 'html' && isOpeningTag(beforeCaret);
+
+        const sitsBetweenPair =
+          start === end &&
+          ((opensBracket && text[end] === BRACKETS[prev]) ||
+            (opensTag && text.slice(end).startsWith('</')));
+
+        if (sitsBetweenPair) {
+          const inner = `\n${baseIndent}${INDENT}`;
+          applyEdit(start, end, `${inner}\n${baseIndent}`, start + inner.length);
+          return;
+        }
+
+        const insert = `\n${baseIndent}${opensBracket || opensTag ? INDENT : ''}`;
+        applyEdit(start, end, insert, start + insert.length);
+        return;
+      }
+
+      // ---- Backspace --------------------------------------------------
+      if (key === 'Backspace' && start === end && start > 0) {
+        const beforeCaret = text.slice(lineStartOf(text, start), start);
+
+        // Only spaces before the caret: delete back to the previous indent stop.
+        if (/^ +$/.test(beforeCaret)) {
+          const remove = beforeCaret.length % INDENT.length || INDENT.length;
           event.preventDefault();
-          emit(text.slice(0, start - 1) + text.slice(end), start - 1);
+          applyEdit(start - remove, start, '', start - remove);
+          return;
+        }
+
+        // Empty pair like (|) or "|": remove both characters.
+        if (PAIRS[text[start - 1]] && PAIRS[text[start - 1]] === text[start]) {
+          event.preventDefault();
+          applyEdit(start - 1, start + 1, '', start - 1);
         }
         return;
       }
 
-      const closer = PAIR_CLOSERS[event.key];
-      if (!closer) return;
+      if (key.length !== 1) return;
 
-      // Type-over: skip the closer that was auto-inserted for us.
-      if (closer === event.key && start === end && text[start] === closer) {
+      // ---- Type over a closer that is already there -------------------
+      if (CLOSERS.has(key) && start === end && text[start] === key) {
         event.preventDefault();
-        emit(text, start + 1);
+        moveCaret(el, start + 1);
         return;
       }
 
-      if (start !== end) return;
+      const closer = PAIRS[key];
+      if (!closer) return;
+
+      // ---- Wrap the selection ----------------------------------------
+      if (start !== end) {
+        event.preventDefault();
+        applyEdit(start, end, `${key}${text.slice(start, end)}${closer}`, start + 1, end + 1);
+        return;
+      }
+
+      // ---- Auto-close ---------------------------------------------------
+      const isQuote = key === '"' || key === "'";
+      if (isQuote && /\w/.test(text[start - 1] ?? '')) return; // don't, it's, closing quote
 
       const next = text[start];
-      const safeAfter = next === undefined || /[\s>)\]},]/.test(next);
-      if (!safeAfter) return;
+      if (next !== undefined && !/[\s<>)\]},;]/.test(next)) return;
 
       event.preventDefault();
-      emit(`${text.slice(0, start)}${event.key}${closer}${text.slice(end)}`, start + 1);
+      applyEdit(start, start, `${key}${closer}`, start + 1);
     },
-    [emit, indentLines]
+    [applyEdit, language, moveCaret]
   );
 
+  // ------------------------------------------------------------------
+  // Format
+  // ------------------------------------------------------------------
   const handleFormat = useCallback(async () => {
     if (busy) return;
+    const snapshot = source;
+    if (snapshot.trim() === '') return;
+
     setBusy(true);
     setError('');
 
     try {
-      const formatted = await formatCode(source, language);
-      if (formatted !== source) {
-        onChange(formatted);
-        window.requestAnimationFrame(() => internalRef.current?.focus());
+      const formatted = await formatCode(snapshot, language);
+      const el = internalRef.current;
+      if (!el) return;
+
+      if (el.value !== snapshot) {
+        setError('The code changed while formatting, so the result was discarded. Run Format again.');
+        return;
+      }
+
+      if (formatted !== snapshot) {
+        const caret = Math.min(el.selectionStart ?? 0, formatted.length);
+        applyEdit(0, snapshot.length, formatted, caret);
       }
     } catch (e) {
       setError(
@@ -223,21 +374,17 @@ const CodePane = ({
     } finally {
       setBusy(false);
     }
-  }, [busy, language, onChange, source]);
+  }, [applyEdit, busy, language, source]);
 
-  useEffect(() => {
-    if (wrap) {
-      if (preRef.current) preRef.current.style.whiteSpace = 'pre-wrap';
-      return;
-    }
-    if (preRef.current) preRef.current.style.whiteSpace = 'pre';
-  }, [wrap]);
-
-  // The highlight layer is re-derived from `source` on every render, so it stays
-  // in step with changes that never came through the textarea (snippet buttons,
-  // the formatter, "Load example").
+  // ------------------------------------------------------------------
+  // Render
+  //
+  // One scroll container holds the gutter, the highlight layer and the
+  // textarea. The highlight layer defines the size and the textarea is laid
+  // over it, so nothing needs scroll syncing and nothing can drift.
+  // ------------------------------------------------------------------
   return (
-    <div className="overflow-hidden rounded-lg border border-[#3c3c3c] bg-[#1e1e1e] shadow-sm">
+    <div className="overflow-hidden rounded-lg border border-[#3c3c3c] bg-[#1e1e1e] shadow-sm transition-colors focus-within:border-[#007acc]">
       <div className="flex flex-wrap items-center gap-2 border-b border-[#3c3c3c] bg-[#252526] px-2 py-1.5">
         <span className="font-mono text-[11px] font-semibold uppercase tracking-wide text-[#9cdcfe]">
           {label}
@@ -255,18 +402,6 @@ const CodePane = ({
           {busy ? 'Formatting…' : 'Format'}
         </button>
 
-        <button
-          type="button"
-          onMouseDown={(e) => e.preventDefault()}
-          onClick={() => setWrap((prev) => !prev)}
-          title={wrap ? 'Disable word wrap' : 'Enable word wrap'}
-          className={`rounded p-1 transition hover:bg-[#3c3c3c] ${
-            wrap ? 'text-[#4fc1ff]' : 'text-[#858585] hover:text-white'
-          }`}
-        >
-          <FaAlignLeft size={10} />
-        </button>
-
         {actions}
 
         <span className="ml-auto font-mono text-[10px] text-[#858585]">
@@ -274,61 +409,58 @@ const CodePane = ({
         </span>
       </div>
 
-      <div className="flex" style={{ height }}>
-        <div
-          ref={gutterRef}
-          aria-hidden="true"
-          className="shrink-0 select-none overflow-hidden border-r border-[#3c3c3c] bg-[#1e1e1e] px-2 text-right text-[#6a737d]"
-          style={{ ...CODE_FONT, lineHeight: '20px' }}
-        >
-          {Array.from({ length: lineCount }, (_, i) => (
-            <div key={i}>{i + 1}</div>
-          ))}
-        </div>
+      <div style={{ height }}>
+        <div className="h-full overflow-auto scheme-dark">
+          <div className="relative flex min-h-full w-max min-w-full">
+            <Gutter count={lineCount} active={status.line} />
 
-        <div className="relative min-w-0 flex-1">
-          <pre
-            ref={preRef}
-            aria-hidden="true"
-            className="pointer-events-none absolute inset-0 m-0 overflow-hidden p-3 text-[#d4d4d4]"
-            style={CODE_FONT}
-          >
-            <code dangerouslySetInnerHTML={{ __html: html || ' ' }} />
-          </pre>
+            <div className="relative flex-1">
+              <pre
+                aria-hidden="true"
+                className="pointer-events-none m-0 block p-3 pr-6 text-[#d4d4d4]"
+                style={CODE_FONT}
+              >
+                <code style={CODE_FONT} dangerouslySetInnerHTML={{ __html: layerHtml }} />
+              </pre>
 
-          <textarea
-            ref={setTextareaRef}
-            value={source}
-            onChange={(event) => onChange(event.target.value)}
-            onScroll={syncScroll}
-            onSelect={reportCaret}
-            onKeyUp={reportCaret}
-            onClick={reportCaret}
-            onFocus={reportCaret}
-            onKeyDown={handleKeyDown}
-            wrap="off"
-            spellCheck={false}
-            autoCapitalize="off"
-            autoCorrect="off"
-            aria-label={label}
-            placeholder=""
-            className="absolute inset-0 h-full w-full resize-none overflow-auto border-0 bg-transparent p-3 text-transparent caret-[#d4d4d4] outline-none"
-            style={CODE_FONT}
-          />
+              <textarea
+                ref={setTextareaRef}
+                value={source}
+                onChange={handleChange}
+                onSelect={reportCaret}
+                onKeyUp={reportCaret}
+                onMouseUp={reportCaret}
+                onFocus={reportCaret}
+                onKeyDown={handleKeyDown}
+                wrap="off"
+                spellCheck={false}
+                autoCapitalize="off"
+                autoCorrect="off"
+                autoComplete="off"
+                data-gramm="false"
+                data-gramm_editor="false"
+                data-enable-grammarly="false"
+                aria-label={label}
+                className="absolute inset-0 m-0 block h-full w-full resize-none overflow-hidden border-0 bg-transparent p-3 pr-6 text-transparent caret-[#d4d4d4] outline-none selection:bg-[#264f78]/70 selection:text-transparent"
+                style={CODE_FONT}
+              />
+            </div>
+          </div>
         </div>
       </div>
 
       <div className="flex items-center gap-3 border-t border-[#3c3c3c] bg-[#007acc] px-2 py-0.5 text-[10px] text-white">
-        <span className="font-mono">
-          {language === 'css' ? 'CSS' : 'HTML'}
-        </span>
+        <span className="font-mono">{language === 'css' ? 'CSS' : 'HTML'}</span>
         <span className="font-mono">{lineCount} lines</span>
         <span className="font-mono">{source.length} chars</span>
         {headerHint && <span className="ml-auto truncate opacity-90">{headerHint}</span>}
       </div>
 
       {error && (
-        <div className="flex items-start gap-1.5 border-t border-[#68217a] bg-[#3b1f47] px-3 py-1.5 text-[11px] text-[#f48771]">
+        <div
+          role="alert"
+          className="flex items-start gap-1.5 border-t border-[#68217a] bg-[#3b1f47] px-3 py-1.5 text-[11px] text-[#f48771]"
+        >
           <FaExclamationTriangle size={11} className="mt-0.5 shrink-0" />
           <span>{error}</span>
         </div>

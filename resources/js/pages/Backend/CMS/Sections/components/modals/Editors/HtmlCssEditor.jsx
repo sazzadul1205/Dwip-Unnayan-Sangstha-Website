@@ -1,6 +1,14 @@
 // resources/js/pages/Backend/CMS/Sections/components/modals/Editors/HtmlCssEditor.jsx
 
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, {
+  useCallback,
+  useDeferredValue,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import {
   FaCode,
   FaEye,
@@ -12,6 +20,9 @@ import {
   FaCompress,
   FaChevronDown,
   FaChevronRight,
+  FaSlidersH,
+  FaInfoCircle,
+  FaTimes,
 } from 'react-icons/fa';
 import { FaWandMagicSparkles } from 'react-icons/fa6';
 import { TextField, SelectField } from './shared/Fields';
@@ -22,7 +33,7 @@ import { useSectionEditor } from './shared/useSectionEditor';
 import HtmlCssSection from '../../../../../../../Sections/HtmlCssSection/HtmlCssSection';
 
 // ============================================
-// STARTER SNIPPET ("Load example" button)
+// STARTER SNIPPETS ("Example" button)
 // ============================================
 const EXAMPLE_HTML = `<div class="dus-feature">
   <h2>Built with plain HTML &amp; CSS</h2>
@@ -88,7 +99,9 @@ const DEFAULT_DATA = {
 };
 
 const SNIPPET_BUTTON_CLASS =
-  'rounded px-1.5 py-1 font-mono text-[10px] text-gray-600 transition hover:bg-blue-100 hover:text-blue-700';
+  'rounded-md px-2 py-1 font-mono text-[10px] text-gray-600 transition ' +
+  'hover:bg-blue-100 hover:text-blue-700 focus-visible:outline-none ' +
+  'focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-1';
 
 // ============================================
 // QUICK INSERT BUTTONS
@@ -97,13 +110,7 @@ const QUICK_SNIPPETS = [
   { key: 'div', label: '<div>', before: '\n<div class="my-block">\n  ', after: '\n</div>\n', caretInside: true },
   { key: 'h2', label: '<h2>', before: '\n<h2>', after: '</h2>\n', caretInside: true },
   { key: 'p', label: '<p>', before: '\n<p>', after: '</p>\n', caretInside: true },
-  {
-    key: 'ul',
-    label: '<ul>',
-    before: '\n<ul>\n  ',
-    after: '\n</ul>\n',
-    caretInside: true,
-  },
+  { key: 'ul', label: '<ul>', before: '\n<ul>\n  ', after: '\n</ul>\n', caretInside: true },
   { key: 'a', label: '<a>', before: '\n<a href="/contact">', after: '</a>\n', caretInside: true },
   { key: 'strong', label: '<b>', before: '<strong>', after: '</strong>', caretInside: true },
   { key: 'em', label: '<i>', before: '<em>', after: '</em>', caretInside: true },
@@ -111,29 +118,10 @@ const QUICK_SNIPPETS = [
 
 const QUICK_CSS_SNIPPETS = [
   { key: 'rule', label: '+ rule', before: '\n.my-block {\n  ', after: '\n}\n', caretInside: true },
-  {
-    key: 'hover',
-    label: ':hover',
-    before: '\n.my-block:hover {\n  ',
-    after: '\n}\n',
-    caretInside: true,
-  },
-  {
-    key: 'media',
-    label: '@media',
-    before: '\n@media (max-width: 768px) {\n  ',
-    after: '\n}\n',
-    caretInside: true,
-  },
+  { key: 'hover', label: ':hover', before: '\n.my-block:hover {\n  ', after: '\n}\n', caretInside: true },
+  { key: 'media', label: '@media', before: '\n@media (max-width: 768px) {\n  ', after: '\n}\n', caretInside: true },
 ];
 
-// ============================================
-// TAILWIND QUICK INSERT BUTTONS
-//
-// Every class here is force-generated into the stylesheet by the `@source
-// inline(...)` safelist in resources/css/app.css, so these cannot silently
-// render unstyled the way an arbitrary utility typed into the database would.
-// ============================================
 const TAILWIND_SNIPPETS = [
   {
     key: 'container',
@@ -177,67 +165,116 @@ const TAILWIND_SNIPPETS = [
 // ============================================
 // MARKUP HELPERS
 // ============================================
+
+// For values placed inside an HTML attribute.
 const escapeAttr = (value = '') =>
-  value.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+  value
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
 
-const IMG_SRC_PATTERN = /<img[^>]+src=["']([^"']+)["']/gi;
-const CSS_URL_PATTERN = /url\(\s*['"]?([^'")]+)['"]?\s*\)/gi;
+// For values placed inside a CSS url('...'). CSS is NOT HTML-decoded, so
+// "&" must stay "&" — only quotes, backslashes and newlines need escaping.
+const escapeCssUrl = (value = '') =>
+  value.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/[\r\n]+/g, '');
 
-/**
- * True only for images genuinely hosted somewhere else.
- *
- * Older saves stored absolute URLs from `asset()` (for example
- * "https://dus.org/storage/editor-images/x.png"). Those are same-origin files
- * that already live on this server, so flagging them would send admins off to
- * re-upload images they already have.
- */
+const IMG_SRC_SOURCE = String.raw`<img\b[^>]*?\ssrc\s*=\s*(["'])(.*?)\1`;
+const CSS_URL_SOURCE = String.raw`url\(\s*(['"]?)([^'")]+)\1\s*\)`;
+
 const isExternalImage = (url) => {
-  if (!/^https?:\/\//i.test(url)) return false;
-  if (typeof window === 'undefined' || !window.location?.origin) return true;
-
-  return !url.toLowerCase().startsWith(window.location.origin.toLowerCase());
+  if (!/^(?:https?:)?\/\//i.test(url)) return false;
+  if (typeof window === 'undefined' || !window.location) return true;
+  try {
+    return new URL(url, window.location.href).origin !== window.location.origin;
+  } catch {
+    return true;
+  }
 };
 
-/** Pull every image URL already referenced by the markup / stylesheet. */
 const collectImageUrls = (...texts) => {
   const urls = [];
-
   texts.filter(Boolean).forEach((text) => {
-    [IMG_SRC_PATTERN, CSS_URL_PATTERN].forEach((pattern) => {
-      pattern.lastIndex = 0;
-      let match = pattern.exec(text);
-      while (match) {
-        const url = match[1].trim();
+    [IMG_SRC_SOURCE, CSS_URL_SOURCE].forEach((source) => {
+      for (const match of text.matchAll(new RegExp(source, 'gi'))) {
+        const url = (match[2] || '').trim();
         if (url && !url.startsWith('data:') && !urls.includes(url)) urls.push(url);
-        match = pattern.exec(text);
       }
     });
   });
-
   return urls;
 };
 
-/** Tailwind does not run in this section, so images get plain inline styles. */
 const buildImgTag = ({ url, name }) =>
   `\n<img src="${escapeAttr(url)}" alt="${escapeAttr(name || 'image')}" ` +
   'style="max-width:100%;height:auto;border-radius:12px;display:block;margin:16px auto;" />\n';
 
 const buildCssBackground = ({ url }) =>
-  `\nbackground-image: url('${escapeAttr(url)}');\n` +
+  `\nbackground-image: url('${escapeCssUrl(url)}');\n` +
   'background-size: cover;\nbackground-position: center;\nbackground-repeat: no-repeat;\n';
+
+const sanitizeAnchorId = (value = '') => value.replace(/\s+/g, '-').replace(/[^A-Za-z0-9_-]/g, '');
+
+const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
+
+// eslint-disable-next-line no-alert
+const confirmAction = (message) => (typeof window === 'undefined' ? true : window.confirm(message));
+
+const FORMAT_HINTS = {
+  html: 'look for an unclosed tag or quote',
+  css: 'look for an unclosed brace',
+};
+
+// Shared button classes for the header actions
+const headerActionClass =
+  'inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold ' +
+  'transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 ' +
+  'disabled:cursor-not-allowed disabled:opacity-40';
+
+// ============================================
+// PREVIEW ERROR BOUNDARY
+// A broken snippet must never take the whole editor down.
+// ============================================
+class PreviewBoundary extends React.Component {
+  state = { failed: false };
+
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+
+  componentDidUpdate(prevProps) {
+    if (this.state.failed && prevProps.resetKey !== this.props.resetKey) {
+      this.setState({ failed: false });
+    }
+  }
+
+  render() {
+    if (this.state.failed) {
+      return (
+        <p className="p-6 text-center text-sm text-red-600" role="alert">
+          The preview could not render this markup. Fix the code and it will retry automatically.
+        </p>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 const HtmlCssEditor = ({ section, hasData, onDataChange, onUploadsChange }) => {
   const { formData, updateField, setFormData, isDirty } = useSectionEditor(section, DEFAULT_DATA, onDataChange);
   const [previewKey, setPreviewKey] = useState(0);
   const [formatError, setFormatError] = useState('');
+  const [isFormatting, setIsFormatting] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [collapsed, setCollapsed] = useState({ html: false, css: false });
 
   const cardRef = useRef(null);
   const seededRef = useRef(false);
+  const nativeFsRef = useRef(false);
   const htmlRef = useRef(null);
   const cssRef = useRef(null);
-  const caretRef = useRef({ html: { start: 0, end: 0 }, css: { start: 0, end: 0 } });
+  // null = the user has not placed a caret yet → insert at the end.
+  const caretRef = useRef({ html: null, css: null });
   const pendingCaretRef = useRef(null);
 
   const html = typeof formData.html === 'string' ? formData.html : '';
@@ -245,22 +282,42 @@ const HtmlCssEditor = ({ section, hasData, onDataChange, onUploadsChange }) => {
   const isEmpty = html.trim() === '' && css.trim() === '';
   const useTailwind = formData.useTailwind === true;
 
+  // Always holds the newest values, so async work can detect edits made meanwhile.
+  const latestRef = useRef({ html, css });
+  latestRef.current = { html, css };
+
+  const previewData = useDeferredValue(formData);
+
+  const htmlStats = useMemo(() => ({ lines: html.split('\n').length, chars: html.length }), [html]);
+  const cssStats = useMemo(() => ({ lines: css.split('\n').length, chars: css.length }), [css]);
+
   const togglePane = useCallback((target) => {
     setCollapsed((prev) => ({ ...prev, [target]: !prev[target] }));
   }, []);
 
+  // Switching mode swaps the starter snippet only if the user never edited it.
   const setMode = useCallback(
     (next) => {
-      updateField('useTailwind', next);
+      setFormData((prev) => {
+        const htmlTrim = (prev.html || '').trim();
+        const cssTrim = (prev.css || '').trim();
+        const isCustomStarter = htmlTrim === EXAMPLE_HTML.trim() && cssTrim === EXAMPLE_CSS.trim();
+        const isTailwindStarter = htmlTrim === TAILWIND_EXAMPLE_HTML.trim() && cssTrim === '';
+
+        if (next && isCustomStarter) {
+          return { ...prev, useTailwind: true, html: TAILWIND_EXAMPLE_HTML, css: '' };
+        }
+        if (!next && isTailwindStarter) {
+          return { ...prev, useTailwind: false, html: EXAMPLE_HTML, css: EXAMPLE_CSS };
+        }
+        return { ...prev, useTailwind: next };
+      });
+      caretRef.current = { html: null, css: null };
     },
-    [updateField]
+    [setFormData]
   );
 
-  /**
-   * Open a brand-new section on a ready-made example so the admin starts from
-   * something that already renders. Uses setFormData rather than updateField
-   * because filling a blank section is not an edit the admin has to save.
-   */
+  // Seed a starter snippet for brand-new sections.
   useEffect(() => {
     if (seededRef.current || hasData) return;
     if (typeof formData.html === 'string' && formData.html.trim() !== '') return;
@@ -273,7 +330,6 @@ const HtmlCssEditor = ({ section, hasData, onDataChange, onUploadsChange }) => {
     }));
   }, [formData.html, hasData, setFormData, useTailwind]);
 
-  // Images already referenced by this section — powers the image library.
   const storedImages = useMemo(() => collectImageUrls(html, css), [html, css]);
   const externalImageCount = useMemo(
     () => storedImages.filter(isExternalImage).length,
@@ -282,31 +338,36 @@ const HtmlCssEditor = ({ section, hasData, onDataChange, onUploadsChange }) => {
 
   // ------------------------------------------------------------------
   // Full-screen writing mode
+  // Native Fullscreen API first, fixed-position overlay as a fallback.
   // ------------------------------------------------------------------
   const enterFullscreen = useCallback(async () => {
     const node = cardRef.current;
     if (!node) return;
 
-    try {
-      // The real Fullscreen API escapes the section modal's stacking context.
-      if (node.requestFullscreen) {
+    if (node.requestFullscreen) {
+      try {
         await node.requestFullscreen();
+        nativeFsRef.current = true;
+        setIsFullscreen(true);
         return;
+      } catch {
+        /* fall through to the overlay fallback */
       }
-    } catch {
-      // Denied (or unsupported): the CSS overlay below still works.
     }
+
+    nativeFsRef.current = false;
     setIsFullscreen(true);
   }, []);
 
   const exitFullscreen = useCallback(async () => {
-    try {
-      if (document.fullscreenElement && document.exitFullscreen) {
+    if (nativeFsRef.current && document.fullscreenElement) {
+      try {
         await document.exitFullscreen();
+      } catch {
+        /* ignored */
       }
-    } catch {
-      // Nothing to leave; just clear the flag.
     }
+    nativeFsRef.current = false;
     setIsFullscreen(false);
   }, []);
 
@@ -318,41 +379,64 @@ const HtmlCssEditor = ({ section, hasData, onDataChange, onUploadsChange }) => {
     }
   }, [enterFullscreen, exitFullscreen, isFullscreen]);
 
-  // The browser owns Escape while the native fullscreen is active, so only the
-  // CSS overlay needs a manual handler.
-  useEffect(() => {
-    const onKeyDown = (event) => {
-      if (event.key.toLowerCase() === 'f' && event.ctrlKey && event.shiftKey) {
+  // Ctrl/Cmd + Shift + F — only while focus is inside this editor.
+  const handleCardKeyDown = useCallback(
+    (event) => {
+      if ((event.ctrlKey || event.metaKey) && event.shiftKey && event.code === 'KeyF') {
         event.preventDefault();
         toggleFullscreen();
-        return;
       }
-      if (event.key === 'Escape' && isFullscreen && !document.fullscreenElement) {
-        event.preventDefault();
+    },
+    [toggleFullscreen]
+  );
+
+  // The browser exits native fullscreen on Escape by itself; keep our state in sync.
+  useEffect(() => {
+    const onFullscreenChange = () => {
+      if (nativeFsRef.current && document.fullscreenElement !== cardRef.current) {
+        nativeFsRef.current = false;
         setIsFullscreen(false);
       }
     };
-
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, [isFullscreen, toggleFullscreen]);
-
-  // Leaving full screen from the browser chrome (Esc, F11) still has to reset us.
-  useEffect(() => {
-    const onFullscreenChange = () => {
-      if (!document.fullscreenElement) setIsFullscreen(false);
-    };
-
     document.addEventListener('fullscreenchange', onFullscreenChange);
     return () => document.removeEventListener('fullscreenchange', onFullscreenChange);
   }, []);
 
-  // In full screen the panes take whatever height the viewport can spare.
-  const paneHeight = isFullscreen ? 'calc(100vh - 420px)' : 340;
+  // Overlay fallback: Escape closes it, and the page behind stops scrolling.
+  useEffect(() => {
+    if (!isFullscreen) return undefined;
+
+    const onKeyDown = (event) => {
+      if (event.key === 'Escape' && !nativeFsRef.current && !event.defaultPrevented) {
+        setIsFullscreen(false);
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    return () => {
+      window.removeEventListener('keydown', onKeyDown);
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [isFullscreen]);
+
+  // Leave native fullscreen if the editor unmounts while it is active.
+  useEffect(
+    () => () => {
+      if (nativeFsRef.current && document.fullscreenElement) {
+        document.exitFullscreen?.().catch(() => { });
+      }
+    },
+    []
+  );
+
+  const paneHeight = isFullscreen ? 'max(280px, calc(100vh - 420px))' : 340;
 
   // ------------------------------------------------------------------
-// Cursor-aware insertion into either code box
-// ------------------------------------------------------------------
+  // Cursor-aware insertion into either code box
+  // ------------------------------------------------------------------
   const rememberCaret = useCallback(
     (target) => (event) => {
       const el = event.currentTarget;
@@ -362,23 +446,19 @@ const HtmlCssEditor = ({ section, hasData, onDataChange, onUploadsChange }) => {
     []
   );
 
-  /**
-   * Splices `before + selection + after` into a code box at the selection.
-   * With `caretInside` the caret lands between the tags (so the admin can type
-   * straight away); otherwise it ends up after the whole snippet.
-   */
   const spliceAtSelection = useCallback(
     (target, { before, after = '', caretInside = false }) => {
       const current = target === 'css' ? css : html;
-      const remembered = caretRef.current[target] || { start: current.length, end: current.length };
+      const remembered = caretRef.current[target];
 
-      const start = Math.min(remembered.start ?? current.length, current.length);
-      const end = Math.min(Math.max(remembered.end ?? start, start), current.length);
+      const start = remembered ? clamp(remembered.start, 0, current.length) : current.length;
+      const end = remembered ? clamp(remembered.end, start, current.length) : start;
       const selected = current.slice(start, end);
 
       const next = current.slice(0, start) + before + selected + after + current.slice(end);
-      const insertedEnd = start + before.length + selected.length;
+      if (next === current) return;
 
+      const insertedEnd = start + before.length + selected.length;
       pendingCaretRef.current = {
         target,
         position: caretInside ? insertedEnd : insertedEnd + after.length,
@@ -388,48 +468,39 @@ const HtmlCssEditor = ({ section, hasData, onDataChange, onUploadsChange }) => {
     [css, html, updateField]
   );
 
-  /** Quick-tag buttons: insert a skeleton or wrap the current selection. */
   const applyHtmlSnippet = useCallback(
-    ({ before, after = '', caretInside = false }) => {
-      spliceAtSelection('html', { before, after, caretInside });
-    },
+    (snippet) => spliceAtSelection('html', snippet),
     [spliceAtSelection]
   );
 
   const applyCssSnippet = useCallback(
-    ({ before, after = '', caretInside = false }) => {
-      spliceAtSelection('css', { before, after, caretInside });
-    },
+    (snippet) => spliceAtSelection('css', snippet),
     [spliceAtSelection]
   );
 
-  // An <img> tag only makes sense in the markup, so it always lands in HTML.
   const insertImage = useCallback(
-    (asset) => {
-      spliceAtSelection('html', { before: buildImgTag(asset) });
-    },
+    (asset) => spliceAtSelection('html', { before: buildImgTag(asset) }),
     [spliceAtSelection]
   );
 
   const insertCssBackground = useCallback(
-    (asset) => {
-      spliceAtSelection('css', { before: buildCssBackground(asset) });
-    },
+    (asset) => spliceAtSelection('css', { before: buildCssBackground(asset) }),
     [spliceAtSelection]
   );
 
   const clearBox = useCallback(
     (target) => {
+      const current = target === 'css' ? css : html;
+      if (current === '') return;
+      if (current.trim() !== '' && !confirmAction(`Clear the ${target.toUpperCase()} box? This cannot be undone.`)) {
+        return;
+      }
       pendingCaretRef.current = { target, position: 0 };
       updateField(target, '');
     },
-    [updateField]
+    [css, html, updateField]
   );
 
-  /**
-   * Images are written to disk the moment they are inserted, so the parent
-   * needs the list to reclaim anything this session never saves.
-   */
   const handleUploaded = useCallback(
     (urls) => {
       if (!onUploadsChange || urls.length === 0) return;
@@ -439,55 +510,70 @@ const HtmlCssEditor = ({ section, hasData, onDataChange, onUploadsChange }) => {
   );
 
   const handleInsertExample = useCallback(() => {
-    if (useTailwind) {
-      updateField('html', TAILWIND_EXAMPLE_HTML);
-      updateField('css', '');
-      return;
-    }
-    updateField('html', EXAMPLE_HTML);
-    updateField('css', EXAMPLE_CSS);
-  }, [updateField, useTailwind]);
+    const willOverwrite = useTailwind ? html.trim() !== '' : !isEmpty;
+    if (willOverwrite && !confirmAction('Replace the current code with the starter example?')) return;
 
-  /**
-   * Formats both panes in one pass so the two halves of the section stay in the
-   * same house style. A pane that fails to parse is left exactly as typed.
-   */
-  const handleFormatAll = useCallback(async () => {
-    setFormatError('');
-
-    // The CSS box is not part of the output in Tailwind mode, so only the
-    // markup is worth reformatting.
-    const jobs = useTailwind
-      ? [[html, 'html', 'html']]
-      : [
-          [html, 'html', 'html'],
-          [css, 'css', 'css'],
-        ];
-
-    const results = await Promise.allSettled(
-      jobs.map(([code, language]) => formatCode(code, language))
+    caretRef.current = { html: null, css: null };
+    // One functional update so both fields change together. In Tailwind mode the
+    // saved CSS is left untouched (the UI promises it is kept).
+    setFormData((prev) =>
+      useTailwind
+        ? { ...prev, html: TAILWIND_EXAMPLE_HTML }
+        : { ...prev, html: EXAMPLE_HTML, css: EXAMPLE_CSS }
     );
+  }, [html, isEmpty, setFormData, useTailwind]);
 
-    results.forEach((result, index) => {
-      if (result.status === 'fulfilled') updateField(jobs[index][2], result.value);
-    });
+  const handleFormatAll = useCallback(async () => {
+    if (isFormatting) return;
 
-    const labels = jobs.map(([, , field]) => field.toUpperCase());
-    const failed = labels.filter((_, index) => results[index].status === 'rejected');
+    const snapshot = { html, css };
+    const fields = (useTailwind ? ['html'] : ['html', 'css']).filter(
+      (field) => snapshot[field].trim() !== ''
+    );
+    if (fields.length === 0) return;
 
-    if (failed.length === jobs.length) {
-      setFormatError(`Could not format the ${failed.join(' or the ')} — look for an unclosed tag or brace.`);
-    } else if (failed.length > 0) {
-      setFormatError(
-        `Could not format the ${failed[0]} — ${
-          failed[0] === 'HTML' ? 'look for an unclosed tag or quote.' : 'look for an unclosed brace.'
-        }`
+    setFormatError('');
+    setIsFormatting(true);
+
+    try {
+      const results = await Promise.allSettled(
+        fields.map((field) => formatCode(snapshot[field], field))
       );
-    }
-  }, [css, html, updateField, useTailwind]);
 
-  // Restore the caret once React has written the new value into the textarea.
-  useEffect(() => {
+      const patch = {};
+      const failures = [];
+
+      results.forEach((result, index) => {
+        const field = fields[index];
+        if (result.status === 'rejected') {
+          failures.push(field);
+          return;
+        }
+        // Skip no-ops and anything the user edited while Prettier was running.
+        if (result.value !== snapshot[field] && latestRef.current[field] === snapshot[field]) {
+          patch[field] = result.value;
+        }
+      });
+
+      if (Object.keys(patch).length > 0) {
+        caretRef.current = { html: null, css: null };
+        setFormData((prev) => ({ ...prev, ...patch }));
+      }
+
+      if (failures.length > 0) {
+        setFormatError(
+          failures
+            .map((field) => `Could not format the ${field.toUpperCase()} — ${FORMAT_HINTS[field]}.`)
+            .join(' ')
+        );
+      }
+    } finally {
+      setIsFormatting(false);
+    }
+  }, [css, html, isFormatting, setFormData, useTailwind]);
+
+  // Restore the caret after a programmatic insert (before paint → no flicker).
+  useLayoutEffect(() => {
     const pending = pendingCaretRef.current;
     if (!pending) return;
     pendingCaretRef.current = null;
@@ -500,155 +586,171 @@ const HtmlCssEditor = ({ section, hasData, onDataChange, onUploadsChange }) => {
     caretRef.current[pending.target] = { start: pending.position, end: pending.position };
   }, [html, css]);
 
-  // Start with the caret at the end of the HTML box so the first insert lands
-  // in a sensible place when the admin has not clicked into either textarea yet.
-  useEffect(() => {
-    caretRef.current.html = { start: html.length, end: html.length };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
+  // ------------------------------------------------------------------
+  // Render
+  // ------------------------------------------------------------------
   return (
     <div
       ref={cardRef}
+      onKeyDown={handleCardKeyDown}
       className={
         isFullscreen
-          ? 'fixed inset-0 z-[9999] flex h-screen w-screen flex-col overflow-hidden bg-white p-4'
-          : 'bg-white rounded-lg border border-gray-200 p-4 space-y-4'
+          ? 'fixed inset-0 z-9999 flex h-screen w-screen flex-col gap-4 overflow-hidden bg-gray-50 p-4'
+          : 'space-y-4 rounded-xl border border-gray-200 bg-white p-4 sm:p-5'
       }
     >
       {/* ===== HEADER ===== */}
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="flex items-start gap-2">
-          <FaCode className="text-blue-600 mt-0.5" size={16} />
+      <header className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-linear-to-br from-blue-500 to-indigo-600 text-white shadow-sm shadow-blue-200">
+            <FaCode size={14} />
+          </div>
           <div>
-            <h3 className="text-sm font-semibold text-gray-700">Edit HTML / CSS Section</h3>
-            <p className="text-xs text-gray-400 mt-0.5">
-              {useTailwind ? (
-                <>
-                  <strong className="text-gray-600">Tailwind mode.</strong> Style with the utility classes already
-                  used across the site — the CSS box is not needed.
-                </>
-              ) : (
-                <>
-                  <strong className="text-gray-600">Custom CSS mode.</strong> Tailwind utility classes do{' '}
-                  <strong>not</strong> apply here — the HTML is styled only by the CSS you write below.
-                </>
-              )}
+            <div className="flex items-center gap-2">
+              <h3 className="text-sm font-semibold text-gray-800">HTML / CSS Section</h3>
+              <span
+                aria-live="polite"
+                className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium ring-1 ${isDirty
+                    ? 'bg-amber-50 text-amber-700 ring-amber-200'
+                    : 'bg-emerald-50 text-emerald-700 ring-emerald-200'
+                  }`}
+              >
+                <span
+                  className={`h-1.5 w-1.5 rounded-full ${isDirty ? 'bg-amber-500' : 'bg-emerald-500'}`}
+                />
+                {isDirty ? 'Unsaved' : 'Saved'}
+              </span>
+            </div>
+            <p className="mt-0.5 text-[11px] text-gray-500">
+              {useTailwind
+                ? 'Styling with Tailwind utility classes.'
+                : 'Styling with your own CSS rules.'}
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-1.5">
           <button
             type="button"
             onClick={handleFormatAll}
-            disabled={isEmpty}
-            title="Reformat both the HTML and the CSS with Prettier"
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-emerald-700 bg-emerald-100 hover:bg-emerald-200 transition disabled:cursor-not-allowed disabled:opacity-40"
+            disabled={isEmpty || isFormatting}
+            title="Reformat the code with Prettier"
+            className={`${headerActionClass} bg-emerald-50 text-emerald-700 hover:bg-emerald-100 focus-visible:ring-emerald-400`}
           >
             <FaWandMagicSparkles size={11} />
-            Format all
+            {isFormatting ? 'Formatting…' : 'Format'}
           </button>
           <button
             type="button"
             onClick={handleInsertExample}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-blue-700 bg-blue-100 hover:bg-blue-200 transition"
-            title="Replace the boxes with a small starter snippet"
+            title="Replace the code with a small starter snippet"
+            className={`${headerActionClass} bg-blue-50 text-blue-700 hover:bg-blue-100 focus-visible:ring-blue-400`}
           >
             <FaMagic size={11} />
-            Load example
+            Example
           </button>
-          <span
-            className={`text-xs px-2.5 py-1 rounded-full font-medium ${
-              isDirty ? 'bg-yellow-100 text-yellow-700' : 'bg-green-100 text-green-700'
-            }`}
-          >
-            {isDirty ? 'Unsaved changes' : 'Saved'}
-          </span>
-
+          <span className="mx-0.5 hidden h-5 w-px bg-gray-200 sm:inline-block" />
           <button
             type="button"
             onClick={toggleFullscreen}
             title={
               isFullscreen
-                ? 'Leave full screen (Ctrl+Shift+F)'
-                : 'Full screen for distraction-free editing (Ctrl+Shift+F)'
+                ? 'Leave full screen (Ctrl/Cmd+Shift+F)'
+                : 'Full screen for distraction-free editing (Ctrl/Cmd+Shift+F)'
             }
-            className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold transition ${
-              isFullscreen
-                ? 'bg-gray-800 text-white hover:bg-gray-700'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            }`}
+            className={`${headerActionClass} ${isFullscreen
+                ? 'bg-gray-800 text-white hover:bg-gray-700 focus-visible:ring-gray-500'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200 focus-visible:ring-gray-400'
+              }`}
           >
             {isFullscreen ? <FaCompress size={11} /> : <FaExpand size={11} />}
-            {isFullscreen ? 'Exit full screen' : 'Full screen'}
+            <span className="hidden sm:inline">{isFullscreen ? 'Exit' : 'Full screen'}</span>
           </button>
         </div>
-      </div>
+      </header>
 
+      {/* ===== SCROLLABLE BODY ===== */}
       <div className={isFullscreen ? 'min-h-0 flex-1 space-y-4 overflow-y-auto pr-1' : 'space-y-4'}>
-          {!hasData && (
-          <div className="rounded-lg border border-yellow-200 bg-yellow-50 px-4 py-3 text-sm text-yellow-800">
-            No content exists yet. Paste your HTML and CSS below, then click "Save Changes" to create it.
+        {!hasData && (
+          <div className="flex items-start gap-2 rounded-lg border border-yellow-200 bg-yellow-50 px-3 py-2.5 text-xs text-yellow-800">
+            <FaInfoCircle size={13} className="mt-0.5 shrink-0 text-yellow-500" />
+            <span>
+              <strong className="font-semibold">New section.</strong>{' '}
+              A starter snippet has been loaded — tweak it, then click{' '}
+              <strong className="font-semibold">Save Changes</strong> to create this section.
+            </span>
           </div>
         )}
 
         {formatError && (
-          <div className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-[11px] leading-relaxed text-red-700">
+          <div
+            role="alert"
+            className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-[11px] leading-relaxed text-red-700"
+          >
             <FaExclamationTriangle size={13} className="mt-0.5 shrink-0 text-red-500" />
-            <span>{formatError}</span>
+            <span className="flex-1">{formatError}</span>
+            <button
+              type="button"
+              onClick={() => setFormatError('')}
+              aria-label="Dismiss message"
+              className="rounded p-0.5 text-red-400 transition hover:bg-red-100 hover:text-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400"
+            >
+              <FaTimes size={11} />
+            </button>
           </div>
         )}
 
-        {/* ===== STYLE MODE ===== */}
-          <div className="flex flex-wrap items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2">
-            <span className="text-[11px] font-semibold text-gray-600">Style with</span>
-
-            <div className="flex overflow-hidden rounded-lg border border-gray-300">
+        {/* ===== MODE SWITCHER ===== */}
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-gray-200 bg-white px-3 py-2.5">
+          <div className="flex items-center gap-2.5">
+            <span className="text-[11px] font-semibold uppercase tracking-wide text-gray-400">
+              Styling
+            </span>
+            <div role="group" aria-label="Styling mode" className="inline-flex rounded-lg bg-gray-100 p-0.5">
               <button
                 type="button"
+                aria-pressed={!useTailwind}
                 onClick={() => setMode(false)}
-                className={`px-3 py-1.5 text-[11px] font-semibold transition ${
-                  useTailwind ? 'bg-white text-gray-500 hover:bg-gray-50' : 'bg-gray-800 text-white'
-                }`}
+                className={`rounded-md px-3 py-1 text-[11px] font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 ${!useTailwind ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                  }`}
               >
                 Custom CSS
               </button>
               <button
                 type="button"
+                aria-pressed={useTailwind}
                 onClick={() => setMode(true)}
-                className={`px-3 py-1.5 text-[11px] font-semibold transition ${
-                  useTailwind ? 'bg-blue-600 text-white' : 'bg-white text-gray-500 hover:bg-gray-50'
-                }`}
+                className={`rounded-md px-3 py-1 text-[11px] font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 ${useTailwind ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                  }`}
               >
-                Tailwind classes
+                Tailwind
               </button>
             </div>
-
-            <p className="text-[11px] leading-relaxed text-gray-500">
-              {useTailwind ? (
-                <>
-                  The website&apos;s Tailwind build styles this section, so you can leave the CSS box alone entirely.
-                  {css.trim() !== '' && (
-                    <span className="ml-1 font-medium text-amber-600">
-                      Saved CSS is kept but ignored until you switch back.
-                    </span>
-                  )}
-                </>
-              ) : (
-                <>Write plain CSS below. Tailwind classes in the HTML are ignored in this mode.</>
-              )}
-            </p>
           </div>
+          <p className="text-[11px] leading-relaxed text-gray-500">
+            {useTailwind ? (
+              <>
+                Classes from the site&apos;s Tailwind build apply.
+                {css.trim() !== '' && (
+                  <span className="ml-1 font-medium text-amber-600">
+                    Saved CSS is kept but ignored until you switch back.
+                  </span>
+                )}
+              </>
+            ) : (
+              'Plain CSS only — Tailwind classes in the HTML are ignored.'
+            )}
+          </p>
+        </div>
 
-          {/* ===== IMAGE STORAGE NOTICE ===== */}
-        <div className="flex flex-wrap items-center gap-2 rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-[11px] text-blue-800">
-          <FaHdd size={13} className="shrink-0 text-blue-600" />
-          <span className="font-medium">Images are stored on this server</span>
-          <span className="text-blue-600">
-            Use <span className="font-semibold">Insert image</span> — the file is uploaded and a{' '}
-            <code className="rounded bg-white px-1">/storage/editor-images/…</code> URL is dropped into your markup, so
-            no external image host is needed.
+        {/* ===== INFO PILLS ===== */}
+        <div className="flex flex-wrap items-center gap-2 rounded-lg bg-sky-50 px-3 py-2 text-[11px] text-sky-800 ring-1 ring-sky-100">
+          <FaHdd size={12} className="shrink-0 text-sky-600" />
+          <span className="font-medium">Images are stored on this server.</span>
+          <span className="text-sky-700">
+            Use <span className="font-semibold">Insert image</span> — the file uploads and a{' '}
+            <code className="rounded bg-white px-1">/storage/editor-images/…</code> URL is dropped
+            into your markup.
           </span>
         </div>
 
@@ -656,10 +758,11 @@ const HtmlCssEditor = ({ section, hasData, onDataChange, onUploadsChange }) => {
           <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] leading-relaxed text-amber-800">
             <FaExclamationTriangle size={13} className="mt-0.5 shrink-0 text-amber-600" />
             <span>
-              {externalImageCount} image{externalImageCount > 1 ? 's are' : ' is'} linked from an external host
-              (<code className="rounded bg-white px-1">http(s)://…</code>). Upload {externalImageCount > 1 ? 'them' : 'it'}{' '}
-              with <span className="font-semibold">Insert image</span> and replace the link so the site does not depend
-              on someone else's server.
+              {externalImageCount} image{externalImageCount > 1 ? 's are' : ' is'} linked from an
+              external host (<code className="rounded bg-white px-1">http(s)://…</code>). Upload{' '}
+              {externalImageCount > 1 ? 'them' : 'it'} with{' '}
+              <span className="font-semibold">Insert image</span> and replace the link so the site
+              does not depend on someone else&apos;s server.
             </span>
           </div>
         )}
@@ -668,240 +771,256 @@ const HtmlCssEditor = ({ section, hasData, onDataChange, onUploadsChange }) => {
         <div className={useTailwind ? 'space-y-3' : 'grid grid-cols-1 gap-3 lg:grid-cols-2'}>
           {/* ---------- HTML ---------- */}
           <div>
-            <div className="mb-1 flex items-center gap-2">
+            <div className="mb-1.5 flex items-center justify-between">
               <button
                 type="button"
                 onClick={() => togglePane('html')}
                 aria-expanded={!collapsed.html}
-                className="flex items-center gap-1.5 text-xs font-medium text-gray-500 transition hover:text-blue-700"
+                aria-controls="html-css-editor-html-pane"
+                className="flex items-center gap-1.5 rounded-md px-1.5 py-0.5 text-xs font-semibold text-gray-700 transition hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
               >
                 {collapsed.html ? (
-                  <FaChevronRight size={11} className="text-gray-400" />
+                  <FaChevronRight size={10} className="text-gray-400" />
                 ) : (
-                  <FaChevronDown size={11} className="text-gray-400" />
+                  <FaChevronDown size={10} className="text-gray-400" />
                 )}
                 HTML
               </button>
-              <span className="text-[10px] text-gray-400">
-                {html.split('\n').length} lines · {html.length} chars
+              <span className="text-[10px] tabular-nums text-gray-400">
+                {htmlStats.lines} lines · {htmlStats.chars} chars
               </span>
             </div>
 
-            {!collapsed.html && (
-              <>
-                {/* Toolbar: quick tags + image upload */}
-                <div className="mb-1.5 flex flex-wrap items-center gap-1 rounded-lg border border-gray-200 bg-gray-50 px-1.5 py-1.5">
-                  <CodeImageUpload
-                    onInsertImage={insertImage}
-                    onInsertCssBackground={insertCssBackground}
-                    onUploaded={handleUploaded}
-                    existingImages={storedImages}
-                  />
+            {/* Hidden, not unmounted: keeps the textarea's undo history and scroll position. */}
+            <div id="html-css-editor-html-pane" hidden={collapsed.html}>
+              <div className="mb-1.5 flex flex-wrap items-center gap-1 rounded-lg border border-gray-200 bg-gray-50/70 px-1.5 py-1.5">
+                <CodeImageUpload
+                  onInsertImage={insertImage}
+                  onInsertCssBackground={insertCssBackground}
+                  onUploaded={handleUploaded}
+                  existingImages={storedImages}
+                />
+                <span className="mx-0.5 h-4 w-px bg-gray-200" />
+                {(useTailwind ? TAILWIND_SNIPPETS : QUICK_SNIPPETS).map((item) => (
+                  <button
+                    key={item.key}
+                    type="button"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => applyHtmlSnippet(item)}
+                    title={`Insert ${item.label} at the cursor`}
+                    className={SNIPPET_BUTTON_CLASS}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => clearBox('html')}
+                  disabled={html === ''}
+                  title="Empty the HTML box"
+                  aria-label="Empty the HTML box"
+                  className="ml-auto rounded-md px-1.5 py-1 text-[10px] text-gray-500 transition hover:bg-red-100 hover:text-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  <FaEraser size={11} />
+                </button>
+              </div>
 
-                  <span className="mx-0.5 h-5 w-px bg-gray-200" />
+              <CodePane
+                language="html"
+                label="index.html"
+                value={html}
+                onChange={(value) => updateField('html', value)}
+                textareaRef={htmlRef}
+                onCaret={rememberCaret('html')}
+                height={paneHeight}
+                headerHint='Tab indents · Enter auto-indents · {} " auto-close'
+                actions={
+                  storedImages.length > 0 ? (
+                    <span className="rounded-full bg-[#3c3c3c] px-1.5 text-[10px] text-[#9cdcfe]">
+                      {storedImages.length} image{storedImages.length > 1 ? 's' : ''}
+                    </span>
+                  ) : null
+                }
+              />
+            </div>
+          </div>
 
-                  {(useTailwind ? TAILWIND_SNIPPETS : QUICK_SNIPPETS).map((item) => (
+          {/* ---------- CSS (hidden entirely in Tailwind mode) ---------- */}
+          {!useTailwind && (
+            <div>
+              <div className="mb-1.5 flex items-center justify-between">
+                <button
+                  type="button"
+                  onClick={() => togglePane('css')}
+                  aria-expanded={!collapsed.css}
+                  aria-controls="html-css-editor-css-pane"
+                  className="flex items-center gap-1.5 rounded-md px-1.5 py-0.5 text-xs font-semibold text-gray-700 transition hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
+                >
+                  {collapsed.css ? (
+                    <FaChevronRight size={10} className="text-gray-400" />
+                  ) : (
+                    <FaChevronDown size={10} className="text-gray-400" />
+                  )}
+                  CSS
+                </button>
+                <span className="text-[10px] tabular-nums text-gray-400">
+                  {cssStats.lines} lines · {cssStats.chars} chars
+                </span>
+              </div>
+
+              <div id="html-css-editor-css-pane" hidden={collapsed.css}>
+                <div className="mb-1.5 flex flex-wrap items-center gap-1 rounded-lg border border-gray-200 bg-gray-50/70 px-1.5 py-1.5">
+                  {QUICK_CSS_SNIPPETS.map((item) => (
                     <button
                       key={item.key}
                       type="button"
                       onMouseDown={(e) => e.preventDefault()}
-                      onClick={() => applyHtmlSnippet(item)}
+                      onClick={() => applyCssSnippet(item)}
                       title={`Insert ${item.label} at the cursor`}
                       className={SNIPPET_BUTTON_CLASS}
                     >
                       {item.label}
                     </button>
                   ))}
-
-                  <button
-                    type="button"
-                    onMouseDown={(e) => e.preventDefault()}
-                    onClick={() => clearBox('html')}
-                    disabled={html === ''}
-                    title="Empty the HTML box"
-                    className="ml-auto rounded px-1.5 py-1 text-[10px] text-gray-500 transition hover:bg-red-100 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-40"
-                  >
-                    <FaEraser size={11} />
-                  </button>
+                  <p className="ml-auto hidden text-[10px] text-gray-400 lg:block">
+                    Hover an image thumbnail for a CSS background
+                  </p>
                 </div>
 
                 <CodePane
-                  language="html"
-                  label="index.html"
-                  value={html}
-                  onChange={(value) => updateField('html', value)}
-                  textareaRef={htmlRef}
-                  onCaret={rememberCaret('html')}
+                  language="css"
+                  label="style.css"
+                  value={css}
+                  onChange={(value) => updateField('css', value)}
+                  textareaRef={cssRef}
+                  onCaret={rememberCaret('css')}
                   height={paneHeight}
-                  headerHint="Tab indents · Enter auto-indents · {} &quot; auto-close"
-                  actions={
-                    storedImages.length > 0 ? (
-                      <span className="rounded-full bg-[#3c3c3c] px-1.5 text-[10px] text-[#9cdcfe]">
-                        {storedImages.length} image{storedImages.length > 1 ? 's' : ''}
-                      </span>
-                    ) : null
-                  }
+                  headerHint="Tab indents · Enter auto-indents · {} auto-close"
                 />
-              </>
-            )}
-          </div>
-
-          {/* ---------- CSS (hidden entirely in Tailwind mode) ---------- */}
-          {!useTailwind && (
-            <div>
-              <div className="mb-1 flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => togglePane('css')}
-                  aria-expanded={!collapsed.css}
-                  className="flex items-center gap-1.5 text-xs font-medium text-gray-500 transition hover:text-blue-700"
-                >
-                  {collapsed.css ? (
-                    <FaChevronRight size={11} className="text-gray-400" />
-                  ) : (
-                    <FaChevronDown size={11} className="text-gray-400" />
-                  )}
-                  CSS
-                </button>
-                <span className="text-[10px] text-gray-400">
-                  {css.split('\n').length} lines · {css.length} chars
-                </span>
               </div>
-
-              {!collapsed.css && (
-                <>
-                  <div className="mb-1 flex flex-wrap items-center gap-1 rounded-lg border border-gray-200 bg-gray-50 px-1.5 py-1.5">
-                    {QUICK_CSS_SNIPPETS.map((item) => (
-                      <button
-                        key={item.key}
-                        type="button"
-                        onMouseDown={(e) => e.preventDefault()}
-                        onClick={() => applyCssSnippet(item)}
-                        title={`Insert ${item.label} at the cursor`}
-                        className={SNIPPET_BUTTON_CLASS}
-                      >
-                        {item.label}
-                      </button>
-                    ))}
-                    <p className="ml-auto hidden text-[10px] text-gray-400 lg:block">
-                      Tip: hover an image thumbnail for a CSS background
-                    </p>
-                  </div>
-
-                  <CodePane
-                    language="css"
-                    label="style.css"
-                    value={css}
-                    onChange={(value) => updateField('css', value)}
-                    textareaRef={cssRef}
-                    onCaret={rememberCaret('css')}
-                    height={paneHeight}
-                    headerHint="Tab indents · Enter auto-indents · {} auto-close"
-                  />
-                </>
-              )}
             </div>
           )}
         </div>
 
-        {/* ===== CSS SCOPING (Custom CSS mode only) ===== */}
+        {/* ===== CSS SCOPING (custom mode only) ===== */}
         {!useTailwind && (
-          <label className="flex items-start gap-3 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 cursor-pointer">
+          <label className="flex cursor-pointer items-start gap-2.5 rounded-lg border border-gray-200 bg-gray-50/70 px-3 py-2">
             <input
               type="checkbox"
               checked={formData.scopeCss !== false}
               onChange={(e) => updateField('scopeCss', e.target.checked)}
-              className="mt-0.5 h-4 w-4"
+              className="mt-0.5 h-3.5 w-3.5 accent-blue-600"
             />
-            <span className="text-xs text-gray-600 leading-relaxed">
-              <strong className="text-gray-700">Scope CSS to this section</strong> (recommended). Every rule is
-              prefixed with this section&apos;s wrapper, so{' '}
-              <code className="bg-white px-1 rounded border border-gray-200">h1 {'{'} … {'}'}</code> only affects this
-              section. Turn it off to write fully global CSS.
+            <span className="text-[11px] leading-relaxed text-gray-600">
+              <strong className="font-semibold text-gray-700">Scope CSS to this section</strong>{' '}
+              <span className="text-gray-400">
+                (recommended) — every rule is prefixed with this section&apos;s wrapper, so{' '}
+                <code className="rounded border border-gray-200 bg-white px-1">h1 {'{'} … {'}'}</code>{' '}
+                only affects this section.
+              </span>
             </span>
           </label>
         )}
 
-        {/* ===== LAYOUT SETTINGS ===== */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <TextField
-            label="Section ID (anchor)"
-            value={formData.sectionId || ''}
-            onChange={(e) => updateField('sectionId', e.target.value)}
-            placeholder="custom-html"
-          />
-          <TextField
-            label="Additional CSS Classes"
-            value={formData.sectionClassName || ''}
-            onChange={(e) => updateField('sectionClassName', e.target.value)}
-            placeholder="optional classes"
-          />
-          <SelectField
-            label="Background Color"
-            value={formData.bgColor || ''}
-            onChange={(e) => updateField('bgColor', e.target.value)}
-            options={[
-              { value: 'bg-transparent', label: 'Transparent' },
-              { value: 'bg-white', label: 'White' },
-              { value: 'bg-[#F5F5F5]', label: 'Gray' },
-              { value: 'bg-[#F9F9FA]', label: 'Off White' },
-            ]}
-          />
-          <SelectField
-            label="Vertical Padding"
-            value={formData.paddingY || ''}
-            onChange={(e) => updateField('paddingY', e.target.value)}
-            options={[
-              { value: '', label: 'None' },
-              { value: 'py-5 sm:py-10 md:py-15 lg:py-20', label: 'Small' },
-              { value: 'py-10 sm:py-15 md:py-25 lg:py-37.5', label: 'Medium' },
-              { value: 'py-15 sm:py-20 md:py-35 lg:py-50', label: 'Large' },
-            ]}
-          />
-          <SelectField
-            label="Horizontal Padding"
-            value={formData.paddingX || ''}
-            onChange={(e) => updateField('paddingX', e.target.value)}
-            options={[
-              { value: '', label: 'None' },
-              { value: 'px-4 sm:px-8 md:px-16 lg:px-30', label: 'Small' },
-              { value: 'px-5 sm:px-10 md:px-20 lg:px-50', label: 'Medium' },
-              { value: 'px-8 sm:px-16 md:px-30 lg:px-60', label: 'Large' },
-            ]}
-          />
-        </div>
+        {/* ===== LAYOUT SETTINGS (collapsible) ===== */}
+        <details open className="group overflow-hidden rounded-xl border border-gray-200 bg-white">
+          <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-2.5 transition hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-400 [&::-webkit-details-marker]:hidden">
+            <span className="flex items-center gap-2">
+              <FaSlidersH size={11} className="text-gray-400" />
+              <span className="text-xs font-semibold text-gray-700">Layout &amp; display</span>
+            </span>
+            <FaChevronDown size={10} className="text-gray-400 transition group-open:rotate-180" />
+          </summary>
+          <div className="grid grid-cols-1 gap-3 border-t border-gray-100 p-4 md:grid-cols-2">
+            <TextField
+              label="Section ID (anchor)"
+              value={formData.sectionId || ''}
+              onChange={(e) => updateField('sectionId', sanitizeAnchorId(e.target.value))}
+              placeholder="custom-html"
+            />
+            <TextField
+              label="Additional CSS Classes"
+              value={formData.sectionClassName || ''}
+              onChange={(e) => updateField('sectionClassName', e.target.value)}
+              placeholder="optional classes"
+            />
+            <SelectField
+              label="Background Color"
+              value={formData.bgColor || ''}
+              onChange={(e) => updateField('bgColor', e.target.value)}
+              options={[
+                { value: 'bg-transparent', label: 'Transparent' },
+                { value: 'bg-white', label: 'White' },
+                { value: 'bg-[#F5F5F5]', label: 'Gray' },
+                { value: 'bg-[#F9F9FA]', label: 'Off White' },
+              ]}
+            />
+            <SelectField
+              label="Vertical Padding"
+              value={formData.paddingY || ''}
+              onChange={(e) => updateField('paddingY', e.target.value)}
+              options={[
+                { value: '', label: 'None' },
+                { value: 'py-5 sm:py-10 md:py-15 lg:py-20', label: 'Small' },
+                { value: 'py-10 sm:py-15 md:py-25 lg:py-37.5', label: 'Medium' },
+                { value: 'py-15 sm:py-20 md:py-35 lg:py-50', label: 'Large' },
+              ]}
+            />
+            <SelectField
+              label="Horizontal Padding"
+              value={formData.paddingX || ''}
+              onChange={(e) => updateField('paddingX', e.target.value)}
+              options={[
+                { value: '', label: 'None' },
+                { value: 'px-4 sm:px-8 md:px-16 lg:px-30', label: 'Small' },
+                { value: 'px-5 sm:px-10 md:px-20 lg:px-50', label: 'Medium' },
+                { value: 'px-8 sm:px-16 md:px-30 lg:px-60', label: 'Large' },
+              ]}
+            />
+          </div>
+        </details>
 
         {/* ===== LIVE PREVIEW ===== */}
-        <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
-          <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
+        <div className="overflow-hidden rounded-xl border border-gray-200 bg-white">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 bg-gray-50/60 px-4 py-2.5">
             <div className="flex items-center gap-2">
               <FaEye className="text-gray-500" size={13} />
-              <h4 className="text-sm font-semibold text-gray-700">Live preview</h4>
-              <p className="text-xs text-gray-400">Rendered with the exact same scoping used on the website</p>
+              <h4 className="text-xs font-semibold text-gray-700">Live preview</h4>
+              <span className="hidden text-[10px] text-gray-400 sm:inline">
+                Rendered with the same scoping used on the website
+              </span>
             </div>
             <button
               type="button"
               onClick={() => setPreviewKey((prev) => prev + 1)}
-              className="text-xs text-blue-600 hover:text-blue-800 font-medium"
+              className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-semibold text-blue-600 transition hover:bg-blue-50 hover:text-blue-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
             >
-              Refresh preview
+              Refresh
             </button>
           </div>
-
-          <div className="rounded-lg border border-gray-200 bg-white overflow-hidden">
+          <div className="bg-white">
             {isEmpty ? (
-              <p className="p-6 text-sm text-gray-400 text-center">Nothing to preview yet — add HTML and CSS above.</p>
+              <p className="p-6 text-center text-sm text-gray-400">
+                Nothing to preview yet — add HTML and CSS above.
+              </p>
             ) : (
-              <HtmlCssSection key={previewKey} data={formData} />
+              <PreviewBoundary resetKey={`${previewKey}:${previewData.html}:${previewData.css}`}>
+                <HtmlCssSection key={previewKey} data={previewData} />
+              </PreviewBoundary>
             )}
           </div>
         </div>
 
-        <p className="text-[11px] text-gray-400">
-            Tip: <code className="bg-gray-100 px-1 rounded">&lt;script&gt;</code> tags and inline event handlers are
-            stripped for safety, and <code className="bg-gray-100 px-1 rounded">&lt;style&gt;</code> tags inside the HTML box
+        <p className="flex items-start gap-1.5 text-[11px] leading-relaxed text-gray-400">
+          <FaInfoCircle size={11} className="mt-0.5 shrink-0" />
+          <span>
+            <code className="rounded bg-gray-100 px-1">&lt;script&gt;</code> tags and inline event
+            handlers are stripped for safety, and{' '}
+            <code className="rounded bg-gray-100 px-1">&lt;style&gt;</code> tags inside the HTML box
             are ignored — put your rules in the CSS box instead.
-          </p>
+          </span>
+        </p>
       </div>
     </div>
   );

@@ -258,7 +258,7 @@ export const highlight = (source, language) => {
     .map(({ type, value }) => {
       const safe = escapeHtml(value);
       const color = TOKEN_COLORS[type];
-      return color ? `<span style="color:${color}">${safe}</span>` : safe;
+      return color ? `<span style="color:${color};font:inherit">${safe}</span>` : safe;
     })
     .join('');
 };
