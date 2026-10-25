@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Frontend;
 
 use App\Http\Controllers\Controller;
 use App\Models\JobListing;
+use App\Models\pages\CustomSectionData;
 use App\Models\pages\Page;
 use App\Services\ContentService;
 use App\Services\PageMapService;
@@ -127,7 +128,7 @@ class PageController extends Controller
             }
 
             $dataNeeds = $this->determineDataNeeds($sectionConfigs);
-            $fetchedData = $this->fetchAllData($dataNeeds, $pageSlug, $detailSlug);
+            $fetchedData = $this->fetchAllData($dataNeeds, $pageSlug, $configSlug, $detailSlug);
 
             if ($detailSlug && $this->isDetailNotFound($fetchedData, $pageSlug)) {
                 return $this->renderNotFound($pageSlug, $detailSlug, 'Content not found');
@@ -372,7 +373,12 @@ class PageController extends Controller
     /**
      * Fetch all required data from the database using the ContentService.
      */
-    private function fetchAllData(array $needs, string $pageSlug, ?string $detailSlug): array
+    private function fetchAllData(
+        array $needs,
+        string $pageSlug,
+        string $configSlug,
+        ?string $detailSlug
+    ): array
     {
         $data = [];
 
@@ -431,11 +437,11 @@ class PageController extends Controller
         // Custom section data
         if (!empty($needs['custom'])) {
             foreach ($needs['custom'] as $sectionKey) {
-                $customData = $this->contentService->getSectionData($pageSlug, $sectionKey);
+                $customData = $this->contentService->getSectionData($configSlug, $sectionKey);
                 if ($customData) {
-                    $data['custom'][$sectionKey] = method_exists($customData, 'getDataAttribute')
+                    $data['custom'][$sectionKey] = $customData instanceof CustomSectionData
                         ? SectionPayloadNormalizer::unwrap($customData->data)
-                        : $customData;
+                        : SectionPayloadNormalizer::unwrap($customData);
                 }
             }
         }
