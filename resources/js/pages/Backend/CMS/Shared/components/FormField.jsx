@@ -1,4 +1,4 @@
-import { FaExclamationTriangle } from 'react-icons/fa';
+import { FaExclamationCircle } from 'react-icons/fa';
 
 const FormField = ({
   label,
@@ -18,21 +18,29 @@ const FormField = ({
   readOnly = false,
   as = 'input',
 }) => {
-  const InputTag = as === 'textarea' ? 'textarea' : 'input';
+  const isTextarea = as === 'textarea';
+  const InputTag = isTextarea ? 'textarea' : 'input';
+  const hasError = Boolean(error);
 
   return (
     <div className="space-y-1.5">
-      <label className="block text-sm font-medium text-gray-700" htmlFor={name}>
-        {label} {required && <span className="text-red-500">*</span>}
-      </label>
+      {label && (
+        <label htmlFor={name} className="flex items-center gap-1 text-sm font-medium text-slate-700">
+          {label}
+          {required && <span className="text-xs text-red-500">*</span>}
+        </label>
+      )}
+
       <div className="relative">
         {icon && (
-          <span className="absolute left-3 top-1/2 -translate-y-1/2">{icon}</span>
+          <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400">
+            {icon}
+          </span>
         )}
         <InputTag
-          name={name}
           id={name}
-          type={as === 'textarea' ? undefined : type}
+          name={name}
+          {...(!isTextarea && { type })}
           value={value}
           onChange={onChange}
           placeholder={placeholder}
@@ -42,17 +50,22 @@ const FormField = ({
           max={max}
           rows={rows}
           maxLength={maxLength}
-          className={`w-full ${icon ? 'pl-9' : 'px-4'} py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 transition ${error ? 'border-red-500' : 'border-gray-300'
-            } ${as === 'textarea' ? 'resize-y' : ''}`}
+          className={`w-full rounded-xl border bg-white py-2.5 text-sm text-slate-800 outline-none transition-all duration-150 placeholder:text-slate-400
+            ${icon ? 'pl-10' : 'pl-3.5'} pr-3.5
+            ${isTextarea ? 'min-h-24 resize-y' : ''}
+            ${hasError
+              ? 'border-red-300 focus:border-red-400 focus:ring-4 focus:ring-red-50'
+              : 'border-slate-200 hover:border-slate-300 focus:border-blue-500 focus:ring-4 focus:ring-blue-50'}`}
         />
       </div>
+
       {error && (
-        <p className="text-red-500 text-xs flex items-center gap-1">
-          <FaExclamationTriangle size={12} />
+        <p className="flex items-center gap-1.5 text-xs font-medium text-red-600">
+          <FaExclamationCircle size={12} />
           {Array.isArray(error) ? error[0] : error}
         </p>
       )}
-      {hint && <p className="text-xs text-gray-400">{hint}</p>}
+      {hint && !error && <p className="text-xs text-slate-400">{hint}</p>}
     </div>
   );
 };

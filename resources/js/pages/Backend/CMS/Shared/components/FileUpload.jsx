@@ -1,4 +1,4 @@
-import { FaUpload, FaTimes, FaCheck } from 'react-icons/fa';
+import { FaUpload, FaTrashAlt, FaCheckCircle } from 'react-icons/fa';
 
 const FileUpload = ({
   value,
@@ -12,73 +12,85 @@ const FileUpload = ({
   label = 'Image',
   maxSizeText = 'max 5MB',
   fileTypesText = 'JPEG, PNG, GIF, WebP, SVG',
-}) => {
-  return (
-    <div>
-      <label className="block text-sm font-medium text-gray-700 mb-1">
-        {label} <span className="text-gray-400 text-xs">(optional)</span>
-      </label>
-      <div
-        className={`relative border-2 border-dashed rounded-lg p-4 transition-all ${
-          dragActive ? 'border-blue-500 bg-blue-50' : 'border-gray-300 hover:border-gray-400'
-        } ${uploading ? 'opacity-50' : ''}`}
-        onDragEnter={onDrag}
-        onDragLeave={onDrag}
-        onDragOver={onDrag}
-        onDrop={onDrop}
-      >
-        {value ? (
-          <div className="flex items-center gap-4">
+}) => (
+  <div>
+    <label className="mb-1.5 flex items-center gap-1 text-sm font-medium text-slate-700">
+      {label}
+      <span className="text-xs font-normal text-slate-400">(optional)</span>
+    </label>
+
+    <div
+      className={`relative rounded-xl border-2 border-dashed transition-all
+        ${dragActive
+          ? 'border-blue-500 bg-blue-50/60'
+          : 'border-slate-200 bg-slate-50/40 hover:border-slate-300 hover:bg-slate-50'}
+        ${uploading ? 'pointer-events-none opacity-60' : ''}`}
+      onDragEnter={onDrag}
+      onDragLeave={onDrag}
+      onDragOver={onDrag}
+      onDrop={onDrop}
+    >
+      {value ? (
+        <div className="flex items-center gap-3 p-3">
+          <div className="relative shrink-0">
             <img
               src={value}
               alt={label}
-              className="w-20 h-20 object-cover rounded-lg"
+              className="h-16 w-16 rounded-lg object-cover ring-1 ring-slate-200"
             />
-            <div className="flex-1">
-              <p className="text-sm text-gray-600 font-medium">Image uploaded</p>
-              <p className="text-xs text-gray-400 truncate">
-                {value.substring(0, 60)}...
-              </p>
-              <p className="text-xs text-green-600 flex items-center gap-1 mt-0.5">
-                <FaCheck size={10} /> Ready
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={onRemove}
-              className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition"
-            >
-              <FaTimes size={16} />
-            </button>
+            <span className="absolute -right-1 -top-1 rounded-full bg-emerald-500 p-0.5 text-white ring-2 ring-white">
+              <FaCheckCircle size={14} />
+            </span>
           </div>
-        ) : (
-          <div className="flex flex-col items-center justify-center py-6 text-gray-400">
-            <FaUpload size={32} className="mb-2" />
-            <p className="text-sm font-medium text-gray-600">Drag & drop an image here</p>
-            <p className="text-xs mt-1">or click to browse</p>
-            <p className="text-xs mt-2 text-gray-400">
-              Supports {fileTypesText} ({maxSizeText})
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-medium text-slate-700">Image ready</p>
+            <p className="mt-0.5 truncate text-xs text-slate-400">
+              {value.substring(0, 50)}…
             </p>
           </div>
-        )}
-        <input
-          type="file"
-          accept={accept}
-          onChange={onChange}
-          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-          disabled={uploading}
-        />
-        {uploading && (
-          <div className="absolute inset-0 flex items-center justify-center bg-white/80 rounded-lg">
-            <div className="flex items-center gap-3">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
-              <span className="text-sm text-gray-600">Uploading image...</span>
-            </div>
+          <button
+            type="button"
+            onClick={onRemove}
+            className="shrink-0 rounded-lg p-2 text-slate-400 transition hover:bg-red-50 hover:text-red-600"
+            aria-label="Remove image"
+          >
+            <FaTrashAlt size={14} />
+          </button>
+        </div>
+      ) : (
+        <div className="flex flex-col items-center justify-center gap-2 px-4 py-8 text-center">
+          <div className="rounded-full bg-blue-100 p-3 text-blue-600">
+            <FaUpload size={18} />
           </div>
-        )}
-      </div>
+          <div>
+            <p className="text-sm font-medium text-slate-700">
+              Click to upload or drag &amp; drop
+            </p>
+            <p className="mt-1 text-xs text-slate-400">
+              {fileTypesText} · {maxSizeText}
+            </p>
+          </div>
+        </div>
+      )}
+
+      <input
+        type="file"
+        accept={accept}
+        onChange={onChange}
+        disabled={uploading}
+        className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+      />
+
+      {uploading && (
+        <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-white/70 backdrop-blur-sm">
+          <div className="flex items-center gap-2.5 text-sm text-slate-600">
+            <span className="inline-block h-5 w-5 animate-spin rounded-full border-2 border-blue-200 border-t-blue-600" />
+            Uploading…
+          </div>
+        </div>
+      )}
     </div>
-  );
-};
+  </div>
+);
 
 export default FileUpload;

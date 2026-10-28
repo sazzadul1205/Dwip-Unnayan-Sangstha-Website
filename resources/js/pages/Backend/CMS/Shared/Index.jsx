@@ -7,12 +7,21 @@ import {
   MdEdit,
   MdExpandMore,
   MdExpandLess,
-  MdWarning,
-  MdCheckCircle,
-  MdCancel,
   MdRefresh,
+  MdCheckCircle,
+  MdErrorOutline,
+  MdClose,
+  MdOutlineInbox,
 } from 'react-icons/md';
-import { FaSpinner } from 'react-icons/fa';
+import {
+  FaSpinner,
+  FaRegAddressCard,
+  FaBars,
+  FaRegWindowMaximize,
+  FaRegQuestionCircle,
+  FaRegCalendarAlt,
+  FaBookOpen,
+} from 'react-icons/fa';
 import Swal from 'sweetalert2';
 
 import AuthenticatedLayout from '../../../../layouts/AuthenticatedLayout';
@@ -30,73 +39,84 @@ import FooterEditor from './Modals/FooterEditor';
 import EventsEditor from './Modals/EventsEditor';
 import StoriesEditor from './Modals/StoriesEditor';
 
-// ============================================
+// ============================================================
 // CONFIGURATION
-// ============================================
+// ============================================================
+
+const TONES = {
+  blue: 'bg-blue-50 text-blue-600 ring-blue-100',
+  indigo: 'bg-indigo-50 text-indigo-600 ring-indigo-100',
+  slate: 'bg-slate-100 text-slate-600 ring-slate-200',
+  emerald: 'bg-emerald-50 text-emerald-600 ring-emerald-100',
+  orange: 'bg-orange-50 text-orange-600 ring-orange-100',
+  violet: 'bg-violet-50 text-violet-600 ring-violet-100',
+};
+
 const TYPE_CONFIG = {
   topbar: {
     label: 'Top Bar',
-    icon: '📋',
-    color: 'blue',
     description: 'Contact info, language selector, social links',
+    Icon: FaRegAddressCard,
+    tone: 'blue',
     component: TopBar,
     editor: TopBarEditor,
     previewProps: (data) => ({ topBarData: data }),
   },
   navbar: {
     label: 'Navigation Bar',
-    icon: '🧭',
-    color: 'indigo',
     description: 'Logo, navigation links, CTA button',
+    Icon: FaBars,
+    tone: 'indigo',
     component: Navbar,
     editor: NavbarEditor,
     previewProps: (data) => ({ navbarData: data, storageUrl: '/storage/' }),
   },
   footer: {
     label: 'Footer',
-    icon: '📌',
-    color: 'gray',
     description: 'Logo, links, social, newsletter, copyright',
+    Icon: FaRegWindowMaximize,
+    tone: 'slate',
     component: Footer,
     editor: FooterEditor,
     previewProps: (data) => ({ footerData: data, storageUrl: '/storage/' }),
   },
   faq: {
     label: 'FAQ Section',
-    icon: '❓',
-    color: 'green',
     description: 'Frequently asked questions with answers',
+    Icon: FaRegQuestionCircle,
+    tone: 'emerald',
     component: FAQSection,
     editor: FaqEditor,
     previewProps: (data) => ({ data }),
   },
   'upcoming-events': {
     label: 'Upcoming Events',
-    icon: '📅',
-    color: 'orange',
     description: 'Events listing with dates and descriptions',
+    Icon: FaRegCalendarAlt,
+    tone: 'orange',
     component: UpcomingEventsSection,
     editor: EventsEditor,
     previewProps: (data) => ({ data }),
   },
   stories: {
     label: 'Stories Section',
-    icon: '📖',
-    color: 'purple',
     description: 'Stories with images and descriptions',
+    Icon: FaBookOpen,
+    tone: 'violet',
     component: StoriesSection,
     editor: StoriesEditor,
     previewProps: (data) => ({ data }),
   },
 };
 
-// ============================================
+// ============================================================
 // COMPONENT
-// ============================================
+// ============================================================
+
 export default function SharedData({ sharedData }) {
   const { flash } = usePage().props;
 
-  // State
+  // State---
   const [formData, setFormData] = useState({});
   const [loading, setLoading] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
@@ -105,9 +125,7 @@ export default function SharedData({ sharedData }) {
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [savingSuccess, setSavingSuccess] = useState(false);
 
-  // ============================================
-  // HELPERS
-  // ============================================
+  // Helpers-
   const parseItemData = (item) => {
     if (!item) return null;
     if (item.data && typeof item.data === 'object' && !Array.isArray(item.data)) {
@@ -127,17 +145,17 @@ export default function SharedData({ sharedData }) {
   const getItemStatus = (item) => {
     const parsed = parseItemData(item);
     const hasData = parsed && Object.keys(parsed).length > 0;
-    const hasContent = hasData && Object.values(parsed).some(v =>
-      v && (typeof v === 'string' ? v.trim() !== '' : true)
-    );
+    const hasContent =
+      hasData &&
+      Object.values(parsed).some(
+        (v) => v && (typeof v === 'string' ? v.trim() !== '' : true)
+      );
     return { hasData, hasContent };
   };
 
-  // ============================================
-  // HANDLERS
-  // ============================================
+  // Handlers
   const toggleSection = (type) => {
-    setExpandedSection(prev => prev === type ? null : type);
+    setExpandedSection((prev) => (prev === type ? null : type));
   };
 
   const openEdit = (item) => {
@@ -150,50 +168,42 @@ export default function SharedData({ sharedData }) {
   };
 
   const closeEdit = useCallback(() => {
-    if (hasUnsavedChanges) {
-      Swal.fire({
-        title: 'Unsaved Changes',
-        html: 'You have unsaved changes. Are you sure you want to close?',
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#dc2626',
-        cancelButtonColor: '#6b7280',
-        confirmButtonText: 'Discard Changes',
-        cancelButtonText: 'Keep Editing',
-      }).then((result) => {
-        if (result.isConfirmed) {
-          setEditingItem(null);
-          setFormData({});
-          setIsUploading(false);
-          setHasUnsavedChanges(false);
-          setSavingSuccess(false);
-        }
-      });
-    } else {
+    const reset = () => {
       setEditingItem(null);
       setFormData({});
       setIsUploading(false);
       setHasUnsavedChanges(false);
       setSavingSuccess(false);
-    }
+    };
+
+    if (!hasUnsavedChanges) return reset();
+
+    Swal.fire({
+      title: 'Unsaved Changes',
+      html: 'You have unsaved changes. Are you sure you want to close?',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#dc2626',
+      cancelButtonColor: '#6b7280',
+      confirmButtonText: 'Discard Changes',
+      cancelButtonText: 'Keep Editing',
+    }).then((result) => {
+      if (result.isConfirmed) reset();
+    });
   }, [hasUnsavedChanges]);
 
   // ESC key handler
   useEffect(() => {
     const handleEsc = (e) => {
-      if (e.key === 'Escape' && editingItem) {
-        closeEdit();
-      }
+      if (e.key === 'Escape' && editingItem) closeEdit();
     };
     window.addEventListener('keydown', handleEsc);
     return () => window.removeEventListener('keydown', handleEsc);
   }, [editingItem, closeEdit]);
 
-  // ============================================
-  // SUBMIT
-  // ============================================
+  // Submit--
   const handleSubmit = (e) => {
-    e.preventDefault();
+    if (e) e.preventDefault();
 
     if (isUploading) {
       Swal.fire({
@@ -220,7 +230,6 @@ export default function SharedData({ sharedData }) {
           setHasUnsavedChanges(false);
           setSavingSuccess(true);
 
-          // Show success and close
           Swal.fire({
             icon: 'success',
             title: 'Saved!',
@@ -229,7 +238,6 @@ export default function SharedData({ sharedData }) {
             showConfirmButton: false,
           });
 
-          // Close modal after brief delay
           setTimeout(() => {
             setEditingItem(null);
             setFormData({});
@@ -243,7 +251,9 @@ export default function SharedData({ sharedData }) {
           Swal.fire({
             icon: 'error',
             title: 'Update Failed',
-            html: Object.values(errors).flat().join('<br>') || 'Please check your input and try again.',
+            html:
+              Object.values(errors).flat().join('<br>') ||
+              'Please check your input and try again.',
             confirmButtonColor: '#3b82f6',
           });
         },
@@ -251,9 +261,7 @@ export default function SharedData({ sharedData }) {
     );
   };
 
-  // ============================================
-  // FORM HELPERS
-  // ============================================
+  // Form helpers
   const updateFormData = (path, value) => {
     setHasUnsavedChanges(true);
     setSavingSuccess(false);
@@ -306,9 +314,7 @@ export default function SharedData({ sharedData }) {
     setFormData(newData);
   };
 
-  // ============================================
-  // EFFECTS - Flash messages
-  // ============================================
+  // Flash messages
   useEffect(() => {
     if (flash?.success) {
       Swal.fire({
@@ -329,232 +335,275 @@ export default function SharedData({ sharedData }) {
     }
   }, [flash]);
 
-  // ============================================
-  // RENDER
-  // ============================================
-  const processedSharedData = sharedData?.map(item => ({
-    ...item,
-    parsedData: parseItemData(item),
-    status: getItemStatus(item),
-  })) || [];
+  // Derived-
+  const processedSharedData =
+    sharedData?.map((item) => ({
+      ...item,
+      parsedData: parseItemData(item),
+      status: getItemStatus(item),
+    })) || [];
 
-  const EditorComponent = editingItem ? TYPE_CONFIG[editingItem.type]?.editor : null;
-  const isUpdateDisabled = loading || isUploading;
+  const editorConfig = editingItem ? TYPE_CONFIG[editingItem.type] : null;
+  const EditorComponent = editorConfig?.editor;
+  const disabled = loading || isUploading;
 
+  // Render--
   return (
     <AuthenticatedLayout>
       <Head title="CMS - Shared Data" />
 
-      <div className="p-4 md:p-6 mx-auto">
-        {/* Header */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+      <div className="mx-auto p-4 md:p-6">
+        {/* Page header */}
+        <div className="mb-8 flex flex-col justify-between gap-4 md:flex-row md:items-center">
           <div>
-            <h1 className="text-2xl md:text-3xl font-bold text-gray-900 flex items-center gap-3">
-              <span className="bg-linear-to-r from-blue-600 to-purple-600 text-white p-2 rounded-xl text-xl">
-                🧩
-              </span>
+            <h1 className="text-2xl font-bold text-slate-900 md:text-3xl">
               Shared Data
             </h1>
-            <p className="text-sm text-gray-500 mt-1">
+            <p className="mt-1 text-sm text-slate-500">
               Manage all shared content across the site in one place
             </p>
           </div>
-          <div className="flex items-center gap-3">
-            <span className="text-xs text-gray-400 bg-gray-100 px-3 py-1 rounded-full">
+          <div className="flex items-center gap-2">
+            <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-500">
               {processedSharedData.length} sections
             </span>
             <button
+              type="button"
               onClick={() => router.reload({ only: ['sharedData'] })}
-              className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition"
+              className="rounded-lg p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
               title="Refresh"
+              aria-label="Refresh"
             >
               <MdRefresh size={18} />
             </button>
           </div>
         </div>
 
-        {/* List */}
-        <div className="space-y-4">
-          {processedSharedData.length > 0 ? (
-            processedSharedData.map((item) => {
-              const config = TYPE_CONFIG[item.type];
-              if (!config) return null;
-
-              const isExpanded = expandedSection === item.type;
-              const { hasContent } = item.status;
-
-              return (
-                <div
-                  key={item.id}
-                  className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-all duration-200"
-                >
-                  {/* Header */}
-                  <div
-                    className="flex items-center justify-between p-4 md:p-5 cursor-pointer hover:bg-gray-50/50 transition"
-                    onClick={() => toggleSection(item.type)}
-                  >
-                    <div className="flex items-center gap-4 min-w-0">
-                      <div className="text-3xl shrink-0">{config.icon}</div>
-                      <div className="min-w-0">
-                        <h3 className="font-semibold text-gray-900 text-lg">
-                          {config.label}
-                        </h3>
-                        <p className="text-xs text-gray-500 truncate">
-                          {config.description}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-3 shrink-0">
-                      {/* Status Badge */}
-                      <span
-                        className={`px-3 py-1 rounded-full text-xs font-medium border ${item.is_active
-                            ? 'bg-green-50 text-green-700 border-green-200'
-                            : 'bg-gray-100 text-gray-500 border-gray-200'
-                          }`}
-                      >
-                        {item.is_active ? (
-                          <span className="flex items-center gap-1">
-                            <MdCheckCircle size={12} /> Active
-                          </span>
-                        ) : (
-                          <span className="flex items-center gap-1">
-                            <MdCancel size={12} /> Inactive
-                          </span>
-                        )}
-                      </span>
-
-                      {/* Data Status */}
-                      {!hasContent && (
-                        <span className="text-yellow-500 flex items-center gap-1 text-xs bg-yellow-50 px-2 py-1 rounded-full">
-                          <MdWarning size={14} />
-                          Empty
-                        </span>
-                      )}
-
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          openEdit(item);
-                        }}
-                        className={`p-2.5 rounded-xl transition ${hasContent
-                            ? 'text-blue-600 hover:bg-blue-50'
-                            : 'text-gray-400 hover:bg-gray-100'
-                          }`}
-                        title="Edit this section"
-                      >
-                        <MdEdit size={18} />
-                      </button>
-
-                      <div className="text-gray-300">
-                        {isExpanded ? (
-                          <MdExpandLess size={24} />
-                        ) : (
-                          <MdExpandMore size={24} />
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Preview */}
-                  {isExpanded && (
-                    <div className="border-t border-gray-100 p-4 md:p-6 bg-gray-50/80">
-                      <div className="flex justify-between items-center mb-3">
-                        <span className="text-xs text-gray-400 font-medium uppercase tracking-wider">
-                          🔍 Live Preview
-                        </span>
-                        {!hasContent && (
-                          <span className="text-xs text-yellow-600 flex items-center gap-1 bg-yellow-50 px-2 py-0.5 rounded-full">
-                            <MdWarning size={12} />
-                            No data configured
-                          </span>
-                        )}
-                      </div>
-
-                      <div className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100">
-                        {config.component && hasContent ? (
-                          <div className="p-2">
-                            <config.component
-                              {...config.previewProps(item.parsedData)}
-                              key={item.id}
-                            />
-                          </div>
-                        ) : (
-                          <div className="p-12 text-center">
-                            <div className="text-4xl mb-3">📭</div>
-                            <p className="text-gray-400 font-medium">Nothing to preview</p>
-                            <p className="text-xs text-gray-400 mt-1">
-                              Click <span className="text-blue-500">Edit</span> to add content
-                            </p>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              );
-            })
-          ) : (
-            <div className="text-center py-16 bg-white rounded-2xl border border-gray-200">
-              <div className="text-5xl mb-4">📭</div>
-              <p className="text-gray-500 font-medium">No shared data found</p>
-              <p className="text-sm text-gray-400 mt-1">Check your database seeding</p>
+        {/* Section list */}
+        <div className="space-y-3">
+          {processedSharedData.length === 0 && (
+            <div className="rounded-2xl border border-slate-200 bg-white py-16 text-center">
+              <div className="mb-3 flex justify-center text-slate-300">
+                <MdOutlineInbox size={48} />
+              </div>
+              <p className="font-medium text-slate-500">No shared data found</p>
+              <p className="mt-1 text-sm text-slate-400">
+                Check your database seeding
+              </p>
             </div>
           )}
+
+          {processedSharedData.map((item) => {
+            const config = TYPE_CONFIG[item.type];
+            if (!config) return null;
+
+            const isExpanded = expandedSection === item.type;
+            const { hasContent } = item.status;
+            const tone = TONES[config.tone];
+
+            return (
+              <div
+                key={item.id}
+                className={`overflow-hidden rounded-2xl border bg-white transition-all ${isExpanded
+                    ? 'border-blue-200 shadow-md shadow-blue-100/50'
+                    : 'border-slate-200 shadow-sm hover:border-slate-300 hover:shadow-md'
+                  }`}
+              >
+                {/*
+                  Header row — must be a <div role="button"> (not <button>)
+                  because it contains inner <button> elements (Edit).
+                  Nested <button> inside <button> is invalid HTML and breaks
+                  React hydration.
+                */}
+                <div
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => toggleSection(item.type)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      toggleSection(item.type);
+                    }
+                  }}
+                  aria-expanded={isExpanded}
+                  className="flex w-full cursor-pointer items-center gap-4 p-4 text-left transition hover:bg-slate-50/60 focus:outline-none focus-visible:bg-slate-50 md:p-5"
+                >
+                  <div className={`shrink-0 rounded-xl p-3 ring-1 ${tone}`}>
+                    <config.Icon size={20} />
+                  </div>
+
+                  <div className="min-w-0 flex-1">
+                    <h3 className="truncate font-semibold text-slate-800">
+                      {config.label}
+                    </h3>
+                    <p className="truncate text-xs text-slate-500">
+                      {config.description}
+                    </p>
+                  </div>
+
+                  <div className="flex shrink-0 items-center gap-2">
+                    {/* Status pill */}
+                    <span
+                      className={`hidden items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium ring-1 sm:inline-flex ${item.is_active
+                          ? 'bg-emerald-50 text-emerald-700 ring-emerald-200'
+                          : 'bg-slate-100 text-slate-500 ring-slate-200'
+                        }`}
+                    >
+                      {item.is_active ? (
+                        <>
+                          <MdCheckCircle size={12} /> Active
+                        </>
+                      ) : (
+                        <>
+                          <MdErrorOutline size={12} /> Inactive
+                        </>
+                      )}
+                    </span>
+
+                    {/* Empty warning */}
+                    {!hasContent && (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-700 ring-1 ring-amber-200">
+                        <MdErrorOutline size={12} /> Empty
+                      </span>
+                    )}
+
+                    <span className="mx-1 hidden h-5 w-px bg-slate-200 sm:block" />
+
+                    {/* Edit button — stopPropagation so it doesn't toggle row */}
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openEdit(item);
+                      }}
+                      onKeyDown={(e) => e.stopPropagation()}
+                      className={`rounded-lg p-2 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 ${hasContent
+                          ? 'text-blue-600 hover:bg-blue-50'
+                          : 'text-slate-400 hover:bg-slate-100 hover:text-slate-600'
+                        }`}
+                      title="Edit this section"
+                      aria-label={`Edit ${config.label}`}
+                    >
+                      <MdEdit size={18} />
+                    </button>
+
+                    {/* Chevron — decorative, part of the row control */}
+                    <span
+                      className="rounded-lg p-1 text-slate-300"
+                      aria-hidden="true"
+                    >
+                      {isExpanded ? (
+                        <MdExpandLess size={22} />
+                      ) : (
+                        <MdExpandMore size={22} />
+                      )}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Preview panel */}
+                {isExpanded && (
+                  <div className="border-t border-slate-100 bg-slate-50/70 p-4 md:p-6">
+                    <div className="mb-3 flex items-center justify-between">
+                      <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                        Live Preview
+                      </span>
+                      {!hasContent && (
+                        <span className="rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700 ring-1 ring-amber-200">
+                          No data configured
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+                      {config.component && hasContent ? (
+                        <div className="p-2">
+                          <config.component
+                            {...config.previewProps(item.parsedData)}
+                            key={item.id}
+                          />
+                        </div>
+                      ) : (
+                        <div className="px-6 py-12 text-center">
+                          <div className="mb-3 flex justify-center text-slate-300">
+                            <MdOutlineInbox size={40} />
+                          </div>
+                          <p className="font-medium text-slate-500">
+                            Nothing to preview
+                          </p>
+                          <p className="mt-1 text-xs text-slate-400">
+                            Click{' '}
+                            <span className="font-medium text-blue-600">
+                              Edit
+                            </span>{' '}
+                            to add content
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       </div>
 
-      {/* ============================================
-          EDIT MODAL
-          ============================================ */}
-      {editingItem && EditorComponent && (
+      {/* ==================== EDIT MODAL ==================== */}
+      {editingItem && EditorComponent && editorConfig && (
         <div
-          className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+          className="fixed inset-0 z-50 flex items-stretch justify-center bg-slate-900/40 backdrop-blur-sm sm:items-center sm:p-4"
           onClick={(e) => {
             if (e.target === e.currentTarget) closeEdit();
           }}
         >
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[95vh] overflow-hidden flex flex-col">
-            {/* Header */}
-            <div className="flex justify-between items-center p-5 border-b border-gray-100 bg-gray-50/80 shrink-0">
-              <div className="flex items-center gap-3">
-                <div className="text-2xl">{TYPE_CONFIG[editingItem.type]?.icon}</div>
-                <div>
-                  <h2 className="text-xl font-bold text-gray-900">
-                    Edit {TYPE_CONFIG[editingItem.type]?.label}
-                  </h2>
-                  <p className="text-xs text-gray-500">
-                    {TYPE_CONFIG[editingItem.type]?.description}
-                  </p>
-                </div>
+          <div className="flex max-h-screen w-full flex-col overflow-hidden bg-white shadow-2xl sm:max-h-[92vh] sm:max-w-4xl sm:rounded-2xl">
+            {/* Sticky header */}
+            <header className="flex shrink-0 items-start gap-3 border-b border-slate-200 bg-slate-50/80 px-4 py-4 sm:px-5">
+              <div
+                className={`shrink-0 rounded-xl p-2.5 ring-1 ${TONES[editorConfig.tone]
+                  }`}
+              >
+                <editorConfig.Icon size={18} />
               </div>
-              <div className="flex items-center gap-4">
+              <div className="min-w-0 flex-1">
+                <h2 className="truncate text-base font-semibold text-slate-800">
+                  Edit {editorConfig.label}
+                </h2>
+                <p className="truncate text-xs text-slate-500">
+                  {editorConfig.description}
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
                 {hasUnsavedChanges && (
-                  <span className="flex items-center gap-2 text-xs text-yellow-600 bg-yellow-50 px-3 py-1.5 rounded-full">
-                    <span className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse" />
-                    Unsaved changes
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-700 ring-1 ring-amber-200">
+                    <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-amber-500" />
+                    <span className="hidden sm:inline">Unsaved</span>
                   </span>
                 )}
                 {savingSuccess && (
-                  <span className="flex items-center gap-1 text-xs text-green-600 bg-green-50 px-3 py-1.5 rounded-full">
-                    <MdCheckCircle size={14} /> Saved
+                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700 ring-1 ring-emerald-200">
+                    <MdCheckCircle size={12} /> Saved
                   </span>
                 )}
                 <button
+                  type="button"
                   onClick={closeEdit}
-                  className="p-2 hover:bg-gray-200 rounded-xl transition text-gray-400 hover:text-gray-600"
                   disabled={loading}
+                  className="rounded-lg p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 disabled:opacity-50"
+                  aria-label="Close"
                 >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
+                  <MdClose size={20} />
                 </button>
               </div>
-            </div>
+            </header>
 
-            {/* Form Body - Scrollable */}
-            <div className="flex-1 overflow-y-auto p-6">
-              <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Scrollable body */}
+            <form
+              onSubmit={handleSubmit}
+              className="flex flex-1 flex-col overflow-hidden"
+            >
+              <div className="flex-1 overflow-y-auto p-4 sm:p-6">
                 <EditorComponent
                   formData={formData}
                   updateFormData={updateFormData}
@@ -563,39 +612,36 @@ export default function SharedData({ sharedData }) {
                   isLoading={loading}
                   setIsLoading={setIsUploading}
                 />
-              </form>
-            </div>
+              </div>
 
-            {/* Footer Actions - Fixed */}
-            <div className="flex justify-end gap-3 p-5 border-t border-gray-100 bg-gray-50/80 shrink-0">
-              <button
-                type="button"
-                onClick={closeEdit}
-                className="px-5 py-2.5 text-gray-600 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition font-medium text-sm"
-                disabled={isUpdateDisabled}
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                onClick={handleSubmit}
-                disabled={isUpdateDisabled}
-                className={`px-6 py-2.5 bg-linear-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 transition flex items-center gap-2 font-medium text-sm shadow-sm ${isUpdateDisabled ? 'opacity-50 cursor-not-allowed' : ''
-                  }`}
-              >
-                {loading ? (
-                  <>
-                    <FaSpinner className="animate-spin" size={16} />
-                    {isUploading ? 'Uploading...' : 'Saving...'}
-                  </>
-                ) : (
-                  <>
-                    <MdCheckCircle size={18} />
-                    Save Changes
-                  </>
-                )}
-              </button>
-            </div>
+              {/* Sticky footer inside form so submit works */}
+              <footer className="flex shrink-0 items-center justify-end gap-2 border-t border-slate-200 bg-slate-50/80 px-4 py-3 sm:px-5">
+                <button
+                  type="button"
+                  onClick={closeEdit}
+                  disabled={disabled}
+                  className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50 disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={disabled}
+                  className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm shadow-blue-600/20 transition hover:bg-blue-700 hover:shadow-md focus:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {loading ? (
+                    <>
+                      <FaSpinner className="animate-spin" size={13} />
+                      {isUploading ? 'Uploading…' : 'Saving…'}
+                    </>
+                  ) : (
+                    <>
+                      <MdCheckCircle size={15} /> Save changes
+                    </>
+                  )}
+                </button>
+              </footer>
+            </form>
           </div>
         </div>
       )}
