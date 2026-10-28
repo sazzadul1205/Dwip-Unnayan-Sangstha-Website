@@ -15,7 +15,7 @@ import {
   FaToggleOff,
   FaHashtag,
 } from 'react-icons/fa';
-import { BsStack } from "react-icons/bs";
+import { BsStack } from 'react-icons/bs';
 
 // Components
 import SectionTable from './components/SectionTable';
@@ -27,14 +27,14 @@ import SectionEditModal from './components/SectionEditModal';
 import { getSectionStats } from './utils/sectionHelpers';
 import { showErrorToast } from './utils/toastHelper';
 
-// SweetAlert
-import Swal from 'sweetalert2';
-
-const Index = ({ page, sections: initialSections, trashedSections: initialTrashedSections, trashedCount: initialTrashedCount }) => {
-  // Get flash messages from Inertia
+const Index = ({
+  page,
+  sections: initialSections,
+  trashedSections: initialTrashedSections,
+  trashedCount: initialTrashedCount,
+}) => {
   const { flash } = usePage().props;
 
-  // ALL HOOKS CALLED AT TOP LEVEL IN SAME ORDER
   const {
     sections,
     expandedSections,
@@ -64,123 +64,23 @@ const Index = ({ page, sections: initialSections, trashedSections: initialTrashe
     handleEditSuccess,
   } = useSectionHelpers(initialSections, page?.id);
 
-  // State hooks
   const [activeTab, setActiveTab] = useState('active');
-  const [trashedCount] = useState(initialTrashedCount || 0);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [trashedSections] = useState(initialTrashedSections || []);
 
-  // Calculate statistics
+  // Derived from props — Inertia will refresh these on reload
+  const trashedSections = initialTrashedSections || [];
+  const trashedCount = initialTrashedCount || 0;
+
   const stats = getSectionStats(sections);
 
-  // Handle section deleted/restored - update trashed count
   const handleSectionChanged = useCallback(() => {
     router.reload({ only: ['sections', 'trashedSections', 'trashedCount'] });
   }, []);
 
-  // Restore section handler
-  const handleRestoreSection = useCallback((sectionId) => {
-    Swal.fire({
-      title: 'Restore Section?',
-      html: `
-        <div class="text-left">
-          <p class="mb-2">You're about to restore this section from the trash.</p>
-          <p class="text-sm text-gray-500">✅ The section will become active again.</p>
-        </div>
-      `,
-      icon: 'question',
-      showCancelButton: true,
-      confirmButtonColor: '#10b981',
-      cancelButtonColor: '#6b7280',
-      confirmButtonText: '✅ Restore',
-      cancelButtonText: 'Cancel'
-    }).then((result) => {
-      if (result.isConfirmed) {
-        router.post(route('backend.cms.sections.restore', sectionId), {}, {
-          preserveScroll: true,
-          onSuccess: () => {
-            handleSectionChanged();
-            Swal.fire({
-              icon: 'success',
-              title: 'Restored!',
-              text: 'Section has been restored successfully.',
-              timer: 1500,
-              showConfirmButton: false,
-              toast: true,
-              position: 'top-end'
-            });
-          },
-          onError: (errors) => {
-            console.error('Restore error:', errors);
-            Swal.fire({
-              icon: 'error',
-              title: 'Error',
-              text: 'Failed to restore section. Please try again.',
-              confirmButtonColor: '#3b82f6',
-            });
-          },
-        });
-      }
-    });
-  }, [handleSectionChanged]);
-
-  // Force delete section handler
-  const handleForceDeleteSection = useCallback((sectionId, sectionName) => {
-    Swal.fire({
-      title: '⚠️ Permanently Delete?',
-      html: `
-        <div class="text-left">
-          <p class="mb-2">You're about to permanently delete <strong>"${sectionName || 'this section'}"</strong>.</p>
-          <p class="text-sm text-red-600 font-semibold">⚠️ This action CANNOT be undone!</p>
-        </div>
-      `,
-      icon: 'error',
-      showCancelButton: true,
-      confirmButtonColor: '#d33',
-      cancelButtonColor: '#6b7280',
-      confirmButtonText: '🗑️ Permanently Delete',
-      cancelButtonText: 'Cancel'
-    }).then((result) => {
-      if (result.isConfirmed) {
-        router.delete(route('backend.cms.sections.force-delete', sectionId), {}, {
-          preserveScroll: true,
-          onSuccess: () => {
-            handleSectionChanged();
-            Swal.fire({
-              icon: 'success',
-              title: 'Deleted Permanently!',
-              text: 'Section has been permanently removed.',
-              timer: 1500,
-              showConfirmButton: false,
-              toast: true,
-              position: 'top-end'
-            });
-          },
-          onError: (errors) => {
-            console.error('Force delete error:', errors);
-            Swal.fire({
-              icon: 'error',
-              title: 'Error',
-              text: 'Failed to delete section. Please try again.',
-              confirmButtonColor: '#3b82f6',
-            });
-          },
-        });
-      }
-    });
-  }, [handleSectionChanged]);
-
-  // Handle flash messages
   useEffect(() => {
-    if (flash?.success) {
-      // Toast will be shown by the component
-    }
-    if (flash?.error) {
-      showErrorToast('Error', flash.error);
-    }
+    if (flash?.error) showErrorToast('Error', flash.error);
   }, [flash]);
 
-  // Check if page exists
   if (!page) {
     return (
       <AuthenticatedLayout>
@@ -202,16 +102,13 @@ const Index = ({ page, sections: initialSections, trashedSections: initialTrashe
     );
   }
 
-  // Determine which sections to display
   const displaySections = activeTab === 'active' ? sections : trashedSections;
 
   return (
     <AuthenticatedLayout>
       <Head title={`Sections - ${page.name}`} />
 
-      {/* MAIN CONTENT */}
       <div className="p-4 md:p-6">
-        {/* ERROR DISPLAY */}
         {hookError && (
           <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm flex items-center gap-2">
             <FaExclamationTriangle className="text-red-500 shrink-0" />
@@ -221,8 +118,6 @@ const Index = ({ page, sections: initialSections, trashedSections: initialTrashe
 
         {/* HEADER SECTION */}
         <div className="mb-8">
-
-          {/* Page Header */}
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
               <div className="flex items-center gap-3">
@@ -355,7 +250,6 @@ const Index = ({ page, sections: initialSections, trashedSections: initialTrashe
             </button>
           </div>
 
-          {/* Tab Content */}
           <div className="p-4">
             {activeTab === 'trashed' && (
               <div className="flex items-center gap-2 text-sm text-gray-500">
@@ -392,8 +286,6 @@ const Index = ({ page, sections: initialSections, trashedSections: initialTrashe
             expandedSections={expandedSections}
             showTrashed={activeTab === 'trashed'}
             onSectionDeleted={handleSectionChanged}
-            onRestore={activeTab === 'trashed' ? handleRestoreSection : null}
-            onForceDelete={activeTab === 'trashed' ? handleForceDeleteSection : null}
           />
         </div>
 
@@ -401,10 +293,9 @@ const Index = ({ page, sections: initialSections, trashedSections: initialTrashe
         <SectionFooter
           sections={displaySections}
           hasData={hasData}
-          showTrashed={activeTab === 'trashed'}
         />
 
-        {/* HELP TIPS (shown when trash is empty) */}
+        {/* HELP TIPS */}
         {activeTab === 'trashed' && displaySections.length === 0 && (
           <div className="mt-4 p-4 bg-blue-50 rounded-xl border border-blue-200">
             <div className="flex items-start gap-3">
@@ -429,7 +320,6 @@ const Index = ({ page, sections: initialSections, trashedSections: initialTrashe
         )}
 
         {/* MODALS */}
-        {/*  Edit Section */}
         <SectionEditModal
           isOpen={isEditModalOpen}
           onClose={handleEditClose}
@@ -438,7 +328,6 @@ const Index = ({ page, sections: initialSections, trashedSections: initialTrashe
           onSuccess={handleEditSuccess}
         />
 
-        {/* Add Section */}
         <AddSectionModal
           isOpen={isAddModalOpen}
           onClose={() => setIsAddModalOpen(false)}

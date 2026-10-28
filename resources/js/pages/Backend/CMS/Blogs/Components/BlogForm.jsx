@@ -18,21 +18,10 @@ const BlogForm = ({ form }) => {
     tagSuggestions,
   } = form;
 
-  const handleChange = (field, value) => {
-    if (field === '_dragActive') {
-      // Not used here — dragActive is managed in the page component
-      return;
-    }
-    form.updateField(field, value);
-  };
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    form.handleSubmit(e);
-  };
+  const handleChange = (field, value) => form.updateField(field, value);
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form onSubmit={form.handleSubmit} className="space-y-6">
       {errors && Object.keys(errors).length > 0 && (
         <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
           <h3 className="text-sm font-medium text-red-800 mb-2 flex items-center gap-2">
@@ -47,7 +36,7 @@ const BlogForm = ({ form }) => {
         </div>
       )}
 
-      {/* === Title === */}
+      {/* Title */}
       <div className="space-y-1.5">
         <label className="block text-sm font-medium text-gray-700">
           Title <span className="text-red-500">*</span>
@@ -57,9 +46,8 @@ const BlogForm = ({ form }) => {
           value={data.title || ''}
           onChange={(e) => handleChange('title', e.target.value)}
           placeholder="Enter a compelling title for your blog post"
-          className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 transition ${
-            errors?.title ? 'border-red-500' : 'border-gray-300'
-          }`}
+          className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 transition ${errors?.title ? 'border-red-500' : 'border-gray-300'
+            }`}
           required
         />
         {errors?.title && (
@@ -70,7 +58,7 @@ const BlogForm = ({ form }) => {
         )}
       </div>
 
-      {/* === Slug (read-only — non-developer friendly) === */}
+      {/* Slug (read-only) */}
       <div className="space-y-1.5">
         <label className="block text-sm font-medium text-gray-700">
           Slug <span className="text-gray-400 text-xs">(auto-generated)</span>
@@ -79,7 +67,6 @@ const BlogForm = ({ form }) => {
           <input
             type="text"
             value={data.slug || ''}
-            onChange={(e) => handleChange('slug', e.target.value)}
             readOnly
             className="w-full px-4 py-2 pr-10 border border-gray-200 rounded-lg bg-gray-50 text-gray-500 cursor-default"
             placeholder="Auto-generated from title..."
@@ -94,7 +81,7 @@ const BlogForm = ({ form }) => {
         </div>
       </div>
 
-      {/* === Excerpt === */}
+      {/* Excerpt */}
       <div className="space-y-1.5">
         <label className="block text-sm font-medium text-gray-700">
           Excerpt <span className="text-gray-400 text-xs">(max 500 characters)</span>
@@ -105,9 +92,8 @@ const BlogForm = ({ form }) => {
           placeholder="Write a brief summary of your blog post..."
           rows={3}
           maxLength={500}
-          className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 transition resize-y ${
-            errors?.excerpt ? 'border-red-500' : 'border-gray-300'
-          }`}
+          className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 transition resize-y ${errors?.excerpt ? 'border-red-500' : 'border-gray-300'
+            }`}
         />
         <div className="flex justify-between">
           <p className="text-xs text-gray-400">This appears in blog listings and search results.</p>
@@ -121,7 +107,7 @@ const BlogForm = ({ form }) => {
         )}
       </div>
 
-      {/* === Full Content (codeView disabled for non-developer safety) === */}
+      {/* Full Content */}
       <div className="space-y-1.5">
         <label className="block text-sm font-medium text-gray-700">Content</label>
         <RichTextEditor
@@ -146,19 +132,19 @@ const BlogForm = ({ form }) => {
         )}
       </div>
 
-      {/* === Featured Image === */}
+      {/* Featured Image */}
       <FileUpload
         label="Featured Image"
         value={data.image || ''}
-        onChange={form.handleFileSelect}
-        onRemove={form.removeImage}
+        onChange={(e) => form.handleFileSelect(e, 'image')}
+        onRemove={() => form.removeImage('image')}
         dragActive={dragActive}
         onDrag={form.handleDrag}
-        onDrop={form.handleDrop}
+        onDrop={(e) => form.handleDrop(e, 'image')}
         uploading={uploading}
       />
 
-      {/* === Author, Date, Read Time (non-technical fields) === */}
+      {/* Author, Date, Read Time */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="space-y-1.5">
           <label className="block text-sm font-medium text-gray-700">
@@ -206,9 +192,8 @@ const BlogForm = ({ form }) => {
               placeholder="e.g., 5"
               min="1"
               max="60"
-              className={`w-full pl-9 px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
-                errors?.read_time ? 'border-red-500' : 'border-gray-300'
-              }`}
+              className={`w-full pl-9 px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${errors?.read_time ? 'border-red-500' : 'border-gray-300'
+                }`}
             />
             <FaClock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
           </div>
@@ -216,7 +201,7 @@ const BlogForm = ({ form }) => {
         </div>
       </div>
 
-      {/* === Tags === */}
+      {/* Tags */}
       <TagInput
         tags={data.tags || []}
         tagInput={tagInput}
@@ -228,7 +213,7 @@ const BlogForm = ({ form }) => {
         error={errors?.tags ? (Array.isArray(errors.tags) ? errors.tags[0] : errors.tags) : null}
       />
 
-      {/* === Status Toggles === */}
+      {/* Status Toggles */}
       <div className="flex items-center justify-between pt-4 border-t border-gray-200">
         <div className="flex items-center gap-6">
           <div className="flex items-center gap-3">
@@ -236,11 +221,10 @@ const BlogForm = ({ form }) => {
             <button
               type="button"
               onClick={() => handleChange('is_active', !data.is_active)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2 ${
-                data.is_active
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2 ${data.is_active
                   ? 'bg-green-100 text-green-700 hover:bg-green-200'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
+                }`}
             >
               {data.is_active ? <FaEye size={14} /> : <FaEyeSlash size={14} />}
               {data.is_active ? 'Published' : 'Draft'}
@@ -252,11 +236,10 @@ const BlogForm = ({ form }) => {
             <button
               type="button"
               onClick={() => handleChange('is_featured', !data.is_featured)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2 ${
-                data.is_featured
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2 ${data.is_featured
                   ? 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
+                }`}
             >
               {data.is_featured ? '⭐ Featured' : '☆ Not Featured'}
             </button>

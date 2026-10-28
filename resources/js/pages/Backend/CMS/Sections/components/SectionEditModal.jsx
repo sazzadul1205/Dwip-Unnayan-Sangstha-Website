@@ -28,7 +28,7 @@ import { isUnconfigured, withPrefilledDefaults } from '../utils/proMode';
 import RenderDataTab from './modals/RenderDataTab';
 
 // Helper: Check if section has data
-const hasSectionData = (section) => {
+const sectionHasData = (section) => {
   return section?.data !== null && section?.data !== undefined;
 };
 
@@ -44,7 +44,6 @@ const routeUrl = (name, fallback) => {
       // Route not exposed to this bundle — use the literal path below.
     }
   }
-
   return fallback;
 };
 
@@ -71,6 +70,43 @@ const reclaimUnsavedUploads = async (pending, savedPayload) => {
     // here must never trap them in the modal.
     showWarningToast('⚠️ Cleanup Skipped', 'Some unsaved images could not be removed.', 4000);
   }
+};
+
+/**
+ * Resolve any stored bgColor representation into a `#rrggbb` string that
+ * `<input type="color">` and CSS backgrounds both accept.
+ *
+ * Stored values arrive in three shapes:
+ *   1. `#rrggbb`                    — direct hex
+ *   2. `bg-[#rrggbb]`               — Tailwind arbitrary value
+ *   3. `bg-white`, `bg-gray-50`, …  — named Tailwind utility
+ */
+const resolveColorValue = (value) => {
+  if (!value) return '#ffffff';
+  if (value.startsWith('#')) return value;
+
+  if (value.startsWith('bg-[') && value.endsWith(']')) {
+    const match = value.match(/bg-\[(.*?)\]/);
+    return match ? match[1] : '#ffffff';
+  }
+
+  const colorMap = {
+    'bg-white': '#ffffff',
+    'bg-gray-50': '#f9fafb',
+    'bg-gray-100': '#f3f4f6',
+    'bg-blue-50': '#eff6ff',
+    'bg-green-50': '#f0fdf4',
+    'bg-purple-50': '#faf5ff',
+    'bg-yellow-50': '#fefce8',
+    'bg-red-50': '#fef2f2',
+    'bg-indigo-50': '#eef2ff',
+    'bg-pink-50': '#fdf2f8',
+    'bg-orange-50': '#fff7ed',
+    'bg-teal-50': '#f0fdfa',
+    'bg-[#F5F5F5]': '#F5F5F5',
+    'bg-[#F9F9FA]': '#F9F9FA',
+  };
+  return colorMap[value] || '#ffffff';
 };
 
 // Field icon mapping
@@ -119,7 +155,6 @@ const SectionEditModal = ({
       reclaimUnsavedUploads(pendingUploads, savedPayloadRef.current);
       setPendingUploads([]);
     }
-
     onClose();
   };
 
@@ -305,7 +340,7 @@ const SectionEditModal = ({
   };
 
   const sectionConfig = getSectionConfig();
-  const hasData = hasSectionData(section);
+  const hasData = sectionHasData(section);
 
   /**
    * Get display label for data table
@@ -337,31 +372,7 @@ const SectionEditModal = ({
             <div className="relative">
               <input
                 type="color"
-                value={(() => {
-                  if (!currentValue) return '#ffffff';
-                  if (currentValue.startsWith('#')) return currentValue;
-                  if (currentValue.startsWith('bg-[') && currentValue.endsWith(']')) {
-                    const match = currentValue.match(/bg-\[(.*?)\]/);
-                    return match ? match[1] : '#ffffff';
-                  }
-                  const colorMap = {
-                    'bg-white': '#ffffff',
-                    'bg-gray-50': '#f9fafb',
-                    'bg-gray-100': '#f3f4f6',
-                    'bg-blue-50': '#eff6ff',
-                    'bg-green-50': '#f0fdf4',
-                    'bg-purple-50': '#faf5ff',
-                    'bg-yellow-50': '#fefce8',
-                    'bg-red-50': '#fef2f2',
-                    'bg-indigo-50': '#eef2ff',
-                    'bg-pink-50': '#fdf2f8',
-                    'bg-orange-50': '#fff7ed',
-                    'bg-teal-50': '#f0fdfa',
-                    'bg-[#F5F5F5]': '#F5F5F5',
-                    'bg-[#F9F9FA]': '#F9F9FA',
-                  };
-                  return colorMap[currentValue] || '#ffffff';
-                })()}
+                value={resolveColorValue(currentValue)}
                 onChange={(e) => {
                   const hexColor = e.target.value;
                   handleCustomPropChange(field.key, `bg-[${hexColor}]`);
@@ -390,33 +401,7 @@ const SectionEditModal = ({
             />
             <div
               className="w-10 h-10 rounded-xl border-2 border-gray-200 shrink-0 shadow-inner transition-all group-hover:border-blue-300"
-              style={{
-                backgroundColor: (() => {
-                  if (!currentValue) return '#ffffff';
-                  if (currentValue.startsWith('#')) return currentValue;
-                  if (currentValue.startsWith('bg-[') && currentValue.endsWith(']')) {
-                    const match = currentValue.match(/bg-\[(.*?)\]/);
-                    return match ? match[1] : '#ffffff';
-                  }
-                  const colorMap = {
-                    'bg-white': '#ffffff',
-                    'bg-gray-50': '#f9fafb',
-                    'bg-gray-100': '#f3f4f6',
-                    'bg-blue-50': '#eff6ff',
-                    'bg-green-50': '#f0fdf4',
-                    'bg-purple-50': '#faf5ff',
-                    'bg-yellow-50': '#fefce8',
-                    'bg-red-50': '#fef2f2',
-                    'bg-indigo-50': '#eef2ff',
-                    'bg-pink-50': '#fdf2f8',
-                    'bg-orange-50': '#fff7ed',
-                    'bg-teal-50': '#f0fdfa',
-                    'bg-[#F5F5F5]': '#F5F5F5',
-                    'bg-[#F9F9FA]': '#F9F9FA',
-                  };
-                  return colorMap[currentValue] || '#ffffff';
-                })()
-              }}
+              style={{ backgroundColor: resolveColorValue(currentValue) }}
             />
           </div>
         )}
@@ -544,7 +529,7 @@ const SectionEditModal = ({
    */
   const renderBasicTab = () => (
     <div className="space-y-6">
-      {/* Section Status Banner - Enhanced */}
+      {/* Section Status Banner */}
       <div className={`relative overflow-hidden rounded-2xl border-2 p-5 transition-all ${formData.is_enabled
         ? 'bg-linear-to-br from-green-50 to-emerald-50 border-green-200'
         : 'bg-linear-to-br from-gray-50 to-gray-100 border-gray-200'
@@ -741,7 +726,7 @@ const SectionEditModal = ({
         className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col min-h-0 animate-slideUp"
         onMouseDown={(e) => e.stopPropagation()}
       >
-        {/* Header - Premium Design */}
+        {/* Header */}
         <div className="flex items-center justify-between p-5 bg-linear-to-r from-white to-blue-50/50 border-b border-gray-200 rounded-t-2xl">
           <div className="flex items-center gap-4">
             <div className="p-3 bg-linear-to-br from-blue-500 to-indigo-600 rounded-2xl shadow-lg shadow-blue-200">
@@ -768,7 +753,7 @@ const SectionEditModal = ({
             </div>
           </div>
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="p-2.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-xl transition-all duration-200 hover:shadow-sm"
             disabled={isSubmitting}
             aria-label="Close modal"
@@ -828,7 +813,7 @@ const SectionEditModal = ({
             </div>
           </div>
 
-          {/* Actions - Enhanced */}
+          {/* Actions */}
           <div className="flex items-center justify-end gap-3 px-6 py-4 border-t-2 border-gray-100 shrink-0">
             <button
               type="button"

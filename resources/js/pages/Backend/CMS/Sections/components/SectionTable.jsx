@@ -6,14 +6,10 @@ import { FaInbox } from 'react-icons/fa';
 
 const SectionTable = ({
   sections,
-  expandedSections,
   previewSections,
   isReordering,
   isSaving,
-  hasData,
-  getDataSummary,
   canMove,
-  toggleExpand,
   togglePreview,
   handleMoveUp,
   handleMoveDown,
@@ -71,44 +67,32 @@ const SectionTable = ({
           </tr>
         </thead>
         <tbody className="bg-white divide-y divide-gray-100">
-          {sections.map((section, index) => {
-            const isExpanded = expandedSections[section.id] || false;
-            const isPreviewOpen = previewSections[section.id] || false;
-            const hasSectionData = hasData(section);
-            const dataSummary = getDataSummary(section);
-            const isMovable = canMove(section);
-
-            return (
-              <SectionRow
-                key={section.id}
-                section={section}
-                index={index}
-                totalSections={sections.length}
-                isExpanded={isExpanded}
-                isPreviewOpen={isPreviewOpen}
-                isReordering={isReordering}
-                isSaving={isSaving}
-                isMovable={isMovable}
-                hasSectionData={hasSectionData}
-                dataSummary={dataSummary}
-                onToggleExpand={toggleExpand}
-                onTogglePreview={togglePreview}
-                onMoveUp={handleMoveUp}
-                onMoveDown={handleMoveDown}
-                onDragStart={handleDragStart}
-                onDragEnd={handleDragEnd}
-                onDragOver={handleDragOver}
-                onDragEnter={handleDragEnter}
-                onDragLeave={handleDragLeave}
-                onDrop={handleDrop}
-                onEditClick={onEditClick}
-                onSectionDeleted={onSectionDeleted}
-                isTrashed={showTrashed}
-                draggedIndex={draggedIndex}
-                dragOverIndex={dragOverIndex}
-              />
-            );
-          })}
+          {sections.map((section, index) => (
+            <SectionRow
+              key={section.id}
+              section={section}
+              index={index}
+              totalSections={sections.length}
+              isPreviewOpen={previewSections[section.id] || false}
+              isReordering={isReordering}
+              isSaving={isSaving}
+              isMovable={canMove(section)}
+              onTogglePreview={togglePreview}
+              onMoveUp={handleMoveUp}
+              onMoveDown={handleMoveDown}
+              onDragStart={handleDragStart}
+              onDragEnd={handleDragEnd}
+              onDragOver={handleDragOver}
+              onDragEnter={handleDragEnter}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+              onEditClick={onEditClick}
+              onSectionDeleted={onSectionDeleted}
+              isTrashed={showTrashed}
+              draggedIndex={draggedIndex}
+              dragOverIndex={dragOverIndex}
+            />
+          ))}
         </tbody>
       </table>
     </div>

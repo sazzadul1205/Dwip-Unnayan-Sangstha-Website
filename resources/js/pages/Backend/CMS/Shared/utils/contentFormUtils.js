@@ -6,8 +6,8 @@ export const generateSlug = (text) => {
     .toLowerCase()
     .trim()
     .replace(/[^\w\s-]/g, '')
-    .replace(/\s+/g, '-')
-    .replace(/-+/g, '-', '');
+    .replace(/[\s_-]+/g, '-')
+    .replace(/^-+|-+$/g, '');
 };
 
 export const COMMON_TAG_SUGGESTIONS = [

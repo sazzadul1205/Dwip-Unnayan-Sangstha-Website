@@ -18,9 +18,7 @@ const AboutForm = ({ form }) => {
     tagSuggestions,
   } = form;
 
-  const handleChange = (field, value) => {
-    form.updateField(field, value);
-  };
+  const handleChange = (field, value) => form.updateField(field, value);
 
   return (
     <form onSubmit={form.handleSubmit} className="space-y-6">
@@ -58,7 +56,6 @@ const AboutForm = ({ form }) => {
           <input
             type="text"
             value={data.slug || ''}
-            onChange={(e) => handleChange('slug', e.target.value)}
             readOnly
             className="w-full px-4 py-2 pr-10 border border-gray-200 rounded-lg bg-gray-50 text-gray-500 cursor-default"
             placeholder="Auto-generated from title..."
@@ -81,9 +78,8 @@ const AboutForm = ({ form }) => {
         <select
           value={data.type || 'main'}
           onChange={(e) => handleChange('type', e.target.value)}
-          className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 transition ${
-            errors?.type ? 'border-red-500' : 'border-gray-300'
-          }`}
+          className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 transition ${errors?.type ? 'border-red-500' : 'border-gray-300'
+            }`}
         >
           <option value="main">Main Content</option>
           <option value="detail">Detail Page</option>
@@ -110,9 +106,8 @@ const AboutForm = ({ form }) => {
           placeholder="Brief description or summary"
           rows={3}
           maxLength={500}
-          className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 transition resize-y ${
-            errors?.content ? 'border-red-500' : 'border-gray-300'
-          }`}
+          className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 transition resize-y ${errors?.content ? 'border-red-500' : 'border-gray-300'
+            }`}
         />
         <div className="flex justify-between">
           <p className="text-xs text-gray-400">Brief summary shown in listings</p>
@@ -151,23 +146,23 @@ const AboutForm = ({ form }) => {
       <FileUpload
         label="Image"
         value={data.image || ''}
-        onChange={form.handleFileSelect}
-        onRemove={form.removeImage}
+        onChange={(e) => form.handleFileSelect(e, 'image')}
+        onRemove={() => form.removeImage('image')}
         dragActive={dragActive}
         onDrag={form.handleDrag}
-        onDrop={form.handleDrop}
+        onDrop={(e) => form.handleDrop(e, 'image')}
         uploading={uploading}
       />
 
-      {/* Icon */}
+      {/* Icon — uses its own target field so it can't clobber the image */}
       <FileUpload
         label="Icon"
         value={data.icon || ''}
-        onChange={(e) => form.handleFileSelect(e)}
-        onRemove={form.removeImage}
+        onChange={(e) => form.handleFileSelect(e, 'icon')}
+        onRemove={() => form.removeImage('icon')}
         dragActive={dragActive}
         onDrag={form.handleDrag}
-        onDrop={form.handleDrop}
+        onDrop={(e) => form.handleDrop(e, 'icon')}
         uploading={uploading}
         accept="image/svg+xml,image/png,image/jpeg,image/gif,image/webp"
         maxSizeText="max 2MB"

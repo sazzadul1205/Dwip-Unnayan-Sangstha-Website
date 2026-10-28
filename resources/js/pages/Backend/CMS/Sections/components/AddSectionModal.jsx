@@ -1,4 +1,3 @@
-
 // resources/js/pages/Backend/CMS/Sections/components/AddSectionModal.jsx
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
@@ -134,7 +133,7 @@ const SECTION_OPTIONS = {
   },
 
   // ============================================
-  // CUSTOM DATA SECTIONS (create custom_section_data entries)
+  // CUSTOM DATA SECTIONS
   // ============================================
   'HomeBanner': {
     label: 'Home Banner',
@@ -332,19 +331,16 @@ const AddSectionModal = ({ isOpen, onClose, pageId, onSuccess }) => {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [activeTab, setActiveTab] = useState('all');
   const [suggestedKey, setSuggestedKey] = useState('');
-  const [isHovered, setIsHovered] = useState(null);
 
   const searchInputRef = useRef(null);
   const modalRef = useRef(null);
 
-  // Focus search input when modal opens
   useEffect(() => {
     if (isOpen && searchInputRef.current) {
       setTimeout(() => searchInputRef.current.focus(), 100);
     }
   }, [isOpen]);
 
-  // Generate suggested section key
   useEffect(() => {
     if (selectedComponent) {
       const baseKey = selectedComponent
@@ -358,7 +354,6 @@ const AddSectionModal = ({ isOpen, onClose, pageId, onSuccess }) => {
     }
   }, [selectedComponent]);
 
-  // Reset state when modal closes
   useEffect(() => {
     if (!isOpen) {
       setSelectedComponent('');
@@ -368,15 +363,12 @@ const AddSectionModal = ({ isOpen, onClose, pageId, onSuccess }) => {
       setSelectedCategory('all');
       setActiveTab('all');
       setIsSubmitting(false);
-      setIsHovered(null);
     }
   }, [isOpen]);
 
-  // Filter sections based on search, category, and tab
   const filteredSections = useMemo(() => {
     let sections = Object.entries(SECTION_OPTIONS);
 
-    // Filter by search
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase().trim();
       sections = sections.filter(([key, opt]) =>
@@ -386,12 +378,10 @@ const AddSectionModal = ({ isOpen, onClose, pageId, onSuccess }) => {
       );
     }
 
-    // Filter by category
     if (selectedCategory !== 'all') {
       sections = sections.filter(([, opt]) => opt.category === selectedCategory);
     }
 
-    // Filter by tab
     if (activeTab === 'special') {
       sections = sections.filter(([, opt]) => opt.isSpecial === true);
     } else if (activeTab === 'custom') {
@@ -439,25 +429,20 @@ const AddSectionModal = ({ isOpen, onClose, pageId, onSuccess }) => {
     );
   };
 
-  // Handle escape key
   useEffect(() => {
     const handleEscape = (e) => {
-      if (e.key === 'Escape' && isOpen) {
-        onClose();
-      }
+      if (e.key === 'Escape' && isOpen) onClose();
     };
     document.addEventListener('keydown', handleEscape);
     return () => document.removeEventListener('keydown', handleEscape);
   }, [isOpen, onClose]);
 
-  // Handle click outside
   const handleOutsideClick = (e) => {
     if (modalRef.current && !modalRef.current.contains(e.target)) {
       onClose();
     }
   };
 
-  // Get badge color classes
   const getBadgeClasses = (badgeColor) => {
     const colors = {
       purple: 'bg-purple-100 text-purple-700',
@@ -472,6 +457,7 @@ const AddSectionModal = ({ isOpen, onClose, pageId, onSuccess }) => {
   if (!isOpen) return null;
 
   const selectedOption = selectedComponent ? SECTION_OPTIONS[selectedComponent] : null;
+  const SelectedIcon = selectedComponent ? (SECTION_ICONS[selectedComponent] || FaCode) : FaCode;
 
   return (
     <div
@@ -485,7 +471,7 @@ const AddSectionModal = ({ isOpen, onClose, pageId, onSuccess }) => {
         ref={modalRef}
         className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[95vh] overflow-y-auto animate-slideUp"
       >
-        {/* Header - Improved */}
+        {/* Header */}
         <div className="sticky top-0 z-10 flex items-center justify-between p-6 border-b border-gray-200 bg-white rounded-t-2xl">
           <div className="flex items-center gap-3">
             <div className="p-2.5 bg-linear-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg shadow-blue-200">
@@ -507,7 +493,7 @@ const AddSectionModal = ({ isOpen, onClose, pageId, onSuccess }) => {
         </div>
 
         <form onSubmit={handleSubmit} className="p-6">
-          {/* Search Bar - Enhanced */}
+          {/* Search Bar */}
           <div className="relative mb-5">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <FaSearch className="text-gray-400" />
@@ -531,7 +517,7 @@ const AddSectionModal = ({ isOpen, onClose, pageId, onSuccess }) => {
             )}
           </div>
 
-          {/* Filter Tabs - Enhanced with better styling */}
+          {/* Filter Tabs */}
           <div className="flex gap-2 mb-4 flex-wrap">
             <button
               type="button"
@@ -566,7 +552,6 @@ const AddSectionModal = ({ isOpen, onClose, pageId, onSuccess }) => {
               Special ({Object.values(SECTION_OPTIONS).filter(opt => opt.isSpecial).length})
             </button>
 
-            {/* Category Filter */}
             {!searchQuery && (
               <>
                 <span className="w-px bg-gray-300 mx-2" />
@@ -591,7 +576,7 @@ const AddSectionModal = ({ isOpen, onClose, pageId, onSuccess }) => {
             )}
           </div>
 
-          {/* Section Type Grid - Enhanced */}
+          {/* Section Type Grid */}
           <div className="mb-5">
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Select Section Type <span className="text-red-500">*</span>
@@ -602,7 +587,6 @@ const AddSectionModal = ({ isOpen, onClose, pageId, onSuccess }) => {
                 {filteredSections.map(([key, opt]) => {
                   const isSelected = selectedComponent === key;
                   const Icon = SECTION_ICONS[key] || FaCode;
-                  const isHoveredState = isHovered === key;
                   const badgeClasses = getBadgeClasses(opt.badgeColor);
 
                   return (
@@ -613,14 +597,11 @@ const AddSectionModal = ({ isOpen, onClose, pageId, onSuccess }) => {
                         setSelectedComponent(key);
                         setErrors({});
                       }}
-                      onMouseEnter={() => setIsHovered(key)}
-                      onMouseLeave={() => setIsHovered(null)}
                       className={`group relative flex items-start gap-3 p-4 rounded-xl border-2 transition-all duration-200 text-left ${isSelected
                         ? 'border-blue-500 bg-blue-50 shadow-lg shadow-blue-100 scale-[1.02]'
                         : 'border-gray-200 hover:border-blue-300 hover:bg-gray-50 hover:shadow-md'
-                        } ${isHoveredState && !isSelected ? 'border-blue-200 bg-gray-50' : ''}`}
+                        }`}
                     >
-                      {/* Popular badge */}
                       {opt.isPopular && (
                         <span className="absolute -top-2 -right-2 bg-linear-to-r from-yellow-400 to-yellow-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-md">
                           <FaStar className="inline mr-0.5" size={8} />
@@ -636,8 +617,7 @@ const AddSectionModal = ({ isOpen, onClose, pageId, onSuccess }) => {
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className={`text-sm font-semibold ${isSelected ? 'text-blue-700' : 'text-gray-800'
-                            }`}>
+                          <span className={`text-sm font-semibold ${isSelected ? 'text-blue-700' : 'text-gray-800'}`}>
                             {opt.label}
                           </span>
                           <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${badgeClasses}`}>
@@ -686,14 +666,12 @@ const AddSectionModal = ({ isOpen, onClose, pageId, onSuccess }) => {
             )}
           </div>
 
-          {/* Selected Section Details - Enhanced */}
+          {/* Selected Section Details */}
           {selectedOption && (
             <div className="mb-5 p-5 bg-linear-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-200 shadow-sm">
               <div className="flex items-start gap-4">
                 <div className="p-3 bg-white rounded-xl shadow-md">
-                  {selectedComponent && React.createElement(SECTION_ICONS[selectedComponent] || FaCode, {
-                    className: "text-blue-600 text-2xl"
-                  })}
+                  <SelectedIcon className="text-blue-600 text-2xl" />
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center gap-2 flex-wrap">
@@ -733,7 +711,7 @@ const AddSectionModal = ({ isOpen, onClose, pageId, onSuccess }) => {
             </div>
           )}
 
-          {/* Section Key - Enhanced */}
+          {/* Section Key */}
           <div className="mb-5">
             <label className="block text-sm font-medium text-gray-700 mb-1.5">
               Section Key <span className="text-red-500">*</span>
@@ -780,7 +758,7 @@ const AddSectionModal = ({ isOpen, onClose, pageId, onSuccess }) => {
             )}
           </div>
 
-          {/* Info Box - Enhanced */}
+          {/* Info Box */}
           {selectedOption && (
             <div className="mb-5 p-5 bg-linear-to-br from-gray-50 to-gray-100/50 rounded-xl border border-gray-200">
               <div className="flex items-start gap-3">
@@ -829,7 +807,7 @@ const AddSectionModal = ({ isOpen, onClose, pageId, onSuccess }) => {
             </div>
           )}
 
-          {/* Actions - Enhanced */}
+          {/* Actions */}
           <div className="flex items-center justify-end gap-3 pt-5 mt-3 border-t border-gray-200">
             <button
               type="button"
@@ -863,7 +841,6 @@ const AddSectionModal = ({ isOpen, onClose, pageId, onSuccess }) => {
         </form>
       </div>
 
-      {/* Add custom scrollbar styles */}
       <style>{`
         .custom-scrollbar::-webkit-scrollbar {
           width: 4px;
@@ -904,4 +881,4 @@ const AddSectionModal = ({ isOpen, onClose, pageId, onSuccess }) => {
   );
 };
 
-export default AddSectionModal; 
+export default AddSectionModal;

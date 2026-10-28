@@ -1,137 +1,59 @@
 // resources/js/pages/Backend/CMS/Index.jsx
 
-// React
 import { useState, useEffect } from 'react';
 import { Head, Link, router, usePage } from '@inertiajs/react';
 
-// Layout
 import AuthenticatedLayout from '../../../layouts/AuthenticatedLayout';
 
-// Icons
 import {
   FaPlus, FaEdit, FaTrash, FaUndo, FaSpinner,
-  FaLock, FaHome, FaInfoCircle, FaCogs,
-  FaEnvelope, FaBlog, FaUsers, FaFileAlt, FaToggleOn, FaToggleOff,
-  FaSync, FaExclamationTriangle,
-  FaSave, FaCalendarAlt,
-  FaImages,
-  FaBriefcase,
-  FaGavel,
-  FaShieldAlt,
+  FaLock, FaSync, FaExclamationTriangle,
+  FaSave, FaCalendarAlt, FaToggleOn, FaToggleOff,
 } from 'react-icons/fa';
-import { ImCross } from "react-icons/im";
-import { BsStack } from "react-icons/bs";
+import { ImCross } from 'react-icons/im';
+import { BsStack } from 'react-icons/bs';
 
-// SweetAlert
 import Swal from 'sweetalert2';
 
+import {
+  generateSlug,
+  getPageIcon,
+  getPageTypeLabel,
+  isSubPage,
+  getParentSlug,
+  isProtectedPage,
+  formatDate,
+} from './utils/pageHelpers';
+
 export default function Index({ items, protectedPages = [] }) {
-  // STATE MANAGEMENT
+  // ============================================================
+  // STATE
+  // ============================================================
   const { flash } = usePage().props;
 
-  // Modal states
   const [formData, setFormData] = useState({});
   const [showModal, setShowModal] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
 
-  // Loading states
   const [loading, setLoading] = useState(false);
   const [toggling, setToggling] = useState(null);
   const [isRestoring, setIsRestoring] = useState(false);
 
-  // Filter states
   const [searchTerm, setSearchTerm] = useState('');
   const [showDeleted, setShowDeleted] = useState(false);
   const [filterStatus, setFilterStatus] = useState('all');
 
-  // Validation errors
   const [validationErrors, setValidationErrors] = useState({});
 
-  // HELPER FUNCTIONS
-  const generateSlug = (text) => {
-    if (!text) return '';
-    return text
-      .toLowerCase()
-      .trim()
-      .replace(/[^\w\s-]/g, '')
-      .replace(/[\s_-]+/g, '-')
-      .replace(/^-+|-+$/g, '');
-  };
-
-  const getIcon = (slug) => {
-    // Main pages with specific icons
-    if (slug === 'home') return <FaHome className="text-blue-500" size={18} />;
-    if (slug === 'about') return <FaInfoCircle className="text-green-500" size={18} />;
-    if (slug === 'services') return <FaCogs className="text-purple-500" size={18} />;
-    if (slug === 'contact') return <FaEnvelope className="text-red-500" size={18} />;
-    if (slug === 'blog') return <FaBlog className="text-orange-500" size={18} />;
-    if (slug === 'programs' || slug === 'projects-programs') return <FaUsers className="text-indigo-500" size={18} />;
-    if (slug === 'publications') return <FaFileAlt className="text-teal-500" size={18} />;
-    if (slug === 'gallery') return <FaImages className="text-pink-500" size={18} />;
-    if (slug === 'jobs') return <FaBriefcase className="text-yellow-600" size={18} />;
-    if (slug === 'terms') return <FaGavel className="text-gray-600" size={18} />;
-    if (slug === 'privacy') return <FaShieldAlt className="text-gray-600" size={18} />;
-
-    // Detail/sub-pages
-    if (slug?.endsWith('-details')) return <FaFileAlt className="text-teal-500" size={18} />;
-
-    // Default
-    return <FaFileAlt className="text-gray-400" size={18} />;
-  };
-
-  const getPageTypeLabel = (slug) => {
-    // Main pages with specific labels
-    if (slug === 'home') return '🏠 Homepage';
-    if (slug === 'about') return 'ℹ️ About Page';
-    if (slug === 'services') return '⚙️ Services';
-    if (slug === 'contact') return '📧 Contact Page';
-    if (slug === 'blog') return '📝 Blog';
-    if (slug === 'programs' || slug === 'projects-programs') return '👥 Programs';
-    if (slug === 'publications') return '📄 Publications';
-    if (slug === 'gallery') return '🖼️ Gallery';
-    if (slug === 'jobs') return '💼 Careers';
-    if (slug === 'terms') return '📋 Terms & Conditions';
-    if (slug === 'privacy') return '🔒 Privacy Policy';
-
-    // Detail/sub-pages
-    if (slug?.endsWith('-details')) {
-      // Extract parent name for better label
-      const parent = slug.replace('-details', '');
-      const parentLabels = {
-        'about': 'About',
-        'blog': 'Blog',
-        'projects-programs': 'Program',
-        'publications': 'Publication'
-      };
-      const displayName = parentLabels[parent] || parent.charAt(0).toUpperCase() + parent.slice(1);
-      return `📄 ${displayName} Detail`;
-    }
-
-    // Default
-    return '📄 Standard Page';
-  };
-
-  const isProtected = (item) => {
-    if (!item) return false;
-    if (item.slug?.endsWith('-details')) return true;
-    return protectedPages.includes(item.slug);
-  };
-
-  const isSubPage = (slug) => {
-    return slug?.endsWith('-details') || false;
-  };
-
-  const getParentSlug = (slug) => {
-    if (!slug || !slug.endsWith('-details')) return null;
-    return slug.replace('-details', '');
-  };
-
+  // ============================================================
+  // FORM FIELD HANDLERS
+  // ============================================================
   const getFields = () => ({
     slug: '',
     name: '',
     title: '',
     description: '',
-    is_active: true
+    is_active: true,
   });
 
   const handleNameChange = (e) => {
@@ -139,13 +61,13 @@ export default function Index({ items, protectedPages = [] }) {
     const autoSlug = generateSlug(name);
     const currentSlug = formData.slug || '';
 
-    const shouldAutoUpdate = !editingItem ||
-      (editingItem && currentSlug === generateSlug(editingItem.name || ''));
+    const shouldAutoUpdate = !editingItem
+      || (editingItem && currentSlug === generateSlug(editingItem.name || ''));
 
     setFormData({
       ...formData,
       name,
-      slug: shouldAutoUpdate ? autoSlug : currentSlug
+      slug: shouldAutoUpdate ? autoSlug : currentSlug,
     });
 
     if (validationErrors.name) {
@@ -154,10 +76,7 @@ export default function Index({ items, protectedPages = [] }) {
   };
 
   const handleSlugChange = (e) => {
-    setFormData({
-      ...formData,
-      slug: e.target.value
-    });
+    setFormData({ ...formData, slug: e.target.value });
     if (validationErrors.slug) {
       setValidationErrors({ ...validationErrors, slug: null });
     }
@@ -165,36 +84,31 @@ export default function Index({ items, protectedPages = [] }) {
 
   const regenerateSlug = () => {
     if (formData.name) {
-      setFormData({
-        ...formData,
-        slug: generateSlug(formData.name)
-      });
+      setFormData({ ...formData, slug: generateSlug(formData.name) });
       if (validationErrors.slug) {
         setValidationErrors({ ...validationErrors, slug: null });
       }
     }
   };
 
-  // FORM VALIDATION
+  // ============================================================
+  // VALIDATION
+  // ============================================================
   const validateForm = () => {
     const errors = {};
 
     if (!formData.name || formData.name.trim().length < 3) {
       errors.name = 'Name must be at least 3 characters long.';
     }
-
     if (formData.name && formData.name.length > 255) {
       errors.name = 'Name cannot exceed 255 characters.';
     }
-
     if (!formData.slug || formData.slug.trim().length < 3) {
       errors.slug = 'Slug must be at least 3 characters long.';
     }
-
     if (formData.slug && formData.slug.length > 255) {
       errors.slug = 'Slug cannot exceed 255 characters.';
     }
-
     if (formData.title && formData.title.length > 255) {
       errors.title = 'Title cannot exceed 255 characters.';
     }
@@ -203,15 +117,13 @@ export default function Index({ items, protectedPages = [] }) {
     return Object.keys(errors).length === 0;
   };
 
-  // MODAL FUNCTIONS
+  // ============================================================
+  // MODAL
+  // ============================================================
   const openModal = (item = null) => {
     setValidationErrors({});
     setEditingItem(item);
-    if (item) {
-      setFormData({ ...item });
-    } else {
-      setFormData(getFields());
-    }
+    setFormData(item ? { ...item } : getFields());
     setShowModal(true);
   };
 
@@ -222,7 +134,9 @@ export default function Index({ items, protectedPages = [] }) {
     setValidationErrors({});
   };
 
-  // CRUD OPERATIONS
+  // ============================================================
+  // CRUD
+  // ============================================================
   const handleSubmit = (e) => {
     e.preventDefault();
 
@@ -239,11 +153,7 @@ export default function Index({ items, protectedPages = [] }) {
     setLoading(true);
 
     const data = { ...formData };
-
-    if (!data.slug || data.slug.trim() === '') {
-      delete data.slug;
-    }
-
+    if (!data.slug || data.slug.trim() === '') delete data.slug;
     data.is_active = data.is_active ? true : false;
 
     const url = editingItem
@@ -261,11 +171,13 @@ export default function Index({ items, protectedPages = [] }) {
         Swal.fire({
           icon: 'success',
           title: editingItem ? '✨ Page Updated!' : '🎉 Page Created!',
-          text: editingItem ? 'Your page has been updated successfully.' : 'Your new page has been created successfully.',
+          text: editingItem
+            ? 'Your page has been updated successfully.'
+            : 'Your new page has been created successfully.',
           timer: 2000,
           showConfirmButton: false,
           toast: true,
-          position: 'top-end'
+          position: 'top-end',
         });
       },
       onError: (errors) => {
@@ -273,10 +185,12 @@ export default function Index({ items, protectedPages = [] }) {
         setLoading(false);
 
         if (errors) {
-          const errorMessages = Object.entries(errors).map(([field, messages]) => {
-            const msgs = Array.isArray(messages) ? messages : [messages];
-            return `${field}: ${msgs.join(', ')}`;
-          }).join('\n');
+          const errorMessages = Object.entries(errors)
+            .map(([field, messages]) => {
+              const msgs = Array.isArray(messages) ? messages : [messages];
+              return `${field}: ${msgs.join(', ')}`;
+            })
+            .join('\n');
 
           Swal.fire({
             icon: 'error',
@@ -292,7 +206,7 @@ export default function Index({ items, protectedPages = [] }) {
   };
 
   const toggleStatus = (item) => {
-    if (isProtected(item)) {
+    if (isProtectedPage(item, protectedPages)) {
       Swal.fire({
         icon: 'info',
         title: '🔒 Protected Page',
@@ -323,7 +237,7 @@ export default function Index({ items, protectedPages = [] }) {
   };
 
   const confirmDelete = (item) => {
-    if (isProtected(item)) {
+    if (isProtectedPage(item, protectedPages)) {
       Swal.fire({
         icon: 'info',
         title: '🔒 Protected Page',
@@ -346,7 +260,7 @@ export default function Index({ items, protectedPages = [] }) {
       confirmButtonColor: '#d33',
       cancelButtonColor: '#6b7280',
       confirmButtonText: '🗑️ Move to Trash',
-      cancelButtonText: 'Cancel'
+      cancelButtonText: 'Cancel',
     }).then((result) => {
       if (result.isConfirmed) {
         router.delete(route('backend.cms.pages.destroy', item.id), {}, {
@@ -379,7 +293,7 @@ export default function Index({ items, protectedPages = [] }) {
       confirmButtonColor: '#d33',
       cancelButtonColor: '#6b7280',
       confirmButtonText: '🗑️ Permanently Delete',
-      cancelButtonText: 'Cancel'
+      cancelButtonText: 'Cancel',
     }).then((result) => {
       if (result.isConfirmed) {
         router.delete(route('backend.cms.pages.force-delete', item.id), {}, {
@@ -412,7 +326,7 @@ export default function Index({ items, protectedPages = [] }) {
       confirmButtonColor: '#10b981',
       cancelButtonColor: '#6b7280',
       confirmButtonText: '✅ Restore',
-      cancelButtonText: 'Cancel'
+      cancelButtonText: 'Cancel',
     }).then((result) => {
       if (result.isConfirmed) {
         setIsRestoring(true);
@@ -437,17 +351,9 @@ export default function Index({ items, protectedPages = [] }) {
     });
   };
 
-  const formatDate = (date) => {
-    if (!date) return '-';
-    const d = new Date(date);
-    return d.toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric'
-    });
-  };
-
+  // ============================================================
   // SORTING & FILTERING
+  // ============================================================
   const getSortedItems = () => {
     const parents = items.filter(item => !isSubPage(item.slug));
     const subs = items.filter(item => isSubPage(item.slug));
@@ -455,9 +361,7 @@ export default function Index({ items, protectedPages = [] }) {
     const subMap = {};
     subs.forEach(sub => {
       const parentSlug = getParentSlug(sub.slug);
-      if (!subMap[parentSlug]) {
-        subMap[parentSlug] = [];
-      }
+      if (!subMap[parentSlug]) subMap[parentSlug] = [];
       subMap[parentSlug].push(sub);
     });
 
@@ -481,22 +385,19 @@ export default function Index({ items, protectedPages = [] }) {
   const getFilteredItems = () => {
     const sorted = getSortedItems();
 
-    // First filter by deleted status
     let filtered = showDeleted
       ? sorted.filter(item => item.deleted_at !== null)
       : sorted.filter(item => item.deleted_at === null);
 
-    // Then filter by search term
     if (searchTerm.trim()) {
       const term = searchTerm.toLowerCase().trim();
       filtered = filtered.filter(item =>
-        (item.name && item.name.toLowerCase().includes(term)) ||
-        (item.slug && item.slug.toLowerCase().includes(term)) ||
-        (item.title && item.title.toLowerCase().includes(term))
+        (item.name && item.name.toLowerCase().includes(term))
+        || (item.slug && item.slug.toLowerCase().includes(term))
+        || (item.title && item.title.toLowerCase().includes(term))
       );
     }
 
-    // Then filter by status
     if (filterStatus === 'active') {
       filtered = filtered.filter(item => item.is_active === true);
     } else if (filterStatus === 'inactive') {
@@ -506,7 +407,9 @@ export default function Index({ items, protectedPages = [] }) {
     return filtered;
   };
 
-  // EFFECTS
+  // ============================================================
+  // FLASH MESSAGES
+  // ============================================================
   useEffect(() => {
     if (flash?.success) {
       Swal.fire({
@@ -516,7 +419,7 @@ export default function Index({ items, protectedPages = [] }) {
         timer: 3000,
         showConfirmButton: false,
         toast: true,
-        position: 'top-end'
+        position: 'top-end',
       });
     }
     if (flash?.error) {
@@ -529,18 +432,20 @@ export default function Index({ items, protectedPages = [] }) {
     }
   }, [flash]);
 
+  // ============================================================
   // RENDER
+  // ============================================================
   const filteredItems = getFilteredItems();
   const activeCount = items.filter(p => p.is_active && !p.deleted_at).length;
   const deletedCount = items.filter(p => p.deleted_at !== null).length;
-  const protectedCount = items.filter(p => isProtected(p) && !p.deleted_at).length;
+  const protectedCount = items.filter(p => isProtectedPage(p, protectedPages) && !p.deleted_at).length;
 
   return (
     <AuthenticatedLayout>
       <Head title="CMS - Pages" />
 
       <div className="p-4 md:p-6">
-        {/* HEADER SECTION */}
+        {/* HEADER */}
         <div className="mb-6">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
@@ -562,7 +467,6 @@ export default function Index({ items, protectedPages = [] }) {
             </button>
           </div>
 
-          {/* Stats Cards */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4">
             <div className="bg-white rounded-xl border border-gray-200 p-3 shadow-sm">
               <div className="flex items-center justify-between">
@@ -594,7 +498,6 @@ export default function Index({ items, protectedPages = [] }) {
         {/* FILTERS & SEARCH */}
         <div className="bg-white rounded-xl border border-gray-200 p-4 mb-6 shadow-sm">
           <div className="flex flex-col sm:flex-row gap-3">
-            {/* Search */}
             <div className="flex-1">
               <div className="relative">
                 <input
@@ -608,7 +511,6 @@ export default function Index({ items, protectedPages = [] }) {
               </div>
             </div>
 
-            {/* Status Filter */}
             <div className="sm:w-48">
               <select
                 value={filterStatus}
@@ -621,7 +523,6 @@ export default function Index({ items, protectedPages = [] }) {
               </select>
             </div>
 
-            {/* Trash Toggle */}
             <button
               onClick={() => {
                 setShowDeleted(!showDeleted);
@@ -641,7 +542,6 @@ export default function Index({ items, protectedPages = [] }) {
               )}
             </button>
 
-            {/* Clear Filters */}
             {(searchTerm || filterStatus !== 'all') && (
               <button
                 onClick={() => {
@@ -671,8 +571,7 @@ export default function Index({ items, protectedPages = [] }) {
                   ? 'Deleted pages will appear here'
                   : searchTerm || filterStatus !== 'all'
                     ? 'Try adjusting your filters'
-                    : 'Click "Create New Page" to get started'
-                }
+                    : 'Click "Create New Page" to get started'}
               </p>
               {!showDeleted && !searchTerm && filterStatus === 'all' && (
                 <button
@@ -687,8 +586,6 @@ export default function Index({ items, protectedPages = [] }) {
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full">
-
-                {/* TABLE HEAD */}
                 <thead className="bg-gray-50 border-b border-gray-200">
                   <tr>
                     <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -712,11 +609,10 @@ export default function Index({ items, protectedPages = [] }) {
                   </tr>
                 </thead>
 
-                {/* PAGE ROWS */}
                 <tbody className="divide-y divide-gray-100">
                   {filteredItems.map((item) => {
                     const isDeleted = item.deleted_at !== null;
-                    const protectedPage = isProtected(item);
+                    const protectedPage = isProtectedPage(item, protectedPages);
                     const subPage = isSubPage(item.slug);
                     const parentSlug = getParentSlug(item.slug);
                     const parentExists = items.some(p => p.slug === parentSlug && !isSubPage(p.slug));
@@ -730,7 +626,7 @@ export default function Index({ items, protectedPages = [] }) {
                         <td className="px-4 md:px-6 py-4">
                           <div className="flex items-center gap-3">
                             <div className="shrink-0 w-9 h-9 rounded-lg bg-gray-100 flex items-center justify-center">
-                              {getIcon(item.slug)}
+                              {getPageIcon(item.slug)}
                             </div>
                             <div>
                               <div className="flex items-center gap-2">
@@ -768,21 +664,18 @@ export default function Index({ items, protectedPages = [] }) {
                           </div>
                         </td>
 
-                        {/* Slug - Hidden on mobile */}
                         <td className="px-4 md:px-6 py-4 hidden md:table-cell">
                           <code className="text-xs bg-gray-100 px-2 py-1 rounded text-gray-700">
                             /{item.slug || '-'}
                           </code>
                         </td>
 
-                        {/* Type - Hidden on tablet */}
                         <td className="px-4 md:px-6 py-4 hidden lg:table-cell">
                           <span className="text-xs text-gray-600">
                             {getPageTypeLabel(item.slug)}
                           </span>
                         </td>
 
-                        {/* Status */}
                         <td className="px-4 md:px-6 py-4">
                           {!isDeleted ? (
                             <button
@@ -792,7 +685,11 @@ export default function Index({ items, protectedPages = [] }) {
                                 ? 'bg-green-50 text-green-700 hover:bg-green-100'
                                 : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                                 } ${protectedPage ? 'opacity-60 cursor-not-allowed' : ''}`}
-                              title={protectedPage ? 'Protected page cannot be deactivated' : item.is_active ? 'Click to deactivate' : 'Click to activate'}
+                              title={protectedPage
+                                ? 'Protected page cannot be deactivated'
+                                : item.is_active
+                                  ? 'Click to deactivate'
+                                  : 'Click to activate'}
                             >
                               {toggling === item.id ? (
                                 <FaSpinner className="animate-spin" size={14} />
@@ -810,7 +707,6 @@ export default function Index({ items, protectedPages = [] }) {
                           )}
                         </td>
 
-                        {/* Created Date - Hidden on mobile */}
                         <td className="px-4 md:px-6 py-4 hidden sm:table-cell">
                           <div className="flex items-center gap-1.5 text-sm text-gray-500">
                             <FaCalendarAlt size={12} className="text-gray-400" />
@@ -818,7 +714,6 @@ export default function Index({ items, protectedPages = [] }) {
                           </div>
                         </td>
 
-                        {/* Actions */}
                         <td className="px-4 md:px-6 py-4 text-right">
                           <div className="flex items-center justify-end gap-1">
                             {isDeleted ? (
@@ -878,13 +773,10 @@ export default function Index({ items, protectedPages = [] }) {
             </div>
           )}
 
-          {/* Footer with count */}
           {filteredItems.length > 0 && (
             <div className="px-4 md:px-6 py-3 bg-gray-50 border-t border-gray-200 text-xs text-gray-500 flex justify-between">
               <span>Showing {filteredItems.length} page{filteredItems.length > 1 ? 's' : ''}</span>
-              {showDeleted && (
-                <span className="text-red-500">🗑️ Trash view</span>
-              )}
+              {showDeleted && <span className="text-red-500">🗑️ Trash view</span>}
             </div>
           )}
         </div>
@@ -899,7 +791,6 @@ export default function Index({ items, protectedPages = [] }) {
           }}
         >
           <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[95vh] overflow-hidden">
-            {/* Modal Header */}
             <div className="flex justify-between items-center p-6 border-b border-gray-100 bg-linear-to-r from-blue-50 to-purple-50">
               <div>
                 <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
@@ -917,7 +808,6 @@ export default function Index({ items, protectedPages = [] }) {
               </button>
             </div>
 
-            {/* Modal Form */}
             <form onSubmit={handleSubmit} className="p-6 overflow-y-auto max-h-[calc(95vh-180px)]">
               <div className="space-y-5">
                 {/* Name Field */}
@@ -1029,14 +919,16 @@ export default function Index({ items, protectedPages = [] }) {
                   <select
                     value={formData.is_active ? '1' : '0'}
                     onChange={(e) => setFormData({ ...formData, is_active: e.target.value === '1' })}
-                    className={`w-full px-4 py-2.5 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition bg-white ${editingItem && isProtected(editingItem) ? 'opacity-60 cursor-not-allowed' : ''
+                    className={`w-full px-4 py-2.5 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition bg-white ${editingItem && isProtectedPage(editingItem, protectedPages)
+                      ? 'opacity-60 cursor-not-allowed'
+                      : ''
                       }`}
-                    disabled={editingItem && isProtected(editingItem)}
+                    disabled={Boolean(editingItem) && isProtectedPage(editingItem, protectedPages)}
                   >
                     <option value="1">✅ Active - Visible on the site</option>
                     <option value="0">⛔ Inactive - Hidden from the site</option>
                   </select>
-                  {editingItem && isProtected(editingItem) && (
+                  {editingItem && isProtectedPage(editingItem, protectedPages) && (
                     <p className="text-xs text-yellow-600 mt-1.5 flex items-center gap-1">
                       <FaLock size={12} /> Protected pages cannot be deactivated
                     </p>
@@ -1045,7 +937,6 @@ export default function Index({ items, protectedPages = [] }) {
               </div>
             </form>
 
-            {/* Modal Footer */}
             <div className="flex justify-end gap-3 p-6 border-t border-gray-100 bg-gray-50">
               <button
                 type="button"

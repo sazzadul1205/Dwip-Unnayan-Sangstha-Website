@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import Swal from 'sweetalert2';
 import {
   FaPlus, FaTrash, FaUpload, FaSpinner, FaImage, FaLink, FaPhone,
-  FaAddressCard, FaShareAlt, FaCopyright, FaIcons
+  FaAddressCard, FaShareAlt, FaCopyright,
 } from 'react-icons/fa';
 import {
   FiFacebook, FiGithub, FiInstagram, FiLinkedin,
@@ -168,10 +168,6 @@ export default function FooterEditor({
   const quickLinkIconInputRef = useRef(null);
   const programLinkIconInputRef = useRef(null);
 
-  // ✅ Memoized so the reference stays stable across renders when the
-  //    underlying `formData.socialLinks` value hasn't changed.
-  //    This prevents `socialStats` (useMemo) from recomputing on every render
-  //    and removes the exhaustive-deps warning.
   const socialLinks = useMemo(
     () => formData.socialLinks || [],
     [formData.socialLinks]
@@ -526,9 +522,7 @@ export default function FooterEditor({
   return (
     <div className="space-y-8 w-full">
 
-      {/* ============================================
-          LOGO
-          ============================================ */}
+      {/* LOGO */}
       <div className="bg-linear-to-r from-blue-50 to-indigo-50 rounded-xl p-6 border border-blue-100">
         <div className="flex items-center gap-3 mb-4">
           <div className="p-2 bg-blue-100 rounded-lg">
@@ -622,9 +616,7 @@ export default function FooterEditor({
         </div>
       </div>
 
-      {/* ============================================
-          DESCRIPTION
-          ============================================ */}
+      {/* DESCRIPTION */}
       <div className="bg-linear-to-r from-gray-50 to-slate-50 rounded-xl p-6 border border-gray-200">
         <div className="flex items-center gap-3 mb-4">
           <div className="p-2 bg-gray-100 rounded-lg">
@@ -646,9 +638,7 @@ export default function FooterEditor({
         />
       </div>
 
-      {/* ============================================
-          ADDRESS & CONTACT
-          ============================================ */}
+      {/* ADDRESS & CONTACT */}
       <div className="bg-linear-to-r from-green-50 to-emerald-50 rounded-xl p-6 border border-green-100">
         <div className="flex items-center gap-3 mb-4">
           <div className="p-2 bg-green-100 rounded-lg">
@@ -686,9 +676,7 @@ export default function FooterEditor({
         </div>
       </div>
 
-      {/* ============================================
-          CONTACT & EMAIL
-          ============================================ */}
+      {/* CONTACT & EMAIL */}
       <div className="bg-linear-to-r from-cyan-50 to-teal-50 rounded-xl p-6 border border-cyan-100">
         <div className="flex items-center gap-3 mb-4">
           <div className="p-2 bg-cyan-100 rounded-lg">
@@ -789,9 +777,7 @@ export default function FooterEditor({
         </div>
       </div>
 
-      {/* ============================================
-          SOCIAL LINKS
-          ============================================ */}
+      {/* SOCIAL LINKS */}
       <div className="bg-linear-to-r from-pink-50 to-rose-50 rounded-xl p-6 border border-pink-100">
         <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
           <div className="flex items-center gap-3">
@@ -945,9 +931,7 @@ export default function FooterEditor({
         )}
       </div>
 
-      {/* ============================================
-          QUICK LINKS & PROGRAMS
-          ============================================ */}
+      {/* QUICK LINKS & PROGRAMS */}
       <div className="bg-linear-to-r from-orange-50 to-amber-50 rounded-xl p-6 border border-orange-100">
         <div className="flex items-center gap-3 mb-4">
           <div className="p-2 bg-orange-100 rounded-lg">
@@ -1158,9 +1142,7 @@ export default function FooterEditor({
         </div>
       </div>
 
-      {/* ============================================
-          BOTTOM FOOTER
-          ============================================ */}
+      {/* BOTTOM FOOTER */}
       <div className="bg-linear-to-r from-gray-50 to-slate-50 rounded-xl p-6 border border-gray-200">
         <div className="flex items-center gap-3 mb-4">
           <div className="p-2 bg-gray-100 rounded-lg">
@@ -1245,13 +1227,11 @@ export default function FooterEditor({
         </div>
       </div>
 
-      {/* ============================================
-          LINK ICONS
-          ============================================ */}
+      {/* LINK ICONS */}
       <div className="bg-linear-to-r from-purple-50 to-indigo-50 rounded-xl p-6 border border-purple-100">
         <div className="flex items-center gap-3 mb-4">
           <div className="p-2 bg-purple-100 rounded-lg">
-            <FaIcons className="text-purple-600 text-lg" />
+            <FaLink className="text-purple-600 text-lg" />
           </div>
           <div>
             <h3 className="font-semibold text-gray-800 text-lg">Link Icons</h3>

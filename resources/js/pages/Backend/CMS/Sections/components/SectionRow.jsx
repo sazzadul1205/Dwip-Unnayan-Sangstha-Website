@@ -1,10 +1,8 @@
 // resources/js/pages/Backend/CMS/Sections/components/SectionRow.jsx
 
-// React
 import React, { Fragment, useState } from 'react';
 import { router } from '@inertiajs/react';
 
-// icons
 import {
   FaDatabase,
   FaToggleOn,
@@ -25,15 +23,12 @@ import {
 } from 'react-icons/fa';
 import { BsStack } from 'react-icons/bs';
 
-// utils
 import Swal from 'sweetalert2';
 import { Can } from '../../../../../components/Auth/Can';
 
-// utils
 import { showToast } from '../utils/toastHelper';
 import { getComponentLabel, getDataTableLabel, getSectionTypeInfo } from '../utils/sectionHelpers';
 
-// section components
 import SectionIndex from '../../../../../Sections/_runtime/SectionIndex';
 
 const SectionRow = ({
@@ -71,29 +66,19 @@ const SectionRow = ({
   const isPrograms = section.data_table === 'programs' || section.component === 'OurProgramsSection';
   const isPublications = section.data_table === 'publications';
 
-  const typeColorMap = {
-    banner: 'border-l-4 border-yellow-400',
-    shared: 'border-l-4 border-green-400',
-    jobs: 'border-l-4 border-purple-400',
-    programs: 'border-l-4 border-orange-400',
-    publications: 'border-l-4 border-indigo-400',
-    fixed: 'border-l-4 border-blue-400',
-    default: '',
-  };
-
   const rowBorderClass = isBanner
-    ? typeColorMap.banner
+    ? 'border-l-4 border-yellow-400'
     : section.is_fixed_section
-      ? typeColorMap.fixed
+      ? 'border-l-4 border-blue-400'
       : isShared
-        ? typeColorMap.shared
+        ? 'border-l-4 border-green-400'
         : isJobs
-          ? typeColorMap.jobs
+          ? 'border-l-4 border-purple-400'
           : isPrograms
-            ? typeColorMap.programs
+            ? 'border-l-4 border-orange-400'
             : isPublications
-              ? typeColorMap.publications
-              : typeColorMap.default;
+              ? 'border-l-4 border-indigo-400'
+              : '';
 
   const rowBgClass = isBanner
     ? 'bg-yellow-50/30 hover:bg-yellow-50/60'
@@ -729,5 +714,4 @@ const SectionRow = ({
   );
 };
 
-
-export default SectionRow; 
+export default SectionRow;

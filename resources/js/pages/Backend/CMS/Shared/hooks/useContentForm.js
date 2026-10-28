@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 import { router } from '@inertiajs/react';
 import axios from 'axios';
 import {
@@ -10,6 +10,8 @@ import {
   showErrorToast,
   normalizeTags,
 } from '../utils/contentFormUtils';
+
+const PDF_MAX_BYTES = 20 * 1024 * 1024;
 
 export const useContentForm = ({
   initialData = null,
@@ -44,69 +46,57 @@ export const useContentForm = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [slugManuallyEdited, setSlugManuallyEdited] = useState(false);
 
-  useEffect(() => {
-    if (initialData && Object.keys(errors).length > 0) {
-      const flashErrors = (window.__INERTIA_LAZY_DATA || {}).props?.errors;
-      if (flashErrors) {
-        setErrors(flashErrors);
-      }
-    }
-  }, [initialData, errors]);
-
   const updateField = useCallback((field, value) => {
-    setData(prev => ({ ...prev, [field]: value }));
-    if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: null }));
-    }
-    if (field === 'title' && !slugManuallyEdited) {
-      setData(prev => ({ ...prev, slug: generateSlug(value) }));
-    }
-  }, [errors, slugManuallyEdited]);
+    setData(prev => {
+      const next = { ...prev, [field]: value };
+      if (field === 'title' && !slugManuallyEdited) {
+        next.slug = generateSlug(value);
+      }
+      return next;
+    });
+    setErrors(prev => (prev[field] ? { ...prev, [field]: null } : prev));
+  }, [slugManuallyEdited]);
 
   const setSlugManually = useCallback((value) => {
     setSlugManuallyEdited(true);
     setData(prev => ({ ...prev, slug: value }));
   }, []);
 
-  // ------- Tag management -------
+  // Tags
   const [tagInput, setTagInput] = useState('');
   const [tagSuggestions, setTagSuggestions] = useState([]);
 
   const addTag = useCallback((tag) => {
-    const trimmedTag = tag.trim();
-    if (!trimmedTag) return false;
-    if (data.tags.includes(trimmedTag)) {
-      showErrorToast('Duplicate Tag', `"${trimmedTag}" is already added.`);
+    const trimmed = tag.trim();
+    if (!trimmed) return false;
+    if (data.tags.includes(trimmed)) {
+      showErrorToast('Duplicate Tag', `"${trimmed}" is already added.`);
       return false;
     }
     if (data.tags.length >= 10) {
       showErrorToast('Too Many Tags', 'You can add a maximum of 10 tags.');
       return false;
     }
-    setData(prev => ({ ...prev, tags: [...prev.tags, trimmedTag] }));
+    setData(prev => ({ ...prev, tags: [...prev.tags, trimmed] }));
     setTagInput('');
     setTagSuggestions([]);
     return true;
   }, [data.tags]);
 
   const removeTag = useCallback((tagToRemove) => {
-    setData(prev => ({
-      ...prev,
-      tags: prev.tags.filter(tag => tag !== tagToRemove),
-    }));
+    setData(prev => ({ ...prev, tags: prev.tags.filter(t => t !== tagToRemove) }));
   }, []);
 
   const handleTagInputChange = useCallback((e) => {
     const value = e.target.value;
     setTagInput(value);
-    if (value.length > 0) {
-      const filtered = COMMON_TAG_SUGGESTIONS.filter(
-        tag => tag.toLowerCase().includes(value.toLowerCase()) && !data.tags.includes(tag)
-      );
-      setTagSuggestions(filtered.slice(0, 5));
-    } else {
-      setTagSuggestions([]);
-    }
+    setTagSuggestions(
+      value
+        ? COMMON_TAG_SUGGESTIONS
+            .filter(t => t.toLowerCase().includes(value.toLowerCase()) && !data.tags.includes(t))
+            .slice(0, 5)
+        : []
+    );
   }, [data.tags]);
 
   const handleTagKeyDown = useCallback((e) => {
@@ -119,9 +109,10 @@ export const useContentForm = ({
     }
   }, [tagInput, addTag, removeTag, data.tags]);
 
-  // ------- Image management -------
+  // File uploads
   const [dragActive, setDragActive] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [pdfUploading, setPdfUploading] = useState(false);
 
   const handleDrag = useCallback((e) => {
     e.preventDefault();
@@ -133,37 +124,16 @@ export const useContentForm = ({
     }
   }, []);
 
-  const handleDrop = useCallback((e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDragActive(false);
-    const files = e.dataTransfer.files;
-    if (files && files[0]) {
-      processImageFile(files[0]);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const handleFileSelect = useCallback((e) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      processImageFile(file);
-    }
-    e.target.value = '';
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const processImageFile = useCallback(async (file) => {
+  const processImageFile = useCallback(async (file, field = 'image') => {
     const validationError = validateImageFile(file);
     if (validationError) {
       showErrorToast('Invalid File', validationError);
       return;
     }
-
     setUploading(true);
     try {
       const base64 = await readAsBase64(file);
-      setData(prev => ({ ...prev, image: base64 }));
+      setData(prev => ({ ...prev, [field]: base64 }));
       showSuccessToast('Image Uploaded', 'Image has been added successfully.');
     } catch {
       showErrorToast('Upload Failed', 'Failed to read the image file. Please try again.');
@@ -172,31 +142,35 @@ export const useContentForm = ({
     }
   }, []);
 
-  const removeImage = useCallback(() => {
-    setData(prev => ({ ...prev, image: '' }));
+  const handleDrop = useCallback((e, field = 'image') => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) processImageFile(file, field);
+  }, [processImageFile]);
+
+  const handleFileSelect = useCallback((e, field = 'image') => {
+    const file = e.target.files?.[0];
+    if (file) processImageFile(file, field);
+    e.target.value = '';
+  }, [processImageFile]);
+
+  const removeImage = useCallback((field = 'image') => {
+    setData(prev => ({ ...prev, [field]: '' }));
     showSuccessToast('Image Removed', 'Image has been removed.');
   }, []);
 
-  // ------- PDF management -------
-  const [pdfUploading, setPdfUploading] = useState(false);
-
-  const validatePdfFile = (file) => {
-    if (file.type !== 'application/pdf') {
-      return 'Please select a PDF file.';
-    }
-    if (file.size > 20 * 1024 * 1024) {
-      return 'PDF size should be less than 20MB.';
-    }
-    return null;
-  };
-
+  // PDF
   const processPdfFile = useCallback(async (file) => {
-    const validationError = validatePdfFile(file);
-    if (validationError) {
-      showErrorToast('Invalid File', validationError);
+    if (file.type !== 'application/pdf') {
+      showErrorToast('Invalid File', 'Please select a PDF file.');
       return;
     }
-
+    if (file.size > PDF_MAX_BYTES) {
+      showErrorToast('File Too Large', 'PDF size should be less than 20MB.');
+      return;
+    }
     setPdfUploading(true);
     try {
       const base64 = await readAsBase64(file);
@@ -213,17 +187,13 @@ export const useContentForm = ({
     e.preventDefault();
     e.stopPropagation();
     setDragActive(false);
-    const files = e.dataTransfer.files;
-    if (files && files[0]) {
-      processPdfFile(files[0]);
-    }
+    const file = e.dataTransfer.files?.[0];
+    if (file) processPdfFile(file);
   }, [processPdfFile]);
 
   const handlePdfFileSelect = useCallback((e) => {
     const file = e.target.files?.[0];
-    if (file) {
-      processPdfFile(file);
-    }
+    if (file) processPdfFile(file);
     e.target.value = '';
   }, [processPdfFile]);
 
@@ -232,7 +202,7 @@ export const useContentForm = ({
     showSuccessToast('PDF Removed', 'PDF has been removed.');
   }, []);
 
-  // ------- Editor image tracking & cleanup -------
+  // Editor image tracking & cleanup
   const [uploadedEditorImages, setUploadedEditorImages] = useState([]);
 
   const addUploadedImage = useCallback((url) => {
@@ -240,57 +210,47 @@ export const useContentForm = ({
   }, []);
 
   const deleteEditorImages = useCallback(async () => {
-    if (uploadedEditorImages.length > 0) {
-      try {
-        const deleteUrl = typeof window !== 'undefined' && window.route
-          ? window.route('admin.editor-image.delete')
-          : '/admin/editor-image/delete';
-        await axios.delete(deleteUrl, {
-          data: { urls: uploadedEditorImages },
-          headers: { 'Content-Type': 'application/json' },
-        });
-      } catch {
-        // Silent fail — images are orphaned but not blocking
-      }
+    if (uploadedEditorImages.length === 0) return;
+    try {
+      const url = typeof window !== 'undefined' && window.route
+        ? window.route('admin.editor-image.delete')
+        : '/admin/editor-image/delete';
+      await axios.delete(url, {
+        data: { urls: uploadedEditorImages },
+        headers: { 'Content-Type': 'application/json' },
+      });
+    } catch {
+      // Silent fail — orphaned images are non-blocking
     }
     setUploadedEditorImages([]);
   }, [uploadedEditorImages]);
 
-  // ------- Form submission -------
+  // Submission
   const handleSubmit = useCallback((e) => {
     e.preventDefault();
-
     setErrors({});
 
-    const dataToSubmit = { ...data };
-
-    if (dataToSubmit.slug && dataToSubmit.slug.trim() === '') {
-      delete dataToSubmit.slug;
-    }
-
-    dataToSubmit.is_featured = !!dataToSubmit.is_featured;
-    dataToSubmit.is_active = !!dataToSubmit.is_active;
+    const payload = { ...data };
+    if (payload.slug && payload.slug.trim() === '') delete payload.slug;
+    payload.is_featured = !!payload.is_featured;
+    payload.is_active = !!payload.is_active;
 
     setIsSubmitting(true);
-
     const isEdit = !!initialData;
     const url = isEdit
       ? window.route(updateRoute, { id: initialData.id })
       : window.route(storeRoute);
-    const method = isEdit ? 'put' : 'post';
 
-    router[method](url, dataToSubmit, {
+    router[isEdit ? 'put' : 'post'](url, payload, {
       preserveScroll: true,
-      preserveState: {
-        errors: true,
-      },
+      preserveState: { errors: true },
       onSuccess: () => {
         setIsSubmitting(false);
         setUploadedEditorImages([]);
         const action = isEdit ? 'updated' : 'created';
         showSuccessToast(
           `${itemLabel} ${action}!`,
-          `Your ${itemLabel.toLowerCase()} has been ${action === 'updated' ? 'updated' : 'created'} successfully.`
+          `Your ${itemLabel.toLowerCase()} has been ${action} successfully.`
         );
         router.visit(window.route(indexRoute), { preserveScroll: true });
       },
@@ -306,23 +266,9 @@ export const useContentForm = ({
   }, [data, initialData, indexRoute, storeRoute, updateRoute, itemLabel]);
 
   const handleCancel = useCallback(() => {
-    if (uploadedEditorImages.length > 0) {
-      deleteEditorImages();
-    }
+    if (uploadedEditorImages.length > 0) deleteEditorImages();
     router.visit(window.route(indexRoute), { preserveScroll: true });
   }, [indexRoute, deleteEditorImages, uploadedEditorImages]);
-
-  // ------- Sync server-side validation errors into local state -------
-  useEffect(() => {
-    const errors = (window.__INERTIA_ERRORS || {})[indexRoute] ||
-      (window.__INERTIA_ERRORS || {})[storeRoute] ||
-      (window.__INERTIA_ERRORS || {})[updateRoute];
-    if (errors && Object.keys(errors).length > 0) {
-      setErrors(errors);
-    }
-    // Intentionally runs once on mount to sync initial server-side errors.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   return {
     data,
