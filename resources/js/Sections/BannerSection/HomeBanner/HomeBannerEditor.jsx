@@ -1,7 +1,7 @@
 // resources/js/pages/Backend/CMS/Sections/components/modals/Editors/HomeBannerEditor.jsx
 
 // React
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 
 // Icons
 import { FaTrash, FaPlus, FaImage, FaArrowLeft, FaArrowRight, FaCopy } from 'react-icons/fa';
@@ -10,8 +10,8 @@ import { FaTrash, FaPlus, FaImage, FaArrowLeft, FaArrowRight, FaCopy } from 'rea
 import Swal from 'sweetalert2';
 
 // Shared Components
-import ImageUpload from './shared/ImageUpload';
-import { TextField, SelectField } from './shared/Fields';
+import ImageUpload from '../../../Shared/SectionEditor/ImageUpload';
+import { TextField, SelectField } from '../../../Shared/SectionEditor/Fields';
 
 const MAX_SLIDES = 10;
 const MAX_BUTTONS = 2;
@@ -44,7 +44,7 @@ const createEmptyButton = () => ({
 });
 
 const HomeBannerEditor = ({ section, hasData, onDataChange }) => {
-  // ===== STATE MANAGEMENT =====
+  // STATE MANAGEMENT
   const initialData = section?.data?.data || section?.data || {};
 
   const [slides, setSlides] = useState(() => {
@@ -66,7 +66,7 @@ const HomeBannerEditor = ({ section, hasData, onDataChange }) => {
   const [previewIndex, setPreviewIndex] = useState(0);
   const [activeSlideIndex, setActiveSlideIndex] = useState(0);
 
-  // ===== EFFECTS =====
+  // EFFECTS
   useEffect(() => {
     if (onDataChange) {
       onDataChange({ slides, slideInterval });
@@ -82,7 +82,7 @@ const HomeBannerEditor = ({ section, hasData, onDataChange }) => {
     }
   }, [slides.length, activeSlideIndex, previewIndex]);
 
-  // ===== SLIDE MANAGEMENT =====
+  // SLIDE MANAGEMENT
   const addSlide = useCallback(() => {
     if (slides.length >= MAX_SLIDES) {
       Swal.fire({
@@ -137,7 +137,7 @@ const HomeBannerEditor = ({ section, hasData, onDataChange }) => {
     setPreviewIndex(Math.min(previewIndex, updated.length - 1));
   }, [slides, activeSlideIndex, previewIndex]);
 
-  // ===== SLIDE FIELD UPDATERS =====
+  // SLIDE FIELD UPDATERS
   const updateSlide = useCallback((index, updater) => {
     setSlides((prev) => {
       const updated = [...prev];
@@ -161,7 +161,7 @@ const HomeBannerEditor = ({ section, hasData, onDataChange }) => {
     });
   }, [updateSlide]);
 
-  // ===== BUTTON MANAGEMENT =====
+  // BUTTON MANAGEMENT
   const addButton = useCallback((slideIndex) => {
     updateSlide(slideIndex, (slide) => {
       const buttons = Array.isArray(slide.buttons) ? [...slide.buttons] : [];
@@ -194,7 +194,7 @@ const HomeBannerEditor = ({ section, hasData, onDataChange }) => {
     });
   }, [updateSlide]);
 
-  // ===== NAVIGATION =====
+  // NAVIGATION
   const prevSlide = useCallback(() => {
     if (slides.length === 0) return;
     setPreviewIndex((prev) => (prev - 1 + slides.length) % slides.length);
@@ -205,7 +205,7 @@ const HomeBannerEditor = ({ section, hasData, onDataChange }) => {
     setPreviewIndex((prev) => (prev + 1) % slides.length);
   }, [slides.length]);
 
-  // ===== OPTIONS =====
+  // OPTIONS
   const overlayOptions = useMemo(() => [
     { value: 'bg-black/40 lg:bg-black/50', label: 'Light Dark Overlay' },
     { value: 'bg-black/60 lg:bg-black/70', label: 'Medium Dark Overlay' },
@@ -235,7 +235,7 @@ const HomeBannerEditor = ({ section, hasData, onDataChange }) => {
     { value: 15000, label: '15 seconds' },
   ], []);
 
-  // ===== RENDER HELPERS =====
+  // RENDER HELPERS
   const renderSlidePreview = () => {
     const slide = slides[previewIndex];
     if (!slide?.src) {
@@ -329,7 +329,7 @@ const HomeBannerEditor = ({ section, hasData, onDataChange }) => {
     );
   };
 
-  // ===== MAIN RENDER =====
+  // MAIN RENDER
   const activeSlide = slides[activeSlideIndex];
 
   return (
@@ -341,7 +341,7 @@ const HomeBannerEditor = ({ section, hasData, onDataChange }) => {
         </span>
       </div>
 
-      {/* ===== CAROUSEL SETTINGS ===== */}
+      {/* CAROUSEL SETTINGS */}
       <div className="mb-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
         <SelectField
           label="Autoplay Speed"
@@ -354,7 +354,7 @@ const HomeBannerEditor = ({ section, hasData, onDataChange }) => {
         </p>
       </div>
 
-      {/* ===== SLIDE LIST ===== */}
+      {/* SLIDE LIST */}
       <div className="mb-4">
         <div className="flex items-center justify-between mb-2">
           <h4 className="text-sm font-medium text-gray-600">Slides</h4>
@@ -390,7 +390,7 @@ const HomeBannerEditor = ({ section, hasData, onDataChange }) => {
         </div>
       </div>
 
-      {/* ===== ACTIVE SLIDE EDITOR ===== */}
+      {/* ACTIVE SLIDE EDITOR */}
       {activeSlide && (
         <div className="border-t border-gray-200 pt-4">
           <div className="flex items-center justify-between mb-3">
@@ -607,7 +607,7 @@ const HomeBannerEditor = ({ section, hasData, onDataChange }) => {
         </div>
       )}
 
-      {/* ===== DATA INFORMATION ===== */}
+      {/* DATA INFORMATION */}
       <div className="mt-4 bg-gray-50 rounded-lg p-4 border border-gray-200">
         <div className="grid grid-cols-2 gap-3 text-sm">
           <div>

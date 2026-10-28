@@ -3,9 +3,9 @@
 import React, { useState } from 'react';
 
 // Skeleton primitives
-import { Skeleton } from '../../Shared/Skeletons/SkeletonPrimitives';
+import { Skeleton } from '../../../Shared/Skeletons/SkeletonPrimitives';
 
-import { hasValue, getPlaceholderImage } from '../../utils/sectionHelpers';
+import { hasValue, getPlaceholderImage } from '../../../utils/sectionHelpers';
 
 
 

@@ -1,15 +1,15 @@
 // resources/js/pages/Backend/CMS/Sections/components/modals/Editors/ContactReachEditor.jsx
 
 // React
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 
 // Shared Components
-import { TextField } from './shared/Fields';
-import ImageUpload from './shared/ImageUpload';
-import { useImageUpload } from './shared/useImageUpload';
+import { TextField } from '../../Shared/SectionEditor/Fields';
+import ImageUpload from '../../Shared/SectionEditor/ImageUpload';
+import { useImageUpload } from '../../Shared/SectionEditor/useImageUpload';
 
 const ContactReachEditor = ({ section, hasData, onDataChange }) => {
-  // ===== STATE MANAGEMENT =====
+  // STATE MANAGEMENT
   // Get initial data from section prop
   const initialData = section?.data?.data || section?.data || {};
 
@@ -26,14 +26,14 @@ const ContactReachEditor = ({ section, hasData, onDataChange }) => {
     }
   }, [formData, onDataChange]);
 
-  // ===== HELPER FUNCTIONS =====
+  // HELPER FUNCTIONS
 
   // Update top-level fields (e.g., title, buttonText, image)
   const updateField = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  // ===== EMPTY STATE =====
+  // EMPTY STATE
   // Show message when no data exists
   if (!hasData || !formData || Object.keys(formData).length === 0) {
     return (
@@ -47,12 +47,12 @@ const ContactReachEditor = ({ section, hasData, onDataChange }) => {
     );
   }
 
-  // ===== MAIN RENDER =====
+  // MAIN RENDER
   return (
     <div className="bg-white rounded-lg border border-gray-200 p-4">
       <h3 className="text-sm font-semibold text-gray-700 mb-3">Edit Contact Reach Data</h3>
 
-      {/* ===== IMAGE SECTION ===== */}
+      {/* IMAGE SECTION */}
       {/* Upload and manage the main image for the contact reach section */}
       <div className="mb-4">
         <h4 className="text-sm font-medium text-gray-600 mb-2">Image</h4>
@@ -72,7 +72,7 @@ const ContactReachEditor = ({ section, hasData, onDataChange }) => {
         />
       </div>
 
-      {/* ===== CONTENT SECTION ===== */}
+      {/* CONTENT SECTION */}
       {/* Text fields for title and button text */}
       <div className="mb-4">
         <h4 className="text-sm font-medium text-gray-600 mb-2">Content</h4>
@@ -92,7 +92,7 @@ const ContactReachEditor = ({ section, hasData, onDataChange }) => {
         </div>
       </div>
 
-      {/* ===== PREVIEW SECTION ===== */}
+      {/* PREVIEW SECTION */}
       {/* Shows a preview of the current data for quick reference */}
       <div className="mb-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
         <h4 className="text-sm font-medium text-gray-600 mb-2">Preview</h4>
@@ -121,7 +121,7 @@ const ContactReachEditor = ({ section, hasData, onDataChange }) => {
         </div>
       </div>
 
-      {/* ===== DATA INFORMATION ===== */}
+      {/* DATA INFORMATION */}
       {/* Display metadata about the section for reference */}
       <div className="mt-4 bg-gray-50 rounded-lg p-4 border border-gray-200">
         <div className="grid grid-cols-2 gap-3 text-sm">

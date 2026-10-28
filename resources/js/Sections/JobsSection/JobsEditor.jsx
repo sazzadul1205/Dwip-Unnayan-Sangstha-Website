@@ -1,7 +1,7 @@
- 
+
 // resources/js/pages/Backend/CMS/Sections/components/modals/Editors/JobsEditor.jsx
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { FaExternalLinkAlt, FaBriefcase } from 'react-icons/fa';
 
 /**
@@ -12,7 +12,7 @@ import { FaExternalLinkAlt, FaBriefcase } from 'react-icons/fa';
  * - Displays job listings (read-only, from Job Listings Manager)
  */
 const JobsEditor = ({ section, hasData, onDataChange }) => {
-  // ===== READ INITIAL STATE =====
+  // READ INITIAL STATE
   // Get data from section.data (custom_section_data)
   const sectionData = section?.data || {};
 
@@ -21,13 +21,13 @@ const JobsEditor = ({ section, hasData, onDataChange }) => {
   const sectionDescription = sectionData?.section?.description ||
     "Join us on this journey of kindness, and let's make a difference, one act of charity at a time.";
 
-  // ✅ Read limit from data.section.limit (NOT from custom_props)
+  //  Read limit from data.section.limit (NOT from custom_props)
   // If limit is 5 -> show 5 jobs
   // If limit is null/undefined/empty -> show all (treat as "Show All")
   const existingLimit = sectionData?.section?.limit;
   const [limit, setLimit] = useState(existingLimit ?? '');
 
-  // ✅ Determine if "Show All" is checked based on whether limit exists
+  //  Determine if "Show All" is checked based on whether limit exists
   const [showAll, setShowAll] = useState(
     existingLimit === undefined ||
     existingLimit === null ||
@@ -38,14 +38,14 @@ const JobsEditor = ({ section, hasData, onDataChange }) => {
   // Get filter placeholder from data.filter.placeholder
   const filterPlaceholder = sectionData?.filter?.placeholder || 'Browse By';
 
-  // ===== LOCAL STATE =====
+  // LOCAL STATE
   const [title, setTitle] = useState(sectionTitle);
   const [description, setDescription] = useState(sectionDescription);
   const [placeholder, setPlaceholder] = useState(filterPlaceholder);
 
-  // ===== NOTIFY PARENT OF CHANGES =====
+  // NOTIFY PARENT OF CHANGES
   useEffect(() => {
-    // ✅ Construct the updated data object
+    //  Construct the updated data object
     // Store EVERYTHING in section.data (custom_section_data.data)
     // This matches the new system where limit is in data.section.limit
 
@@ -57,7 +57,7 @@ const JobsEditor = ({ section, hasData, onDataChange }) => {
       section: {
         title,
         description,
-        // ✅ Store limit in data.section.limit (NEW SYSTEM)
+        //  Store limit in data.section.limit (NEW SYSTEM)
         limit: limitToSave,
       },
       filter: {
@@ -66,11 +66,11 @@ const JobsEditor = ({ section, hasData, onDataChange }) => {
     };
 
     // Call onDataChange with the updated data
-    // ✅ IMPORTANT: We DO NOT store limit in custom_props anymore
+    //  IMPORTANT: We DO NOT store limit in custom_props anymore
     // All data goes into the 'data' field
     onDataChange({
       data: updatedData, // This updates custom_section_data.data
-      // ✅ custom_props should NOT contain limit anymore
+      //  custom_props should NOT contain limit anymore
       // Keep any existing custom_props that might be needed, but remove limit
       custom_props: {
         // Remove limit from custom_props if it exists
@@ -82,7 +82,7 @@ const JobsEditor = ({ section, hasData, onDataChange }) => {
     });
   }, [title, description, limit, showAll, placeholder, onDataChange, section?.custom_props]);
 
-  // ===== HANDLE SHOW ALL TOGGLE =====
+  // HANDLE SHOW ALL TOGGLE
   const handleShowAllChange = (checked) => {
     setShowAll(checked);
     if (checked) {
@@ -92,7 +92,7 @@ const JobsEditor = ({ section, hasData, onDataChange }) => {
     }
   };
 
-  // ===== READ JOBS DATA (READ-ONLY) =====
+  // READ JOBS DATA (READ-ONLY)
   const jobs = sectionData?.jobs || [];
   const hasJobsData = hasData && jobs.length > 0;
 
@@ -100,7 +100,7 @@ const JobsEditor = ({ section, hasData, onDataChange }) => {
     <div className="bg-white rounded-lg border border-gray-200 p-4">
       <h3 className="text-sm font-semibold text-gray-700 mb-3">Jobs Section</h3>
 
-      {/* ===== DISPLAY SETTINGS ===== */}
+      {/* DISPLAY SETTINGS */}
       <div className="mb-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
         <h4 className="text-sm font-medium text-gray-700 mb-3">Display Settings</h4>
 
@@ -130,7 +130,7 @@ const JobsEditor = ({ section, hasData, onDataChange }) => {
             />
           </div>
 
-          {/* ✅ Show All Toggle */}
+          {/*  Show All Toggle */}
           <div className="flex items-center gap-3 p-3 bg-white rounded-lg border border-gray-200">
             <input
               type="checkbox"
@@ -144,7 +144,7 @@ const JobsEditor = ({ section, hasData, onDataChange }) => {
             </label>
           </div>
 
-          {/* ✅ Limit Input - Only visible when "Show All" is not checked */}
+          {/*  Limit Input - Only visible when "Show All" is not checked */}
           {!showAll && (
             <div>
               <label className="block text-xs text-gray-400 mb-0.5">Number of Jobs to Display</label>
@@ -179,7 +179,7 @@ const JobsEditor = ({ section, hasData, onDataChange }) => {
         </div>
       </div>
 
-      {/* ===== CURRENT SETTINGS SUMMARY ===== */}
+      {/* CURRENT SETTINGS SUMMARY */}
       <div className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
         <h4 className="text-sm font-medium text-blue-800 mb-1">Current Settings</h4>
         <div className="text-sm text-blue-700">
@@ -206,7 +206,7 @@ const JobsEditor = ({ section, hasData, onDataChange }) => {
         </div>
       </div>
 
-      {/* ===== INFO BOX: JOB LISTINGS ===== */}
+      {/* INFO BOX: JOB LISTINGS */}
       <div className="mb-4 p-4 bg-purple-50 rounded-lg border border-purple-200">
         <div className="flex items-start gap-3">
           <div className="mt-0.5">
@@ -228,7 +228,7 @@ const JobsEditor = ({ section, hasData, onDataChange }) => {
         </div>
       </div>
 
-      {/* ===== JOB COUNT AND PREVIEW ===== */}
+      {/* JOB COUNT AND PREVIEW */}
       <div className="mb-4">
         <h4 className="text-sm font-medium text-gray-600 mb-2">Current Job Listings</h4>
         <div className="bg-gray-50 rounded-lg border border-gray-200 p-3">
@@ -269,7 +269,7 @@ const JobsEditor = ({ section, hasData, onDataChange }) => {
         </div>
       </div>
 
-      {/* ===== SECTION SETTINGS ===== */}
+      {/* SECTION SETTINGS */}
       <div className="mb-4">
         <h4 className="text-sm font-medium text-gray-600 mb-2">Section Settings</h4>
         <div className="grid grid-cols-2 gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
@@ -288,13 +288,13 @@ const JobsEditor = ({ section, hasData, onDataChange }) => {
           <div>
             <span className="text-xs text-gray-500">Status</span>
             <p className={`text-sm font-medium ${hasJobsData ? 'text-green-600' : 'text-gray-400'}`}>
-              {hasJobsData ? '✅ Has Jobs' : 'No Jobs'}
+              {hasJobsData ? ' Has Jobs' : 'No Jobs'}
             </p>
           </div>
         </div>
       </div>
 
-      {/* ===== DATA STRUCTURE PREVIEW ===== */}
+      {/* DATA STRUCTURE PREVIEW */}
       <div className="mb-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
         <h4 className="text-sm font-medium text-gray-600 mb-1">Data Structure Preview</h4>
         <pre className="text-xs text-gray-500 bg-white p-2 rounded border border-gray-200 overflow-x-auto">
@@ -311,7 +311,7 @@ const JobsEditor = ({ section, hasData, onDataChange }) => {
         </pre>
       </div>
 
-      {/* ===== QUICK STATS ===== */}
+      {/* QUICK STATS */}
       {hasJobsData && (
         <div className="mb-4">
           <h4 className="text-sm font-medium text-gray-600 mb-2">Quick Stats</h4>
@@ -336,7 +336,7 @@ const JobsEditor = ({ section, hasData, onDataChange }) => {
         </div>
       )}
 
-      {/* ===== ACTION BUTTON ===== */}
+      {/* ACTION BUTTON */}
       <div className="flex justify-end">
         <button
           type="button"
@@ -350,7 +350,7 @@ const JobsEditor = ({ section, hasData, onDataChange }) => {
         </button>
       </div>
 
-      {/* ===== FOOTER NOTE ===== */}
+      {/* FOOTER NOTE */}
       <div className="mt-3 text-xs text-gray-400 border-t border-gray-200 pt-3">
         <p>
           💡 <strong>Note:</strong> The title, description, and limit are stored in <code className="bg-gray-100 px-1 rounded">data.section</code>.
@@ -364,7 +364,7 @@ const JobsEditor = ({ section, hasData, onDataChange }) => {
           When a limit is set, only that many jobs will be shown with a "View All" button.
         </p>
         <p className="mt-1 text-green-600">
-          ✅ The frontend <code className="bg-green-100 px-1 rounded">JobsSection</code> component reads the limit from <code className="bg-green-100 px-1 rounded">data.section.limit</code>.
+           The frontend <code className="bg-green-100 px-1 rounded">JobsSection</code> component reads the limit from <code className="bg-green-100 px-1 rounded">data.section.limit</code>.
         </p>
       </div>
     </div>

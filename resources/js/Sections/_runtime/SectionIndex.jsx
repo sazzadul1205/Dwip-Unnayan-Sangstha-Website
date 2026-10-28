@@ -5,12 +5,12 @@
 // one is the FRONTEND lazy-loaded renderer driven by _runtime/sectionRegistry.js.
 // Keep both; do not merge without aligning prop-mapping + normalization first.
 
-import React from 'react';
 
-// Import all section components
-import HomeBanner from '../BannerSection/HomeBanner';
-import PageBannerSection from '../BannerSection/PageBannerSection';
-import PageTagBannerSection from '../BannerSection/PageTagBannerSection';
+// Banners
+import HomeBanner from '../BannerSection/HomeBanner/HomeBanner';
+import PageBannerSection from '../BannerSection/PageBannerSection/PageBannerSection';
+import PageTagBannerSection from '../BannerSection/PageTagBannerSection/PageTagBannerSection';
+
 import AboutUsSection from '../AboutUsSection/AboutUsSection';
 import OurActionSection from '../OurActionSection/OurActionSection';
 import WhereWeWorkSection from '../WhereWeWorkSection/WhereWeWorkSection';

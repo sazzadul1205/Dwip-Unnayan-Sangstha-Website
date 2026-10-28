@@ -10,10 +10,10 @@ import { FaTrash, FaPlus, FaTimes, FaVideo, FaYoutube } from 'react-icons/fa';
 import Swal from 'sweetalert2';
 
 // Shared Components
-import { TextField, TextAreaField } from './shared/Fields';
+import { TextField, TextAreaField } from '../../Shared/SectionEditor/Fields';
 
 const VideoGalleryEditor = ({ section, hasData, onDataChange }) => {
-  // ===== STATE MANAGEMENT =====
+  // STATE MANAGEMENT
   const initialData = section?.data?.data || section?.data || {};
   const [formData, setFormData] = useState(initialData);
 
@@ -29,7 +29,7 @@ const VideoGalleryEditor = ({ section, hasData, onDataChange }) => {
     }
   }, [formData, onDataChange]);
 
-  // ===== HELPER FUNCTIONS =====
+  // HELPER FUNCTIONS
 
   // Update top-level fields
   const updateField = (field, value) => {
@@ -45,7 +45,7 @@ const VideoGalleryEditor = ({ section, hasData, onDataChange }) => {
     setFormData(newData);
   };
 
-  // ===== VIDEO MANAGEMENT FUNCTIONS =====
+  // VIDEO MANAGEMENT FUNCTIONS
 
   // Add a new video with default values
   const addVideo = () => {
@@ -77,7 +77,7 @@ const VideoGalleryEditor = ({ section, hasData, onDataChange }) => {
     setFormData(newData);
   };
 
-  // ===== THUMBNAIL HANDLING FUNCTIONS =====
+  // THUMBNAIL HANDLING FUNCTIONS
 
   // Handle thumbnail drop from drag & drop
   const handleThumbnailDrop = (e, index) => {
@@ -176,7 +176,7 @@ const VideoGalleryEditor = ({ section, hasData, onDataChange }) => {
     return src;
   };
 
-  // ===== EMPTY STATE =====
+  // EMPTY STATE
   if (!hasData || !formData || Object.keys(formData).length === 0) {
     return (
       <div className="bg-white rounded-lg border border-gray-200 p-4">
@@ -201,7 +201,7 @@ const VideoGalleryEditor = ({ section, hasData, onDataChange }) => {
 
   const videos = formData.videos || [];
 
-  // ===== MAIN RENDER =====
+  // MAIN RENDER
   return (
     <div className="bg-white rounded-lg border border-gray-200 p-4">
       <h3 className="text-sm font-semibold text-gray-700 mb-3">Edit Video Gallery Data</h3>

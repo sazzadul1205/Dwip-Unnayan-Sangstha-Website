@@ -3,13 +3,13 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { FaTrash, FaPlus, FaUpload, FaTimes, FaSpinner } from 'react-icons/fa';
 import Swal from 'sweetalert2';
-import { TextField } from './shared/Fields';
+import { TextField } from '../../Shared/SectionEditor/Fields';
 
-// ===== CONSTANTS =====
+// CONSTANTS
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
 
 const ProgramImpactEditor = ({ section, hasData, onDataChange }) => {
-  // ===== STATE MANAGEMENT =====
+  // STATE MANAGEMENT
   const getInitialData = useCallback(() => {
     const data = section?.data?.data || section?.data || {};
     return {
@@ -43,7 +43,7 @@ const ProgramImpactEditor = ({ section, hasData, onDataChange }) => {
     sdg: {}
   });
 
-  // ===== EFFECTS =====
+  // EFFECTS
   // Reset when section changes
   useEffect(() => {
     setFormData(getInitialData());
@@ -67,7 +67,7 @@ const ProgramImpactEditor = ({ section, hasData, onDataChange }) => {
     }
   }, [formData, isDirty, oldImagePaths, imageChanges, onDataChange]);
 
-  // ===== HELPER FUNCTIONS =====
+  // HELPER FUNCTIONS
   const updateField = useCallback((path, value) => {
     const keys = path.split('.');
     setFormData(prev => {
@@ -145,7 +145,7 @@ const ProgramImpactEditor = ({ section, hasData, onDataChange }) => {
     setIsDirty(true);
   }, []);
 
-  // ===== IMAGE PROCESSING =====
+  // IMAGE PROCESSING
   const validateImageFile = useCallback((file) => {
     if (!file.type.startsWith('image/')) {
       return 'Please select an image file (JPEG, PNG, GIF, WebP, SVG)';
@@ -234,7 +234,7 @@ const ProgramImpactEditor = ({ section, hasData, onDataChange }) => {
     reader.readAsDataURL(file);
   }, [formData, imageChanges, validateImageFile]);
 
-  // ===== MAIN IMAGE HANDLERS =====
+  // MAIN IMAGE HANDLERS
   const handleMainImageDrop = useCallback((e, index) => {
     e.preventDefault();
     e.stopPropagation();
@@ -287,7 +287,7 @@ const ProgramImpactEditor = ({ section, hasData, onDataChange }) => {
     updateField('section.mainImage.images', newImages);
   }, [formData, updateField]);
 
-  // ===== SDG IMAGE HANDLERS =====
+  // SDG IMAGE HANDLERS
   const handleSdgImageDrop = useCallback((e, index) => {
     e.preventDefault();
     e.stopPropagation();
@@ -331,7 +331,7 @@ const ProgramImpactEditor = ({ section, hasData, onDataChange }) => {
     removeArrayItem('sdgImages', index);
   }, [formData.sdgImages, removeArrayItem]);
 
-  // ===== DISPLAY HELPERS =====
+  // DISPLAY HELPERS
   const getDisplayPath = useCallback((src) => {
     if (!src) return '';
     const srcStr = String(src);
@@ -452,7 +452,7 @@ const ProgramImpactEditor = ({ section, hasData, onDataChange }) => {
     );
   }, [getDisplayPath, getImageStatus]);
 
-  // ===== COMPUTED VALUES =====
+  // COMPUTED VALUES
   const mainImages = useMemo(() => formData.section?.mainImage?.images || [], [formData]);
   const sdgImages = useMemo(() => formData.sdgImages || [], [formData]);
   const hasDataToEdit = useMemo(() =>
@@ -467,7 +467,7 @@ const ProgramImpactEditor = ({ section, hasData, onDataChange }) => {
     return mainCount + sdgCount;
   }, [oldImagePaths]);
 
-  // ===== EMPTY STATE =====
+  // EMPTY STATE
   if (!hasDataToEdit) {
     return (
       <div className="bg-white rounded-lg border border-gray-200 p-4">
@@ -481,7 +481,7 @@ const ProgramImpactEditor = ({ section, hasData, onDataChange }) => {
     );
   }
 
-  // ===== MAIN RENDER =====
+  // MAIN RENDER
   return (
     <div className="bg-white rounded-lg border border-gray-200 p-4">
       {/* Dirty State Indicator */}
@@ -510,7 +510,7 @@ const ProgramImpactEditor = ({ section, hasData, onDataChange }) => {
         </div>
       </div>
 
-      {/* ===== SECTION TITLE ===== */}
+      {/* SECTION TITLE */}
       <div className="mb-4">
         <h4 className="text-sm font-medium text-gray-600 mb-2">Section Content</h4>
         <TextField
@@ -521,7 +521,7 @@ const ProgramImpactEditor = ({ section, hasData, onDataChange }) => {
         />
       </div>
 
-      {/* ===== MAIN IMAGES ===== */}
+      {/* MAIN IMAGES */}
       <div className="mb-4">
         <div className="flex items-center justify-between mb-2">
           <h4 className="text-sm font-medium text-gray-600">
@@ -557,7 +557,7 @@ const ProgramImpactEditor = ({ section, hasData, onDataChange }) => {
         )}
       </div>
 
-      {/* ===== SDG IMAGES ===== */}
+      {/* SDG IMAGES */}
       <div>
         <div className="flex items-center justify-between mb-2">
           <h4 className="text-sm font-medium text-gray-600">
@@ -632,7 +632,7 @@ const ProgramImpactEditor = ({ section, hasData, onDataChange }) => {
         )}
       </div>
 
-      {/* ===== DATA INFORMATION ===== */}
+      {/* DATA INFORMATION */}
       <div className="mt-4 bg-gray-50 rounded-lg p-4 border border-gray-200">
         <div className="grid grid-cols-2 gap-3 text-sm">
           <div>

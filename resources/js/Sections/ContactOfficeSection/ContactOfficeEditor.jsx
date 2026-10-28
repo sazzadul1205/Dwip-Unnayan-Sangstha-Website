@@ -10,10 +10,10 @@ import { FaTrash, FaPlus, FaPhone, FaEnvelope, FaMapMarkerAlt, FaGlobe } from 'r
 import Swal from 'sweetalert2';
 
 // Shared Components
-import { TextField } from './shared/Fields';
+import { TextField } from '../../Shared/SectionEditor/Fields';
 
 const ContactOfficeEditor = ({ section, hasData, onDataChange }) => {
-  // ===== STATE MANAGEMENT =====
+  // STATE MANAGEMENT
   // Get initial data - it's an array of office objects
   const initialData = section?.data?.data || section?.data || [];
   const [formData, setFormData] = useState(Array.isArray(initialData) ? initialData : []);
@@ -25,7 +25,7 @@ const ContactOfficeEditor = ({ section, hasData, onDataChange }) => {
     }
   }, [formData, onDataChange]);
 
-  // ===== HELPER FUNCTIONS =====
+  // HELPER FUNCTIONS
 
   // Update a field in a specific office
   const updateArrayItem = (index, field, value) => {
@@ -44,7 +44,7 @@ const ContactOfficeEditor = ({ section, hasData, onDataChange }) => {
     setFormData(newData);
   };
 
-  // ===== PHONE FUNCTIONS =====
+  // PHONE FUNCTIONS
 
   // Add a new phone number to an office
   const addPhone = (index) => {
@@ -64,7 +64,7 @@ const ContactOfficeEditor = ({ section, hasData, onDataChange }) => {
     }
   };
 
-  // ===== EMAIL FUNCTIONS =====
+  // EMAIL FUNCTIONS
 
   // Add a new email to an office
   const addEmail = (index) => {
@@ -84,7 +84,7 @@ const ContactOfficeEditor = ({ section, hasData, onDataChange }) => {
     }
   };
 
-  // ===== OFFICE FUNCTIONS =====
+  // OFFICE FUNCTIONS
 
   // Add a new office with default empty values
   const addOffice = () => {
@@ -130,7 +130,7 @@ const ContactOfficeEditor = ({ section, hasData, onDataChange }) => {
     }
   };
 
-  // ===== EMPTY STATE =====
+  // EMPTY STATE
   // Show message when no offices exist
   if (!hasData || !formData || formData.length === 0) {
     return (
@@ -154,7 +154,7 @@ const ContactOfficeEditor = ({ section, hasData, onDataChange }) => {
     );
   }
 
-  // ===== MAIN RENDER =====
+  // MAIN RENDER
   return (
     <div className="bg-white rounded-lg border border-gray-200 p-4">
 
@@ -171,7 +171,7 @@ const ContactOfficeEditor = ({ section, hasData, onDataChange }) => {
         </button>
       </div>
 
-      {/* ===== LIST OF OFFICES ===== */}
+      {/* LIST OF OFFICES */}
       <div className="space-y-4">
         {formData.map((office, index) => (
           <div key={index} className="p-4 bg-gray-50 rounded-lg border border-gray-200">
@@ -201,10 +201,10 @@ const ContactOfficeEditor = ({ section, hasData, onDataChange }) => {
               </button>
             </div>
 
-            {/* ===== OFFICE FIELDS (2 columns on desktop) ===== */}
+            {/* OFFICE FIELDS (2 columns on desktop) */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
 
-              {/* ===== LEFT COLUMN ===== */}
+              {/* LEFT COLUMN */}
               <div className="space-y-2">
                 {/* Office title */}
                 <TextField
@@ -235,10 +235,10 @@ const ContactOfficeEditor = ({ section, hasData, onDataChange }) => {
                 />
               </div>
 
-              {/* ===== RIGHT COLUMN ===== */}
+              {/* RIGHT COLUMN */}
               <div className="space-y-2">
 
-                {/* ===== PHONES SECTION ===== */}
+                {/* PHONES SECTION */}
                 <div>
                   <div className="flex items-center justify-between mb-0.5">
                     <label className="block text-xs text-gray-400">Phone Numbers</label>
@@ -275,7 +275,7 @@ const ContactOfficeEditor = ({ section, hasData, onDataChange }) => {
                   ))}
                 </div>
 
-                {/* ===== EMAILS SECTION ===== */}
+                {/* EMAILS SECTION */}
                 <div>
                   <div className="flex items-center justify-between mb-0.5">
                     <label className="block text-xs text-gray-400">Email Addresses</label>
@@ -312,7 +312,7 @@ const ContactOfficeEditor = ({ section, hasData, onDataChange }) => {
                   ))}
                 </div>
 
-                {/* ===== COORDINATES ===== */}
+                {/* COORDINATES */}
                 <div className="grid grid-cols-2 gap-2">
                   {/* Latitude */}
                   <div>
@@ -352,7 +352,7 @@ const ContactOfficeEditor = ({ section, hasData, onDataChange }) => {
               </div>
             </div>
 
-            {/* ===== OFFICE PREVIEW ===== */}
+            {/* OFFICE PREVIEW */}
             {/* Shows summary of office details */}
             <div className="mt-3 pt-3 border-t border-gray-200">
               <div className="flex flex-wrap items-center gap-4 text-xs text-gray-500">
@@ -381,7 +381,7 @@ const ContactOfficeEditor = ({ section, hasData, onDataChange }) => {
         ))}
       </div>
 
-      {/* ===== DATA INFORMATION ===== */}
+      {/* DATA INFORMATION */}
       {/* Display metadata about the section */}
       <div className="mt-4 bg-gray-50 rounded-lg p-4 border border-gray-200">
         <div className="grid grid-cols-2 gap-3 text-sm">

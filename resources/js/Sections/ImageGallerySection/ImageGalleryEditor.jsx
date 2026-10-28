@@ -1,11 +1,18 @@
 // resources/js/pages/Backend/CMS/Sections/components/modals/Editors/ImageGalleryEditor.jsx
 
-import React, { useState, useEffect } from 'react';
-import { FaTrash, FaPlus, FaTimes, FaImage } from 'react-icons/fa';
-import Swal from 'sweetalert2';
-import { TextField } from './shared/Fields';
+// React
+import { useState, useEffect } from 'react';
 
-// ─── ADVANCED TAG INPUT COMPONENT ──────────────────────
+// Icons
+import { FaTrash, FaPlus, FaTimes, FaImage } from 'react-icons/fa';
+
+// Sweet Alert
+import Swal from 'sweetalert2';
+
+// Shared Components
+import { TextField } from '../../Shared/SectionEditor/Fields';
+
+// ADVANCED TAG INPUT COMPONENT
 const TagInput = ({ value, onChange, placeholder = 'Add tag...' }) => {
   const [inputValue, setInputValue] = useState('');
   const [tags, setTags] = useState(() => {
@@ -76,7 +83,7 @@ const TagInput = ({ value, onChange, placeholder = 'Add tag...' }) => {
   );
 };
 
-// ─── MAIN EDITOR ──────────────────────────────────────────
+// MAIN EDITO──
 
 const ImageGalleryEditor = ({ section, hasData, onDataChange }) => {
   const initialData = section?.data?.data || section?.data || {};

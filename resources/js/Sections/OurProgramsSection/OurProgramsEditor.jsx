@@ -3,10 +3,10 @@
 
 import React, { useState, useEffect } from 'react';
 import { FaExternalLinkAlt, FaList } from 'react-icons/fa';
-import { NumberField } from './shared/Fields';
+import { NumberField } from '../../Shared/SectionEditor/Fields';
 
 const OurProgramsEditor = ({ section, hasData, onDataChange }) => {
-  // ===== STATE MANAGEMENT =====
+  // STATE MANAGEMENT
   // Get custom props for display settings
   const customProps = section?.custom_props || {};
 
@@ -14,7 +14,7 @@ const OurProgramsEditor = ({ section, hasData, onDataChange }) => {
   const [showFeatured, setShowFeatured] = useState(customProps?.showFeatured !== false);
   const [bgColor, setBgColor] = useState(customProps?.bgColor || 'bg-white');
 
-  // ===== SYNC LOCAL STATE WITH PROPS =====
+  // SYNC LOCAL STATE WITH PROPS
   // When section changes, update local state
   useEffect(() => {
     const props = section?.custom_props || {};
@@ -23,7 +23,7 @@ const OurProgramsEditor = ({ section, hasData, onDataChange }) => {
     setBgColor(props?.bgColor || 'bg-white');
   }, [section?.custom_props]);
 
-  // ===== NOTIFY PARENT OF CHANGES =====
+  // NOTIFY PARENT OF CHANGES
   // When any setting changes, notify parent via onDataChange
   useEffect(() => {
     if (onDataChange) {
@@ -43,7 +43,7 @@ const OurProgramsEditor = ({ section, hasData, onDataChange }) => {
     }
   }, [displayLimit, showFeatured, bgColor, onDataChange, section?.data]);
 
-  // ===== HANDLERS =====
+  // HANDLERS
   const handleLimitChange = (e) => {
     const value = parseInt(e.target.value) || 1;
     setDisplayLimit(Math.max(1, value));
@@ -62,7 +62,7 @@ const OurProgramsEditor = ({ section, hasData, onDataChange }) => {
     <div className="bg-white rounded-lg border border-gray-200 p-4">
       <h3 className="text-sm font-semibold text-gray-700 mb-3">Our Programs Section</h3>
 
-      {/* ===== DISPLAY SETTINGS ===== */}
+      {/* DISPLAY SETTINGS */}
       <div className="mb-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
         <h4 className="text-sm font-medium text-gray-700 mb-3">Display Settings</h4>
 
@@ -110,7 +110,7 @@ const OurProgramsEditor = ({ section, hasData, onDataChange }) => {
         </div>
       </div>
 
-      {/* ===== INFO BOX: SPECIAL SECTION ===== */}
+      {/* INFO BOX: SPECIAL SECTION */}
       <div className="mb-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
         <div className="flex items-start gap-3">
           <div className="mt-0.5">
@@ -132,7 +132,7 @@ const OurProgramsEditor = ({ section, hasData, onDataChange }) => {
         </div>
       </div>
 
-      {/* ===== CURRENT SETTINGS ===== */}
+      {/* CURRENT SETTINGS */}
       <div className="mb-4">
         <h4 className="text-sm font-medium text-gray-600 mb-2">Current Settings</h4>
         <div className="grid grid-cols-2 gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
@@ -157,7 +157,7 @@ const OurProgramsEditor = ({ section, hasData, onDataChange }) => {
         </div>
       </div>
 
-      {/* ===== AVAILABLE PROGRAMS PREVIEW ===== */}
+      {/* AVAILABLE PROGRAMS PREVIEW */}
       <div className="mb-4">
         <h4 className="text-sm font-medium text-gray-600 mb-2">Available Programs</h4>
         <div className="bg-gray-50 rounded-lg border border-gray-200 p-3">
@@ -201,7 +201,7 @@ const OurProgramsEditor = ({ section, hasData, onDataChange }) => {
         </div>
       </div>
 
-      {/* ===== ACTION BUTTON ===== */}
+      {/* ACTION BUTTON */}
       <div className="flex justify-end">
         <button
           type="button"
@@ -215,7 +215,7 @@ const OurProgramsEditor = ({ section, hasData, onDataChange }) => {
         </button>
       </div>
 
-      {/* ===== FOOTER NOTE ===== */}
+      {/* FOOTER NOTE */}
       <div className="mt-3 text-xs text-gray-400 border-t border-gray-200 pt-3">
         <p>
           💡 <strong>Note:</strong> This section displays programs from the Program Manager.

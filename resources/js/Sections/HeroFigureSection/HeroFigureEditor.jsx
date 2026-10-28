@@ -10,8 +10,8 @@ import { FaUpload, FaTimes, FaExternalLinkAlt, FaInfoCircle } from 'react-icons/
 // Sweetalert
 import Swal from 'sweetalert2';
 
-// Rich text editor (single canonical WYSIWYG: components/editor/RichTextEditor)
-import RichTextEditor from '../../../../../../../components/editor/RichTextEditor';
+// Rich text editor
+import RichTextEditor from '../../components/editor/RichTextEditor';
 
 /**
  * HeroFigureEditor - Editor for HeroFigureSection data
@@ -25,7 +25,7 @@ import RichTextEditor from '../../../../../../../components/editor/RichTextEdito
  * - Calls onDataChange when data is modified
  */
 const HeroFigureEditor = ({ section, hasData, onDataChange }) => {
-  // ===== STATE MANAGEMENT =====
+  // STATE MANAGEMENT
   // Parse the section data
   const initialData = section?.data?.data || section?.data || {};
   const [formData, setFormData] = useState(initialData);
@@ -53,7 +53,7 @@ const HeroFigureEditor = ({ section, hasData, onDataChange }) => {
     }
   }, [formData, onDataChange]);
 
-  // ===== FETCH ABOUT CONTENT OPTIONS =====
+  // FETCH ABOUT CONTENT OPTIONS
   // Load available About Content items for the dropdown
   useEffect(() => {
     fetchAboutContentOptions();
@@ -86,7 +86,7 @@ const HeroFigureEditor = ({ section, hasData, onDataChange }) => {
     }
   }, [formData._about_content_id]);
 
-  // ===== HELPER FUNCTIONS =====
+  // HELPER FUNCTIONS
 
   // Update nested object fields using dot notation
   const updateField = (path, value) => {
@@ -102,7 +102,7 @@ const HeroFigureEditor = ({ section, hasData, onDataChange }) => {
     setFormData(newData);
   };
 
-  // ===== ABOUT CONTENT SELECTION =====
+  // ABOUT CONTENT SELECTION
   // Handle selection from About Content dropdown - auto-fills all fields
   const handleAboutContentSelect = (e) => {
     const id = e.target.value;
@@ -155,7 +155,7 @@ const HeroFigureEditor = ({ section, hasData, onDataChange }) => {
     }
   };
 
-  // ===== IMAGE DRAG & DROP FUNCTIONS =====
+  // IMAGE DRAG & DROP FUNCTIONS
 
   const handleDrag = (e) => {
     e.preventDefault();
@@ -265,7 +265,7 @@ const HeroFigureEditor = ({ section, hasData, onDataChange }) => {
     return src;
   };
 
-  // ===== EMPTY STATE =====
+  // EMPTY STATE
   // Show message when no data exists - includes About Content dropdown
   if (!hasData || !formData || Object.keys(formData).length === 0) {
     return (
@@ -307,12 +307,12 @@ const HeroFigureEditor = ({ section, hasData, onDataChange }) => {
     );
   }
 
-  // ===== MAIN RENDER =====
+  // MAIN RENDER
   return (
     <div className="bg-white rounded-lg border border-gray-200 p-4">
       <h3 className="text-sm font-semibold text-gray-700 mb-3">Edit Hero with Figure Data</h3>
 
-      {/* ===== ABOUT CONTENT DROPDOWN ===== */}
+      {/* ABOUT CONTENT DROPDOWN */}
       {/* Allows loading content from About Content Manager */}
       <div className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
         <div className="flex items-center gap-2 mb-2">
@@ -357,7 +357,7 @@ const HeroFigureEditor = ({ section, hasData, onDataChange }) => {
         )}
       </div>
 
-      {/* ===== SECTION TITLE ===== */}
+      {/* SECTION TITLE */}
       <div className="mb-4">
         <h4 className="text-sm font-medium text-gray-600 mb-2">Section Content</h4>
         <div>
@@ -383,7 +383,7 @@ const HeroFigureEditor = ({ section, hasData, onDataChange }) => {
         </div>
       </div>
 
-      {/* ===== RICH TEXT CONTENT ===== */}
+      {/* RICH TEXT CONTENT */}
       {/* WYSIWYG editor for content - disabled when using About Content */}
       <div className="mb-4">
         <h4 className="text-sm font-medium text-gray-600 mb-2">Content</h4>
@@ -415,7 +415,7 @@ const HeroFigureEditor = ({ section, hasData, onDataChange }) => {
         </p>
       </div>
 
-      {/* ===== BUTTON SECTION ===== */}
+      {/* BUTTON SECTION */}
       <div className="mb-4">
         <h4 className="text-sm font-medium text-gray-600 mb-2">Button</h4>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -464,7 +464,7 @@ const HeroFigureEditor = ({ section, hasData, onDataChange }) => {
         </div>
       </div>
 
-      {/* // ===== IMAGE SECTION ===== */}
+      {/* // IMAGE SECTION */}
       {/* // Drag & drop image upload with preview */}
       <div className="mb-4">
         <h4 className="text-sm font-medium text-gray-600 mb-2">Image</h4>
@@ -564,7 +564,7 @@ const HeroFigureEditor = ({ section, hasData, onDataChange }) => {
         )}
       </div>
 
-      {/* ===== IMAGE ALT TEXT & CLASS NAME ===== */}
+      {/* IMAGE ALT TEXT & CLASS NAME */}
       <div className="mb-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {/* Image Alt Text */}
@@ -615,7 +615,7 @@ const HeroFigureEditor = ({ section, hasData, onDataChange }) => {
         </div>
       </div>
 
-      {/* // ===== DATA INFORMATION ===== */}
+      {/* // DATA INFORMATION */}
       {/* // Display metadata about the section */}
       <div className="mt-4 bg-gray-50 rounded-lg p-4 border border-gray-200">
         <div className="grid grid-cols-2 gap-3 text-sm">

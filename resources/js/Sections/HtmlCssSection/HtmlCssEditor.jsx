@@ -1,36 +1,42 @@
 // resources/js/pages/Backend/CMS/Sections/components/modals/Editors/HtmlCssEditor.jsx
 
 import React, {
-  useCallback,
-  useDeferredValue,
-  useEffect,
-  useLayoutEffect,
-  useMemo,
   useRef,
+  useMemo,
   useState,
+  useEffect,
+  useCallback,
+  useLayoutEffect,
+  useDeferredValue,
 } from 'react';
+
+// Icons
 import {
   FaCode,
   FaEye,
   FaMagic,
   FaHdd,
-  FaExclamationTriangle,
+  FaTimes,
   FaEraser,
   FaExpand,
   FaCompress,
-  FaChevronDown,
-  FaChevronRight,
   FaSlidersH,
   FaInfoCircle,
-  FaTimes,
+  FaChevronDown,
+  FaChevronRight,
+  FaExclamationTriangle,
 } from 'react-icons/fa';
 import { FaWandMagicSparkles } from 'react-icons/fa6';
-import { TextField, SelectField } from './shared/Fields';
-import CodeImageUpload from './shared/CodeImageUpload';
-import CodePane from './shared/CodePane';
-import { formatCode } from './shared/formatCode';
-import { useSectionEditor } from './shared/useSectionEditor';
-import HtmlCssSection from '../../../../../../../Sections/HtmlCssSection/HtmlCssSection';
+
+// Shared Components
+import CodePane from '../../Shared/SectionEditor/CodePane';
+import { formatCode } from '../../Shared/SectionEditor/formatCode';
+import CodeImageUpload from '../../Shared/SectionEditor/CodeImageUpload';
+import { TextField, SelectField } from '../../Shared/SectionEditor/Fields';
+import { useSectionEditor } from '../../Shared/SectionEditor/useSectionEditor';
+
+// HTML & CSS Editors
+import HtmlCssSection from './HtmlCssSection';
 
 // ============================================
 // STARTER SNIPPETS ("Example" button)

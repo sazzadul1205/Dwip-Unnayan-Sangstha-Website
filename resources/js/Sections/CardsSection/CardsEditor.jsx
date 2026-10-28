@@ -10,10 +10,10 @@ import { FaTrash, FaPlus, FaImage, FaTimes } from 'react-icons/fa';
 import Swal from 'sweetalert2';
 
 // Shared Components
-import { TextField, SelectField } from './shared/Fields';
+import { TextField, SelectField } from '../../Shared/SectionEditor/Fields';
 
 const CardsEditor = ({ section, hasData, onDataChange }) => {
-  // ===== STATE MANAGEMENT =====
+  // STATE MANAGEMENT
   // Main form data
   const initialData = section?.data?.data || section?.data || {};
   const [formData, setFormData] = useState(initialData);
@@ -30,7 +30,7 @@ const CardsEditor = ({ section, hasData, onDataChange }) => {
     }
   }, [formData, onDataChange]);
 
-  // ===== HELPER FUNCTIONS =====
+  // HELPER FUNCTIONS
 
   // Update nested object fields using dot notation (e.g., 'section.title')
   const updateField = (path, value) => {
@@ -85,7 +85,7 @@ const CardsEditor = ({ section, hasData, onDataChange }) => {
     setFormData(newData);
   };
 
-  // ===== ARRAY MANAGEMENT FUNCTIONS =====
+  // ARRAY MANAGEMENT FUNCTIONS
 
   // Add a new card with default values
   const addArrayItem = (path, template = {}) => {
@@ -144,7 +144,7 @@ const CardsEditor = ({ section, hasData, onDataChange }) => {
     setFormData(newData);
   };
 
-  // ===== IMAGE HANDLING FUNCTIONS =====
+  // IMAGE HANDLING FUNCTIONS
 
   // Handle image drop from drag & drop
   const handleImageDrop = (e, index) => {
@@ -241,7 +241,7 @@ const CardsEditor = ({ section, hasData, onDataChange }) => {
     return src;
   };
 
-  // ===== COLOR OPTIONS =====
+  // COLOR OPTIONS
   // Options for section background color
   const bgColorOptions = [
     { value: 'bg-[#F5F5F5]', label: 'Light Gray' },
@@ -276,7 +276,7 @@ const CardsEditor = ({ section, hasData, onDataChange }) => {
     { value: 'bg-transparent', label: 'Transparent' },
   ];
 
-  // ===== EMPTY STATE =====
+  // EMPTY STATE
   // Show message when no data exists
   if (!hasData || !formData || Object.keys(formData).length === 0) {
     return (
@@ -289,12 +289,12 @@ const CardsEditor = ({ section, hasData, onDataChange }) => {
 
   const cards = formData.cards || [];
 
-  // ===== MAIN RENDER =====
+  // MAIN RENDER
   return (
     <div className="bg-white rounded-lg border border-gray-200 p-4">
       <h3 className="text-sm font-semibold text-gray-700 mb-3">Edit Cards Data</h3>
 
-      {/* ===== SECTION CONTENT ===== */}
+      {/* SECTION CONTENT */}
       {/* Section title field */}
       <div className="mb-4">
         <h4 className="text-sm font-medium text-gray-600 mb-2">Section Content</h4>
@@ -306,7 +306,7 @@ const CardsEditor = ({ section, hasData, onDataChange }) => {
         />
       </div>
 
-      {/* ===== CARDS LIST ===== */}
+      {/* CARDS LIST */}
       <div>
         {/* Header with card count and add button */}
         <div className="flex items-center justify-between mb-2">
@@ -342,10 +342,10 @@ const CardsEditor = ({ section, hasData, onDataChange }) => {
                 </button>
               </div>
 
-              {/* ===== CARD FIELDS (2 columns on desktop) ===== */}
+              {/* CARD FIELDS (2 columns on desktop) */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
-                {/* ===== LEFT COLUMN: IMAGE ===== */}
+                {/* LEFT COLUMN: IMAGE */}
                 <div>
                   <label className="block text-xs text-gray-400 mb-0.5">Card Image</label>
 
@@ -426,7 +426,7 @@ const CardsEditor = ({ section, hasData, onDataChange }) => {
                   </div>
                 </div>
 
-                {/* ===== RIGHT COLUMN: CARD FIELDS ===== */}
+                {/* RIGHT COLUMN: CARD FIELDS */}
                 <div className="space-y-2">
                   {/* Card ID */}
                   <TextField
@@ -475,7 +475,7 @@ const CardsEditor = ({ section, hasData, onDataChange }) => {
                 </div>
               </div>
 
-              {/* ===== COLOR PREVIEW ===== */}
+              {/* COLOR PREVIEW */}
               {/* Shows preview of selected colors and image */}
               <div className="mt-3 flex items-center gap-3">
                 <div className="flex items-center gap-1">
@@ -513,7 +513,7 @@ const CardsEditor = ({ section, hasData, onDataChange }) => {
         )}
       </div>
 
-      {/* ===== DATA INFORMATION ===== */}
+      {/* DATA INFORMATION */}
       {/* Display metadata about the section */}
       <div className="mt-4 bg-gray-50 rounded-lg p-4 border border-gray-200">
         <div className="grid grid-cols-2 gap-3 text-sm">

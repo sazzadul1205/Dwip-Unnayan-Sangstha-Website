@@ -168,7 +168,7 @@ const CodeImageUpload = ({
       </button>
 
       {open && (
-        <div className="absolute top-full left-0 mt-1 z-30 w-[22rem] max-w-[calc(100vw-3rem)] rounded-xl border border-gray-200 bg-white p-3 shadow-xl">
+        <div className="absolute top-full left-0 mt-1 z-30 w-88 max-w-[calc(100vw-3rem)] rounded-xl border border-gray-200 bg-white p-3 shadow-xl">
           {/* ---- Header ---- */}
           <div className="mb-2 flex items-start justify-between gap-2">
             <div>

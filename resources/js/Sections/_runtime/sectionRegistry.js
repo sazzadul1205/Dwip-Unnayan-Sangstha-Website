@@ -15,9 +15,9 @@ import { lazy } from 'react';
 
 export const SECTION_COMPONENTS = {
   // --- Banner Sections ---
-  HomeBanner: lazy(() => import('../BannerSection/HomeBanner')),
-  PageBannerSection: lazy(() => import('../BannerSection/PageBannerSection')),
-  PageTagBannerSection: lazy(() => import('../BannerSection/PageTagBannerSection')), // NEW
+  HomeBanner: lazy(() => import('../BannerSection/HomeBanner/HomeBanner')),
+  PageBannerSection: lazy(() => import('../BannerSection/PageBannerSection/PageBannerSection')),
+  PageTagBannerSection: lazy(() => import('../BannerSection/PageTagBannerSection/PageTagBannerSection')), 
   
   // --- Common Sections ---
   FAQSection: lazy(() => import('../FAQSection/FAQSection')),
@@ -58,7 +58,7 @@ export const SECTION_CONFIGS = {
   JobsSection: { propName: 'data', isMultiProp: false },
   HomeBanner: { propName: 'data', isMultiProp: false },
   PageBannerSection: { propName: 'data', isMultiProp: false },
-  PageTagBannerSection: { propName: 'data', isMultiProp: false }, // NEW
+  PageTagBannerSection: { propName: 'data', isMultiProp: false }, 
   CardsSection: { propName: 'data', isMultiProp: false },
   LegalSection: { propName: 'data', isMultiProp: false },
   HeroFigureSection: { propName: 'data', isMultiProp: false },

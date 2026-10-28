@@ -1,18 +1,18 @@
 // resources/js/pages/Backend/CMS/Sections/components/modals/Editors/PageTagBannerEditor.jsx
 
 // React
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 
 // Icons
 import { FaTrash, FaPlus } from 'react-icons/fa';
 
 // Shared Components
-import ImageUpload from './shared/ImageUpload';
-import { TextField, SelectField } from './shared/Fields';
-import { useImageUpload } from './shared/useImageUpload';
+import ImageUpload from '../../../Shared/SectionEditor/ImageUpload';
+import { TextField, SelectField } from '../../../Shared/SectionEditor/Fields';
+import { useImageUpload } from '../../../Shared/SectionEditor/useImageUpload';
 
 const PageTagBannerEditor = ({ section, hasData, onDataChange }) => {
-  // ===== STATE MANAGEMENT =====
+  // STATE MANAGEMENT
   // Get initial data from section prop
   const initialData = section?.data?.data || section?.data || {};
   const [formData, setFormData] = useState(initialData);
@@ -27,7 +27,7 @@ const PageTagBannerEditor = ({ section, hasData, onDataChange }) => {
     }
   }, [formData, onDataChange]);
 
-  // ===== HELPER FUNCTIONS =====
+  // HELPER FUNCTIONS
 
   // Update nested object fields using dot notation
   const updateField = (path, value) => {
@@ -62,7 +62,7 @@ const PageTagBannerEditor = ({ section, hasData, onDataChange }) => {
     setFormData(newData);
   };
 
-  // ===== TAG MANAGEMENT FUNCTIONS =====
+  // TAG MANAGEMENT FUNCTIONS
 
   // Add a new tag
   const addTag = () => {
@@ -81,7 +81,7 @@ const PageTagBannerEditor = ({ section, hasData, onDataChange }) => {
     }
   };
 
-  // ===== OVERLAY OPTIONS =====
+  // OVERLAY OPTIONS
   const overlayOptions = [
     { value: 'bg-black/40 lg:bg-black/50', label: 'Light Dark Overlay' },
     { value: 'bg-black/60 lg:bg-black/70', label: 'Medium Dark Overlay' },
@@ -100,7 +100,7 @@ const PageTagBannerEditor = ({ section, hasData, onDataChange }) => {
     { value: '', label: 'None' },
   ];
 
-  // ===== COLOR OPTIONS FOR TAGS =====
+  // COLOR OPTIONS FOR TAGS
   const colorOptions = [
     { value: '#009BE2', label: 'Blue' },
     { value: '#FF6B6B', label: 'Red' },
@@ -119,7 +119,7 @@ const PageTagBannerEditor = ({ section, hasData, onDataChange }) => {
     { value: '#FF7675', label: 'Coral' },
   ];
 
-  // ===== EMPTY STATE =====
+  // EMPTY STATE
   if (!hasData || !formData || Object.keys(formData).length === 0) {
     return (
       <div className="bg-white rounded-lg border border-gray-200 p-4">
@@ -134,12 +134,12 @@ const PageTagBannerEditor = ({ section, hasData, onDataChange }) => {
 
   const tags = formData.tags || [];
 
-  // ===== MAIN RENDER =====
+  // MAIN RENDER
   return (
     <div className="bg-white rounded-lg border border-gray-200 p-4">
       <h3 className="text-sm font-semibold text-gray-700 mb-3">Edit Page Tag Banner Data</h3>
 
-      {/* ===== BACKGROUND IMAGE ===== */}
+      {/* BACKGROUND IMAGE */}
       <div className="mb-4">
         <h4 className="text-sm font-medium text-gray-600 mb-2">Background Image</h4>
         <ImageUpload
@@ -158,7 +158,7 @@ const PageTagBannerEditor = ({ section, hasData, onDataChange }) => {
         />
       </div>
 
-      {/* ===== ALT TEXT ===== */}
+      {/* ALT TEXT */}
       <TextField
         label="Alt Text"
         value={formData.background?.alt || ''}
@@ -167,7 +167,7 @@ const PageTagBannerEditor = ({ section, hasData, onDataChange }) => {
         className="mb-4"
       />
 
-      {/* ===== OVERLAY SETTINGS ===== */}
+      {/* OVERLAY SETTINGS */}
       <div className="mb-4">
         <h4 className="text-sm font-medium text-gray-600 mb-2">Overlay Settings</h4>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -203,7 +203,7 @@ const PageTagBannerEditor = ({ section, hasData, onDataChange }) => {
         )}
       </div>
 
-      {/* ===== TITLE ===== */}
+      {/* TITLE */}
       <div className="mb-4">
         <h4 className="text-sm font-medium text-gray-600 mb-2">Banner Content</h4>
         <TextField
@@ -215,7 +215,7 @@ const PageTagBannerEditor = ({ section, hasData, onDataChange }) => {
         <p className="text-xs text-gray-400 mt-1">Main title displayed on the banner</p>
       </div>
 
-      {/* ===== TAGS SECTION ===== */}
+      {/* TAGS SECTION */}
       <div className="mb-4">
         <div className="flex items-center justify-between mb-2">
           <h4 className="text-sm font-medium text-gray-600">Tags</h4>
@@ -319,7 +319,7 @@ const PageTagBannerEditor = ({ section, hasData, onDataChange }) => {
         )}
       </div>
 
-      {/* ===== DATA INFORMATION ===== */}
+      {/* DATA INFORMATION */}
       <div className="mt-4 bg-gray-50 rounded-lg p-4 border border-gray-200">
         <div className="grid grid-cols-2 gap-3 text-sm">
           <div>

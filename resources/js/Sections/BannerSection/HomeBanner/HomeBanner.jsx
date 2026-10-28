@@ -1,12 +1,12 @@
 // resources/js/Sections/BannerSection/HomeBanner.jsx
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import ArrowIcon from '../../Shared/ArrowIcon';
-import { Skeleton } from '../../Shared/Skeletons/SkeletonPrimitives';
-import ImagePreloader from '../../Shared/ImagePreloader';
-import { useImagePreload } from '../../hooks/useImagePreloader';
+import ArrowIcon from '../../../Shared/ArrowIcon';
+import { Skeleton } from '../../../Shared/Skeletons/SkeletonPrimitives';
+import ImagePreloader from '../../../Shared/ImagePreloader';
+import { useImagePreload } from '../../../hooks/useImagePreloader';
 
-import { hasValue, getPlaceholderImage } from '../../utils/sectionHelpers';
+import { hasValue, getPlaceholderImage } from '../../../utils/sectionHelpers';
 
 const MAX_SLIDES = 10;
 const MAX_BUTTONS = 2;

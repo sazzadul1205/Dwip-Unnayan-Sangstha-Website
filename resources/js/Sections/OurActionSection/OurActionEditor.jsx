@@ -10,10 +10,10 @@ import { FaTrash, FaPlus, FaUpload, FaTimes } from 'react-icons/fa';
 import Swal from 'sweetalert2';
 
 // Shared Components
-import { TextField, TextAreaField } from './shared/Fields';
+import { TextField, TextAreaField } from '../../Shared/SectionEditor/Fields';
 
 const OurActionEditor = ({ section, hasData, onDataChange }) => {
-  // ===== STATE MANAGEMENT =====
+  // STATE MANAGEMENT
   // Get initial data from section prop
   const initialData = section?.data?.data || section?.data || {};
   const [formData, setFormData] = useState(initialData);
@@ -30,7 +30,7 @@ const OurActionEditor = ({ section, hasData, onDataChange }) => {
     }
   }, [formData, onDataChange]);
 
-  // ===== HELPER FUNCTIONS =====
+  // HELPER FUNCTIONS
 
   // Update nested object fields using dot notation (e.g., 'section.title')
   const updateField = (path, value) => {
@@ -65,7 +65,7 @@ const OurActionEditor = ({ section, hasData, onDataChange }) => {
     setFormData(newData);
   };
 
-  // ===== ARRAY MANAGEMENT FUNCTIONS =====
+  // ARRAY MANAGEMENT FUNCTIONS
 
   // Add a new action item with default values
   const addArrayItem = (path, template = {}) => {
@@ -117,7 +117,7 @@ const OurActionEditor = ({ section, hasData, onDataChange }) => {
     setFormData(newData);
   };
 
-  // ===== ICON HANDLING FUNCTIONS =====
+  // ICON HANDLING FUNCTIONS
 
   // Handle icon drop from drag & drop
   const handleIconDrop = (e, index) => {
@@ -216,7 +216,7 @@ const OurActionEditor = ({ section, hasData, onDataChange }) => {
     return src;
   };
 
-  // ===== EMPTY STATE =====
+  // EMPTY STATE
   // Show message when no data exists
   if (!hasData || !formData || Object.keys(formData).length === 0) {
     return (
@@ -229,12 +229,12 @@ const OurActionEditor = ({ section, hasData, onDataChange }) => {
 
   const actions = formData.actions || [];
 
-  // ===== MAIN RENDER =====
+  // MAIN RENDER
   return (
     <div className="bg-white rounded-lg border border-gray-200 p-4">
       <h3 className="text-sm font-semibold text-gray-700 mb-3">Edit Our Actions Data</h3>
 
-      {/* <!-- ===== SECTION CONTENT ===== --> */}
+      {/* <!-- SECTION CONTENT --> */}
       {/* Title and description for the actions section */}
       <div className="mb-4">
         <h4 className="text-sm font-medium text-gray-600 mb-2">Section Content</h4>
@@ -255,7 +255,7 @@ const OurActionEditor = ({ section, hasData, onDataChange }) => {
         </div>
       </div>
 
-      {/* <!-- ===== ACTION ITEMS ===== --> */}
+      {/* <!-- ACTION ITEMS --> */}
       {/* List of action items with icon, title, description, and alt text */}
       <div>
         <div className="flex items-center justify-between mb-2">
@@ -286,10 +286,10 @@ const OurActionEditor = ({ section, hasData, onDataChange }) => {
                 </button>
               </div>
 
-              {/* <!-- ===== ITEM FIELDS (2 columns on desktop) ===== --> */}
+              {/* <!-- ITEM FIELDS (2 columns on desktop) --> */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
 
-                {/* <!-- ===== LEFT COLUMN: ICON ===== --> */}
+                {/* <!-- LEFT COLUMN: ICON --> */}
                 <div>
                   <label className="block text-xs text-gray-400 mb-0.5">Icon</label>
 
@@ -354,7 +354,7 @@ const OurActionEditor = ({ section, hasData, onDataChange }) => {
                   )}
                 </div>
 
-                {/* <!-- ===== RIGHT COLUMN: FIELDS ===== --> */}
+                {/* <!-- RIGHT COLUMN: FIELDS --> */}
                 <div className="space-y-2">
                   {/* Title */}
                   <TextField
@@ -391,7 +391,7 @@ const OurActionEditor = ({ section, hasData, onDataChange }) => {
         )}
       </div>
 
-      {/* <!-- ===== DATA INFORMATION ===== --> */}
+      {/* <!-- DATA INFORMATION --> */}
       {/* Display metadata about the section */}
       <div className="mt-4 bg-gray-50 rounded-lg p-4 border border-gray-200">
         <div className="grid grid-cols-2 gap-3 text-sm">

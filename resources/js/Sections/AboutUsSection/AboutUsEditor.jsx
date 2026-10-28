@@ -1,12 +1,15 @@
 // resources/js/pages/Backend/CMS/Sections/components/modals/Editors/AboutUsEditor.jsx
 
-import React, { useCallback } from 'react';
+import  { useCallback } from 'react';
+
 import { FaPlus } from 'react-icons/fa';
-import ImageUpload from './shared/ImageUpload';
-import ArrayManager from './shared/ArrayManager';
-import { useImageUpload } from './shared/useImageUpload';
-import { useSectionEditor } from './shared/useSectionEditor';
-import { TextField, TextAreaField } from './shared/Fields';
+
+// Shared Components
+import ImageUpload from '../../Shared/SectionEditor/ImageUpload';
+import ArrayManager from '../../Shared/SectionEditor/ArrayManager';
+import { useImageUpload } from '../../Shared/SectionEditor/useImageUpload';
+import { TextField, TextAreaField } from '../../Shared/SectionEditor/Fields';
+import { useSectionEditor } from '../../Shared/SectionEditor/useSectionEditor';
 
 // Move MissionItemRenderer outside the component as a separate component
 const MissionItemRenderer = ({ item, index, onUpdateItem }) => {

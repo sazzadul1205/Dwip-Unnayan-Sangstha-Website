@@ -2,17 +2,15 @@
 // READ-ONLY redirect notice for page-level BlogSection rows.
 // This section is controlled by the Blogs Manager — do NOT add form fields here.
 
-// React
-import React from 'react';
 
 // Icons
 import { FaBlog } from 'react-icons/fa';
 
 // Shared generic redirect notice
-import ExternalManagerRedirect from './shared/ExternalManagerRedirect';
+import ExternalManagerRedirect from '../../Shared/SectionEditor/ExternalManagerRedirect';
 
 const BlogEditor = ({ section, hasData }) => {
-  // ===== DATA EXTRACTION =====
+  // DATA EXTRACTION
   // Get blogs data from section - this is read-only
   const data = section?.data || [];
   const blogs = Array.isArray(data) ? data : [];
@@ -58,7 +56,7 @@ const BlogEditor = ({ section, hasData }) => {
         </>
       }
     >
-      {/* ===== SECTION SETTINGS ===== */}
+      {/* SECTION SETTINGS */}
       {/* Shows configuration details for this section */}
       <div className="mb-4">
         <h4 className="text-sm font-medium text-gray-600 mb-2">Section Settings</h4>
@@ -84,7 +82,7 @@ const BlogEditor = ({ section, hasData }) => {
         </div>
       </div>
 
-      {/* ===== BLOG STATS ===== */}
+      {/* BLOG STATS */}
       {/* Shows statistics about blogs (total, active, featured) */}
       {hasData && blogs.length > 0 && (
         <div className="mb-4">
@@ -113,7 +111,7 @@ const BlogEditor = ({ section, hasData }) => {
         </div>
       )}
 
-      {/* ===== RECENT BLOG PREVIEW ===== */}
+      {/* RECENT BLOG PREVIEW */}
       {/* Shows preview of the most recent 2 blogs */}
       {hasData && blogs.length > 0 && (
         <div className="mb-4">

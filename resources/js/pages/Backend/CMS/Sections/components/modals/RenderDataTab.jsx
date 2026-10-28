@@ -1,34 +1,60 @@
 // resources/js/pages/Backend/CMS/Sections/components/modals/RenderDataTab.jsx
 
-import React, { lazy, Suspense } from 'react';
+import { lazy, Suspense } from 'react';
 
 // Shared generic redirect notice
-import ExternalManagerRedirect from './Editors/shared/ExternalManagerRedirect';
+import ExternalManagerRedirect from '../../../../../../Shared/SectionEditor/ExternalManagerRedirect';
 
 // ===== LAZY LOAD EDITORS =====
-const FAQEditor = lazy(() => import('./Editors/FAQEditor'));
-const JobsEditor = lazy(() => import('./Editors/JobsEditor'));
-const BlogEditor = lazy(() => import('./Editors/BlogEditor'));
-const CardsEditor = lazy(() => import('./Editors/CardsEditor'));
-const LegalEditor = lazy(() => import('./Editors/LegalEditor'));
-const AddressEditor = lazy(() => import('./Editors/AddressEditor'));
-const AboutUsEditor = lazy(() => import('./Editors/AboutUsEditor'));
-const FollowUsEditor = lazy(() => import('./Editors/FollowUsEditor'));
-const OurActionEditor = lazy(() => import('./Editors/OurActionEditor'));
-const HeroFigureEditor = lazy(() => import('./Editors/HeroFigureEditor'));
-const HomeBannerEditor = lazy(() => import('./Editors/HomeBannerEditor'));
-const PageBannerEditor = lazy(() => import('./Editors/PageBannerEditor'));
-const PageTagBannerEditor = lazy(() => import('./Editors/PageTagBannerEditor'));
-const OurProgramsEditor = lazy(() => import('./Editors/OurProgramsEditor'));
-const WhereWeWorkEditor = lazy(() => import('./Editors/WhereWeWorkEditor'));
-const ContactReachEditor = lazy(() => import('./Editors/ContactReachEditor'));
-const ProgramImpactEditor = lazy(() => import('./Editors/ProgramImpactEditor'));
-const ContactOfficeEditor = lazy(() => import('./Editors/ContactOfficeEditor'));
-const PublicationsEditor = lazy(() => import('./Editors/PublicationsEditor'));
-const ImageGalleryEditor = lazy(() => import('./Editors/ImageGalleryEditor'));
-const VideoGalleryEditor = lazy(() => import('./Editors/VideoGalleryEditor'));
-const TextContentEditor = lazy(() => import('./Editors/TextContentEditor'));
-const HtmlCssEditor = lazy(() => import('./Editors/HtmlCssEditor'));
+
+// Banner Editors
+const HomeBannerEditor = lazy(() => import('../../../../../../Sections/BannerSection/HomeBanner/HomeBannerEditor'));
+const PageBannerEditor = lazy(() => import('../../../../../../Sections/BannerSection/PageBannerSection/PageBannerEditor'));
+const PageTagBannerEditor = lazy(() => import('../../../../../../Sections/BannerSection/PageTagBannerSection/PageTagBannerEditor'));
+
+// Blog Editors
+const BlogEditor = lazy(() => import('../../../../../../Sections/BlogSection/BlogEditor'));
+
+// Address Editors
+const AddressEditor = lazy(() => import('../../../../../../Sections/AddressSection/AddressEditor'));
+
+// About Us Editors
+const AboutUsEditor = lazy(() => import('../../../../../../Sections/AboutUsSection/AboutUsEditor'));
+
+// Cards Editors
+const CardsEditor = lazy(() => import('../../../../../../Sections/CardsSection/CardsEditor'));
+
+// Contact Office Editors
+const ContactOfficeEditor = lazy(() => import('../../../../../../Sections/ContactOfficeSection/ContactOfficeEditor'));
+
+// Contact Reach Editors
+const ContactReachEditor = lazy(() => import('../../../../../../Sections/ContactReachSection/ContactReachEditor'));
+
+// FAQ Editors
+const FAQEditor = lazy(() => import('../../../../../../Sections/FAQSection/FAQEditor'));
+
+// Follow Us Editors
+const FollowUsEditor = lazy(() => import('../../../../../../Sections/FollowUSSection/FollowUsEditor'));
+
+// Hero Figure Editors
+const HeroFigureEditor = lazy(() => import('../../../../../../Sections/HeroFigureSection/HeroFigureEditor'));
+
+// HTML & CSS Editors
+const HtmlCssEditor = lazy(() => import('../../../../../../Sections/HtmlCssSection/HtmlCssEditor'));
+
+// Image Gallery Editors
+const ImageGalleryEditor = lazy(() => import('../../../../../../Sections/ImageGallerySection/ImageGalleryEditor'));
+
+const JobsEditor = lazy(() => import('../../../../../../Sections/JobsSection/JobsEditor'));
+const LegalEditor = lazy(() => import('../../../../../../Sections/LegalSection/LegalEditor'));
+const OurActionEditor = lazy(() => import('../../../../../../Sections/OurActionSection/OurActionEditor'));
+
+const OurProgramsEditor = lazy(() => import('../../../../../../Sections/OurProgramsSection/OurProgramsEditor'));
+const WhereWeWorkEditor = lazy(() => import('../../../../../../Sections/WhereWeWorkSection/WhereWeWorkEditor'));
+const ProgramImpactEditor = lazy(() => import('../../../../../../Sections/ProgramImpactSection/ProgramImpactEditor'));
+const PublicationsEditor = lazy(() => import('../../../../../../Sections/PublicationsSection/PublicationsEditor'));
+const VideoGalleryEditor = lazy(() => import('../../../../../../Sections/VideoGallerySection/VideoGalleryEditor'));
+const TextContentEditor = lazy(() => import('../../../../../../Sections/TextContentSection/TextContentEditor'));
 
 // ===== SHARED DATA NOTICE =====
 // Some section types don't have a local form: their data lives in the

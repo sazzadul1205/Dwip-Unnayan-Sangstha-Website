@@ -10,7 +10,7 @@ import { FaTrash, FaPlus, FaPhone, FaEnvelope, FaMapMarkerAlt, FaGlobe } from 'r
 import Swal from 'sweetalert2';
 
 // Shared Components
-import { TextField } from './shared/Fields';
+import { TextField } from '../../Shared/SectionEditor/Fields';
 
 const AddressEditor = ({ section, hasData, onDataChange }) => {
   // Get initial data - it's an array of addresses

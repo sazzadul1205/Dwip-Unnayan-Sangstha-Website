@@ -2,10 +2,10 @@
 
 import React, { useEffect, useMemo } from 'react';
 // Canonical WYSIWYG editor (components/editor/RichTextEditor).
-import RichTextEditor from '../../../../../../../components/editor/RichTextEditor';
-import { sanitizeHTML } from '../../../../../../../utils/sectionHelpers';
-import { TextField, SelectField } from './shared/Fields';
-import { useSectionEditor } from './shared/useSectionEditor';
+import RichTextEditor from '../../components/editor/RichTextEditor';
+import { sanitizeHTML } from '../../utils/sectionHelpers';
+import { TextField, SelectField } from '../../Shared/SectionEditor/Fields';
+import { useSectionEditor } from '../../Shared/SectionEditor/useSectionEditor';
 
 const TextContentEditor = ({ section, hasData, onDataChange }) => {
   const {

@@ -1,12 +1,18 @@
 // resources/js/pages/Backend/CMS/Sections/components/modals/Editors/FollowUsEditor.jsx
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
+
+// Icons
 import { FaTrash, FaPlus, FaFacebook, FaInstagram, FaLinkedin, FaYoutube, FaTwitter, FaGlobe } from 'react-icons/fa';
+
+// Sweet Alert
 import Swal from 'sweetalert2';
-import { TextField, SelectField } from './shared/Fields';
+
+// Shared Components
+import { TextField, SelectField } from '../../Shared/SectionEditor/Fields';
 
 const FollowUsEditor = ({ section, hasData, onDataChange }) => {
-  // ===== STATE MANAGEMENT =====
+  // STATE MANAGEMENT
   // Get initial data - it's an array of social media links
   const initialData = section?.data?.data || section?.data || [];
   const [formData, setFormData] = useState(Array.isArray(initialData) ? initialData : []);
@@ -18,7 +24,7 @@ const FollowUsEditor = ({ section, hasData, onDataChange }) => {
     }
   }, [formData, onDataChange]);
 
-  // ===== ICON OPTIONS =====
+  // ICON OPTIONS
   // Available social media icons with their corresponding React icons
   const iconOptions = [
     { value: 'facebook', label: 'Facebook', icon: <FaFacebook className="text-blue-600" size={18} /> },
@@ -29,7 +35,7 @@ const FollowUsEditor = ({ section, hasData, onDataChange }) => {
     { value: 'globe', label: 'Website', icon: <FaGlobe className="text-gray-600" size={18} /> },
   ];
 
-  // ===== HELPER FUNCTIONS =====
+  // HELPER FUNCTIONS
 
   // Update a field in a specific social link
   const updateArrayItem = (index, field, value) => {
@@ -39,7 +45,7 @@ const FollowUsEditor = ({ section, hasData, onDataChange }) => {
     setFormData(newData);
   };
 
-  // ===== SOCIAL LINK FUNCTIONS =====
+  // SOCIAL LINK FUNCTIONS
 
   // Add a new social link with default values
   const addLink = () => {
@@ -72,7 +78,7 @@ const FollowUsEditor = ({ section, hasData, onDataChange }) => {
     });
   };
 
-  // ===== ICON HELPERS =====
+  // ICON HELPERS
 
   // Get the React icon component for a given icon name
   const getIconPreview = (iconName) => {
@@ -86,7 +92,7 @@ const FollowUsEditor = ({ section, hasData, onDataChange }) => {
     return option ? option.label : iconName;
   };
 
-  // ===== EMPTY STATE =====
+  // EMPTY STATE
   // Show message when no social links exist
   if (!hasData || !formData || formData.length === 0) {
     return (
@@ -110,7 +116,7 @@ const FollowUsEditor = ({ section, hasData, onDataChange }) => {
     );
   }
 
-  // ===== MAIN RENDER =====
+  // MAIN RENDER
   return (
     <div className="bg-white rounded-lg border border-gray-200 p-4">
 
@@ -127,7 +133,7 @@ const FollowUsEditor = ({ section, hasData, onDataChange }) => {
         </button>
       </div>
 
-      {/* ===== LIST OF SOCIAL LINKS ===== */}
+      {/* LIST OF SOCIAL LINKS */}
       <div className="space-y-3">
         {formData.map((link, index) => (
           <div key={index} className="p-4 bg-gray-50 rounded-lg border border-gray-200">
@@ -154,7 +160,7 @@ const FollowUsEditor = ({ section, hasData, onDataChange }) => {
               </button>
             </div>
 
-            {/* ===== LINK FIELDS (3 columns on desktop) ===== */}
+            {/* LINK FIELDS (3 columns on desktop) */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               {/* Icon selector dropdown */}
               <SelectField
@@ -179,7 +185,7 @@ const FollowUsEditor = ({ section, hasData, onDataChange }) => {
               />
             </div>
 
-            {/* ===== LINK PREVIEW ===== */}
+            {/* LINK PREVIEW */}
             {/* Shows a preview of the link as it would appear on the site */}
             <div className="mt-3 pt-3 border-t border-gray-200 flex items-center gap-4 text-xs text-gray-500">
               <div className="flex items-center gap-1">
@@ -213,7 +219,7 @@ const FollowUsEditor = ({ section, hasData, onDataChange }) => {
         ))}
       </div>
 
-      {/* ===== DATA INFORMATION ===== */}
+      {/* DATA INFORMATION */}
       {/* Display metadata about the section */}
       <div className="mt-4 bg-gray-50 rounded-lg p-4 border border-gray-200">
         <div className="grid grid-cols-2 gap-3 text-sm">

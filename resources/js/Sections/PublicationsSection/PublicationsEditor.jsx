@@ -9,10 +9,10 @@ import React from 'react';
 import { FaFileAlt } from 'react-icons/fa';
 
 // Shared generic redirect notice
-import ExternalManagerRedirect from './shared/ExternalManagerRedirect';
+import ExternalManagerRedirect from '../../Shared/SectionEditor/ExternalManagerRedirect';
 
 const PublicationsEditor = ({ section, hasData }) => {
-  // ===== DATA EXTRACTION =====
+  // DATA EXTRACTION
   // Get publications data from section - this is read-only
   const data = section?.data || [];
   const publications = Array.isArray(data) ? data : [];
@@ -60,7 +60,7 @@ const PublicationsEditor = ({ section, hasData }) => {
         </>
       }
     >
-      {/* ===== SECTION SETTINGS ===== */}
+      {/* SECTION SETTINGS */}
       {/* Shows configuration details for this section */}
       <div className="mb-4">
         <h4 className="text-sm font-medium text-gray-600 mb-2">Section Settings</h4>
@@ -88,7 +88,7 @@ const PublicationsEditor = ({ section, hasData }) => {
         </div>
       </div>
 
-      {/* ===== PUBLICATION STATS ===== */}
+      {/* PUBLICATION STATS */}
       {/* Shows statistics about publications (total, active, featured) */}
       {hasData && publications.length > 0 && (
         <div className="mb-4">
@@ -117,7 +117,7 @@ const PublicationsEditor = ({ section, hasData }) => {
         </div>
       )}
 
-      {/* ===== RECENT PUBLICATION PREVIEW ===== */}
+      {/* RECENT PUBLICATION PREVIEW */}
       {/* Shows preview of the most recent 2 publications */}
       {hasData && publications.length > 0 && (
         <div className="mb-4">

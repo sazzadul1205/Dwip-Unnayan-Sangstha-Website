@@ -10,12 +10,12 @@ import { FaTrash, FaPlus, FaUpload, FaTimes } from 'react-icons/fa';
 import Swal from 'sweetalert2';
 
 // Shared Components
-import { TextField } from './shared/Fields';
-import ImageUpload from './shared/ImageUpload';
-import { useImageUpload } from './shared/useImageUpload';
+import { TextField } from '../../Shared/SectionEditor/Fields';
+import ImageUpload from '../../Shared/SectionEditor/ImageUpload';
+import { useImageUpload } from '../../Shared/SectionEditor/useImageUpload';
 
 const WhereWeWorkEditor = ({ section, hasData, onDataChange }) => {
-  // ===== STATE MANAGEMENT =====
+  // STATE MANAGEMENT
   const normalizeSectionData = (data) => {
     if (!data || typeof data !== 'object' || Array.isArray(data)) {
       return {};
@@ -63,7 +63,7 @@ const WhereWeWorkEditor = ({ section, hasData, onDataChange }) => {
     setFormData(initialData);
   }, [initialData]);
 
-  // ===== HELPER FUNCTIONS =====
+  // HELPER FUNCTIONS
 
   // Update nested object fields using dot notation (e.g., 'section.title')
   const updateField = (path, value) => {
@@ -98,7 +98,7 @@ const WhereWeWorkEditor = ({ section, hasData, onDataChange }) => {
     setFormData(newData);
   };
 
-  // ===== ARRAY MANAGEMENT FUNCTIONS =====
+  // ARRAY MANAGEMENT FUNCTIONS
 
   // Add a new stat with default values
   const addArrayItem = (path, template = {}) => {
@@ -151,7 +151,7 @@ const WhereWeWorkEditor = ({ section, hasData, onDataChange }) => {
     setFormData(newData);
   };
 
-  // ===== ICON HANDLING FUNCTIONS =====
+  // ICON HANDLING FUNCTIONS
 
   // Handle icon drop from drag & drop
   const handleIconDrop = (e, index) => {
@@ -252,7 +252,7 @@ const WhereWeWorkEditor = ({ section, hasData, onDataChange }) => {
     return src;
   };
 
-  // ===== EMPTY STATE =====
+  // EMPTY STATE
   // Show message when no data exists
   if (!hasData || !formData || Object.keys(formData).length === 0) {
     return (
@@ -265,12 +265,12 @@ const WhereWeWorkEditor = ({ section, hasData, onDataChange }) => {
 
   const stats = Array.isArray(formData?.stats) ? formData.stats.filter(Boolean) : [];
 
-  // ===== MAIN RENDER =====
+  // MAIN RENDER
   return (
     <div className="bg-white rounded-lg border border-gray-200 p-4">
       <h3 className="text-sm font-semibold text-gray-700 mb-3">Edit Where We Work Data</h3>
 
-      {/* <!-- ===== SECTION TITLE ===== --> */}
+      {/* <!-- SECTION TITLE --> */}
       <div className="mb-4">
         <h4 className="text-sm font-medium text-gray-600 mb-2">Section Content</h4>
         <TextField
@@ -281,7 +281,7 @@ const WhereWeWorkEditor = ({ section, hasData, onDataChange }) => {
         />
       </div>
 
-      {/* <!-- ===== STATISTICS LIST ===== --> */}
+      {/* <!-- STATISTICS LIST --> */}
       {/* List of stats with icon, value, label, and alt text */}
       <div className="mb-4">
         <div className="flex items-center justify-between mb-2">
@@ -312,10 +312,10 @@ const WhereWeWorkEditor = ({ section, hasData, onDataChange }) => {
                 </button>
               </div>
 
-              {/* <!-- ===== STAT FIELDS (2 columns on desktop) ===== --> */}
+              {/* <!-- STAT FIELDS (2 columns on desktop) --> */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
 
-                {/* <!-- ===== LEFT COLUMN: ICON ===== --> */}
+                {/* <!-- LEFT COLUMN: ICON --> */}
                 <div>
                   <label className="block text-xs text-gray-400 mb-0.5">Icon</label>
 
@@ -380,7 +380,7 @@ const WhereWeWorkEditor = ({ section, hasData, onDataChange }) => {
                   )}
                 </div>
 
-                {/* <!-- ===== RIGHT COLUMN: FIELDS ===== --> */}
+                {/* <!-- RIGHT COLUMN: FIELDS --> */}
                 <div className="space-y-2">
                   {/* Value - the number or statistic */}
                   <TextField
@@ -417,7 +417,7 @@ const WhereWeWorkEditor = ({ section, hasData, onDataChange }) => {
         )}
       </div>
 
-      {/* <!-- ===== MAP IMAGE ===== --> */}
+      {/* <!-- MAP IMAGE --> */}
       {/* Upload and manage the map image */}
       <div className="mb-4">
         <h4 className="text-sm font-medium text-gray-600 mb-2">Map Image</h4>
@@ -454,7 +454,7 @@ const WhereWeWorkEditor = ({ section, hasData, onDataChange }) => {
         <p className="text-xs text-gray-400 mt-0.5">CSS classes for the image styling</p>
       </div>
 
-      {/* <!-- ===== DATA INFORMATION ===== --> */}
+      {/* <!-- DATA INFORMATION --> */}
       {/* Display metadata about the section */}
       <div className="mt-4 bg-gray-50 rounded-lg p-4 border border-gray-200">
         <div className="grid grid-cols-2 gap-3 text-sm">

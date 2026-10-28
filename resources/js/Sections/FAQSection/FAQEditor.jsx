@@ -4,17 +4,15 @@
 // The CANONICAL editable form lives at Shared/Modals/FaqEditor.jsx —
 // do NOT add form fields here, or FAQ edits will split across two places.
 
-// React
-import React from 'react';
 
 // Icons
 import { FaQuestionCircle } from 'react-icons/fa';
 
 // Shared generic redirect notice
-import ExternalManagerRedirect from './shared/ExternalManagerRedirect';
+import ExternalManagerRedirect from '../../Shared/SectionEditor/ExternalManagerRedirect';
 
 const FAQEditor = ({ section, hasData }) => {
-  // ===== DATA EXTRACTION =====
+  // DATA EXTRACTION
   // This uses Shared Data - managed through the Shared Data Manager.
   // No form fields needed - just informational display.
   const data = section?.data || {};
@@ -53,7 +51,7 @@ const FAQEditor = ({ section, hasData }) => {
         </>
       }
     >
-      {/* ===== FAQ SECTION SETTINGS ===== */}
+      {/* FAQ SECTION SETTINGS */}
       {/* Shows configuration details for this section */}
       <div className="mb-4">
         <h4 className="text-sm font-medium text-gray-600 mb-2">Section Settings</h4>
@@ -83,7 +81,7 @@ const FAQEditor = ({ section, hasData }) => {
         </div>
       </div>
 
-      {/* ===== FAQ PREVIEW ===== */}
+      {/* FAQ PREVIEW */}
       {/* Shows the first 3 FAQs with questions and answers */}
       {hasData && faqs.length > 0 && (
         <div className="mb-4">
