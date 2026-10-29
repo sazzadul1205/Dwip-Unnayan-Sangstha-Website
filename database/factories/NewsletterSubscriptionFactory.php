@@ -14,7 +14,7 @@ class NewsletterSubscriptionFactory extends Factory
         return [
             'email' => $this->faker->unique()->safeEmail,
             'token' => \Illuminate\Support\Str::random(64),
-            'is_subscribed' => true,
+            'status' => 'subscribed',
             'subscribed_at' => now(),
         ];
     }
