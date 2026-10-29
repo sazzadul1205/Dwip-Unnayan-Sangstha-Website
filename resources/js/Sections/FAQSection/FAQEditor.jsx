@@ -1,20 +1,9 @@
 // resources/js/pages/Backend/CMS/Sections/components/modals/Editors/FAQEditor.jsx
-// READ-ONLY redirect notice for page-level FAQSection rows.
-// This section uses Shared Data from the Shared Data Manager.
-// The CANONICAL editable form lives at Shared/Modals/FaqEditor.jsx —
-// do NOT add form fields here, or FAQ edits will split across two places.
 
-
-// Icons
 import { FaQuestionCircle } from 'react-icons/fa';
-
-// Shared generic redirect notice
 import ExternalManagerRedirect from '../../Shared/SectionEditor/ExternalManagerRedirect';
 
 const FAQEditor = ({ section, hasData }) => {
-  // DATA EXTRACTION
-  // This uses Shared Data - managed through the Shared Data Manager.
-  // No form fields needed - just informational display.
   const data = section?.data || {};
   const faqs = data?.faqs || [];
 
@@ -24,91 +13,39 @@ const FAQEditor = ({ section, hasData }) => {
       icon={FaQuestionCircle}
       tone="blue"
       heading="Shared Data Section"
-      description={
-        <>
-          This section uses data from the <strong>Shared Data Manager</strong>. It displays
-          frequently asked questions that are managed centrally.
-        </>
-      }
-      hint="To add, edit, or remove FAQs, please go to the Shared Data Manager. Changes made there will automatically reflect here."
+      description={<>This section uses data from the <strong>Shared Data Manager</strong>. It displays FAQs that are managed centrally.</>}
+      hint="To add, edit, or remove FAQs, please go to the Shared Data Manager."
       listLabel="Current FAQs"
       itemNoun="faq"
       items={faqs.map((faq, idx) => faq.question || `FAQ ${idx + 1}`)}
-      emptyList={<p className="text-sm text-gray-400">No FAQs available</p>}
+      emptyList={<p className="text-center text-sm text-slate-500">No FAQs available</p>}
       actionLabel="Go to Shared Data Manager"
       actionRoute="backend.cms.shared.index"
       hasData={hasData}
       footerNote={
-        <>
-          <p>
-            💡 <strong>Note:</strong> This section uses Shared Data and does not have editable
-            fields directly. All FAQ data is managed through the Shared Data Manager. Changes
-            made there will automatically reflect here.
-          </p>
-          <p className="mt-1">
-            📍 To edit FAQs, navigate to <strong>Shared Data Manager → FAQ Section</strong>
-          </p>
-        </>
+        <p>FAQ content is managed in the Shared Data Manager so it can be reused across pages.</p>
       }
     >
-      {/* FAQ SECTION SETTINGS */}
-      {/* Shows configuration details for this section */}
-      <div className="mb-4">
-        <h4 className="text-sm font-medium text-gray-600 mb-2">Section Settings</h4>
-        <div className="grid grid-cols-2 gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
-          {/* Data Table */}
-          <div>
-            <span className="text-xs text-gray-500">Data Table</span>
-            <p className="text-sm font-medium text-gray-700">shared_data</p>
-          </div>
-          {/* Data Key */}
-          <div>
-            <span className="text-xs text-gray-500">Data Key</span>
-            <p className="text-sm font-medium text-gray-700">{section.data_key || 'faqData'}</p>
-          </div>
-          {/* Type */}
-          <div>
-            <span className="text-xs text-gray-500">Type</span>
-            <p className="text-sm font-medium text-gray-700">faq</p>
-          </div>
-          {/* Status - has data or not */}
-          <div>
-            <span className="text-xs text-gray-500">Status</span>
-            <p className={`text-sm font-medium ${hasData ? 'text-green-600' : 'text-gray-400'}`}>
-              {hasData ? '✅ Has Data' : 'No Data'}
-            </p>
-          </div>
+      <div className="grid grid-cols-2 gap-3 rounded-lg border border-slate-200 bg-slate-50/60 p-4 text-sm">
+        <div>
+          <span className="block text-xs text-slate-400">Data Table</span>
+          <p className="font-mono text-slate-700">shared_data</p>
+        </div>
+        <div>
+          <span className="block text-xs text-slate-400">Data Key</span>
+          <p className="font-mono text-slate-700">{section.data_key || 'faqData'}</p>
+        </div>
+        <div>
+          <span className="block text-xs text-slate-400">Type</span>
+          <p className="font-mono text-slate-700">faq</p>
+        </div>
+        <div>
+          <span className="block text-xs text-slate-400">Status</span>
+          <p className={`font-medium ${hasData ? 'text-emerald-600' : 'text-slate-400'}`}>
+            {hasData ? 'Has data' : 'No data'}
+          </p>
         </div>
       </div>
-
-      {/* FAQ PREVIEW */}
-      {/* Shows the first 3 FAQs with questions and answers */}
-      {hasData && faqs.length > 0 && (
-        <div className="mb-4">
-          <h4 className="text-sm font-medium text-gray-600 mb-2">FAQ Preview</h4>
-          <div className="space-y-2">
-            {faqs.slice(0, 3).map((faq, idx) => (
-              <div key={idx} className="bg-white p-3 rounded-lg border border-gray-200">
-                {/* Question */}
-                <p className="text-xs font-medium text-gray-700">
-                  {faq.question || `Question ${idx + 1}`}
-                </p>
-                {/* Answer (truncated) */}
-                <p className="text-xs text-gray-500 mt-1 line-clamp-2">
-                  {faq.answer || 'No answer provided'}
-                </p>
-              </div>
-            ))}
-            {/* Show if more FAQs exist */}
-            {faqs.length > 3 && (
-              <p className="text-xs text-gray-400 text-center">
-                + {faqs.length - 3} more FAQs available
-              </p>
-            )}
-          </div>
-        </div>
-      )}
-
     </ExternalManagerRedirect>
   );
 };

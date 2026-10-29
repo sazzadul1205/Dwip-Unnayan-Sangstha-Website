@@ -1,17 +1,10 @@
 // resources/js/pages/Backend/CMS/Sections/components/modals/Editors/VideoGalleryEditor.jsx
 
-// React
 import React, { useState, useEffect } from 'react';
-
-// Icons
 import { FaTrash, FaPlus, FaTimes, FaVideo, FaYoutube, FaImages } from 'react-icons/fa';
-
-// Sweetalert
 import Swal from 'sweetalert2';
-
-// Shared Components
-import { TextField, TextAreaField } from '../../Shared/SectionEditor/Fields';
 import EditorSection from '../../pages/Backend/CMS/Shared/components/EditorSection';
+import { TextField, TextAreaField } from '../../Shared/SectionEditor/Fields';
 
 const VideoGalleryEditor = ({ section, hasData, onDataChange }) => {
   const initialData = section?.data?.data || section?.data || {};

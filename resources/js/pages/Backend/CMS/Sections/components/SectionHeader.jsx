@@ -1,89 +1,58 @@
- 
 // resources/js/pages/Backend/CMS/Sections/components/SectionHeader.jsx
-
-/**
- * SectionHeader - Page header with title, stats, and back button
- * Features:
- * - Breadcrumb navigation back to Pages
- * - Page title with section name
- * - Statistics display with icons
- * - Saving state indicator
- * - Error message display
- */
-
-import React from 'react';
 import { Link } from '@inertiajs/react';
-import { FaSpinner } from 'react-icons/fa';
+import { FaChevronRight, FaSpinner, FaLock, FaStar, FaShareAlt, FaBriefcase, FaList, FaFileAlt } from 'react-icons/fa';
 
-const SectionHeader = ({ page, stats, isSaving, dragError }) => {
+const StatChip = ({ icon: Icon, label, value, tone }) => {
+  const tones = {
+    slate: 'bg-slate-100 text-slate-600 ring-slate-200',
+    blue: 'bg-blue-50 text-blue-700 ring-blue-200',
+    amber: 'bg-amber-50 text-amber-700 ring-amber-200',
+    emerald: 'bg-emerald-50 text-emerald-700 ring-emerald-200',
+    violet: 'bg-violet-50 text-violet-700 ring-violet-200',
+    orange: 'bg-orange-50 text-orange-700 ring-orange-200',
+  };
   return (
-    <div className="flex justify-between items-center mb-6">
-      <div>
-        {/* Breadcrumb - Back to Pages */}
-        <div className="flex items-center gap-3 mb-1">
-          <Link
-            href={route('backend.cms.pages.index')}
-            className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 transition-colors group"
-          >
-            <span className="group-hover:-translate-x-1 transition-transform inline-block">←</span>
-            <span>Back to Pages</span>
-          </Link>
-        </div>
-
-        {/* Page Title */}
-        <h1 className="text-2xl font-bold text-gray-900">Sections - {page.name}</h1>
-
-        {/* Statistics Row */}
-        <p className="text-sm text-gray-500 mt-1">
-          {/* Total Sections */}
-          {stats.total} sections •
-
-          {/* Fixed Sections */}
-          {stats.fixed > 0 && (
-            <span className="ml-2 text-blue-600">🔒 {stats.fixed} fixed</span>
-          )}
-
-          {/* Banner Sections */}
-          {stats.banner > 0 && (
-            <span className="ml-2 text-yellow-600">⭐ {stats.banner} banner</span>
-          )}
-
-          {/* Shared Data Sections */}
-          {stats.shared > 0 && (
-            <span className="ml-2 text-green-600">🔄 {stats.shared} shared</span>
-          )}
-
-          {/* Jobs Sections */}
-          {stats.jobs > 0 && (
-            <span className="ml-2 text-purple-600">💼 {stats.jobs} jobs</span>
-          )}
-
-          {/* Programs Sections */}
-          {stats.programs > 0 && (
-            <span className="ml-2 text-orange-600">📋 {stats.programs} programs</span>
-          )}
-
-          {/* Sections with Data */}
-          {stats.hasData > 0 && (
-            <span className="ml-2 text-blue-600">📦 {stats.hasData} with data</span>
-          )}
-
-          {/* Saving Indicator */}
-          {isSaving && (
-            <span className="ml-2 text-blue-600 flex items-center gap-1">
-              <FaSpinner className="animate-spin" size={12} />
-              Saving order...
-            </span>
-          )}
-
-          {/* Error Message */}
-          {dragError && (
-            <span className="ml-2 text-red-600">{dragError}</span>
-          )}
-        </p>
-      </div>
-    </div>
+    <span className={`inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium ring-1 ${tones[tone]}`}>
+      <Icon size={10} />
+      {label}: <span className="font-semibold">{value}</span>
+    </span>
   );
 };
+
+const SectionHeader = ({ page, stats, isSaving, dragError }) => (
+  <div className="mb-6">
+    <nav className="mb-3 flex items-center gap-1.5 text-xs text-slate-500">
+      <Link href={route('backend.cms.pages.index')} className="font-medium text-slate-600 transition hover:text-blue-600">
+        Pages
+      </Link>
+      <FaChevronRight size={8} className="text-slate-300" />
+      <span className="text-slate-400">Sections</span>
+    </nav>
+
+    <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+      Sections — {page.name}
+    </h1>
+
+    <div className="mt-2 flex flex-wrap items-center gap-1.5">
+      <StatChip icon={FaList} label="Total" value={stats.total} tone="slate" />
+      {stats.fixed > 0 && <StatChip icon={FaLock} label="Fixed" value={stats.fixed} tone="blue" />}
+      {stats.banner > 0 && <StatChip icon={FaStar} label="Banner" value={stats.banner} tone="amber" />}
+      {stats.shared > 0 && <StatChip icon={FaShareAlt} label="Shared" value={stats.shared} tone="emerald" />}
+      {stats.jobs > 0 && <StatChip icon={FaBriefcase} label="Jobs" value={stats.jobs} tone="violet" />}
+      {stats.programs > 0 && <StatChip icon={FaList} label="Programs" value={stats.programs} tone="orange" />}
+      {stats.hasData > 0 && <StatChip icon={FaFileAlt} label="With data" value={stats.hasData} tone="blue" />}
+      {isSaving && (
+        <span className="inline-flex items-center gap-1 rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-blue-200">
+          <FaSpinner className="animate-spin" size={10} /> Saving order…
+        </span>
+      )}
+      {dragError && (
+        <span className="inline-flex items-center gap-1 rounded-md bg-red-50 px-2 py-1 text-xs font-medium text-red-700 ring-1 ring-red-200">
+          {dragError}
+        </span>
+      )}
+    </div>
+  </div>
+);
 
 export default SectionHeader;

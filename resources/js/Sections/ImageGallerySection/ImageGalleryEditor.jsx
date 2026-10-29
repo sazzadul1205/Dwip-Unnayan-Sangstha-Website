@@ -1,17 +1,10 @@
 // resources/js/pages/Backend/CMS/Sections/components/modals/Editors/ImageGalleryEditor.jsx
 
-// React
 import { useState, useEffect } from 'react';
-
-// Icons
-import { FaTrash, FaPlus, FaTimes, FaImage, FaTag, FaImages } from 'react-icons/fa';
-
-// Sweet Alert
+import { FaTrash, FaPlus, FaTimes, FaImage, FaImages, FaTag } from 'react-icons/fa';
 import Swal from 'sweetalert2';
-
-// Shared Components
-import { TextField } from '../../Shared/SectionEditor/Fields';
 import EditorSection from '../../pages/Backend/CMS/Shared/components/EditorSection';
+import { TextField } from '../../Shared/SectionEditor/Fields';
 
 const TagInput = ({ value, onChange, placeholder = 'Add tag...' }) => {
   const [inputValue, setInputValue] = useState('');
@@ -190,8 +183,9 @@ const ImageGalleryEditor = ({ section, hasData, onDataChange }) => {
                 </div>
 
                 <div
-                  className={`relative rounded-lg border-2 border-dashed p-3 transition ${uploadingImage[index] ? 'pointer-events-none opacity-60' : 'border-slate-200 bg-slate-50/40 hover:border-slate-300'
-                    }`}
+                  className={`relative rounded-lg border-2 border-dashed p-3 transition ${
+                    uploadingImage[index] ? 'pointer-events-none opacity-60' : 'border-slate-200 bg-slate-50/40 hover:border-slate-300'
+                  }`}
                   onDragEnter={(e) => e.preventDefault()}
                   onDragLeave={(e) => e.preventDefault()}
                   onDragOver={(e) => e.preventDefault()}

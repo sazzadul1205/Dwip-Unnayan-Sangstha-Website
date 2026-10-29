@@ -1,73 +1,58 @@
 // resources/js/pages/Backend/CMS/Sections/components/modals/Editors/AboutUsEditor.jsx
 
-import  { useCallback } from 'react';
+import { useCallback } from 'react';
+import { FaPlus, FaInfoCircle, FaList, FaImage, FaChartBar } from 'react-icons/fa';
 
-import { FaPlus } from 'react-icons/fa';
-
-// Shared Components
+import EditorSection from '../../pages/Backend/CMS/Shared/components/EditorSection';
 import ImageUpload from '../../Shared/SectionEditor/ImageUpload';
 import ArrayManager from '../../Shared/SectionEditor/ArrayManager';
 import { useImageUpload } from '../../Shared/SectionEditor/useImageUpload';
 import { TextField, TextAreaField } from '../../Shared/SectionEditor/Fields';
 import { useSectionEditor } from '../../Shared/SectionEditor/useSectionEditor';
 
-// Move MissionItemRenderer outside the component as a separate component
 const MissionItemRenderer = ({ item, index, onUpdateItem }) => {
-  // Each mission item has its own image upload state
   const iconUpload = useImageUpload(item.icon || '');
-
   const handleIconChange = useCallback((src) => {
     iconUpload.handleImageChange(src);
     onUpdateItem(index, 'icon', src);
   }, [iconUpload, onUpdateItem, index]);
-
   const handleIconRemove = useCallback(() => {
     iconUpload.handleImageRemove();
     onUpdateItem(index, 'icon', '');
   }, [iconUpload, onUpdateItem, index]);
-
   const handleFieldChange = useCallback((field, value) => {
     onUpdateItem(index, field, value);
   }, [onUpdateItem, index]);
 
   return (
-    <div className="space-y-3 p-3 bg-gray-50 rounded-lg border border-gray-100">
-      {/* Icon Upload with Drag & Drop */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Icon Image
-        </label>
-        <ImageUpload
-          imageSrc={iconUpload.imageSrc}
-          onImageChange={handleIconChange}
-          onImageRemove={handleIconRemove}
-          oldImagePath={iconUpload.oldImagePath}
-          imageChanged={iconUpload.imageChanged}
-          uploadPath="/storage/AboutUs/mission-icons/"
-          isUploading={iconUpload.isUploading}
-          uploadError={iconUpload.uploadError}
-          dropzoneText="Drop mission icon here or click to upload"
-          acceptedFileTypes="image/png,image/jpeg,image/svg+xml,image/webp,image/gif"
-          maxFileSize={2}
-          previewClassName="w-16 h-16 object-contain rounded-lg"
-        />
-        <p className="text-xs text-gray-400 mt-1">Recommended: SVG or PNG, max 2MB</p>
-      </div>
-
+    <div className="space-y-3">
+      <ImageUpload
+        label="Icon image"
+        imageSrc={iconUpload.imageSrc}
+        onImageChange={handleIconChange}
+        onImageRemove={handleIconRemove}
+        oldImagePath={iconUpload.oldImagePath}
+        imageChanged={iconUpload.imageChanged}
+        uploadPath="/storage/AboutUs/mission-icons/"
+        isUploading={iconUpload.isUploading}
+        uploadError={iconUpload.uploadError}
+        dropzoneText="Drop mission icon here"
+        acceptedFileTypes="PNG, JPEG, SVG, WebP"
+        maxFileSize={2}
+        className="h-14 w-14 rounded-lg object-contain ring-1 ring-slate-200"
+      />
       <TextField
         label="Icon URL (or use upload above)"
         value={item.icon || ''}
         onChange={(e) => handleFieldChange('icon', e.target.value)}
         placeholder="https://example.com/icon.svg"
       />
-
       <TextField
         label="Title"
         value={item.title || ''}
         onChange={(e) => handleFieldChange('title', e.target.value)}
         placeholder="Mission title"
       />
-
       <TextAreaField
         label="Description"
         value={item.description || ''}
@@ -75,9 +60,8 @@ const MissionItemRenderer = ({ item, index, onUpdateItem }) => {
         placeholder="Mission description"
         rows={2}
       />
-
       <TextField
-        label="Alt Text"
+        label="Alt text"
         value={item.alt || ''}
         onChange={(e) => handleFieldChange('alt', e.target.value)}
         placeholder="Icon alt text"
@@ -86,51 +70,30 @@ const MissionItemRenderer = ({ item, index, onUpdateItem }) => {
   );
 };
 
-// Separate component for Stats renderer
 const StatRenderer = ({ stat, index, onUpdateItem }) => {
   const handleFieldChange = useCallback((field, value) => {
     onUpdateItem(index, field, value);
   }, [onUpdateItem, index]);
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-2 p-3 bg-gray-50 rounded-lg border border-gray-100">
-      <TextField
-        label="Value"
-        value={stat.value || ''}
-        onChange={(e) => handleFieldChange('value', e.target.value)}
-        placeholder="20"
-      />
-      <TextField
-        label="Suffix"
-        value={stat.suffix || ''}
-        onChange={(e) => handleFieldChange('suffix', e.target.value)}
-        placeholder="+"
-      />
-      <TextField
-        label="Label"
-        value={stat.label || ''}
-        onChange={(e) => handleFieldChange('label', e.target.value)}
-        placeholder="Years of Service"
-      />
+    <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+      <TextField label="Value" value={stat.value || ''}
+        onChange={(e) => handleFieldChange('value', e.target.value)} placeholder="20" />
+      <TextField label="Suffix" value={stat.suffix || ''}
+        onChange={(e) => handleFieldChange('suffix', e.target.value)} placeholder="+" />
+      <TextField label="Label" value={stat.label || ''}
+        onChange={(e) => handleFieldChange('label', e.target.value)} placeholder="Years of Service" />
     </div>
   );
 };
 
 const AboutUsEditor = ({ section, hasData, onDataChange }) => {
-  // Use the base editor hook - MUST be called before any conditional returns
   const {
-    formData,
-    updateField,
-    updateArrayItem,
-    addArrayItem,
-    removeArrayItem,
-    isDirty
+    formData, updateField, updateArrayItem, addArrayItem, removeArrayItem, isDirty,
   } = useSectionEditor(section, {}, onDataChange);
 
-  // Custom hook to handle main image upload - MUST be called before any conditional returns
   const image = useImageUpload(formData?.image?.src || '');
 
-  // Handle main image changes with useCallback to prevent re-renders
   const handleImageChange = useCallback((src) => {
     image.handleImageChange(src);
     updateField('image.src', src);
@@ -141,7 +104,6 @@ const AboutUsEditor = ({ section, hasData, onDataChange }) => {
     updateField('image.src', '');
   }, [image, updateField]);
 
-  // Wrapper functions for array item updates
   const handleMissionItemUpdate = useCallback((index, field, value) => {
     updateArrayItem('mission.items', index, field, value);
   }, [updateArrayItem]);
@@ -150,12 +112,13 @@ const AboutUsEditor = ({ section, hasData, onDataChange }) => {
     updateArrayItem('impact.stats', index, field, value);
   }, [updateArrayItem]);
 
-  // Empty state - Now safe to have conditional return after all hooks
   if (!hasData || !formData || Object.keys(formData).length === 0) {
     return (
-      <div className="bg-white rounded-lg border border-gray-200 p-4 text-center py-8 text-gray-400">
-        <p className="text-sm">No data available to edit</p>
-        <p className="text-xs mt-1">Click "Save Changes" to create the initial data structure</p>
+      <div className="rounded-lg border-2 border-dashed border-slate-200 bg-slate-50/40 px-6 py-10 text-center">
+        <p className="text-sm font-medium text-slate-600">No data yet</p>
+        <p className="mt-0.5 text-xs text-slate-400">
+          Click <span className="font-medium text-blue-600">Save Changes</span> to seed the initial data structure
+        </p>
       </div>
     );
   }
@@ -164,128 +127,103 @@ const AboutUsEditor = ({ section, hasData, onDataChange }) => {
   const impactStats = formData.impact?.stats || [];
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 p-4">
+    <div className="space-y-5">
       {isDirty && (
-        <div className="mb-4 p-2 bg-yellow-50 border border-yellow-200 rounded-lg text-xs text-yellow-700">
-          ⚠️ Unsaved changes - click "Save Changes" to apply
+        <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+          <FaInfoCircle size={12} className="mt-0.5 shrink-0 text-amber-500" />
+          Unsaved changes — click <strong className="mx-0.5">Save Changes</strong> to apply.
         </div>
       )}
 
-      <h3 className="text-sm font-semibold text-gray-700 mb-3">Edit About Us Data</h3>
-
       {/* Section Content */}
-      <div className="mb-4">
-        <h4 className="text-sm font-medium text-gray-600 mb-2">Section Content</h4>
-        <div className="space-y-3">
-          <TextField
-            label="Title"
-            value={formData.section?.title || ''}
-            onChange={(e) => updateField('section.title', e.target.value)}
-            placeholder="About us"
-          />
-          <TextAreaField
-            label="Description"
-            value={formData.section?.description || ''}
-            onChange={(e) => updateField('section.description', e.target.value)}
-            placeholder="Description about the organization"
-            rows={3}
-          />
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <TextField
-              label="Button Text"
-              value={formData.section?.button?.text || ''}
-              onChange={(e) => updateField('section.button.text', e.target.value)}
-              placeholder="More about us"
-            />
-            <TextField
-              label="Button Link"
-              value={formData.section?.button?.link || ''}
-              onChange={(e) => updateField('section.button.link', e.target.value)}
-              placeholder="/about"
-            />
-          </div>
+      <EditorSection icon={FaInfoCircle} title="Section Content"
+        description="Heading, description, and call-to-action for the block" tone="blue">
+        <TextField label="Title" value={formData.section?.title || ''}
+          onChange={(e) => updateField('section.title', e.target.value)}
+          placeholder="About us" />
+        <TextAreaField label="Description" value={formData.section?.description || ''}
+          onChange={(e) => updateField('section.description', e.target.value)}
+          placeholder="Description about the organization" rows={3} />
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+          <TextField label="Button text" value={formData.section?.button?.text || ''}
+            onChange={(e) => updateField('section.button.text', e.target.value)}
+            placeholder="More about us" />
+          <TextField label="Button link" value={formData.section?.button?.link || ''}
+            onChange={(e) => updateField('section.button.link', e.target.value)}
+            placeholder="/about" />
         </div>
-      </div>
+      </EditorSection>
 
-      {/* Mission Items with Icon Upload */}
-      <div className="mb-4">
-        <div className="flex items-center justify-between mb-2">
-          <h4 className="text-sm font-medium text-gray-600">Mission Items ({missionItems.length})</h4>
-          <button
-            type="button"
+      {/* Mission Items */}
+      <EditorSection
+        icon={FaList}
+        title="Mission Items"
+        description={`${missionItems.length} item${missionItems.length === 1 ? '' : 's'} • Icons, titles, and descriptions`}
+        tone="emerald"
+        action={
+          <button type="button"
             onClick={() => addArrayItem('mission.items', { icon: '', title: '', description: '', alt: '' })}
-            className="text-xs text-blue-600 hover:text-blue-700 flex items-center gap-1"
-          >
-            <FaPlus size={12} /> Add Mission Item
+            className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm shadow-blue-600/25 transition hover:bg-blue-700">
+            <FaPlus size={10} /> Add item
           </button>
-        </div>
-
-        <TextField
-          label="Mission Section Title"
-          value={formData.mission?.title || ''}
+        }
+      >
+        <TextField label="Mission section title" value={formData.mission?.title || ''}
           onChange={(e) => updateField('mission.title', e.target.value)}
-          placeholder="The mission of our organization"
-        />
+          placeholder="The mission of our organization" />
 
         <ArrayManager
           items={missionItems}
           onAdd={() => addArrayItem('mission.items', { icon: '', title: '', description: '', alt: '' })}
           onRemove={(index) => removeArrayItem('mission.items', index)}
-          itemLabel="Mission Item"
-          addLabel="Add Mission Item"
+          itemLabel="Mission item"
+          addLabel="Add mission item"
           renderItem={(item, index) => (
             <MissionItemRenderer
               key={index}
               item={item}
               index={index}
               onUpdateItem={handleMissionItemUpdate}
-              onRemoveItem={(idx) => removeArrayItem('mission.items', idx)}
             />
           )}
         />
-      </div>
+      </EditorSection>
 
       {/* Impact Stats */}
-      <div className="mb-4">
-        <div className="flex items-center justify-between mb-2">
-          <h4 className="text-sm font-medium text-gray-600">Impact Stats ({impactStats.length})</h4>
-          <button
-            type="button"
+      <EditorSection
+        icon={FaChartBar}
+        title="Impact Stats"
+        description={`${impactStats.length} stat${impactStats.length === 1 ? '' : 's'} • Value, suffix, and label`}
+        tone="orange"
+        action={
+          <button type="button"
             onClick={() => addArrayItem('impact.stats', { value: '', suffix: '', label: '' })}
-            className="text-xs text-blue-600 hover:text-blue-700 flex items-center gap-1"
-          >
-            <FaPlus size={12} /> Add Stat
+            className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm shadow-blue-600/25 transition hover:bg-blue-700">
+            <FaPlus size={10} /> Add stat
           </button>
-        </div>
-
-        <TextField
-          label="Impact Section Title"
-          value={formData.impact?.title || ''}
+        }
+      >
+        <TextField label="Impact section title" value={formData.impact?.title || ''}
           onChange={(e) => updateField('impact.title', e.target.value)}
-          placeholder="Impact In Numbers"
-        />
+          placeholder="Impact In Numbers" />
 
         <ArrayManager
           items={impactStats}
           onAdd={() => addArrayItem('impact.stats', { value: '', suffix: '', label: '' })}
           onRemove={(index) => removeArrayItem('impact.stats', index)}
           itemLabel="Stat"
-          addLabel="Add Stat"
+          addLabel="Add stat"
           renderItem={(stat, index) => (
-            <StatRenderer
-              key={index}
-              stat={stat}
-              index={index}
-              onUpdateItem={handleStatUpdate}
-            />
+            <StatRenderer key={index} stat={stat} index={index} onUpdateItem={handleStatUpdate} />
           )}
         />
-      </div>
+      </EditorSection>
 
       {/* Main Image */}
-      <div className="mb-4">
-        <h4 className="text-sm font-medium text-gray-600 mb-2">Main Image</h4>
+      <EditorSection icon={FaImage} title="Main Image"
+        description="Large visual shown beside this block on the frontend" tone="violet">
         <ImageUpload
+          label=""
           imageSrc={image.imageSrc}
           onImageChange={handleImageChange}
           onImageRemove={handleImageRemove}
@@ -294,43 +232,32 @@ const AboutUsEditor = ({ section, hasData, onDataChange }) => {
           uploadPath="/storage/AboutUs/"
           isUploading={image.isUploading}
           uploadError={image.uploadError}
+          className="h-20 w-24 rounded-lg object-cover ring-1 ring-slate-200"
         />
-        <TextField
-          label="Image Alt Text"
-          value={formData.image?.alt || ''}
+        <TextField label="Image alt text" value={formData.image?.alt || ''}
           onChange={(e) => updateField('image.alt', e.target.value)}
-          placeholder="About Us Image"
-          className="mt-2"
-        />
-      </div>
+          placeholder="About Us Image" />
+      </EditorSection>
 
-      {/* Data Information */}
-      <div className="mt-4 bg-gray-50 rounded-lg p-4 border border-gray-200">
-        <div className="grid grid-cols-2 gap-3 text-sm">
-          <div>
-            <span className="text-gray-500">Section ID:</span>
-            <span className="ml-2 text-gray-700 font-mono">{section.id}</span>
-          </div>
-          <div>
-            <span className="text-gray-500">Data Table:</span>
-            <span className="ml-2 text-gray-700 font-mono">{section.data_table || 'None'}</span>
-          </div>
-          <div>
-            <span className="text-gray-500">Data Key:</span>
-            <span className="ml-2 text-gray-700 font-mono">{section.data_key || 'None'}</span>
-          </div>
-          <div>
-            <span className="text-gray-500">Has Data:</span>
-            <span className={`ml-2 font-medium ${hasData ? 'text-green-600' : 'text-gray-400'}`}>
-              {hasData ? '✓ Yes' : 'No'}
-            </span>
-          </div>
-          <div>
-            <span className="text-gray-500">Modified:</span>
-            <span className={`ml-2 font-medium ${isDirty ? 'text-yellow-600' : 'text-green-600'}`}>
-              {isDirty ? '⚠️ Unsaved' : '✓ Saved'}
-            </span>
-          </div>
+      {/* Metadata footer */}
+      <div className="grid grid-cols-2 gap-2 rounded-lg border border-slate-200 bg-slate-50/60 p-3 text-xs md:grid-cols-4">
+        <div>
+          <span className="block text-slate-400">Section ID</span>
+          <span className="font-mono text-slate-700">{section.id}</span>
+        </div>
+        <div>
+          <span className="block text-slate-400">Data table</span>
+          <span className="font-mono text-slate-700">{section.data_table || '—'}</span>
+        </div>
+        <div>
+          <span className="block text-slate-400">Data key</span>
+          <span className="font-mono text-slate-700">{section.data_key || '—'}</span>
+        </div>
+        <div>
+          <span className="block text-slate-400">Status</span>
+          <span className={`font-medium ${isDirty ? 'text-amber-600' : 'text-emerald-600'}`}>
+            {isDirty ? 'Unsaved' : 'Saved'}
+          </span>
         </div>
       </div>
     </div>

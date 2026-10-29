@@ -1,76 +1,53 @@
 // resources/js/pages/Backend/CMS/Sections/Index.jsx
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import AuthenticatedLayout from '../../../../layouts/AuthenticatedLayout';
-
-// Hooks
 import { useSectionHelpers } from './hooks/useSectionHelpers';
-
-// Icons
 import {
-  FaPlus, FaTrash, FaExclamationTriangle, FaArrowLeft,
-  FaSync, FaInfoCircle, FaCheckCircle,
-  FaClock,
-  FaToggleOff,
-  FaHashtag,
+  FaPlus, FaTrash, FaSync, FaArrowLeft, FaCheckCircle,
+  FaExclamationCircle, FaToggleOff, FaHashtag, FaInbox,
 } from 'react-icons/fa';
-import { BsStack } from 'react-icons/bs';
 
-// Components
 import SectionTable from './components/SectionTable';
 import SectionFooter from './components/SectionFooter';
 import AddSectionModal from './components/AddSectionModal';
 import SectionEditModal from './components/SectionEditModal';
-
-// Utils
 import { getSectionStats } from './utils/sectionHelpers';
 import { showErrorToast } from './utils/toastHelper';
 
-const Index = ({
-  page,
-  sections: initialSections,
-  trashedSections: initialTrashedSections,
-  trashedCount: initialTrashedCount,
-}) => {
+const StatCard = ({ label, value, icon: Icon, tone }) => {
+  const tones = {
+    slate: 'border-slate-200 bg-slate-50 text-slate-700',
+    emerald: 'border-emerald-200 bg-emerald-50/60 text-emerald-700',
+    amber: 'border-amber-200 bg-amber-50/60 text-amber-700',
+    red: 'border-red-200 bg-red-50/60 text-red-700',
+  };
+  return (
+    <div className={`rounded-lg border p-3 ${tones[tone]}`}>
+      <div className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide opacity-80">
+        <Icon size={10} /> {label}
+      </div>
+      <div className="mt-1 text-xl font-bold tabular-nums">{value}</div>
+    </div>
+  );
+};
+
+const Index = ({ page, sections: initialSections, trashedSections: initialTrashedSections, trashedCount: initialTrashedCount }) => {
   const { flash } = usePage().props;
 
   const {
-    sections,
-    expandedSections,
-    previewSections,
-    isReordering,
-    isSaving,
-    error: hookError,
-    draggedIndex,
-    dragOverIndex,
-    toggleExpand,
-    togglePreview,
-    hasData,
-    getDataSummary,
-    canMove,
-    handleDragStart,
-    handleDragEnd,
-    handleDragOver,
-    handleDragEnter,
-    handleDragLeave,
-    handleDrop,
-    handleMoveUp,
-    handleMoveDown,
-    editingSection,
-    isEditModalOpen,
-    handleEditClick,
-    handleEditClose,
-    handleEditSuccess,
+    sections, previewSections, isReordering, isSaving, error: hookError,
+    draggedIndex, dragOverIndex, togglePreview, hasData, canMove,
+    handleDragStart, handleDragEnd, handleDragOver, handleDragEnter,
+    handleDragLeave, handleDrop, handleMoveUp, handleMoveDown,
+    editingSection, isEditModalOpen, handleEditClick, handleEditClose, handleEditSuccess,
   } = useSectionHelpers(initialSections, page?.id);
 
   const [activeTab, setActiveTab] = useState('active');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
-  // Derived from props — Inertia will refresh these on reload
   const trashedSections = initialTrashedSections || [];
   const trashedCount = initialTrashedCount || 0;
-
   const stats = getSectionStats(sections);
 
   const handleSectionChanged = useCallback(() => {
@@ -86,14 +63,11 @@ const Index = ({
       <AuthenticatedLayout>
         <Head title="Sections" />
         <div className="p-6">
-          <div className="bg-red-50 border border-red-200 rounded-xl p-8 text-center">
-            <FaExclamationTriangle className="text-red-500 text-4xl mx-auto mb-4" />
-            <h2 className="text-xl font-bold text-red-700">Page Not Found</h2>
-            <p className="text-red-600 mt-2">The requested page could not be found.</p>
-            <Link
-              href={route('backend.cms.pages.index')}
-              className="mt-4 inline-block px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
-            >
+          <div className="rounded-xl border border-red-200 bg-red-50 p-8 text-center">
+            <FaExclamationCircle className="mx-auto mb-3 text-red-500" size={32} />
+            <h2 className="text-lg font-semibold text-red-800">Page not found</h2>
+            <p className="mt-1 text-sm text-red-700">The requested page could not be found.</p>
+            <Link href={route('backend.cms.pages.index')} className="mt-4 inline-flex rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700">
               Back to Pages
             </Link>
           </div>
@@ -110,158 +84,99 @@ const Index = ({
 
       <div className="p-4 md:p-6">
         {hookError && (
-          <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm flex items-center gap-2">
-            <FaExclamationTriangle className="text-red-500 shrink-0" />
-            {hookError}
+          <div className="mb-4 flex items-start gap-2 rounded-lg border-l-4 border-red-400 bg-red-50 px-4 py-3">
+            <FaExclamationCircle className="mt-0.5 shrink-0 text-red-500" size={14} />
+            <p className="text-sm text-red-700">{hookError}</p>
           </div>
         )}
 
-        {/* HEADER SECTION */}
-        <div className="mb-8">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        {/* Header */}
+        <div className="mb-6">
+          <nav className="mb-3 flex items-center gap-1.5 text-xs text-slate-500">
+            <Link href={route('backend.cms.pages.index')} className="font-medium text-slate-600 hover:text-blue-600">
+              Pages
+            </Link>
+            <span className="text-slate-300">›</span>
+            <span className="text-slate-400">Sections</span>
+          </nav>
+
+          <div className="flex flex-col justify-between gap-3 md:flex-row md:items-center">
             <div>
-              <div className="flex items-center gap-3">
-                <div className="p-3 bg-linear-to-br from-blue-500 to-blue-600 rounded-2xl shadow-lg shadow-blue-200">
-                  <BsStack className="text-white text-2xl" />
-                </div>
-                <div>
-                  <h1 className="text-2xl md:text-3xl font-bold text-gray-900">
-                    Page Sections
-                  </h1>
-                  <p className="text-sm text-gray-500 mt-0.5">
-                    Manage all sections for <strong className="text-gray-700">{page.name}</strong>
-                    <span className="ml-2 text-xs bg-gray-100 text-gray-600 px-2.5 py-1 rounded-full font-mono">
-                      {page.slug}
-                    </span>
-                  </p>
-                </div>
-              </div>
+              <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+                {page.name} — Sections
+              </h1>
+              <p className="mt-1 flex items-center gap-2 text-sm text-slate-500">
+                Manage all sections for this page
+                <code className="rounded bg-slate-100 px-1.5 py-0.5 text-xs font-mono text-slate-600">{page.slug}</code>
+              </p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <button
+                type="button"
                 onClick={() => router.reload({ only: ['sections', 'trashedSections', 'trashedCount'] })}
-                className="p-2.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-xl transition-all"
+                className="rounded-lg p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
                 title="Refresh"
               >
-                <FaSync className={isSaving ? 'animate-spin' : ''} size={15} />
+                <FaSync className={isSaving ? 'animate-spin' : ''} size={14} />
               </button>
               <Link
                 href={route('backend.cms.pages.index')}
-                className="inline-flex items-center gap-2 px-4 py-2.5 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-all font-medium text-sm hover:shadow-sm"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50"
               >
-                <FaArrowLeft size={13} />
-                Back to Pages
+                <FaArrowLeft size={11} /> Back
               </Link>
               <button
+                type="button"
                 onClick={() => setIsAddModalOpen(true)}
-                className="inline-flex items-center gap-2 px-5 py-2.5 bg-linear-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all shadow-lg shadow-blue-200 hover:shadow-xl hover:scale-[1.02] font-medium text-sm"
+                className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm shadow-blue-600/25 transition hover:bg-blue-700 hover:shadow-md"
               >
-                <FaPlus size={14} />
-                Add Section
+                <FaPlus size={11} /> Add section
               </button>
             </div>
           </div>
 
-          {/* Stats Card */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-5">
-            <div className="bg-white rounded-2xl border border-gray-200 p-4 shadow-sm hover:shadow-md transition-shadow">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Total</p>
-                  <p className="text-2xl font-bold text-gray-900 mt-0.5">{stats.total}</p>
-                </div>
-                <div className="w-10 h-10 bg-gray-100 rounded-xl flex items-center justify-center text-gray-500">
-                  <FaHashtag size={18} />
-                </div>
-              </div>
-            </div>
-            <div className="bg-white rounded-2xl border border-gray-200 p-4 shadow-sm hover:shadow-md transition-shadow">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Active</p>
-                  <p className="text-2xl font-bold text-green-600 mt-0.5">{stats.active}</p>
-                </div>
-                <div className="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center text-green-600">
-                  <FaCheckCircle size={18} />
-                </div>
-              </div>
-            </div>
-            <div className="bg-white rounded-2xl border border-gray-200 p-4 shadow-sm hover:shadow-md transition-shadow">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Inactive</p>
-                  <p className="text-2xl font-bold text-gray-500 mt-0.5">{stats.inactive}</p>
-                </div>
-                <div className="w-10 h-10 bg-gray-100 rounded-xl flex items-center justify-center text-gray-400">
-                  <FaToggleOff size={18} />
-                </div>
-              </div>
-            </div>
-            <div className="bg-white rounded-2xl border border-gray-200 p-4 shadow-sm hover:shadow-md transition-shadow">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Trash</p>
-                  <p className="text-2xl font-bold text-red-500 mt-0.5">{trashedCount}</p>
-                </div>
-                <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${trashedCount > 0 ? 'bg-red-100 text-red-500' : 'bg-gray-100 text-gray-400'}`}>
-                  <FaTrash size={18} />
-                </div>
-              </div>
-            </div>
+          {/* Stats */}
+          <div className="mt-5 grid grid-cols-2 gap-3 md:grid-cols-4">
+            <StatCard label="Total" value={stats.total} icon={FaHashtag} tone="slate" />
+            <StatCard label="Active" value={stats.active ?? sections.filter((s) => s.is_enabled).length} icon={FaCheckCircle} tone="emerald" />
+            <StatCard label="Inactive" value={stats.inactive ?? sections.filter((s) => !s.is_enabled).length} icon={FaToggleOff} tone="slate" />
+            <StatCard label="Trash" value={trashedCount} icon={FaTrash} tone="red" />
           </div>
         </div>
 
-        {/* TABS */}
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm mb-6 overflow-hidden">
-          <div className="flex border-b border-gray-200">
+        {/* Tabs + Table card */}
+        <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+          <div className="flex border-b border-slate-100">
             <button
+              type="button"
               onClick={() => setActiveTab('active')}
-              className={`flex items-center gap-2 px-5 md:px-6 py-3.5 text-sm font-medium transition relative ${activeTab === 'active'
-                ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50/50'
-                : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+              className={`flex items-center gap-2 px-4 py-3 text-sm font-medium transition ${activeTab === 'active'
+                  ? 'text-blue-700 border-b-2 border-blue-600 -mb-px'
+                  : 'text-slate-500 hover:text-slate-700'
                 }`}
             >
-              <FaCheckCircle size={14} />
-              Active Sections
-              <span className={`ml-1 text-xs px-2 py-0.5 rounded-full ${activeTab === 'active'
-                ? 'bg-blue-100 text-blue-600'
-                : 'bg-gray-100 text-gray-500'
-                }`}>
-                {sections.length}
-              </span>
+              <FaCheckCircle size={11} />
+              Active
+              <span className={`rounded px-1.5 text-[10px] font-semibold ${activeTab === 'active' ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-600'
+                }`}>{sections.length}</span>
             </button>
             <button
+              type="button"
               onClick={() => setActiveTab('trashed')}
-              className={`flex items-center gap-2 px-5 md:px-6 py-3.5 text-sm font-medium transition relative ${activeTab === 'trashed'
-                ? 'text-red-600 border-b-2 border-red-600 bg-red-50/50'
-                : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+              className={`flex items-center gap-2 px-4 py-3 text-sm font-medium transition ${activeTab === 'trashed'
+                  ? 'text-red-700 border-b-2 border-red-600 -mb-px'
+                  : 'text-slate-500 hover:text-slate-700'
                 }`}
             >
-              <FaTrash size={14} />
+              <FaTrash size={11} />
               Trash
               {trashedCount > 0 && (
-                <span className={`ml-1 text-xs px-2 py-0.5 rounded-full ${activeTab === 'trashed'
-                  ? 'bg-red-100 text-red-600'
-                  : 'bg-gray-100 text-gray-500'
-                  }`}>
-                  {trashedCount}
-                </span>
+                <span className={`rounded px-1.5 text-[10px] font-semibold ${activeTab === 'trashed' ? 'bg-red-100 text-red-700' : 'bg-slate-100 text-slate-600'
+                  }`}>{trashedCount}</span>
               )}
             </button>
           </div>
 
-          <div className="p-4">
-            {activeTab === 'trashed' && (
-              <div className="flex items-center gap-2 text-sm text-gray-500">
-                <FaClock size={14} />
-                <span>Sections in trash can be restored or permanently deleted</span>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* SECTION TABLE */}
-        <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
           <SectionTable
             hasData={hasData}
             canMove={canMove}
@@ -270,56 +185,45 @@ const Index = ({
             sections={displaySections}
             isReordering={isReordering}
             draggedIndex={draggedIndex}
-            toggleExpand={toggleExpand}
+            toggleExpand={() => { }}
             handleMoveUp={handleMoveUp}
             onEditClick={handleEditClick}
             togglePreview={togglePreview}
             handleDragEnd={handleDragEnd}
             dragOverIndex={dragOverIndex}
-            getDataSummary={getDataSummary}
+            getDataSummary={() => ''}
             handleMoveDown={handleMoveDown}
             handleDragOver={handleDragOver}
             previewSections={previewSections}
             handleDragStart={handleDragStart}
             handleDragEnter={handleDragEnter}
             handleDragLeave={handleDragLeave}
-            expandedSections={expandedSections}
+            expandedSections={{}}
             showTrashed={activeTab === 'trashed'}
             onSectionDeleted={handleSectionChanged}
           />
         </div>
 
-        {/* FOOTER */}
-        <SectionFooter
-          sections={displaySections}
-          hasData={hasData}
-        />
+        <SectionFooter sections={displaySections} hasData={hasData} />
 
-        {/* HELP TIPS */}
+        {/* Trash empty hint */}
         {activeTab === 'trashed' && displaySections.length === 0 && (
-          <div className="mt-4 p-4 bg-blue-50 rounded-xl border border-blue-200">
-            <div className="flex items-start gap-3">
-              <div className="mt-0.5">
-                <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center text-blue-600">
-                  <FaInfoCircle size={16} />
-                </div>
-              </div>
-              <div>
-                <h4 className="text-sm font-semibold text-blue-800">Trash is Empty</h4>
-                <p className="text-xs text-blue-700 mt-1">
-                  When you delete sections, they will appear here. You can restore them or permanently delete them.
-                </p>
-                <ul className="text-xs text-blue-700 mt-2 space-y-1">
-                  <li>• <strong>Restore</strong> - Recovers the section and its data</li>
-                  <li>• <strong>Permanently Delete</strong> - Removes the section permanently. This cannot be undone!</li>
-                  <li>• Fixed sections cannot be deleted</li>
-                </ul>
-              </div>
+          <div className="mt-4 flex items-start gap-2.5 rounded-lg border border-slate-200 bg-slate-50/60 p-4">
+            <FaInbox className="mt-0.5 shrink-0 text-slate-400" size={14} />
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-slate-700">Trash is empty</p>
+              <p className="mt-0.5 text-xs text-slate-500">
+                Deleted sections will appear here. You can restore them or permanently delete them.
+              </p>
+              <ul className="mt-1.5 space-y-0.5 text-xs text-slate-500">
+                <li>• <strong className="text-slate-700">Restore</strong> — recovers the section and its data</li>
+                <li>• <strong className="text-slate-700">Permanently delete</strong> — cannot be undone</li>
+                <li>• Fixed sections cannot be deleted</li>
+              </ul>
             </div>
           </div>
         )}
 
-        {/* MODALS */}
         <SectionEditModal
           isOpen={isEditModalOpen}
           onClose={handleEditClose}

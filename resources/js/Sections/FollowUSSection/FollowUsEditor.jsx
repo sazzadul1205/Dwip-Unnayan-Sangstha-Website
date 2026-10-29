@@ -1,244 +1,148 @@
 // resources/js/pages/Backend/CMS/Sections/components/modals/Editors/FollowUsEditor.jsx
 
 import { useState, useEffect } from 'react';
-
-// Icons
-import { FaTrash, FaPlus, FaFacebook, FaInstagram, FaLinkedin, FaYoutube, FaTwitter, FaGlobe } from 'react-icons/fa';
-
-// Sweet Alert
+import { FaTrash, FaPlus, FaFacebook, FaInstagram, FaLinkedin, FaYoutube, FaTwitter, FaGlobe, FaShareAlt } from 'react-icons/fa';
 import Swal from 'sweetalert2';
-
-// Shared Components
+import EditorSection from '../../pages/Backend/CMS/Shared/components/EditorSection';
 import { TextField, SelectField } from '../../Shared/SectionEditor/Fields';
 
+const iconOptions = [
+  { value: 'facebook', label: 'Facebook', icon: <FaFacebook className="text-blue-600" size={16} /> },
+  { value: 'instagram', label: 'Instagram', icon: <FaInstagram className="text-pink-600" size={16} /> },
+  { value: 'linkedin', label: 'LinkedIn', icon: <FaLinkedin className="text-blue-700" size={16} /> },
+  { value: 'youtube', label: 'YouTube', icon: <FaYoutube className="text-red-600" size={16} /> },
+  { value: 'twitter', label: 'X (Twitter)', icon: <FaTwitter className="text-slate-700" size={16} /> },
+  { value: 'globe', label: 'Website', icon: <FaGlobe className="text-slate-600" size={16} /> },
+];
+
+const getIconPreview = (name) => iconOptions.find((o) => o.value === name)?.icon || <FaGlobe className="text-slate-400" size={16} />;
+const getIconLabel = (name) => iconOptions.find((o) => o.value === name)?.label || name;
+
 const FollowUsEditor = ({ section, hasData, onDataChange }) => {
-  // STATE MANAGEMENT
-  // Get initial data - it's an array of social media links
   const initialData = section?.data?.data || section?.data || [];
   const [formData, setFormData] = useState(Array.isArray(initialData) ? initialData : []);
 
-  // Notify parent component when data changes
-  useEffect(() => {
-    if (onDataChange) {
-      onDataChange(formData);
-    }
-  }, [formData, onDataChange]);
+  useEffect(() => { onDataChange?.(formData); }, [formData, onDataChange]);
 
-  // ICON OPTIONS
-  // Available social media icons with their corresponding React icons
-  const iconOptions = [
-    { value: 'facebook', label: 'Facebook', icon: <FaFacebook className="text-blue-600" size={18} /> },
-    { value: 'instagram', label: 'Instagram', icon: <FaInstagram className="text-pink-600" size={18} /> },
-    { value: 'linkedin', label: 'LinkedIn', icon: <FaLinkedin className="text-blue-700" size={18} /> },
-    { value: 'youtube', label: 'YouTube', icon: <FaYoutube className="text-red-600" size={18} /> },
-    { value: 'twitter', label: 'X (Twitter)', icon: <FaTwitter className="text-gray-700" size={18} /> },
-    { value: 'globe', label: 'Website', icon: <FaGlobe className="text-gray-600" size={18} /> },
-  ];
-
-  // HELPER FUNCTIONS
-
-  // Update a field in a specific social link
   const updateArrayItem = (index, field, value) => {
-    const newData = [...formData];
-    if (!newData[index]) newData[index] = {};
-    newData[index][field] = value;
-    setFormData(newData);
+    const next = [...formData];
+    if (!next[index]) next[index] = {};
+    next[index][field] = value;
+    setFormData(next);
   };
 
-  // SOCIAL LINK FUNCTIONS
-
-  // Add a new social link with default values
   const addLink = () => {
-    const newData = [...formData];
-    newData.push({
-      icon: 'facebook', // Default to Facebook
-      label: '',
-      url: '#'
-    });
-    setFormData(newData);
+    setFormData([...formData, { icon: 'facebook', label: '', url: '#' }]);
   };
 
-  // Remove a social link with confirmation dialog
   const removeLink = (index) => {
     Swal.fire({
-      title: 'Remove Social Link',
-      text: `Are you sure you want to remove "${formData[index]?.label || 'this link'}"?`,
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonColor: '#d33',
-      cancelButtonColor: '#3085d6',
-      confirmButtonText: 'Yes, remove it!',
-      cancelButtonText: 'Cancel'
-    }).then((result) => {
-      if (result.isConfirmed) {
-        const newData = [...formData];
-        newData.splice(index, 1);
-        setFormData(newData);
+      title: 'Remove social link?',
+      text: `Remove "${formData[index]?.label || 'this link'}"?`,
+      icon: 'warning', showCancelButton: true,
+      confirmButtonColor: '#dc2626', cancelButtonColor: '#64748b',
+      confirmButtonText: 'Remove', cancelButtonText: 'Cancel',
+      reverseButtons: true,
+    }).then((r) => {
+      if (r.isConfirmed) {
+        const next = [...formData];
+        next.splice(index, 1);
+        setFormData(next);
       }
     });
   };
 
-  // ICON HELPERS
-
-  // Get the React icon component for a given icon name
-  const getIconPreview = (iconName) => {
-    const option = iconOptions.find(opt => opt.value === iconName);
-    return option ? option.icon : <FaGlobe className="text-gray-400" size={18} />;
-  };
-
-  // Get the display label for a given icon name
-  const getIconLabel = (iconName) => {
-    const option = iconOptions.find(opt => opt.value === iconName);
-    return option ? option.label : iconName;
-  };
-
-  // EMPTY STATE
-  // Show message when no social links exist
   if (!hasData || !formData || formData.length === 0) {
     return (
-      <div className="bg-white rounded-lg border border-gray-200 p-4">
-        <h3 className="text-sm font-semibold text-gray-700 mb-3">Edit Follow Us Data</h3>
-        <div className="text-center py-8 text-gray-400">
-          <p className="text-sm">No social links added</p>
-          <p className="text-xs mt-1">Click "Add Social Link" to create one</p>
-        </div>
-        <div className="flex justify-end">
-          <button
-            type="button"
-            onClick={addLink}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm font-medium"
-          >
-            <FaPlus size={14} />
-            Add Social Link
-          </button>
-        </div>
+      <div className="space-y-5">
+        <EditorSection icon={FaShareAlt} title="Social Links" description="Add social media links to display in the footer" tone="cyan">
+          <div className="rounded-lg border-2 border-dashed border-slate-200 bg-slate-50/40 px-6 py-10 text-center">
+            <p className="text-sm font-medium text-slate-600">No social links yet</p>
+            <p className="mt-0.5 text-xs text-slate-400">Click below to add your first link</p>
+            <button type="button" onClick={addLink}
+              className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm shadow-blue-600/25 transition hover:bg-blue-700">
+              <FaPlus size={10} /> Add social link
+            </button>
+          </div>
+        </EditorSection>
       </div>
     );
   }
 
-  // MAIN RENDER
   return (
-    <div className="bg-white rounded-lg border border-gray-200 p-4">
-
-      {/* Header with link count and add button */}
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="text-sm font-semibold text-gray-700">Edit Follow Us Data ({formData.length} links)</h3>
-        <button
-          type="button"
-          onClick={addLink}
-          className="inline-flex items-center gap-2 px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-xs font-medium"
-        >
-          <FaPlus size={12} />
-          Add Social Link
-        </button>
-      </div>
-
-      {/* LIST OF SOCIAL LINKS */}
-      <div className="space-y-3">
-        {formData.map((link, index) => (
-          <div key={index} className="p-4 bg-gray-50 rounded-lg border border-gray-200">
-
-            {/* Link header with index, icon preview, and remove button */}
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-medium text-gray-500">Link #{index + 1}</span>
-                {/* Show icon preview */}
-                <span className="text-sm">
+    <div className="space-y-5">
+      <EditorSection
+        icon={FaShareAlt}
+        title="Social Links"
+        description={`${formData.length} link${formData.length === 1 ? '' : 's'}`}
+        tone="cyan"
+        action={
+          <button type="button" onClick={addLink}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm shadow-blue-600/25 transition hover:bg-blue-700">
+            <FaPlus size={10} /> Add link
+          </button>
+        }
+      >
+        <div className="space-y-3">
+          {formData.map((link, index) => (
+            <div key={index} className="rounded-lg border border-slate-200 bg-white p-3 transition hover:border-slate-300">
+              <div className="mb-3 flex items-center justify-between">
+                <span className="flex items-center gap-2 text-sm font-medium text-slate-700">
                   {getIconPreview(link.icon)}
-                </span>
-                {/* Show icon label */}
-                <span className="text-xs text-gray-600">
                   {getIconLabel(link.icon)}
+                  {link.label && <span className="text-slate-400">·</span>}
+                  {link.label && <span className="text-xs text-slate-500">{link.label}</span>}
                 </span>
+                <button type="button" onClick={() => removeLink(index)}
+                  className="rounded-md p-1.5 text-slate-400 transition hover:bg-red-50 hover:text-red-600">
+                  <FaTrash size={11} />
+                </button>
               </div>
-              <button
-                type="button"
-                onClick={() => removeLink(index)}
-                className="text-xs text-red-500 hover:text-red-700 flex items-center gap-1"
-              >
-                <FaTrash size={12} /> Remove
-              </button>
-            </div>
-
-            {/* LINK FIELDS (3 columns on desktop) */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-              {/* Icon selector dropdown */}
-              <SelectField
-                label="Icon"
-                value={link.icon || 'facebook'}
-                onChange={(e) => updateArrayItem(index, 'icon', e.target.value)}
-                options={iconOptions.map(opt => ({ value: opt.value, label: opt.label }))}
-              />
-              {/* Label field */}
-              <TextField
-                label="Label"
-                value={link.label || ''}
-                onChange={(e) => updateArrayItem(index, 'label', e.target.value)}
-                placeholder="Facebook"
-              />
-              {/* URL field */}
-              <TextField
-                label="URL"
-                value={link.url || ''}
-                onChange={(e) => updateArrayItem(index, 'url', e.target.value)}
-                placeholder="https://facebook.com/your-page"
-              />
-            </div>
-
-            {/* LINK PREVIEW */}
-            {/* Shows a preview of the link as it would appear on the site */}
-            <div className="mt-3 pt-3 border-t border-gray-200 flex items-center gap-4 text-xs text-gray-500">
-              <div className="flex items-center gap-1">
-                <span className="text-gray-400">Preview:</span>
-                {/* Icon preview */}
-                <span className="text-sm">
-                  {getIconPreview(link.icon)}
-                </span>
-                {/* Label preview */}
-                <span className="font-medium text-gray-700">
-                  {link.label || 'Untitled'}
-                </span>
-                {/* URL preview - clickable if valid */}
-                {link.url && link.url !== '#' && (
-                  <a
-                    href={link.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-500 hover:underline truncate max-w-48"
-                  >
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+                <SelectField label="Icon" value={link.icon || 'facebook'}
+                  onChange={(e) => updateArrayItem(index, 'icon', e.target.value)}
+                  options={iconOptions.map((o) => ({ value: o.value, label: o.label }))} />
+                <TextField label="Label" value={link.label || ''}
+                  onChange={(e) => updateArrayItem(index, 'label', e.target.value)}
+                  placeholder="Facebook" />
+                <TextField label="URL" value={link.url || ''}
+                  onChange={(e) => updateArrayItem(index, 'url', e.target.value)}
+                  placeholder="https://facebook.com/your-page" />
+              </div>
+              {link.url && link.url !== '#' && (
+                <div className="mt-2 flex items-center gap-2 border-t border-slate-100 pt-2 text-xs text-slate-500">
+                  <span className="text-slate-400">Preview:</span>
+                  <span className="flex items-center gap-1.5 rounded-md px-2 py-1">
+                    {getIconPreview(link.icon)}
+                    <span className="font-medium text-slate-700">{link.label || 'Untitled'}</span>
+                  </span>
+                  <a href={link.url} target="_blank" rel="noopener noreferrer"
+                    className="truncate text-blue-600 hover:underline">
                     {link.url}
                   </a>
-                )}
-                {/* Show if no URL is set */}
-                {(!link.url || link.url === '#') && (
-                  <span className="text-gray-400">(no URL set)</span>
-                )}
-              </div>
+                </div>
+              )}
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      </EditorSection>
 
-      {/* DATA INFORMATION */}
-      {/* Display metadata about the section */}
-      <div className="mt-4 bg-gray-50 rounded-lg p-4 border border-gray-200">
-        <div className="grid grid-cols-2 gap-3 text-sm">
-          <div>
-            <span className="text-gray-500">Section ID:</span>
-            <span className="ml-2 text-gray-700 font-mono">{section.id}</span>
-          </div>
-          <div>
-            <span className="text-gray-500">Data Table:</span>
-            <span className="ml-2 text-gray-700 font-mono">{section.data_table || 'None'}</span>
-          </div>
-          <div>
-            <span className="text-gray-500">Data Key:</span>
-            <span className="ml-2 text-gray-700 font-mono">{section.data_key || 'None'}</span>
-          </div>
-          <div>
-            <span className="text-gray-500">Total Links:</span>
-            <span className="ml-2 text-gray-700 font-mono">{formData.length}</span>
-          </div>
+      <div className="grid grid-cols-2 gap-2 rounded-lg border border-slate-200 bg-slate-50/60 p-3 text-xs md:grid-cols-4">
+        <div>
+          <span className="block text-slate-400">Section ID</span>
+          <span className="font-mono text-slate-700">{section.id}</span>
+        </div>
+        <div>
+          <span className="block text-slate-400">Data table</span>
+          <span className="font-mono text-slate-700">{section.data_table || '—'}</span>
+        </div>
+        <div>
+          <span className="block text-slate-400">Data key</span>
+          <span className="font-mono text-slate-700">{section.data_key || '—'}</span>
+        </div>
+        <div>
+          <span className="block text-slate-400">Links</span>
+          <span className="font-medium text-slate-700">{formData.length}</span>
         </div>
       </div>
     </div>

@@ -1,8 +1,7 @@
 // resources/js/pages/Backend/CMS/Sections/components/SectionTable.jsx
-
 import React from 'react';
-import SectionRow from './SectionRow';
 import { FaInbox } from 'react-icons/fa';
+import SectionRow from './SectionRow';
 
 const SectionTable = ({
   sections,
@@ -27,14 +26,14 @@ const SectionTable = ({
 }) => {
   if (sections.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-16 text-gray-400">
-        <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mb-4">
-          <FaInbox size={28} className="text-gray-300" />
+      <div className="py-16 text-center">
+        <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-slate-100 text-slate-400">
+          <FaInbox size={26} />
         </div>
-        <p className="text-sm font-medium text-gray-500">
-          {showTrashed ? 'No sections in trash' : 'No sections found for this page'}
+        <p className="text-sm font-medium text-slate-600">
+          {showTrashed ? 'Trash is empty' : 'No sections yet'}
         </p>
-        <p className="text-xs text-gray-400 mt-1">
+        <p className="mt-0.5 text-xs text-slate-400">
           {showTrashed ? 'Deleted sections will appear here' : 'Add a new section to get started'}
         </p>
       </div>
@@ -43,30 +42,18 @@ const SectionTable = ({
 
   return (
     <div className="overflow-x-auto">
-      <table className="min-w-full divide-y divide-gray-200">
-        <thead className="bg-gray-50/80">
-          <tr>
-            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider w-16">
-              #
-            </th>
-            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-              Section
-            </th>
-            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-              Component
-            </th>
-            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-              Status
-            </th>
-            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-              {showTrashed ? 'Deleted At' : 'Type'}
-            </th>
-            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-              Actions
-            </th>
+      <table className="min-w-full">
+        <thead className="border-b border-slate-100 bg-slate-50/70">
+          <tr className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+            <th className="w-16 px-4 py-3 text-left">#</th>
+            <th className="px-4 py-3 text-left">Section</th>
+            <th className="px-4 py-3 text-left">Component</th>
+            <th className="px-4 py-3 text-left">Status</th>
+            <th className="px-4 py-3 text-left">{showTrashed ? 'Deleted At' : 'Type'}</th>
+            <th className="px-4 py-3 text-left">Actions</th>
           </tr>
         </thead>
-        <tbody className="bg-white divide-y divide-gray-100">
+        <tbody className="divide-y divide-slate-100 bg-white">
           {sections.map((section, index) => (
             <SectionRow
               key={section.id}

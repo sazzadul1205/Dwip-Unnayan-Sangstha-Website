@@ -1,58 +1,80 @@
 // resources/js/pages/Backend/CMS/Sections/components/SectionRow.jsx
-
 import React, { Fragment, useState } from 'react';
 import { router } from '@inertiajs/react';
-
 import {
-  FaDatabase,
-  FaToggleOn,
-  FaToggleOff,
-  FaGripVertical,
-  FaEye,
-  FaEyeSlash,
-  FaShareAlt,
-  FaBriefcase,
-  FaExternalLinkAlt,
-  FaList,
-  FaEdit,
-  FaTrash,
-  FaTrashRestore,
-  FaTrashAlt,
-  FaFileAlt,
-  FaLock,
+  FaDatabase, FaGripVertical, FaEye, FaEyeSlash, FaShareAlt, FaBriefcase,
+  FaExternalLinkAlt, FaList, FaEdit, FaTrash, FaTrashRestore, FaTrashAlt,
+  FaFileAlt, FaLock, FaArrowUp, FaArrowDown, FaStar,
 } from 'react-icons/fa';
 import { BsStack } from 'react-icons/bs';
-
 import Swal from 'sweetalert2';
-import { Can } from '../../../../../components/Auth/Can';
 
+import { Can } from '../../../../../components/Auth/Can';
 import { showToast } from '../utils/toastHelper';
 import { getComponentLabel, getDataTableLabel, getSectionTypeInfo } from '../utils/sectionHelpers';
-
 import SectionIndex from '../../../../../Sections/_runtime/SectionIndex';
 
+const SWAL_BASE = {
+  popup: 'rounded-xl shadow-2xl',
+  title: 'text-lg font-semibold text-slate-900',
+  htmlContainer: 'text-sm text-slate-600',
+  confirmButton: 'rounded-lg font-semibold px-4 py-2',
+  cancelButton: 'rounded-lg font-medium px-4 py-2',
+};
+
+const Pill = ({ icon: Icon, label, tone }) => {
+  const tones = {
+    amber: 'bg-amber-50 text-amber-700 ring-amber-200',
+    blue: 'bg-blue-50 text-blue-700 ring-blue-200',
+    emerald: 'bg-emerald-50 text-emerald-700 ring-emerald-200',
+    violet: 'bg-violet-50 text-violet-700 ring-violet-200',
+    orange: 'bg-orange-50 text-orange-700 ring-orange-200',
+    indigo: 'bg-indigo-50 text-indigo-700 ring-indigo-200',
+    slate: 'bg-slate-100 text-slate-600 ring-slate-200',
+  };
+  return (
+    <span className={`inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-medium ring-1 ${tones[tone]}`}>
+      {Icon && <Icon size={8} />}
+      {label}
+    </span>
+  );
+};
+
+const PreviewNotice = ({ tone = 'slate', icon: Icon, title, description, ctaLabel, ctaHref }) => {
+  const tones = {
+    emerald: { icon: 'bg-emerald-50 text-emerald-600 ring-emerald-100', title: 'text-emerald-800', btn: 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/25' },
+    violet: { icon: 'bg-violet-50 text-violet-600 ring-violet-100', title: 'text-violet-800', btn: 'bg-violet-600 hover:bg-violet-700 shadow-violet-600/25' },
+    orange: { icon: 'bg-orange-50 text-orange-600 ring-orange-100', title: 'text-orange-800', btn: 'bg-orange-600 hover:bg-orange-700 shadow-orange-600/25' },
+    indigo: { icon: 'bg-indigo-50 text-indigo-600 ring-indigo-100', title: 'text-indigo-800', btn: 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-600/25' },
+    slate: { icon: 'bg-slate-100 text-slate-600 ring-slate-200', title: 'text-slate-800', btn: 'bg-slate-600 hover:bg-slate-700 shadow-slate-600/25' },
+  };
+  const t = tones[tone] ?? tones.slate;
+  return (
+    <tr>
+      <td colSpan="6" className="px-6 py-10 text-center">
+        <div className="mx-auto max-w-md">
+          <div className={`mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full ring-1 ${t.icon}`}>
+            <Icon size={20} />
+          </div>
+          <h3 className={`text-sm font-semibold ${t.title}`}>{title}</h3>
+          <p className="mt-1 text-xs text-slate-500">{description}</p>
+          <a
+            href={ctaHref}
+            className={`mt-4 inline-flex items-center gap-1.5 rounded-lg px-3.5 py-2 text-xs font-semibold text-white shadow-sm transition ${t.btn}`}
+          >
+            <FaExternalLinkAlt size={10} /> {ctaLabel}
+          </a>
+        </div>
+      </td>
+    </tr>
+  );
+};
+
 const SectionRow = ({
-  section,
-  index,
-  totalSections,
-  isPreviewOpen,
-  isReordering,
-  isSaving,
-  isMovable,
-  onTogglePreview,
-  onMoveUp,
-  onMoveDown,
-  onDragStart,
-  onDragEnd,
-  onDragOver,
-  onDragEnter,
-  onDragLeave,
-  onDrop,
-  onEditClick,
-  onSectionDeleted,
-  isTrashed = false,
-  draggedIndex,
-  dragOverIndex,
+  section, index, totalSections, isPreviewOpen, isReordering, isSaving, isMovable,
+  onTogglePreview, onMoveUp, onMoveDown, onDragStart, onDragEnd, onDragOver,
+  onDragEnter, onDragLeave, onDrop, onEditClick, onSectionDeleted,
+  isTrashed = false, draggedIndex, dragOverIndex,
 }) => {
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -66,268 +88,174 @@ const SectionRow = ({
   const isPrograms = section.data_table === 'programs' || section.component === 'OurProgramsSection';
   const isPublications = section.data_table === 'publications';
 
-  const rowBorderClass = isBanner
-    ? 'border-l-4 border-yellow-400'
-    : section.is_fixed_section
-      ? 'border-l-4 border-blue-400'
-      : isShared
-        ? 'border-l-4 border-green-400'
-        : isJobs
-          ? 'border-l-4 border-purple-400'
-          : isPrograms
-            ? 'border-l-4 border-orange-400'
-            : isPublications
-              ? 'border-l-4 border-indigo-400'
-              : '';
+  const accent = isBanner ? 'before:bg-amber-400'
+    : section.is_fixed_section ? 'before:bg-blue-400'
+      : isShared ? 'before:bg-emerald-400'
+        : isJobs ? 'before:bg-violet-400'
+          : isPrograms ? 'before:bg-orange-400'
+            : isPublications ? 'before:bg-indigo-400'
+              : 'before:bg-slate-200';
 
-  const rowBgClass = isBanner
-    ? 'bg-yellow-50/30 hover:bg-yellow-50/60'
-    : section.is_fixed_section
-      ? 'bg-blue-50/20 hover:bg-blue-50/50'
-      : isShared
-        ? 'bg-green-50/20 hover:bg-green-50/50'
-        : isJobs
-          ? 'bg-purple-50/20 hover:bg-purple-50/50'
-          : isPrograms
-            ? 'bg-orange-50/20 hover:bg-orange-50/50'
-            : isPublications
-              ? 'bg-indigo-50/20 hover:bg-indigo-50/50'
-              : 'hover:bg-gray-50/80';
-
-  let rowClasses = `group transition-all duration-200 ${rowBgClass} ${rowBorderClass} ${isReordering ? 'opacity-75' : ''}`;
-  if (isDragging) {
-    rowClasses += ' opacity-60 shadow-xl ring-2 ring-blue-400 scale-[0.98] z-50 relative bg-blue-50';
-  }
-  if (isDragOver) {
-    rowClasses += ' border-t-2 border-blue-500 bg-blue-50/70 shadow-inner';
-  }
+  let rowClasses = `group relative transition-colors before:absolute before:inset-y-0 before:left-0 before:w-1 before:content-[''] ${accent} ${isTrashed ? 'bg-red-50/30 hover:bg-red-50/50' : 'hover:bg-slate-50/70'
+    } ${isReordering ? 'opacity-75' : ''}`;
+  if (isDragging) rowClasses += ' opacity-60 shadow-lg ring-2 ring-blue-400 z-10 relative';
+  if (isDragOver) rowClasses += ' border-t-2 border-blue-500 bg-blue-50/60';
 
   const canPreview = !isJobs && !isShared && !isPrograms && !isPublications;
 
   const handleDelete = () => {
     if (section.is_fixed_section) {
-      showToast('warning', 'Cannot Delete', 'Fixed sections cannot be deleted.', 3000);
+      showToast('warning', 'Cannot Delete', 'Fixed sections cannot be deleted.', 2500);
       return;
     }
-
     Swal.fire({
       title: 'Move to Trash?',
-      html: `
-        <div class="text-left">
-          <p class="text-sm text-gray-600 mb-3">You are about to move this section to the trash:</p>
-          <div class="bg-gray-50 rounded-xl p-4 mb-3 border border-gray-200">
-            <p class="font-semibold text-gray-800">${section.section_key}</p>
-            <p class="text-xs text-gray-500 mt-0.5">${getComponentLabel(section.component)}</p>
-          </div>
-          <p class="text-xs text-gray-500">You can restore it later from the trash.</p>
-        </div>
-      `,
+      html: `<p class="text-sm text-slate-600">Move "<strong>${section.section_key}</strong>" to trash? You can restore it later.</p>`,
       icon: 'warning',
       showCancelButton: true,
-      confirmButtonColor: '#ef4444',
-      cancelButtonColor: '#6b7280',
+      confirmButtonColor: '#dc2626',
+      cancelButtonColor: '#64748b',
       confirmButtonText: 'Move to Trash',
       cancelButtonText: 'Cancel',
       reverseButtons: true,
-      customClass: {
-        popup: 'rounded-2xl shadow-2xl',
-        title: 'text-lg font-semibold',
-        confirmButton: 'px-5 py-2.5 rounded-xl font-medium transition hover:scale-[1.02]',
-        cancelButton: 'px-5 py-2.5 rounded-xl font-medium transition hover:bg-gray-100',
-      },
-    }).then((result) => {
-      if (result.isConfirmed) {
-        setIsDeleting(true);
-        router.delete(
-          route('backend.cms.sections.destroy', { section: section.id }),
-          {
-            preserveScroll: true,
-            preserveState: true,
-            onSuccess: () => {
-              setIsDeleting(false);
-              showToast('success', 'Moved to Trash', 'Section moved to trash successfully.', 2000);
-              if (onSectionDeleted) onSectionDeleted();
-            },
-            onError: (errors) => {
-              setIsDeleting(false);
-              showToast('error', 'Delete Failed', errors?.message || 'Failed to delete section.', 4000);
-            },
-          }
-        );
-      }
+      customClass: SWAL_BASE,
+    }).then((r) => {
+      if (!r.isConfirmed) return;
+      setIsDeleting(true);
+      router.delete(route('backend.cms.sections.destroy', { section: section.id }), {
+        preserveScroll: true, preserveState: true,
+        onSuccess: () => {
+          setIsDeleting(false);
+          showToast('success', 'Moved to Trash', 'Section moved to trash.', 2000);
+          onSectionDeleted?.();
+        },
+        onError: (errs) => {
+          setIsDeleting(false);
+          showToast('error', 'Delete Failed', errs?.message || 'Failed to delete.', 4000);
+        },
+      });
     });
   };
 
   const handleRestore = () => {
     Swal.fire({
       title: 'Restore Section?',
-      html: `
-        <div class="text-left">
-          <p class="text-sm text-gray-600 mb-3">You are about to restore this section:</p>
-          <div class="bg-gray-50 rounded-xl p-4 mb-3 border border-gray-200">
-            <p class="font-semibold text-gray-800">${section.section_key}</p>
-            <p class="text-xs text-gray-500 mt-0.5">${getComponentLabel(section.component)}</p>
-          </div>
-          <p class="text-xs text-green-600">The section will be restored to its original position.</p>
-        </div>
-      `,
+      html: `<p class="text-sm text-slate-600">Restore "<strong>${section.section_key}</strong>" to its original position?</p>`,
       icon: 'question',
       showCancelButton: true,
-      confirmButtonColor: '#22c55e',
-      cancelButtonColor: '#6b7280',
+      confirmButtonColor: '#10b981',
+      cancelButtonColor: '#64748b',
       confirmButtonText: 'Restore',
       cancelButtonText: 'Cancel',
       reverseButtons: true,
-      customClass: {
-        popup: 'rounded-2xl shadow-2xl',
-        title: 'text-lg font-semibold',
-        confirmButton: 'px-5 py-2.5 rounded-xl font-medium transition hover:scale-[1.02] bg-green-600 hover:bg-green-700',
-        cancelButton: 'px-5 py-2.5 rounded-xl font-medium transition hover:bg-gray-100',
-      },
-    }).then((result) => {
-      if (result.isConfirmed) {
-        setIsDeleting(true);
-        router.post(
-          route('backend.cms.sections.restore', { section: section.id }),
-          {},
-          {
-            preserveScroll: true,
-            preserveState: true,
-            onSuccess: () => {
-              setIsDeleting(false);
-              showToast('success', 'Restored!', 'Section restored successfully.', 2000);
-              if (onSectionDeleted) onSectionDeleted();
-            },
-            onError: (errors) => {
-              setIsDeleting(false);
-              showToast('error', 'Restore Failed', errors?.message || 'Failed to restore section.', 4000);
-            },
-          }
-        );
-      }
+      customClass: SWAL_BASE,
+    }).then((r) => {
+      if (!r.isConfirmed) return;
+      setIsDeleting(true);
+      router.post(route('backend.cms.sections.restore', { section: section.id }), {}, {
+        preserveScroll: true, preserveState: true,
+        onSuccess: () => {
+          setIsDeleting(false);
+          showToast('success', 'Restored', 'Section restored.', 2000);
+          onSectionDeleted?.();
+        },
+        onError: (errs) => {
+          setIsDeleting(false);
+          showToast('error', 'Restore Failed', errs?.message || 'Failed to restore.', 4000);
+        },
+      });
     });
   };
 
   const handleForceDelete = () => {
     if (section.is_fixed_section) {
-      showToast('warning', 'Cannot Delete', 'Fixed sections cannot be permanently deleted.', 3000);
+      showToast('warning', 'Cannot Delete', 'Fixed sections cannot be deleted.', 2500);
       return;
     }
-
     Swal.fire({
-      title: '⚠️ Permanently Delete?',
-      html: `
-        <div class="text-left">
-          <p class="text-sm text-red-600 font-semibold mb-3">This action cannot be undone!</p>
-          <p class="text-sm text-gray-600 mb-3">You are about to permanently delete this section:</p>
-          <div class="bg-red-50 border border-red-200 rounded-xl p-4 mb-3">
-            <p class="font-semibold text-gray-800">${section.section_key}</p>
-            <p class="text-xs text-gray-500 mt-0.5">${getComponentLabel(section.component)}</p>
-            ${section.data_table === 'custom_section_data' ? '<p class="text-xs text-red-500 mt-2">⚠️ All associated data and images will be permanently removed.</p>' : ''}
-          </div>
-          <p class="text-xs text-red-500">This will also delete all associated data and images.</p>
-        </div>
-      `,
+      title: 'Permanently delete?',
+      html: `<p class="text-sm text-slate-600">Permanently delete "<strong>${section.section_key}</strong>"? This cannot be undone.</p>`,
       icon: 'error',
       showCancelButton: true,
       confirmButtonColor: '#dc2626',
-      cancelButtonColor: '#6b7280',
-      confirmButtonText: 'Permanently Delete',
+      cancelButtonColor: '#64748b',
+      confirmButtonText: 'Delete forever',
       cancelButtonText: 'Cancel',
       reverseButtons: true,
-      customClass: {
-        popup: 'rounded-2xl shadow-2xl',
-        title: 'text-lg font-semibold text-red-600',
-        confirmButton: 'px-5 py-2.5 rounded-xl font-medium transition hover:scale-[1.02] bg-red-600 hover:bg-red-700',
-        cancelButton: 'px-5 py-2.5 rounded-xl font-medium transition hover:bg-gray-100',
-      },
-    }).then((result) => {
-      if (result.isConfirmed) {
-        setIsDeleting(true);
-        router.delete(
-          route('backend.cms.sections.force-delete', { section: section.id }),
-          {
-            preserveScroll: true,
-            preserveState: true,
-            onSuccess: () => {
-              setIsDeleting(false);
-              showToast('success', 'Permanently Deleted', 'Section permanently deleted.', 2000);
-              if (onSectionDeleted) onSectionDeleted();
-            },
-            onError: (errors) => {
-              setIsDeleting(false);
-              showToast('error', 'Delete Failed', errors?.message || 'Failed to permanently delete section.', 4000);
-            },
-          }
-        );
-      }
+      customClass: SWAL_BASE,
+    }).then((r) => {
+      if (!r.isConfirmed) return;
+      setIsDeleting(true);
+      router.delete(route('backend.cms.sections.force-delete', { section: section.id }), {
+        preserveScroll: true, preserveState: true,
+        onSuccess: () => {
+          setIsDeleting(false);
+          showToast('success', 'Permanently Deleted', 'Section removed permanently.', 2000);
+          onSectionDeleted?.();
+        },
+        onError: (errs) => {
+          setIsDeleting(false);
+          showToast('error', 'Delete Failed', errs?.message || 'Failed to delete.', 4000);
+        },
+      });
     });
   };
 
-  // Trashed row view
+  // ---------- TRASHED ROW ----------
   if (isTrashed) {
     return (
-      <tr className="bg-red-50/30 hover:bg-red-50/60 transition-colors group">
-        <td className="px-4 py-3.5 text-sm text-gray-400">
-          <span className="font-mono">#{index + 1}</span>
+      <tr className="group relative bg-red-50/30 transition-colors before:absolute before:inset-y-0 before:left-0 before:w-1 before:bg-red-400 before:content-[''] hover:bg-red-50/50">
+        <td className="px-4 py-3.5 text-sm text-slate-400">
+          <span className="font-mono tabular-nums">#{index + 1}</span>
         </td>
         <td className="px-4 py-3.5">
-          <div className="flex items-center gap-3">
-            <span className="w-9 h-9 rounded-xl flex items-center justify-center bg-red-100/80 shrink-0">
-              <FaTrash className="text-red-500" size={14} />
-            </span>
-            <div>
-              <span className="text-sm font-medium text-gray-500 line-through">
-                {section.section_key}
-              </span>
-              <div className="flex items-center gap-2 mt-0.5">
-                <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-medium">
-                  🗑️ Trashed
-                </span>
+          <div className="flex items-start gap-3">
+            <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-red-50 text-red-500 ring-1 ring-red-200">
+              <FaTrash size={12} />
+            </div>
+            <div className="min-w-0">
+              <span className="text-sm font-medium text-slate-400 line-through">{section.section_key}</span>
+              <div className="mt-0.5">
+                <Pill icon={FaTrash} label="Trashed" tone="slate" />
               </div>
             </div>
           </div>
         </td>
         <td className="px-4 py-3.5">
-          <span className="text-sm text-gray-600">{getComponentLabel(section.component)}</span>
-          <div className="text-xs text-gray-400 font-mono">{section.component}</div>
+          <span className="text-sm text-slate-600">{getComponentLabel(section.component)}</span>
+          <div className="text-xs font-mono text-slate-400">{section.component}</div>
         </td>
         <td className="px-4 py-3.5">
-          <div className="flex items-center gap-2">
-            <FaDatabase size={12} className="text-gray-400" />
-            <span className="text-sm text-gray-600">{getDataTableLabel(section.data_table)}</span>
+          <div className="flex items-center gap-2 text-sm text-slate-600">
+            <FaDatabase size={11} className="text-slate-400" />
+            {getDataTableLabel(section.data_table)}
           </div>
         </td>
         <td className="px-4 py-3.5">
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-500">
-            Deleted
-          </span>
+          <Pill label="Deleted" tone="slate" />
         </td>
         <td className="px-4 py-3.5">
-          <span className="text-xs text-gray-400 font-mono">
-            {section.deleted_at ? new Date(section.deleted_at).toLocaleDateString() : 'N/A'}
-          </span>
-        </td>
-        <td className="px-4 py-3.5">
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-0.5">
             <Can permission="sections.restore">
               <button
+                type="button"
                 onClick={handleRestore}
                 disabled={isDeleting}
-                className="p-2 rounded-xl transition-all text-green-600 hover:bg-green-50 hover:text-green-700 hover:shadow-sm"
-                title="Restore Section"
+                className="rounded-md p-1.5 text-emerald-600 transition hover:bg-emerald-50 disabled:opacity-50"
+                title="Restore"
               >
-                <FaTrashRestore size={15} />
+                <FaTrashRestore size={13} />
               </button>
             </Can>
             <Can permission="sections.force_delete">
               <button
+                type="button"
                 onClick={handleForceDelete}
                 disabled={isDeleting}
-                className="p-2 rounded-xl transition-all text-red-600 hover:bg-red-50 hover:text-red-700 hover:shadow-sm"
-                title="Permanently Delete"
+                className="rounded-md p-1.5 text-red-600 transition hover:bg-red-50 disabled:opacity-50"
+                title="Permanently delete"
               >
-                <FaTrashAlt size={15} />
+                <FaTrashAlt size={13} />
               </button>
             </Can>
           </div>
@@ -336,18 +264,17 @@ const SectionRow = ({
     );
   }
 
+  // ---------- ACTIVE ROW ----------
   return (
     <Fragment>
-      {/* Drag Over Indicator */}
       {isDragOver && (
-        <tr className="bg-transparent">
-          <td colSpan="7" className="h-0 p-0">
-            <div className="h-0.5 bg-linear-to-r from-blue-400 to-blue-600 animate-pulse rounded-full mx-4 shadow-lg shadow-blue-200" />
+        <tr>
+          <td colSpan="6" className="h-0 p-0">
+            <div className="mx-4 h-0.5 animate-pulse rounded-full bg-blue-500" />
           </td>
         </tr>
       )}
 
-      {/* Draggable Row */}
       <tr
         className={rowClasses}
         draggable={isMovable}
@@ -357,76 +284,48 @@ const SectionRow = ({
         onDragEnter={(e) => onDragEnter(e, index)}
         onDragLeave={onDragLeave}
         onDrop={(e) => onDrop(e, index)}
-        style={{
-          transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-          transform: isDragging ? 'scale(0.97)' : 'scale(1)',
-        }}
       >
-        {/* Index & Drag Handle */}
+        {/* Index */}
         <td className="px-4 py-3.5">
           <div className="flex items-center gap-1.5">
             {isMovable ? (
               <span
-                className="cursor-grab text-gray-400 hover:text-gray-600 p-1.5 rounded-lg hover:bg-gray-200/70 transition-all active:cursor-grabbing"
+                className="cursor-grab rounded-md p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600 active:cursor-grabbing"
                 title="Drag to reorder"
-                onClick={(e) => e.stopPropagation()}
-                aria-label="Drag to reorder"
               >
-                <FaGripVertical size={13} />
+                <FaGripVertical size={12} />
               </span>
             ) : (
               <span className="w-5" />
             )}
-            <span className="text-sm text-gray-400 font-mono font-medium w-6 text-center">
+            <span className="w-6 text-center text-sm font-mono tabular-nums text-slate-400">
               {index + 1}
             </span>
           </div>
         </td>
 
-        {/* Section Key */}
+        {/* Section Key + Pills */}
         <td className="px-4 py-3.5">
-          <div className="flex items-center gap-3">
-            <span
-              className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-all ${section.is_enabled
-                ? 'bg-linear-to-br from-blue-100 to-blue-200 text-blue-700'
-                : 'bg-gray-100 text-gray-400'
-                }`}
-            >
-              {isShared ? (
-                <FaShareAlt className={section.is_enabled ? 'text-green-600' : 'text-gray-400'} size={15} />
-              ) : isJobs ? (
-                <FaBriefcase className={section.is_enabled ? 'text-purple-600' : 'text-gray-400'} size={15} />
-              ) : isPrograms ? (
-                <FaList className={section.is_enabled ? 'text-orange-600' : 'text-gray-400'} size={15} />
-              ) : isPublications ? (
-                <FaFileAlt className={section.is_enabled ? 'text-indigo-600' : 'text-gray-400'} size={15} />
-              ) : (
-                <BsStack className={section.is_enabled ? 'text-blue-600' : 'text-gray-400'} size={15} />
-              )}
-            </span>
-            <div>
-              <span className="text-sm font-semibold text-gray-800">{section.section_key}</span>
-              <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-                {isBanner && (
-                  <span className="text-[10px] bg-yellow-100 text-yellow-700 px-1.5 py-0.5 rounded-full font-medium">⭐ Banner</span>
-                )}
-                {section.is_fixed_section && (
-                  <span className="text-[10px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full font-medium flex items-center gap-0.5">
-                    <FaLock size={8} /> Fixed
-                  </span>
-                )}
-                {isShared && (
-                  <span className="text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full font-medium">🔄 Shared</span>
-                )}
-                {isJobs && (
-                  <span className="text-[10px] bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded-full font-medium">💼 Jobs</span>
-                )}
-                {isPrograms && (
-                  <span className="text-[10px] bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded-full font-medium">📋 Programs</span>
-                )}
-                {isPublications && (
-                  <span className="text-[10px] bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded-full font-medium">📄 Publications</span>
-                )}
+          <div className="flex items-start gap-3">
+            <div className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-md ring-1 ${section.is_enabled
+                ? 'bg-blue-50 text-blue-600 ring-blue-100'
+                : 'bg-slate-100 text-slate-400 ring-slate-200'
+              }`}>
+              {isShared ? <FaShareAlt size={12} />
+                : isJobs ? <FaBriefcase size={12} />
+                  : isPrograms ? <FaList size={12} />
+                    : isPublications ? <FaFileAlt size={12} />
+                      : <BsStack size={12} />}
+            </div>
+            <div className="min-w-0">
+              <span className="text-sm font-semibold text-slate-800">{section.section_key}</span>
+              <div className="mt-1 flex flex-wrap items-center gap-1">
+                {isBanner && <Pill icon={FaStar} label="Banner" tone="amber" />}
+                {section.is_fixed_section && <Pill icon={FaLock} label="Fixed" tone="blue" />}
+                {isShared && <Pill icon={FaShareAlt} label="Shared" tone="emerald" />}
+                {isJobs && <Pill icon={FaBriefcase} label="Jobs" tone="violet" />}
+                {isPrograms && <Pill icon={FaList} label="Programs" tone="orange" />}
+                {isPublications && <Pill icon={FaFileAlt} label="Publications" tone="indigo" />}
               </div>
             </div>
           </div>
@@ -434,167 +333,153 @@ const SectionRow = ({
 
         {/* Component */}
         <td className="px-4 py-3.5">
-          <span className="text-sm text-gray-700 font-medium">{getComponentLabel(section.component)}</span>
-          <div className="text-xs text-gray-400 font-mono">{section.component}</div>
+          <span className="text-sm font-medium text-slate-700">{getComponentLabel(section.component)}</span>
+          <div className="text-xs font-mono text-slate-400">{section.component}</div>
         </td>
 
         {/* Status */}
         <td className="px-4 py-3.5">
           <span
-            className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium transition-all ${section.is_enabled
-              ? 'bg-green-100 text-green-700'
-              : 'bg-gray-100 text-gray-500'
+            className={`inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium ring-1 ${section.is_enabled
+                ? 'bg-emerald-50 text-emerald-700 ring-emerald-200'
+                : 'bg-slate-100 text-slate-500 ring-slate-200'
               }`}
           >
-            {section.is_enabled ? <FaToggleOn size={13} className="text-green-600" /> : <FaToggleOff size={13} />}
+            {section.is_enabled ? <FaEye size={10} /> : <FaEyeSlash size={10} />}
             {section.is_enabled ? 'Active' : 'Inactive'}
           </span>
         </td>
 
         {/* Type */}
         <td className="px-4 py-3.5">
-          <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium ${typeInfo.color}`}>
-            <span>{typeInfo.icon}</span>
+          <span className={`inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium ring-1 ${typeInfo.color}`}>
+            <span aria-hidden>{typeInfo.icon}</span>
             {typeInfo.label}
           </span>
         </td>
 
         {/* Actions */}
         <td className="px-4 py-3.5">
-          <div className="flex items-center gap-0.5">
+          <div className="flex items-center gap-0.5 opacity-70 transition group-hover:opacity-100">
             <Can permission="sections.update_order">
               <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onMoveUp(index);
-                }}
+                type="button"
+                onClick={(e) => { e.stopPropagation(); onMoveUp(index); }}
                 disabled={index === 0 || !isMovable || isSaving}
-                className={`p-1.5 rounded-lg transition-all ${index === 0 || !isMovable || isSaving
-                  ? 'text-gray-300 cursor-not-allowed'
-                  : 'text-gray-400 hover:text-blue-600 hover:bg-blue-50 hover:shadow-sm'
+                className={`rounded-md p-1.5 transition ${index === 0 || !isMovable || isSaving
+                    ? 'cursor-not-allowed text-slate-300'
+                    : 'text-slate-400 hover:bg-blue-50 hover:text-blue-600'
                   }`}
-                title={!isMovable ? 'Fixed section cannot be moved' : 'Move Up'}
-                aria-label="Move section up"
+                title={!isMovable ? 'Fixed section cannot be moved' : 'Move up'}
               >
-                ↑
+                <FaArrowUp size={10} />
               </button>
             </Can>
 
-            <span className="text-xs text-gray-400 font-mono min-w-8 text-center">#{section.display_order}</span>
+            <span className="min-w-8 text-center text-xs font-mono tabular-nums text-slate-400">
+              #{section.display_order}
+            </span>
 
             <Can permission="sections.update_order">
               <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onMoveDown(index);
-                }}
+                type="button"
+                onClick={(e) => { e.stopPropagation(); onMoveDown(index); }}
                 disabled={index === totalSections - 1 || !isMovable || isSaving}
-                className={`p-1.5 rounded-lg transition-all ${index === totalSections - 1 || !isMovable || isSaving
-                  ? 'text-gray-300 cursor-not-allowed'
-                  : 'text-gray-400 hover:text-blue-600 hover:bg-blue-50 hover:shadow-sm'
+                className={`rounded-md p-1.5 transition ${index === totalSections - 1 || !isMovable || isSaving
+                    ? 'cursor-not-allowed text-slate-300'
+                    : 'text-slate-400 hover:bg-blue-50 hover:text-blue-600'
                   }`}
-                title={!isMovable ? 'Fixed section cannot be moved' : 'Move Down'}
-                aria-label="Move section down"
+                title={!isMovable ? 'Fixed section cannot be moved' : 'Move down'}
               >
-                ↓
+                <FaArrowDown size={10} />
               </button>
             </Can>
 
-            <div className="w-px h-6 bg-gray-200 mx-0.5" />
+            <span className="mx-0.5 h-5 w-px bg-slate-200" />
 
             <Can permission="sections.update">
               <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onEditClick(section);
-                }}
-                className="p-1.5 rounded-lg transition-all text-gray-400 hover:text-blue-600 hover:bg-blue-50 hover:shadow-sm"
-                title="Edit Section"
-                aria-label="Edit section"
+                type="button"
+                onClick={(e) => { e.stopPropagation(); onEditClick(section); }}
+                className="rounded-md p-1.5 text-blue-600 transition hover:bg-blue-50"
+                title="Edit section"
               >
-                <FaEdit size={14} />
+                <FaEdit size={13} />
               </button>
             </Can>
 
             {canPreview ? (
               <Can permission="sections.view">
                 <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onTogglePreview(section.id);
-                  }}
-                  className={`p-1.5 rounded-lg transition-all ${isPreviewOpen
-                    ? 'text-blue-600 bg-blue-50 shadow-sm'
-                    : 'text-gray-400 hover:text-blue-600 hover:bg-blue-50 hover:shadow-sm'
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); onTogglePreview(section.id); }}
+                  className={`rounded-md p-1.5 transition ${isPreviewOpen
+                      ? 'bg-blue-50 text-blue-600'
+                      : 'text-slate-400 hover:bg-blue-50 hover:text-blue-600'
                     }`}
-                  title={isPreviewOpen ? 'Close Preview' : 'Preview Section'}
-                  aria-label={isPreviewOpen ? 'Close preview' : 'Preview section'}
+                  title={isPreviewOpen ? 'Close preview' : 'Preview'}
                 >
-                  {isPreviewOpen ? <FaEyeSlash size={14} /> : <FaEye size={14} />}
+                  {isPreviewOpen ? <FaEyeSlash size={13} /> : <FaEye size={13} />}
                 </button>
               </Can>
             ) : (
               <button
-                className="p-1.5 rounded-lg text-gray-300 cursor-not-allowed"
+                type="button"
+                className="cursor-not-allowed rounded-md p-1.5 text-slate-300"
                 title={
-                  isShared
-                    ? 'Shared data - Edit in Shared Data Manager'
-                    : isJobs
-                      ? 'Jobs data - Edit in Job Manager'
-                      : isPrograms
-                        ? 'Programs data - Edit in Program Manager'
-                        : isPublications
-                          ? 'Publications data - Edit in Publications Manager'
-                          : 'Cannot preview'
+                  isShared ? 'Shared data — edit in Shared Data Manager'
+                    : isJobs ? 'Jobs — edit in Job Manager'
+                      : isPrograms ? 'Programs — edit in Program Manager'
+                        : isPublications ? 'Publications — edit in Publications Manager'
+                          : 'Preview not available'
                 }
                 disabled
-                aria-label="Preview not available"
               >
-                <FaEye size={14} className="opacity-40" />
+                <FaEye size={13} className="opacity-40" />
               </button>
             )}
 
             {!section.is_fixed_section && (
               <Can permission="sections.destroy">
                 <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleDelete();
-                  }}
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); handleDelete(); }}
                   disabled={isDeleting}
-                  className="p-1.5 rounded-lg transition-all text-gray-400 hover:text-red-600 hover:bg-red-50 hover:shadow-sm"
-                  title="Move to Trash"
-                  aria-label="Move to trash"
+                  className="rounded-md p-1.5 text-slate-400 transition hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
+                  title="Move to trash"
                 >
-                  <FaTrash size={14} />
+                  <FaTrash size={12} />
                 </button>
               </Can>
             )}
-
-            <div className="w-px h-6 bg-gray-200 mx-0.5" />
           </div>
         </td>
       </tr>
 
-      {/* Preview Row */}
+      {/* Preview (built-in) */}
       {isPreviewOpen && canPreview && !isTrashed && (
         <tr>
-          <td colSpan="7" className="px-4 py-4 bg-blue-50/40 border-t border-blue-200">
-            <div className="space-y-3 w-full">
-              <div className="flex items-center justify-between flex-wrap gap-2">
+          <td colSpan="6" className="border-t border-slate-100 bg-slate-50/70 px-4 py-4">
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <span className="text-sm font-semibold text-blue-700">🔍 Preview</span>
-                  <span className="text-xs text-blue-500 font-mono">{section.component}</span>
+                  <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+                    Live preview
+                  </span>
+                  <span className="rounded bg-white px-1.5 py-0.5 text-[10px] font-mono text-slate-500 ring-1 ring-slate-200">
+                    {section.component}
+                  </span>
                 </div>
                 <button
+                  type="button"
                   onClick={() => onTogglePreview(section.id)}
-                  className="text-sm text-blue-600 hover:text-blue-800 transition font-medium"
+                  className="text-xs font-medium text-slate-500 transition hover:text-slate-700"
                 >
-                  Close Preview ✕
+                  Close
                 </button>
               </div>
-              <div className="bg-white rounded-xl shadow-inner overflow-hidden border border-blue-100">
-                <div className="p-4">
+              <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+                <div className="p-3">
                   <SectionIndex sections={[section]} />
                 </div>
               </div>
@@ -603,112 +488,52 @@ const SectionRow = ({
         </tr>
       )}
 
-      {/* Shared Data Preview */}
+      {/* Shared data preview */}
       {isPreviewOpen && isShared && !isTrashed && (
-        <tr>
-          <td colSpan="7" className="px-4 py-6 bg-green-50/40 border-t border-green-200">
-            <div className="flex flex-col items-center justify-center gap-3 text-center py-8">
-              <div className="w-16 h-16 bg-green-100 rounded-2xl flex items-center justify-center">
-                <FaShareAlt className="text-green-500 text-3xl" />
-              </div>
-              <h3 className="text-lg font-semibold text-green-700">Shared Data Section</h3>
-              <p className="text-gray-600 max-w-md text-sm">
-                This section uses data from the <strong>Shared Data</strong> system.
-                To edit this content, please go to the Shared Data Manager.
-              </p>
-              <button
-                onClick={() => {
-                  window.location.href = route('backend.cms.shared.index');
-                }}
-                className="mt-2 px-6 py-2.5 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-all shadow-lg shadow-green-200 flex items-center gap-2 font-medium text-sm hover:scale-[1.02]"
-              >
-                <FaExternalLinkAlt size={14} />
-                Go to Shared Data Manager
-              </button>
-            </div>
-          </td>
-        </tr>
+        <PreviewNotice
+          tone="emerald"
+          icon={FaShareAlt}
+          title="Shared data section"
+          description="This section pulls from the Shared Data Manager so it can be reused across pages."
+          ctaLabel="Go to Shared Data Manager"
+          ctaHref={route('backend.cms.shared.index')}
+        />
       )}
 
-      {/* Jobs Data Preview */}
+      {/* Jobs preview */}
       {isPreviewOpen && isJobs && !isTrashed && (
-        <tr>
-          <td colSpan="7" className="px-4 py-6 bg-purple-50/40 border-t border-purple-200">
-            <div className="flex flex-col items-center justify-center gap-3 text-center py-8">
-              <div className="w-16 h-16 bg-purple-100 rounded-2xl flex items-center justify-center">
-                <FaBriefcase className="text-purple-500 text-3xl" />
-              </div>
-              <h3 className="text-lg font-semibold text-purple-700">Jobs Section</h3>
-              <p className="text-gray-600 max-w-md text-sm">
-                This section displays job listings. The data comes from the <strong>Jobs</strong> system.
-                To edit job listings, please go to the Job Listings Manager.
-              </p>
-              <button
-                onClick={() => {
-                  window.location.href = route('backend.listing.index');
-                }}
-                className="mt-2 px-6 py-2.5 bg-purple-600 text-white rounded-xl hover:bg-purple-700 transition-all shadow-lg shadow-purple-200 flex items-center gap-2 font-medium text-sm hover:scale-[1.02]"
-              >
-                <FaExternalLinkAlt size={14} />
-                Go to Job Listings
-              </button>
-            </div>
-          </td>
-        </tr>
+        <PreviewNotice
+          tone="violet"
+          icon={FaBriefcase}
+          title="Jobs section"
+          description="Job listings are managed in the Job Manager."
+          ctaLabel="Go to Job Listings"
+          ctaHref={route('backend.listing.index')}
+        />
       )}
 
-      {/* Programs Data Preview */}
+      {/* Programs preview */}
       {isPreviewOpen && isPrograms && !isTrashed && (
-        <tr>
-          <td colSpan="7" className="px-4 py-6 bg-orange-50/40 border-t border-orange-200">
-            <div className="flex flex-col items-center justify-center gap-3 text-center py-8">
-              <div className="w-16 h-16 bg-orange-100 rounded-2xl flex items-center justify-center">
-                <FaList className="text-orange-500 text-3xl" />
-              </div>
-              <h3 className="text-lg font-semibold text-orange-700">Programs Section</h3>
-              <p className="text-gray-600 max-w-md text-sm">
-                This section displays programs and projects. The data comes from the <strong>Programs</strong> system.
-                To edit programs, please go to the Program Manager.
-              </p>
-              <button
-                onClick={() => {
-                  window.location.href = route('backend.cms.programs.index');
-                }}
-                className="mt-2 px-6 py-2.5 bg-orange-600 text-white rounded-xl hover:bg-orange-700 transition-all shadow-lg shadow-orange-200 flex items-center gap-2 font-medium text-sm hover:scale-[1.02]"
-              >
-                <FaExternalLinkAlt size={14} />
-                Go to Program Manager
-              </button>
-            </div>
-          </td>
-        </tr>
+        <PreviewNotice
+          tone="orange"
+          icon={FaList}
+          title="Programs section"
+          description="Programs are managed in the Program Manager."
+          ctaLabel="Go to Program Manager"
+          ctaHref={route('backend.cms.programs.index')}
+        />
       )}
 
-      {/* Publications Data Preview */}
+      {/* Publications preview */}
       {isPreviewOpen && isPublications && !isTrashed && (
-        <tr>
-          <td colSpan="7" className="px-4 py-6 bg-indigo-50/40 border-t border-indigo-200">
-            <div className="flex flex-col items-center justify-center gap-3 text-center py-8">
-              <div className="w-16 h-16 bg-indigo-100 rounded-2xl flex items-center justify-center">
-                <FaFileAlt className="text-indigo-500 text-3xl" />
-              </div>
-              <h3 className="text-lg font-semibold text-indigo-700">Publications Section</h3>
-              <p className="text-gray-600 max-w-md text-sm">
-                This section displays publications. The data comes from the <strong>Publications</strong> system.
-                To edit publications, please go to the Publications Manager.
-              </p>
-              <button
-                onClick={() => {
-                  window.location.href = route('backend.cms.publications.index');
-                }}
-                className="mt-2 px-6 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200 flex items-center gap-2 font-medium text-sm hover:scale-[1.02]"
-              >
-                <FaExternalLinkAlt size={14} />
-                Go to Publications Manager
-              </button>
-            </div>
-          </td>
-        </tr>
+        <PreviewNotice
+          tone="indigo"
+          icon={FaFileAlt}
+          title="Publications section"
+          description="Publications are managed in the Publications Manager."
+          ctaLabel="Go to Publications Manager"
+          ctaHref={route('backend.cms.publications.index')}
+        />
       )}
     </Fragment>
   );

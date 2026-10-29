@@ -1,62 +1,35 @@
 // resources/js/pages/Backend/CMS/Sections/components/modals/Editors/ContactReachEditor.jsx
 
-// React
 import { useState, useEffect } from 'react';
-
-// Shared Components
+import { FaImage, FaInfoCircle } from 'react-icons/fa';
+import EditorSection from '../../pages/Backend/CMS/Shared/components/EditorSection';
 import { TextField } from '../../Shared/SectionEditor/Fields';
 import ImageUpload from '../../Shared/SectionEditor/ImageUpload';
 import { useImageUpload } from '../../Shared/SectionEditor/useImageUpload';
 
 const ContactReachEditor = ({ section, hasData, onDataChange }) => {
-  // STATE MANAGEMENT
-  // Get initial data from section prop
   const initialData = section?.data?.data || section?.data || {};
-
-  // State to hold all form data
   const [formData, setFormData] = useState(initialData);
-
-  // Custom hook to handle image upload functionality
   const image = useImageUpload(initialData?.image || '');
 
-  // Notify parent component when form data changes
-  useEffect(() => {
-    if (onDataChange) {
-      onDataChange(formData);
-    }
-  }, [formData, onDataChange]);
+  useEffect(() => { onDataChange?.(formData); }, [formData, onDataChange]);
 
-  // HELPER FUNCTIONS
+  const updateField = (field, value) => setFormData((prev) => ({ ...prev, [field]: value }));
 
-  // Update top-level fields (e.g., title, buttonText, image)
-  const updateField = (field, value) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-  };
-
-  // EMPTY STATE
-  // Show message when no data exists
   if (!hasData || !formData || Object.keys(formData).length === 0) {
     return (
-      <div className="bg-white rounded-lg border border-gray-200 p-4">
-        <h3 className="text-sm font-semibold text-gray-700 mb-3">Edit Contact Reach Data</h3>
-        <div className="text-center py-8 text-gray-400">
-          <p className="text-sm">No data available to edit</p>
-          <p className="text-xs mt-1">Data will appear here once the section has content</p>
-        </div>
+      <div className="rounded-lg border-2 border-dashed border-slate-200 bg-slate-50/40 px-6 py-10 text-center">
+        <p className="text-sm font-medium text-slate-600">No data yet</p>
+        <p className="mt-0.5 text-xs text-slate-400">Click <span className="font-medium text-blue-600">Save Changes</span> to seed the initial structure</p>
       </div>
     );
   }
 
-  // MAIN RENDER
   return (
-    <div className="bg-white rounded-lg border border-gray-200 p-4">
-      <h3 className="text-sm font-semibold text-gray-700 mb-3">Edit Contact Reach Data</h3>
-
-      {/* IMAGE SECTION */}
-      {/* Upload and manage the main image for the contact reach section */}
-      <div className="mb-4">
-        <h4 className="text-sm font-medium text-gray-600 mb-2">Image</h4>
+    <div className="space-y-5">
+      <EditorSection icon={FaImage} title="Image" description="Supporting image shown beside the contact form" tone="blue">
         <ImageUpload
+          label=""
           imageSrc={image.imageSrc}
           onImageChange={(src) => {
             image.handleImageChange(src);
@@ -69,80 +42,37 @@ const ContactReachEditor = ({ section, hasData, onDataChange }) => {
           oldImagePath={image.oldImagePath}
           imageChanged={image.imageChanged}
           uploadPath="/storage/ContactUs/"
+          className="h-20 w-24 rounded-lg object-cover ring-1 ring-slate-200"
         />
-      </div>
+      </EditorSection>
 
-      {/* CONTENT SECTION */}
-      {/* Text fields for title and button text */}
-      <div className="mb-4">
-        <h4 className="text-sm font-medium text-gray-600 mb-2">Content</h4>
-        <div className="space-y-3">
-          <TextField
-            label="Title"
-            value={formData.title || ''}
-            onChange={(e) => updateField('title', e.target.value)}
-            placeholder="Reach out to us today!"
-          />
-          <TextField
-            label="Button Text"
-            value={formData.buttonText || ''}
-            onChange={(e) => updateField('buttonText', e.target.value)}
-            placeholder="Submit Message"
-          />
+      <EditorSection icon={FaInfoCircle} title="Content" description="Title and submit-button text" tone="emerald">
+        <TextField label="Title" value={formData.title || ''}
+          onChange={(e) => updateField('title', e.target.value)}
+          placeholder="Reach out to us today!" />
+        <TextField label="Button text" value={formData.buttonText || ''}
+          onChange={(e) => updateField('buttonText', e.target.value)}
+          placeholder="Submit Message" />
+      </EditorSection>
+
+      <div className="grid grid-cols-2 gap-2 rounded-lg border border-slate-200 bg-slate-50/60 p-3 text-xs md:grid-cols-4">
+        <div>
+          <span className="block text-slate-400">Section ID</span>
+          <span className="font-mono text-slate-700">{section.id}</span>
         </div>
-      </div>
-
-      {/* PREVIEW SECTION */}
-      {/* Shows a preview of the current data for quick reference */}
-      <div className="mb-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
-        <h4 className="text-sm font-medium text-gray-600 mb-2">Preview</h4>
-        <div className="space-y-2">
-          {/* Title preview */}
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-gray-500">Title:</span>
-            <span className="text-sm text-gray-700 font-medium">
-              {formData.title || 'Not set'}
-            </span>
-          </div>
-          {/* Button text preview */}
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-gray-500">Button:</span>
-            <span className="text-sm text-blue-600">
-              {formData.buttonText || 'Not set'}
-            </span>
-          </div>
-          {/* Image preview */}
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-gray-500">Image:</span>
-            <span className="text-sm text-gray-500 truncate max-w-48">
-              {formData.image ? (formData.image.startsWith('data:image') ? 'New image' : formData.image) : 'No image'}
-            </span>
-          </div>
+        <div>
+          <span className="block text-slate-400">Data table</span>
+          <span className="font-mono text-slate-700">{section.data_table || '—'}</span>
         </div>
-      </div>
-
-      {/* DATA INFORMATION */}
-      {/* Display metadata about the section for reference */}
-      <div className="mt-4 bg-gray-50 rounded-lg p-4 border border-gray-200">
-        <div className="grid grid-cols-2 gap-3 text-sm">
-          <div>
-            <span className="text-gray-500">Section ID:</span>
-            <span className="ml-2 text-gray-700 font-mono">{section.id}</span>
-          </div>
-          <div>
-            <span className="text-gray-500">Data Table:</span>
-            <span className="ml-2 text-gray-700 font-mono">{section.data_table || 'None'}</span>
-          </div>
-          <div>
-            <span className="text-gray-500">Data Key:</span>
-            <span className="ml-2 text-gray-700 font-mono">{section.data_key || 'None'}</span>
-          </div>
-          <div>
-            <span className="text-gray-500">Has Data:</span>
-            <span className={`ml-2 font-medium ${hasData ? 'text-green-600' : 'text-gray-400'}`}>
-              {hasData ? '✓ Yes' : 'No'}
-            </span>
-          </div>
+        <div>
+          <span className="block text-slate-400">Data key</span>
+          <span className="font-mono text-slate-700">{section.data_key || '—'}</span>
+        </div>
+        <div>
+          <span className="block text-slate-400">Status</span>
+          <span className={`font-medium ${hasData ? 'text-emerald-600' : 'text-slate-400'}`}>
+            {hasData ? 'Has data' : 'Empty'}
+          </span>
         </div>
       </div>
     </div>

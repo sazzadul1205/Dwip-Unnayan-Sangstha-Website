@@ -1,7 +1,7 @@
 // resources/js/pages/Backend/CMS/Sections/components/modals/Editors/shared/ImageUpload.jsx
 
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { FaUpload, FaTimes, FaSpinner } from 'react-icons/fa';
+import { FaUpload, FaTimes, FaCheckCircle, FaExclamationCircle } from 'react-icons/fa';
 import Swal from 'sweetalert2';
 
 const ImageUpload = ({
@@ -10,184 +10,165 @@ const ImageUpload = ({
   onImageRemove,
   oldImagePath = '',
   imageChanged = false,
-  uploadPath = '/storage/',
   label = 'Image',
-  className = 'w-24 h-20 object-cover rounded-lg',
+  className = 'h-16 w-16 rounded-lg object-cover ring-1 ring-slate-200',
   maxSize = 5 * 1024 * 1024,
   acceptTypes = 'image/*',
   isUploading = false,
   uploadError = null,
+  dropzoneText = 'Drop an image or click to browse',
+  acceptedFileTypes = 'JPEG, PNG, GIF, WebP, SVG',
+  maxFileSize = 5,
+  previewClassName = null,
 }) => {
   const [dragActive, setDragActive] = useState(false);
   const [previewError, setPreviewError] = useState(false);
   const fileInputRef = useRef(null);
 
-  useEffect(() => {
-    setPreviewError(false);
-  }, [imageSrc]);
+  useEffect(() => { setPreviewError(false); }, [imageSrc]);
 
-  // Define processFile BEFORE it's used in callbacks
   const processFile = useCallback((file) => {
-    // Check file type
     if (!file.type.startsWith('image/')) {
       Swal.fire({
-        icon: 'error',
-        title: 'Invalid File',
-        text: `Please select an image file (JPEG, PNG, GIF, WebP, SVG)`,
+        icon: 'error', title: 'Invalid file',
+        text: 'Please select an image file.',
         confirmButtonColor: '#3b82f6',
       });
       return;
     }
-
-    // Check file size
     if (file.size > maxSize) {
       Swal.fire({
-        icon: 'error',
-        title: 'File Too Large',
-        text: `Image size should be less than ${maxSize / (1024 * 1024)}MB`,
+        icon: 'error', title: 'File too large',
+        text: `Image size must be under ${maxSize / (1024 * 1024)}MB.`,
         confirmButtonColor: '#3b82f6',
       });
       return;
     }
-
-    // Read the file
     const reader = new FileReader();
-    reader.onload = (event) => {
-      onImageChange(event.target.result);
-    };
-    reader.onerror = () => {
-      Swal.fire({
-        icon: 'error',
-        title: 'Error',
-        text: 'Failed to read the image file',
-        confirmButtonColor: '#3b82f6',
-      });
-    };
+    reader.onload = (event) => onImageChange(event.target.result);
+    reader.onerror = () => Swal.fire({
+      icon: 'error', title: 'Error',
+      text: 'Failed to read the image file.',
+      confirmButtonColor: '#3b82f6',
+    });
     reader.readAsDataURL(file);
   }, [maxSize, onImageChange]);
 
   const handleDrag = useCallback((e) => {
     e.preventDefault();
     e.stopPropagation();
-    if (e.type === "dragenter" || e.type === "dragover") {
-      setDragActive(true);
-    } else if (e.type === "dragleave") {
-      setDragActive(false);
-    }
+    if (e.type === 'dragenter' || e.type === 'dragover') setDragActive(true);
+    else if (e.type === 'dragleave') setDragActive(false);
   }, []);
 
   const handleDrop = useCallback((e) => {
     e.preventDefault();
     e.stopPropagation();
     setDragActive(false);
-    const files = e.dataTransfer.files;
-    if (files && files[0]) {
-      processFile(files[0]);
-    }
+    const file = e.dataTransfer.files?.[0];
+    if (file) processFile(file);
   }, [processFile]);
 
   const handleFileSelect = useCallback((e) => {
-    const file = e.target.files[0];
-    if (file) {
-      processFile(file);
-    }
+    const file = e.target.files?.[0];
+    if (file) processFile(file);
     e.target.value = '';
   }, [processFile]);
 
-  const getDisplayPath = useCallback((src) => {
+  const displayPath = (src) => {
     if (!src) return '';
-    if (src.startsWith('data:image')) {
-      return '📤 New image (will be uploaded)';
-    }
-    if (src.length > 50) {
-      return `${src.substring(0, 50)}...`;
-    }
-    return src;
-  }, []);
+    if (src.startsWith('data:image')) return 'New image (pending upload)';
+    return src.length > 55 ? `${src.substring(0, 55)}…` : src;
+  };
 
-  const handleImageError = useCallback(() => {
-    setPreviewError(true);
-  }, []);
+  const previewClass = previewClassName || className;
 
   return (
     <div>
-      <label className="block text-xs text-gray-500 mb-1">{label}</label>
+      {label && (
+        <label className="mb-1.5 block text-xs font-medium text-slate-600">{label}</label>
+      )}
       <div
-        className={`relative border-2 border-dashed rounded-lg p-4 transition-all ${dragActive ? 'border-blue-500 bg-blue-50' :
-          uploadError ? 'border-red-500 bg-red-50' :
-            'border-gray-300 hover:border-gray-400'
-          } ${isUploading ? 'opacity-50' : ''}`}
+        className={`relative rounded-lg border-2 border-dashed p-3 transition-all ${dragActive
+            ? 'border-blue-500 bg-blue-50/60'
+            : uploadError
+              ? 'border-red-300 bg-red-50/40'
+              : 'border-slate-200 bg-slate-50/40 hover:border-slate-300'
+          } ${isUploading ? 'pointer-events-none opacity-60' : ''}`}
         onDragEnter={handleDrag}
         onDragLeave={handleDrag}
         onDragOver={handleDrag}
         onDrop={handleDrop}
       >
         {imageSrc ? (
-          <div className="flex items-center gap-4">
-            {!previewError ? (
-              <img
-                src={imageSrc}
-                alt="Uploaded image"
-                className={className}
-                onError={handleImageError}
-              />
-            ) : (
-              <div className={`${className} bg-gray-200 flex items-center justify-center text-gray-400`}>
-                <FaUpload size={24} />
-              </div>
-            )}
-            <div className="flex-1 min-w-0">
-              <p className="text-sm text-gray-600 font-medium">Image uploaded</p>
-              <p className="text-xs text-gray-400 truncate">
-                {getDisplayPath(imageSrc)}
-              </p>
+          <div className="flex items-center gap-3">
+            <div className="relative shrink-0">
+              {!previewError ? (
+                <img
+                  src={imageSrc}
+                  alt="Uploaded"
+                  className={previewClass}
+                  onError={() => setPreviewError(true)}
+                />
+              ) : (
+                <div className={`${previewClass} flex items-center justify-center bg-slate-100 text-slate-400`}>
+                  <FaUpload size={18} />
+                </div>
+              )}
+              <span className="absolute -right-1 -top-1 rounded-full bg-emerald-500 p-0.5 text-white ring-2 ring-white">
+                <FaCheckCircle size={10} />
+              </span>
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-medium text-slate-700">Image ready</p>
+              <p className="mt-0.5 truncate text-xs text-slate-400">{displayPath(imageSrc)}</p>
               {imageChanged && oldImagePath && (
-                <p className="text-xs text-yellow-600 mt-1">
-                  ⚠️ Old image will be deleted on save: {getDisplayPath(oldImagePath)}
+                <p className="mt-0.5 flex items-center gap-1 text-[11px] text-amber-600">
+                  <FaExclamationCircle size={9} /> Old image removed on save
                 </p>
               )}
               {uploadError && (
-                <p className="text-xs text-red-500 mt-1">
-                  ❌ {uploadError}
+                <p className="mt-0.5 flex items-center gap-1 text-[11px] text-red-600">
+                  <FaExclamationCircle size={9} /> {uploadError}
                 </p>
               )}
             </div>
             <button
               type="button"
               onClick={onImageRemove}
-              className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition shrink-0"
               disabled={isUploading}
+              className="shrink-0 rounded-md p-1.5 text-slate-400 transition hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
+              aria-label="Remove image"
             >
-              <FaTimes size={16} />
+              <FaTimes size={12} />
             </button>
           </div>
         ) : (
-          <div className="flex flex-col items-center justify-center py-6 text-gray-400">
-            <FaUpload size={32} className="mb-2" />
-            <p className="text-sm font-medium">Drag & drop an image here, or click to browse</p>
-            <p className="text-xs mt-1">Supports JPEG, PNG, GIF, WebP, SVG (max {maxSize / (1024 * 1024)}MB)</p>
-            <p className="text-xs text-blue-500 mt-2">
-              📁 Image will be saved to {uploadPath}
-            </p>
+          <div className="flex flex-col items-center justify-center gap-2 py-4 text-center">
+            <div className="rounded-full bg-blue-100 p-2.5 text-blue-600">
+              <FaUpload size={14} />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-slate-700">{dropzoneText}</p>
+              <p className="mt-0.5 text-xs text-slate-400">
+                {acceptedFileTypes} · max {maxFileSize}MB
+              </p>
+            </div>
           </div>
         )}
-
-        {/* Hidden file input */}
         <input
-          type="file"
           ref={fileInputRef}
+          type="file"
           accept={acceptTypes}
           onChange={handleFileSelect}
-          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+          className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
           disabled={isUploading}
         />
-
-        {/* Show uploading indicator */}
         {isUploading && (
-          <div className="absolute inset-0 flex items-center justify-center bg-white/80 rounded-lg">
-            <div className="flex flex-col items-center gap-2">
-              <FaSpinner className="animate-spin h-8 w-8 text-blue-600" />
-              <span className="text-sm text-gray-600">Uploading...</span>
+          <div className="absolute inset-0 flex items-center justify-center rounded-lg bg-white/70 backdrop-blur-sm">
+            <div className="flex items-center gap-2 text-sm text-slate-600">
+              <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-blue-200 border-t-blue-600" />
+              Uploading…
             </div>
           </div>
         )}
