@@ -1,4 +1,4 @@
-// resources/js/pages/Backend/CMS/Sections/components/modals/Editors/shared/ArrayManager.jsx
+// resources/js/Shared/SectionEditor/ArrayManager.jsx
 
 import React from 'react';
 import { FaTrash, FaPlus, FaInbox } from 'react-icons/fa';

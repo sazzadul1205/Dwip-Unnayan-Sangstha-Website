@@ -1,4 +1,4 @@
-// js/Sections/PublicationsSection/PublicationsSection.jsx
+// resources/js/Sections/PublicationsSection/PublicationsSection.jsx
 
 // React
 import React, { useState } from 'react';
@@ -114,8 +114,8 @@ const PublicationsSkeleton = ({ viewMode = 'grid', count = 6 }) => (
 const PublicationsSection = ({
   data,
   publicationsData,
-  loading = false,               // ← NEW
-  skeletonCount = 6,             // ← NEW
+  loading = false,               // â† NEW
+  skeletonCount = 6,             // â† NEW
   mainPublication = null,
   publicationItems = [],
   sectionTitle = null,
@@ -413,7 +413,7 @@ const PublicationsSection = ({
                   {hasValue(publication.views) && (
                     <>
                       {hasValue(publication.author) && (
-                        <span className="text-[11px] sm:text-[12px] md:text-[13px] lg:text-[14px] text-gray-500">•</span>
+                        <span className="text-[11px] sm:text-[12px] md:text-[13px] lg:text-[14px] text-gray-500">â€¢</span>
                       )}
                       <span className="flex items-center gap-1 text-[11px] sm:text-[12px] md:text-[13px] lg:text-[14px] text-gray-500">
                         <Eye size={14} />
@@ -424,7 +424,7 @@ const PublicationsSection = ({
                   {hasValue(publication.readTime) && (
                     <>
                       {(hasValue(publication.author) || hasValue(publication.views)) && (
-                        <span className="text-[11px] sm:text-[12px] md:text-[13px] lg:text-[14px] text-gray-500">•</span>
+                        <span className="text-[11px] sm:text-[12px] md:text-[13px] lg:text-[14px] text-gray-500">â€¢</span>
                       )}
                       <span className="flex items-center gap-1 text-[11px] sm:text-[12px] md:text-[13px] lg:text-[14px] text-gray-500">
                         <Calendar size={14} />

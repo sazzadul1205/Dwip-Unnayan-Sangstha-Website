@@ -24,7 +24,7 @@ const SectionLoader = ({ message = 'Loading section...' }) => {
         {/* Body lines */}
         <SkeletonText lines={3} lineClassName="h-4 sm:h-4.5 lg:h-5" />
 
-        {/* Big block — generic image/table/card area */}
+        {/* Big block â€” generic image/table/card area */}
         <Skeleton className="h-48 sm:h-64 md:h-80 w-full rounded-2xl mt-8" />
       </div>
     </div>

@@ -1,4 +1,4 @@
-// resources/js/pages/Backend/CMS/Sections/components/modals/Editors/AboutUsEditor.jsx
+// resources/js/Sections/AboutUsSection/AboutUsEditor.jsx
 
 import { useCallback } from 'react';
 import { FaPlus, FaInfoCircle, FaList, FaImage, FaChartBar } from 'react-icons/fa';
@@ -131,7 +131,7 @@ const AboutUsEditor = ({ section, hasData, onDataChange }) => {
       {isDirty && (
         <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
           <FaInfoCircle size={12} className="mt-0.5 shrink-0 text-amber-500" />
-          Unsaved changes — click <strong className="mx-0.5">Save Changes</strong> to apply.
+          Unsaved changes â€” click <strong className="mx-0.5">Save Changes</strong> to apply.
         </div>
       )}
 
@@ -158,7 +158,7 @@ const AboutUsEditor = ({ section, hasData, onDataChange }) => {
       <EditorSection
         icon={FaList}
         title="Mission Items"
-        description={`${missionItems.length} item${missionItems.length === 1 ? '' : 's'} • Icons, titles, and descriptions`}
+        description={`${missionItems.length} item${missionItems.length === 1 ? '' : 's'} â€¢ Icons, titles, and descriptions`}
         tone="emerald"
         action={
           <button type="button"
@@ -193,7 +193,7 @@ const AboutUsEditor = ({ section, hasData, onDataChange }) => {
       <EditorSection
         icon={FaChartBar}
         title="Impact Stats"
-        description={`${impactStats.length} stat${impactStats.length === 1 ? '' : 's'} • Value, suffix, and label`}
+        description={`${impactStats.length} stat${impactStats.length === 1 ? '' : 's'} â€¢ Value, suffix, and label`}
         tone="orange"
         action={
           <button type="button"
@@ -247,11 +247,11 @@ const AboutUsEditor = ({ section, hasData, onDataChange }) => {
         </div>
         <div>
           <span className="block text-slate-400">Data table</span>
-          <span className="font-mono text-slate-700">{section.data_table || '—'}</span>
+          <span className="font-mono text-slate-700">{section.data_table || 'â€”'}</span>
         </div>
         <div>
           <span className="block text-slate-400">Data key</span>
-          <span className="font-mono text-slate-700">{section.data_key || '—'}</span>
+          <span className="font-mono text-slate-700">{section.data_key || 'â€”'}</span>
         </div>
         <div>
           <span className="block text-slate-400">Status</span>

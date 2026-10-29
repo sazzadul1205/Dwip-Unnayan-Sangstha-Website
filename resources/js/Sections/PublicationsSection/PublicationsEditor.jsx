@@ -1,4 +1,4 @@
-// resources/js/pages/Backend/CMS/Sections/components/modals/Editors/PublicationsEditor.jsx
+// resources/js/Sections/PublicationsSection/PublicationsEditor.jsx
 
 import { FaFileAlt } from 'react-icons/fa';
 import ExternalManagerRedirect from '../../Shared/SectionEditor/ExternalManagerRedirect';

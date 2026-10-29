@@ -1,4 +1,4 @@
-// resources/js/pages/Backend/CMS/Sections/components/modals/Editors/shared/useSectionEditor.js
+// resources/js/Shared/SectionEditor/useSectionEditor.js
 
 import { useState, useEffect, useCallback } from 'react';
 

@@ -1,4 +1,4 @@
-// resources/js/pages/Backend/CMS/Sections/components/modals/Editors/shared/ImageUpload.jsx
+// resources/js/Shared/SectionEditor/ImageUpload.jsx
 
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { FaUpload, FaTimes, FaCheckCircle, FaExclamationCircle } from 'react-icons/fa';
@@ -78,7 +78,7 @@ const ImageUpload = ({
   const displayPath = (src) => {
     if (!src) return '';
     if (src.startsWith('data:image')) return 'New image (pending upload)';
-    return src.length > 55 ? `${src.substring(0, 55)}…` : src;
+    return src.length > 55 ? `${src.substring(0, 55)}â€¦` : src;
   };
 
   const previewClass = previewClassName || className;
@@ -151,7 +151,7 @@ const ImageUpload = ({
             <div>
               <p className="text-sm font-medium text-slate-700">{dropzoneText}</p>
               <p className="mt-0.5 text-xs text-slate-400">
-                {acceptedFileTypes} · max {maxFileSize}MB
+                {acceptedFileTypes} Â· max {maxFileSize}MB
               </p>
             </div>
           </div>
@@ -168,7 +168,7 @@ const ImageUpload = ({
           <div className="absolute inset-0 flex items-center justify-center rounded-lg bg-white/70 backdrop-blur-sm">
             <div className="flex items-center gap-2 text-sm text-slate-600">
               <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-blue-200 border-t-blue-600" />
-              Uploading…
+              Uploadingâ€¦
             </div>
           </div>
         )}

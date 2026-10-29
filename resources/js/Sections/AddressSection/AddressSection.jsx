@@ -1,4 +1,4 @@
-// js/Sections/AddressSection/AddressSection.jsx
+// resources/js/Sections/AddressSection/AddressSection.jsx
 
 // React
 import React, { useState, useEffect, useMemo } from 'react';
@@ -91,7 +91,7 @@ const AddressSkeleton = ({ tabCount = 3 }) => (
           <div className="flex-1 w-full">
             {/* "Address" label */}
             <Skeleton className="h-3 w-16 mb-2" />
-            {/* Address text — 2 lines */}
+            {/* Address text â€” 2 lines */}
             <Skeleton className="h-4 sm:h-5 w-full mb-1.5" />
             <Skeleton className="h-4 sm:h-5 w-2/3" />
           </div>
@@ -111,8 +111,8 @@ const AddressSection = ({
   data,
   addressData,
   officesLocation,
-  loading = false,               // ← NEW
-  skeletonTabCount = 3,          // ← NEW
+  loading = false,               // â† NEW
+  skeletonTabCount = 3,          // â† NEW
   bgColor = 'bg-[#F5F5F5]',
   paddingY = 'py-10 sm:py-14 lg:py-37.5',
   paddingX = 'px-4 sm:px-6 lg:px-50',

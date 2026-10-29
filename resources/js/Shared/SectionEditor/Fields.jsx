@@ -1,4 +1,4 @@
-// resources/js/pages/Backend/CMS/Sections/components/modals/Editors/shared/Fields.jsx
+// resources/js/Shared/SectionEditor/Fields.jsx
 
 import React from 'react';
 import { FaExclamationCircle } from 'react-icons/fa';

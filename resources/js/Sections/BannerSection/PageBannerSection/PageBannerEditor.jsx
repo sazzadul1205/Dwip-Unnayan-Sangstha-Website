@@ -1,4 +1,4 @@
-// resources/js/pages/Backend/CMS/Sections/components/modals/Editors/PageBannerEditor.jsx
+// resources/js/Sections/BannerSection/PageBannerSection/PageBannerEditor.jsx
 
 import { useState, useEffect } from 'react';
 
@@ -121,7 +121,7 @@ const PageBannerEditor = ({ section, hasData, onDataChange }) => {
           <div className="space-y-2">
             <TextField label="Text" value={formData.content?.description?.text || ''}
               onChange={(e) => updateField('content.description.text', e.target.value)}
-              placeholder="Our mission is to help…" />
+              placeholder="Our mission is to helpâ€¦" />
             <TextField label="Class name" value={formData.content?.description?.className || 'font-normal leading-tight'}
               onChange={(e) => updateField('content.description.className', e.target.value)}
               placeholder="CSS classes" />
@@ -136,11 +136,11 @@ const PageBannerEditor = ({ section, hasData, onDataChange }) => {
         </div>
         <div>
           <span className="block text-slate-400">Data table</span>
-          <span className="font-mono text-slate-700">{section.data_table || '—'}</span>
+          <span className="font-mono text-slate-700">{section.data_table || 'â€”'}</span>
         </div>
         <div>
           <span className="block text-slate-400">Data key</span>
-          <span className="font-mono text-slate-700">{section.data_key || '—'}</span>
+          <span className="font-mono text-slate-700">{section.data_key || 'â€”'}</span>
         </div>
         <div>
           <span className="block text-slate-400">Status</span>

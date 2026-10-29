@@ -1,4 +1,4 @@
-// resources/js/pages/Backend/CMS/Sections/components/modals/Editors/FAQEditor.jsx
+// resources/js/Sections/FAQSection/FAQEditor.jsx
 
 import { FaQuestionCircle } from 'react-icons/fa';
 import ExternalManagerRedirect from '../../Shared/SectionEditor/ExternalManagerRedirect';

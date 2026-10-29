@@ -1,4 +1,4 @@
-// resources/js/pages/Backend/CMS/Sections/components/modals/Editors/AddressEditor.jsx
+// resources/js/Sections/AddressSection/AddressEditor.jsx
 
 import React, { useState, useEffect } from 'react';
 import {
@@ -89,7 +89,7 @@ const AddressEditor = ({ section, onDataChange }) => {
       <EditorSection
         icon={FaAddressCard}
         title="Addresses"
-        description={`${formData.length} address${formData.length === 1 ? '' : 'es'} • Each address can have multiple phones and emails`}
+        description={`${formData.length} address${formData.length === 1 ? '' : 'es'} â€¢ Each address can have multiple phones and emails`}
         tone="emerald"
         action={
           <button
@@ -149,7 +149,7 @@ const AddressEditor = ({ section, onDataChange }) => {
                         value={address.address || ''}
                         onChange={(e) => updateArrayItem(index, 'address', e.target.value)}
                         rows={2} className={`${inputClass} resize-y`}
-                        placeholder="24/5 Mollika, Prominent Housing…"
+                        placeholder="24/5 Mollika, Prominent Housingâ€¦"
                       />
                     </div>
                     <div>
@@ -158,7 +158,7 @@ const AddressEditor = ({ section, onDataChange }) => {
                         type="text" value={address.mapUrl || ''}
                         onChange={(e) => updateArrayItem(index, 'mapUrl', e.target.value)}
                         className={inputClass}
-                        placeholder="https://www.google.com/maps?q=…&output=embed"
+                        placeholder="https://www.google.com/maps?q=â€¦&output=embed"
                       />
                     </div>
                   </div>
@@ -292,11 +292,11 @@ const AddressEditor = ({ section, onDataChange }) => {
         </div>
         <div>
           <span className="block text-slate-400">Data table</span>
-          <span className="font-mono text-slate-700">{section.data_table || '—'}</span>
+          <span className="font-mono text-slate-700">{section.data_table || 'â€”'}</span>
         </div>
         <div>
           <span className="block text-slate-400">Data key</span>
-          <span className="font-mono text-slate-700">{section.data_key || '—'}</span>
+          <span className="font-mono text-slate-700">{section.data_key || 'â€”'}</span>
         </div>
         <div>
           <span className="block text-slate-400">Addresses</span>

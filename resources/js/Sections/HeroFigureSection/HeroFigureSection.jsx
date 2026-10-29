@@ -1,4 +1,4 @@
-// js/Sections/HeroFigureSection/HeroFigureSection.jsx
+// resources/js/Sections/HeroFigureSection/HeroFigureSection.jsx
 
 // React
 import React, { useState } from 'react';
@@ -20,7 +20,7 @@ const HeroTextSkeleton = () => (
     {/* Title */}
     <Skeleton className="h-8 sm:h-9 md:h-10 lg:h-11 xl:h-12 2xl:h-13 w-5/6 mb-2 sm:mb-3" />
 
-    {/* HTML content — ~5 short lines */}
+    {/* HTML content â€” ~5 short lines */}
     <SkeletonText
       lines={5}
       lineClassName="h-3.5 sm:h-4 md:h-4.5 lg:h-5 xl:h-5.5"
@@ -66,7 +66,7 @@ const HeroFigureSkeleton = ({ isImageLeft = false }) => (
 const HeroFigureSection = ({
   data,
   heroData,
-  loading = false,               // ← NEW
+  loading = false,               // â† NEW
   sectionId = 'hero-figure',
   layout = 'text-left',
   bgColor = 'bg-white',

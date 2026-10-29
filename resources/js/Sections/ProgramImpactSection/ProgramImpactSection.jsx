@@ -1,4 +1,4 @@
-// js/Sections/ProgramImpactSection/ProgramImpactSection.jsx
+// resources/js/Sections/ProgramImpactSection/ProgramImpactSection.jsx
 
 // React
 import React, { useState } from 'react';
@@ -15,7 +15,7 @@ import { hasValue, getPlaceholderImage } from '../../utils/sectionHelpers';
 // ============================================
 const ProgramImpactSkeleton = ({ sdgCount = 6 }) => (
   <>
-    {/* Carousel block — matches real: pb-6 → xl:pb-15, rounded, tall image */}
+    {/* Carousel block â€” matches real: pb-6 â†’ xl:pb-15, rounded, tall image */}
     <div className="w-full flex flex-col items-center pb-6 sm:pb-8 md:pb-10 lg:pb-12 xl:pb-15">
       <div className="w-full">
         <div className="relative overflow-hidden rounded-xl sm:rounded-2xl">
@@ -27,7 +27,7 @@ const ProgramImpactSkeleton = ({ sdgCount = 6 }) => (
     {/* Title */}
     <Skeleton className="h-5 sm:h-5.5 md:h-6 lg:h-6.5 xl:h-7 2xl:h-8 w-1/2 sm:w-1/3 mb-3 sm:mb-4 md:mb-5 lg:mb-6" />
 
-    {/* SDG grid — matches real: 2 / 3 / 4 / 5 / 6 cols */}
+    {/* SDG grid â€” matches real: 2 / 3 / 4 / 5 / 6 cols */}
     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4 md:gap-5 lg:gap-6 xl:gap-7">
       {Array.from({ length: sdgCount }).map((_, i) => (
         <Skeleton
@@ -45,8 +45,8 @@ const ProgramImpactSkeleton = ({ sdgCount = 6 }) => (
 const ProgramImpactSection = ({
   data,
   impactData,
-  loading = false,               // ← NEW
-  skeletonSdgCount = 6,          // ← NEW
+  loading = false,               // â† NEW
+  skeletonSdgCount = 6,          // â† NEW
   bgColor = 'bg-white',
   paddingY = 'py-12 sm:py-16 md:py-20 lg:py-25 xl:py-30 2xl:py-37.5',
   paddingX = 'px-5 sm:px-8 md:px-12 lg:px-20 xl:px-30 2xl:px-50',

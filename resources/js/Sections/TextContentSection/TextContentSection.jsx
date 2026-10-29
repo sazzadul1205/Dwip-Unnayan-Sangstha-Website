@@ -1,4 +1,4 @@
-// js/Sections/TextContentSection/TextContentSection.jsx
+// resources/js/Sections/TextContentSection/TextContentSection.jsx
 
 import React from 'react';
 import { sanitizeHTML, hasValue } from '../../utils/sectionHelpers';
@@ -17,7 +17,7 @@ const TextContentSkeleton = () => (
     {/* H1 */}
     <Skeleton className="h-8 sm:h-10 lg:h-12 w-3/4 mb-6" />
 
-    {/* Paragraph 1 — 5 lines */}
+    {/* Paragraph 1 â€” 5 lines */}
     <SkeletonText
       lines={5}
       lineClassName="h-4 sm:h-4.5 lg:h-5"
@@ -27,14 +27,14 @@ const TextContentSkeleton = () => (
     {/* H2 */}
     <Skeleton className="h-6 sm:h-8 lg:h-9 w-1/2 mb-4 mt-8" />
 
-    {/* Paragraph 2 — 4 lines */}
+    {/* Paragraph 2 â€” 4 lines */}
     <SkeletonText
       lines={4}
       lineClassName="h-4 sm:h-4.5 lg:h-5"
       className="mb-4"
     />
 
-    {/* Bullet list — 4 rows */}
+    {/* Bullet list â€” 4 rows */}
     <div className="space-y-3 mb-6 pl-6">
       {Array.from({ length: 4 }).map((_, i) => (
         <div key={`list-item-${i}`} className="flex items-start gap-3">
@@ -50,14 +50,14 @@ const TextContentSkeleton = () => (
     {/* H3 */}
     <Skeleton className="h-5 sm:h-6 lg:h-7 w-1/3 mb-3 mt-8" />
 
-    {/* Paragraph 3 — 3 lines */}
+    {/* Paragraph 3 â€” 3 lines */}
     <SkeletonText
       lines={3}
       lineClassName="h-4 sm:h-4.5 lg:h-5"
       className="mb-4"
     />
 
-    {/* Paragraph 4 — 4 lines */}
+    {/* Paragraph 4 â€” 4 lines */}
     <SkeletonText
       lines={4}
       lineClassName="h-4 sm:h-4.5 lg:h-5"
@@ -72,7 +72,7 @@ const TextContentSection = ({
   data,
   textData,
   textContentSection,
-  loading = false,               // ← NEW
+  loading = false,               // â† NEW
   bgColor = 'bg-white',
   paddingY = 'py-10 sm:py-15 md:py-25 lg:py-37.5',
   paddingX = 'px-5 sm:px-10 md:px-20 lg:px-50',

@@ -1,4 +1,4 @@
-// js/Sections/BannerSection/PageTagBannerSection.jsx
+// resources/js/Sections/BannerSection/PageTagBannerSection/PageTagBannerSection.jsx
 
 import React, { useState } from 'react';
 import { usePage, router } from '@inertiajs/react';
@@ -24,7 +24,7 @@ const PageTagBannerSkeleton = ({ paddingX, paddingY, tagCount = 5 }) => (
     {/* Dark overlay */}
     <div className="absolute inset-0 bg-black/30 sm:bg-black/20 md:bg-black/10 lg:bg-black/5" />
 
-    {/* Content — title + tag pills */}
+    {/* Content â€” title + tag pills */}
     <div className={`absolute left-0 inset-0 flex items-center ${paddingX} ${paddingY}`}>
       <div className="w-full text-white space-y-2 sm:space-y-3 md:space-y-4 lg:space-y-5">
         {/* Title */}
@@ -60,8 +60,8 @@ const PageTagBannerSkeleton = ({ paddingX, paddingY, tagCount = 5 }) => (
 const PageTagBannerSection = ({
   data,
   bannerData,
-  loading = false,               // ← NEW
-  skeletonTagCount = 5,          // ← NEW
+  loading = false,               // â† NEW
+  skeletonTagCount = 5,          // â† NEW
   bgColor = '',
   height = 'h-64 sm:h-80 md:h-100 lg:h-120 xl:h-135 2xl:h-147.25',
   paddingY = 'py-12 sm:py-16 md:py-20 lg:py-25 xl:py-30 2xl:py-37.5',

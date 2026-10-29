@@ -1,4 +1,4 @@
-// resources/js/pages/Backend/CMS/Sections/components/modals/Editors/shared/useImageUpload.js
+// resources/js/Shared/SectionEditor/useImageUpload.js
 
 import { useState, useEffect } from 'react';
 

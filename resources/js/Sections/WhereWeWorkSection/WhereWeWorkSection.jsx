@@ -1,4 +1,4 @@
-// js/Sections/WhereWeWorkSection/WhereWeWorkSection.jsx
+// resources/js/Sections/WhereWeWorkSection/WhereWeWorkSection.jsx
 
 import { useState } from 'react';
 
@@ -36,7 +36,7 @@ const WhereWeWorkSkeleton = ({
   <div className="flex flex-col lg:flex-row justify-between gap-6 sm:gap-8 md:gap-10 lg:gap-12 xl:gap-15 2xl:gap-20">
     {/* Left side */}
     <div className="w-full lg:w-1/2 flex flex-col justify-between space-y-6 sm:space-y-8 md:space-y-10 lg:space-y-12 xl:space-y-12.5">
-      {/* Title — 2 short lines */}
+      {/* Title â€” 2 short lines */}
       <Skeleton className="h-8 sm:h-9 md:h-10 lg:h-11 xl:h-12 2xl:h-13 w-5/6" />
 
       {/* Stats grid */}
@@ -47,7 +47,7 @@ const WhereWeWorkSkeleton = ({
       </div>
     </div>
 
-    {/* Right side — image */}
+    {/* Right side â€” image */}
     <div className="w-full lg:w-1/2 flex items-center mt-6 sm:mt-8 lg:mt-0">
       <Skeleton className="w-full h-full min-h-62.5 sm:min-h-75 md:min-h-87.5 lg:min-h-100 xl:min-h-112.5 2xl:min-h-125 rounded-2xl sm:rounded-3xl lg:rounded-4xl" />
     </div>
@@ -60,8 +60,8 @@ const WhereWeWorkSkeleton = ({
 const WhereWeWorkSection = ({
   data,
   workData,
-  loading = false,               // ← NEW
-  skeletonStatCount = 4,         // ← NEW
+  loading = false,               // â† NEW
+  skeletonStatCount = 4,         // â† NEW
   bgColor = 'bg-white',
   paddingY = 'py-12 sm:py-16 md:py-20 lg:py-25 xl:py-30 2xl:py-37.5',
   paddingX = 'px-5 sm:px-8 md:px-12 lg:px-20 xl:px-30 2xl:px-50',

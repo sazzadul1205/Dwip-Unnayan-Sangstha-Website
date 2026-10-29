@@ -1,4 +1,4 @@
-// resources/js/pages/Backend/CMS/Sections/components/modals/Editors/ProgramImpactEditor.jsx
+// resources/js/Sections/ProgramImpactSection/ProgramImpactEditor.jsx
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { FaTrash, FaPlus, FaUpload, FaTimes, FaImages, FaChartBar } from 'react-icons/fa';
@@ -189,7 +189,7 @@ const ProgramImpactEditor = ({ section, hasData, onDataChange }) => {
   const displayPath = (src) => {
     if (!src) return '';
     if (src.startsWith('data:image')) return 'New image (pending upload)';
-    return src.length > 45 ? `${src.substring(0, 45)}…` : src;
+    return src.length > 45 ? `${src.substring(0, 45)}â€¦` : src;
   };
 
   if (!hasData || !formData || Object.keys(formData).length === 0) {
@@ -208,7 +208,7 @@ const ProgramImpactEditor = ({ section, hasData, onDataChange }) => {
     <div className="space-y-5">
       {isDirty && (
         <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
-          Unsaved changes — click <strong className="mx-0.5">Save Changes</strong> to apply.
+          Unsaved changes â€” click <strong className="mx-0.5">Save Changes</strong> to apply.
         </div>
       )}
 
@@ -221,7 +221,7 @@ const ProgramImpactEditor = ({ section, hasData, onDataChange }) => {
       <EditorSection
         icon={FaImages}
         title="Main Images"
-        description={`${mainImages.length} image${mainImages.length === 1 ? '' : 's'} • Displayed prominently`}
+        description={`${mainImages.length} image${mainImages.length === 1 ? '' : 's'} â€¢ Displayed prominently`}
         tone="emerald"
       >
         {mainImages.length === 0 ? (
@@ -346,7 +346,7 @@ const ProgramImpactEditor = ({ section, hasData, onDataChange }) => {
         </div>
         <div>
           <span className="block text-slate-400">Data table</span>
-          <span className="font-mono text-slate-700">{section.data_table || '—'}</span>
+          <span className="font-mono text-slate-700">{section.data_table || 'â€”'}</span>
         </div>
         <div>
           <span className="block text-slate-400">Main images</span>

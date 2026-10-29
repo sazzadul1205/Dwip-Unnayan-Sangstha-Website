@@ -1,4 +1,4 @@
-// resources/js/pages/Backend/CMS/Sections/components/modals/Editors/CardsEditor.jsx
+// resources/js/Sections/CardsSection/CardsEditor.jsx
 
 import { useState, useEffect } from 'react';
 import { FaTrash, FaPlus, FaImage, FaTimes, FaLayerGroup } from 'react-icons/fa';
@@ -152,7 +152,7 @@ const CardsEditor = ({ section, hasData, onDataChange }) => {
   const displayPath = (src) => {
     if (!src) return '';
     if (src.startsWith('data:image')) return 'New image (pending upload)';
-    return src.length > 45 ? `${src.substring(0, 45)}…` : src;
+    return src.length > 45 ? `${src.substring(0, 45)}â€¦` : src;
   };
 
   if (!hasData || !formData || Object.keys(formData).length === 0) {
@@ -185,7 +185,7 @@ const CardsEditor = ({ section, hasData, onDataChange }) => {
       <EditorSection
         icon={FaLayerGroup}
         title="Cards"
-        description={`${cards.length} card${cards.length === 1 ? '' : 's'} • Image, title, CTA, and colors`}
+        description={`${cards.length} card${cards.length === 1 ? '' : 's'} â€¢ Image, title, CTA, and colors`}
         tone="orange"
         action={
           <button
@@ -329,11 +329,11 @@ const CardsEditor = ({ section, hasData, onDataChange }) => {
         </div>
         <div>
           <span className="block text-slate-400">Data table</span>
-          <span className="font-mono text-slate-700">{section.data_table || '—'}</span>
+          <span className="font-mono text-slate-700">{section.data_table || 'â€”'}</span>
         </div>
         <div>
           <span className="block text-slate-400">Data key</span>
-          <span className="font-mono text-slate-700">{section.data_key || '—'}</span>
+          <span className="font-mono text-slate-700">{section.data_key || 'â€”'}</span>
         </div>
         <div>
           <span className="block text-slate-400">Cards</span>

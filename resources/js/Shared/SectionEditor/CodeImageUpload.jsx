@@ -1,4 +1,4 @@
-// resources/js/pages/Backend/CMS/Sections/components/modals/Editors/shared/CodeImageUpload.jsx
+// resources/js/Shared/SectionEditor/CodeImageUpload.jsx
 //
 // Drop-in image picker for the raw HTML / CSS code boxes.
 // Uploads go to THIS server (POST backend/cms/upload-editor-image) so a code
@@ -207,7 +207,7 @@ const CodeImageUpload = ({
             {isUploading ? (
               <>
                 <FaSpinner className="mb-1.5 animate-spin text-blue-600" size={20} />
-                <span className="text-xs font-medium text-blue-700">Uploading to the server…</span>
+                <span className="text-xs font-medium text-blue-700">Uploading to the serverâ€¦</span>
               </>
             ) : (
               <>
@@ -217,7 +217,7 @@ const CodeImageUpload = ({
                   <span className="text-blue-600 underline">browse</span>
                 </span>
                 <span className="mt-0.5 text-[10px] text-gray-400">
-                  {EDITOR_IMAGE_ACCEPT_LABEL} · max {formatBytes(maxBytes)} · single click inserts it
+                  {EDITOR_IMAGE_ACCEPT_LABEL} Â· max {formatBytes(maxBytes)} Â· single click inserts it
                 </span>
               </>
             )}

@@ -1,4 +1,4 @@
-// resources/js/pages/Backend/CMS/Sections/components/modals/Editors/shared/useEditorImageUpload.js
+// resources/js/Shared/SectionEditor/useEditorImageUpload.js
 //
 // Uploads images to THIS server (storage/app/public/editor-images) and hands
 // back a public URL, so code sections never need an external image host.
@@ -62,7 +62,7 @@ const resolveEndpoint = (routeName, fallback) => {
     try {
       return window.route(routeName);
     } catch {
-      // Route not exposed to this bundle — use the literal path below.
+      // Route not exposed to this bundle â€” use the literal path below.
     }
   }
 
@@ -87,12 +87,12 @@ const readAsDataUrl = (file) =>
  * Uploads one or many images and keeps a session library of what was stored.
  *
  * Returns:
- *   library      – [{ url, name, size }] uploaded during this session
- *   isUploading  – boolean
- *   uploadError  – string | null
- *   uploadFiles  – (FileList|File[]) => Promise<[{ url, name, size }]>
- *   deleteAsset  – (url) => Promise<void>   also drops it from the library
- *   resetError   – () => void
+ *   library      â€“ [{ url, name, size }] uploaded during this session
+ *   isUploading  â€“ boolean
+ *   uploadError  â€“ string | null
+ *   uploadFiles  â€“ (FileList|File[]) => Promise<[{ url, name, size }]>
+ *   deleteAsset  â€“ (url) => Promise<void>   also drops it from the library
+ *   resetError   â€“ () => void
  */
 export const useEditorImageUpload = ({ maxBytes = MAX_EDITOR_IMAGE_BYTES } = {}) => {
   const [library, setLibrary] = useState([]);
@@ -107,7 +107,7 @@ export const useEditorImageUpload = ({ maxBytes = MAX_EDITOR_IMAGE_BYTES } = {})
         throw new Error(`"${file.name}" is not a supported image (${EDITOR_IMAGE_ACCEPT_LABEL}).`);
       }
       if (file.size > maxBytes) {
-        throw new Error(`"${file.name}" is ${formatBytes(file.size)} — the limit is ${formatBytes(maxBytes)}.`);
+        throw new Error(`"${file.name}" is ${formatBytes(file.size)} â€” the limit is ${formatBytes(maxBytes)}.`);
       }
 
       const base64 = await readAsDataUrl(file);

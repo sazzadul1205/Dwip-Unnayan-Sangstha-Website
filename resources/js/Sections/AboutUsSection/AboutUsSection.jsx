@@ -1,4 +1,4 @@
-// js/Sections/AboutUsSection/AboutUsSection.jsx
+// resources/js/Sections/AboutUsSection/AboutUsSection.jsx
 
 // React
 import React, { useState } from 'react';
@@ -40,13 +40,13 @@ const ImpactSkeletonCard = () => (
 // ============================================
 const AboutUsSkeleton = ({ missionCount = 4, statCount = 3 }) => (
   <div className="flex flex-col lg:flex-row justify-between items-stretch gap-6 sm:gap-8 md:gap-10 lg:gap-12 xl:gap-15">
-    {/* Left — text content */}
+    {/* Left â€” text content */}
     <div className="w-full lg:w-1/2 flex flex-col justify-between space-y-6 sm:space-y-8 md:space-y-10 lg:space-y-12 xl:space-y-15">
       {/* About block */}
       <div>
         {/* Title */}
         <Skeleton className="h-8 sm:h-9 md:h-10 lg:h-11 xl:h-12 2xl:h-13 w-5/6 mb-3 sm:mb-4 lg:mb-5 xl:mb-6" />
-        {/* Description — 3 lines */}
+        {/* Description â€” 3 lines */}
         <SkeletonText
           lines={3}
           lineClassName="h-3.5 sm:h-4 md:h-4.5 lg:h-5 xl:h-5.5"
@@ -60,7 +60,7 @@ const AboutUsSkeleton = ({ missionCount = 4, statCount = 3 }) => (
       <div>
         {/* Mission title */}
         <Skeleton className="h-5 sm:h-5.5 md:h-6 lg:h-6.5 xl:h-7 w-40 sm:w-48 mb-3 sm:mb-4 lg:mb-5 xl:mb-6" />
-        {/* Mission grid — matches real: 1 col / 2 cols */}
+        {/* Mission grid â€” matches real: 1 col / 2 cols */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3 md:gap-3.5 lg:gap-4 xl:gap-5">
           {Array.from({ length: missionCount }).map((_, i) => (
             <MissionSkeletonCard key={`mission-skeleton-${i}`} />
@@ -72,7 +72,7 @@ const AboutUsSkeleton = ({ missionCount = 4, statCount = 3 }) => (
       <div>
         {/* Impact title */}
         <Skeleton className="h-5 sm:h-5.5 md:h-6 lg:h-6.5 xl:h-7 w-36 sm:w-44 mb-3 sm:mb-4 lg:mb-5 xl:mb-6" />
-        {/* Impact stats — matches real: 1 col / 3 cols */}
+        {/* Impact stats â€” matches real: 1 col / 3 cols */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3 md:gap-4 lg:gap-5 rounded-md">
           {Array.from({ length: statCount }).map((_, i) => (
             <ImpactSkeletonCard key={`impact-skeleton-${i}`} />
@@ -81,7 +81,7 @@ const AboutUsSkeleton = ({ missionCount = 4, statCount = 3 }) => (
       </div>
     </div>
 
-    {/* Right — image */}
+    {/* Right â€” image */}
     <div className="w-full lg:w-1/2 flex items-center mt-6 sm:mt-8 lg:mt-0">
       <Skeleton className="w-full h-full min-h-62.5 sm:min-h-75 md:min-h-87.5 lg:min-h-100 xl:min-h-112.5 2xl:min-h-125 rounded-2xl sm:rounded-3xl lg:rounded-4xl" />
     </div>
@@ -94,9 +94,9 @@ const AboutUsSkeleton = ({ missionCount = 4, statCount = 3 }) => (
 const AboutUsSection = ({
   data,
   aboutUsData,
-  loading = false,               // ← NEW
-  skeletonMissionCount = 4,      // ← NEW
-  skeletonStatCount = 3,         // ← NEW
+  loading = false,               // â† NEW
+  skeletonMissionCount = 4,      // â† NEW
+  skeletonStatCount = 3,         // â† NEW
   bgColor = 'bg-white',
   paddingY = 'py-12 sm:py-16 md:py-20 lg:py-25 xl:py-30 2xl:py-37.5',
   paddingX = 'px-5 sm:px-8 md:px-12 lg:px-20 xl:px-30 2xl:px-50',

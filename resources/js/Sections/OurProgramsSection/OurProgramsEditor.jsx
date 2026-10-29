@@ -1,4 +1,4 @@
-// resources/js/pages/Backend/CMS/Sections/components/modals/Editors/OurProgramsEditor.jsx
+// resources/js/Sections/OurProgramsSection/OurProgramsEditor.jsx
 
 import React, { useState, useEffect } from 'react';
 import { FaExternalLinkAlt, FaList, FaCog } from 'react-icons/fa';
@@ -58,7 +58,7 @@ const OurProgramsEditor = ({ section, onDataChange }) => {
       </div>
 
       <EditorSection icon={FaList} title="Available Programs"
-        description={`${programs.length} program${programs.length === 1 ? '' : 's'} • Showing ${visiblePrograms.length}`}
+        description={`${programs.length} program${programs.length === 1 ? '' : 's'} â€¢ Showing ${visiblePrograms.length}`}
         tone="orange">
         {programs.length > 0 ? (
           <div className="flex flex-wrap gap-1.5">

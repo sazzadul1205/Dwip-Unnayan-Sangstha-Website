@@ -1,4 +1,4 @@
-// resources/js/pages/Backend/CMS/Sections/components/modals/Editors/OurActionEditor.jsx
+// resources/js/Sections/OurActionSection/OurActionEditor.jsx
 
 import { useState, useEffect } from 'react';
 import { FaTrash, FaPlus, FaUpload, FaTimes, FaHands } from 'react-icons/fa';
@@ -133,7 +133,7 @@ const CardsEditorActions = ({ section, hasData, onDataChange }) => {
       <EditorSection
         icon={FaHands}
         title="Action Items"
-        description={`${actions.length} item${actions.length === 1 ? '' : 's'} • Icon, title, and description`}
+        description={`${actions.length} item${actions.length === 1 ? '' : 's'} â€¢ Icon, title, and description`}
         tone="emerald"
         action={
           <button type="button" onClick={addItem}
@@ -228,11 +228,11 @@ const CardsEditorActions = ({ section, hasData, onDataChange }) => {
         </div>
         <div>
           <span className="block text-slate-400">Data table</span>
-          <span className="font-mono text-slate-700">{section.data_table || '—'}</span>
+          <span className="font-mono text-slate-700">{section.data_table || 'â€”'}</span>
         </div>
         <div>
           <span className="block text-slate-400">Data key</span>
-          <span className="font-mono text-slate-700">{section.data_key || '—'}</span>
+          <span className="font-mono text-slate-700">{section.data_key || 'â€”'}</span>
         </div>
         <div>
           <span className="block text-slate-400">Items</span>

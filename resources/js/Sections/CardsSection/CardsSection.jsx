@@ -1,4 +1,4 @@
-// js/Sections/CardsSection/CardsSection.jsx
+// resources/js/Sections/CardsSection/CardsSection.jsx
 
 // React
 import React, { useState } from 'react';
@@ -19,14 +19,14 @@ import { hasValue, getPlaceholderImage } from '../../utils/sectionHelpers';
 const CardSkeletonItem = () => (
   <div className="w-full lg:w-1/2 flex">
     <div className="bg-white w-full rounded-xl sm:rounded-2xl px-4 sm:px-6 md:px-8 lg:px-12 xl:px-15 2xl:px-17 py-5 sm:py-6 md:py-8 lg:py-10 xl:py-12.5 flex flex-col h-full">
-      {/* Image area — matches real: centered, min-h */}
+      {/* Image area â€” matches real: centered, min-h */}
       <div className="flex-1 flex items-center justify-center min-h-40 sm:min-h-48 md:min-h-56 lg:min-h-64 xl:min-h-75 2xl:min-h-87.5">
         <Skeleton className="w-3/4 h-3/4 max-w-50 max-h-50 rounded-lg" />
       </div>
 
-      {/* Bottom info box — matches real: bg + min-h */}
+      {/* Bottom info box â€” matches real: bg + min-h */}
       <div className="bg-white w-full rounded-xl sm:rounded-2xl p-4 sm:p-5 md:p-6 lg:p-8 xl:p-10 2xl:p-12.5 mt-4 sm:mt-5 md:mt-6 lg:mt-7.5 flex flex-col justify-between min-h-40 sm:min-h-48 md:min-h-56 lg:min-h-62.5">
-        {/* Title — 2 lines */}
+        {/* Title â€” 2 lines */}
         <div>
           <Skeleton className="h-6 sm:h-7 md:h-8 lg:h-9 xl:h-10 w-5/6 mb-2" />
           <Skeleton className="h-6 sm:h-7 md:h-8 lg:h-9 xl:h-10 w-3/5" />
@@ -58,8 +58,8 @@ const CardsSkeleton = ({ count = 2 }) => (
 const CardsSection = ({
   data,
   cardsData,
-  loading = false,               // ← NEW
-  skeletonCount = 2,             // ← NEW
+  loading = false,               // â† NEW
+  skeletonCount = 2,             // â† NEW
   bgColor = 'bg-white',
   paddingY = 'py-12 sm:py-16 md:py-20 lg:py-25 xl:py-30 2xl:py-37.5',
   paddingX = 'px-5 sm:px-8 md:px-12 lg:px-20 xl:px-30 2xl:px-50',

@@ -1,4 +1,4 @@
-// resources/js/pages/Backend/CMS/Sections/components/modals/Editors/ContactReachEditor.jsx
+// resources/js/Sections/ContactReachSection/ContactReachEditor.jsx
 
 import { useState, useEffect } from 'react';
 import { FaImage, FaInfoCircle } from 'react-icons/fa';
@@ -62,11 +62,11 @@ const ContactReachEditor = ({ section, hasData, onDataChange }) => {
         </div>
         <div>
           <span className="block text-slate-400">Data table</span>
-          <span className="font-mono text-slate-700">{section.data_table || '—'}</span>
+          <span className="font-mono text-slate-700">{section.data_table || 'â€”'}</span>
         </div>
         <div>
           <span className="block text-slate-400">Data key</span>
-          <span className="font-mono text-slate-700">{section.data_key || '—'}</span>
+          <span className="font-mono text-slate-700">{section.data_key || 'â€”'}</span>
         </div>
         <div>
           <span className="block text-slate-400">Status</span>

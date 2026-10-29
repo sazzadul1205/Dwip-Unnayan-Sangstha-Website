@@ -1,4 +1,4 @@
-// resources/js/pages/Backend/CMS/Sections/components/modals/Editors/VideoGalleryEditor.jsx
+// resources/js/Sections/VideoGallerySection/VideoGalleryEditor.jsx
 
 import React, { useState, useEffect } from 'react';
 import { FaTrash, FaPlus, FaTimes, FaVideo, FaYoutube, FaImages } from 'react-icons/fa';
@@ -207,11 +207,11 @@ const VideoGalleryEditor = ({ section, hasData, onDataChange }) => {
         </div>
         <div>
           <span className="block text-slate-400">Data table</span>
-          <span className="font-mono text-slate-700">{section.data_table || '—'}</span>
+          <span className="font-mono text-slate-700">{section.data_table || 'â€”'}</span>
         </div>
         <div>
           <span className="block text-slate-400">Data key</span>
-          <span className="font-mono text-slate-700">{section.data_key || '—'}</span>
+          <span className="font-mono text-slate-700">{section.data_key || 'â€”'}</span>
         </div>
         <div>
           <span className="block text-slate-400">Videos</span>

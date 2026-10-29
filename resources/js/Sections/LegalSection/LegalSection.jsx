@@ -1,4 +1,4 @@
-// js/Sections/LegalSection/LegalSection.jsx
+// resources/js/Sections/LegalSection/LegalSection.jsx
 
 // React
 import React, { useState } from 'react';
@@ -24,9 +24,9 @@ const LegalSkeleton = () => (
       rounded="rounded-none"
     />
 
-    {/* White text box — matches real positioning */}
+    {/* White text box â€” matches real positioning */}
     <div className="absolute bottom-5 right-5 md:bottom-10 lg:bottom-12.5 md:right-10 lg:right-50 bg-white/90 backdrop-blur-sm p-6 md:p-8 lg:p-12.5 w-[calc(100%-2.5rem)] md:w-auto lg:w-182.5 h-auto lg:h-75 shadow-lg rounded-lg">
-      {/* Title — 2 lines with different widths */}
+      {/* Title â€” 2 lines with different widths */}
       <Skeleton className="h-7 sm:h-8 md:h-9 lg:h-10 w-5/6 mb-2" />
       <Skeleton className="h-7 sm:h-8 md:h-9 lg:h-10 w-2/3" />
 
@@ -44,7 +44,7 @@ const LegalSkeleton = () => (
 const LegalSection = ({
   data,
   legalData,
-  loading = false,               // ← NEW
+  loading = false,               // â† NEW
   bgColor = '',
   height = 'h-125 md:h-147.25',
   paddingY = '',

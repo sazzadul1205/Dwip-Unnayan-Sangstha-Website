@@ -1,4 +1,4 @@
-// resources/js/Sections/BannerSection/HomeBanner.jsx
+// resources/js/Sections/BannerSection/HomeBanner/HomeBanner.jsx
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import ArrowIcon from '../../../Shared/ArrowIcon';
@@ -156,7 +156,7 @@ const HomeBanner = ({
                 className={`absolute inset-0 transition-opacity duration-700 ease-in-out ${isActive ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'}`}
                 aria-hidden={!isActive}
               >
-                {/* ✅ ImagePreloader in place of raw <img> */}
+                {/* âœ… ImagePreloader in place of raw <img> */}
                 <ImagePreloader
                   src={imageSrc}
                   alt={imageAlt}

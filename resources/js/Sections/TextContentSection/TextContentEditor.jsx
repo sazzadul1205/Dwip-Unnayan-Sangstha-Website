@@ -1,4 +1,4 @@
-// resources/js/pages/Backend/CMS/Sections/components/modals/Editors/TextContentEditor.jsx
+// resources/js/Sections/TextContentSection/TextContentEditor.jsx
 
 import React, { useEffect, useMemo } from 'react';
 import { FaFileAlt, FaCog, FaEye } from 'react-icons/fa';
@@ -120,7 +120,7 @@ const TextContentEditor = ({ section, hasData, onDataChange }) => {
         </div>
         <div>
           <span className="block text-slate-400">Data table</span>
-          <span className="font-mono text-slate-700">{section.data_table || '—'}</span>
+          <span className="font-mono text-slate-700">{section.data_table || 'â€”'}</span>
         </div>
         <div>
           <span className="block text-slate-400">Anchor</span>

@@ -1,4 +1,4 @@
-
+// resources/js/Sections/HeroFigureSection/HeroFigureEditor.jsx
 // resources/js/pages/Backend/CMS/Sections/components/modals/Editors/HeroFigureEditor.jsx
 
 // React
@@ -339,7 +339,7 @@ const HeroFigureEditor = ({ section, hasData, onDataChange }) => {
         {/* Show lock status when using About Content */}
         {isUsingAboutContent && (
           <p className="text-xs text-blue-600 mt-1">
-            🔒 Content is locked from About Content. Edit in About Content Manager.
+            ðŸ”’ Content is locked from About Content. Edit in About Content Manager.
           </p>
         )}
         {/* Link to About Content Manager */}
@@ -407,7 +407,7 @@ const HeroFigureEditor = ({ section, hasData, onDataChange }) => {
         </div>
         {isUsingAboutContent && (
           <p className="text-xs text-yellow-600 mt-1">
-            ⚠️ Content is locked. Edit in About Content Manager.
+            âš ï¸ Content is locked. Edit in About Content Manager.
           </p>
         )}
         <p className="text-xs text-gray-400 mt-1">
@@ -502,7 +502,7 @@ const HeroFigureEditor = ({ section, hasData, onDataChange }) => {
                 </p>
                 {imageChanged && (
                   <p className="text-xs text-yellow-600 mt-1">
-                    ⚠️ Old image will be deleted on save
+                    âš ï¸ Old image will be deleted on save
                   </p>
                 )}
               </div>
@@ -559,7 +559,7 @@ const HeroFigureEditor = ({ section, hasData, onDataChange }) => {
         {/* Show old image deletion notice */}
         {imageChanged && oldImagePath && (
           <div className="mt-2 text-xs text-gray-400">
-            <span className="text-red-500">🗑️</span> Old image will be deleted: {oldImagePath}
+            <span className="text-red-500">ðŸ—‘ï¸</span> Old image will be deleted: {oldImagePath}
           </div>
         )}
       </div>
@@ -634,7 +634,7 @@ const HeroFigureEditor = ({ section, hasData, onDataChange }) => {
           <div>
             <span className="text-gray-500">Has Data:</span>
             <span className={`ml-2 font-medium ${hasData ? 'text-green-600' : 'text-gray-400'}`}>
-              {hasData ? '✓ Yes' : 'No'}
+              {hasData ? 'âœ“ Yes' : 'No'}
             </span>
           </div>
           {/* Show About Content link if using it */}

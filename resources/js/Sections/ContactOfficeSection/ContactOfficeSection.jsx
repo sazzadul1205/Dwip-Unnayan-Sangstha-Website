@@ -1,4 +1,4 @@
-// js/Sections/ContactOfficeSection/ContactOfficeSection.jsx
+// resources/js/Sections/ContactOfficeSection/ContactOfficeSection.jsx
 
 // React
 import React from 'react';
@@ -17,7 +17,7 @@ import { hasValue } from '../../utils/sectionHelpers';
 // ============================================
 const OfficeSkeletonCard = () => (
   <div className="rounded-2xl border border-gray-100 bg-white p-5 sm:p-6 md:p-8 lg:p-10 xl:p-12.5 shadow-sm">
-    {/* Icon — 3xl → 4xl */}
+    {/* Icon â€” 3xl â†’ 4xl */}
     <Skeleton className="h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 rounded-md" />
 
     {/* Title */}
@@ -51,7 +51,7 @@ const ContactOfficeSkeleton = ({ count = 3, hasTitle = true }) => (
       <Skeleton className="h-7 sm:h-8 md:h-9 lg:h-10 xl:h-11 w-56 sm:w-64 md:w-72 mb-4 sm:mb-6 md:mb-8 lg:mb-10 xl:mb-12.5" />
     )}
 
-    {/* Cards grid — matches real: 1 / 2 / 3 cols */}
+    {/* Cards grid â€” matches real: 1 / 2 / 3 cols */}
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 md:gap-6 lg:gap-7 xl:gap-8">
       {Array.from({ length: count }).map((_, i) => (
         <OfficeSkeletonCard key={`office-skeleton-${i}`} />
@@ -67,8 +67,8 @@ const ContactOfficeSection = ({
   data,
   officesData,
   offices,
-  loading = false,               // ← NEW
-  skeletonCount = 3,             // ← NEW
+  loading = false,               // â† NEW
+  skeletonCount = 3,             // â† NEW
   title = 'Our Offices',
   orgName = 'Dwip Unnayan Songstha (DUS)',
   bgColor = 'bg-white',

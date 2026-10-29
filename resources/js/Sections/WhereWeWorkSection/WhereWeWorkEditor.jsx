@@ -1,4 +1,4 @@
-// resources/js/pages/Backend/CMS/Sections/components/modals/Editors/WhereWeWorkEditor.jsx
+// resources/js/Sections/WhereWeWorkSection/WhereWeWorkEditor.jsx
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { FaTrash, FaPlus, FaUpload, FaTimes, FaMapMarkedAlt, FaChartBar, FaImage } from 'react-icons/fa';
@@ -156,7 +156,7 @@ const WhereWeWorkEditor = ({ section, hasData, onDataChange }) => {
       <EditorSection
         icon={FaChartBar}
         title="Statistics"
-        description={`${stats.length} stat${stats.length === 1 ? '' : 's'} • Icon, value, and label`}
+        description={`${stats.length} stat${stats.length === 1 ? '' : 's'} â€¢ Icon, value, and label`}
         tone="emerald"
         action={
           <button type="button" onClick={addStat}
@@ -274,11 +274,11 @@ const WhereWeWorkEditor = ({ section, hasData, onDataChange }) => {
         </div>
         <div>
           <span className="block text-slate-400">Data table</span>
-          <span className="font-mono text-slate-700">{section?.data_table || '—'}</span>
+          <span className="font-mono text-slate-700">{section?.data_table || 'â€”'}</span>
         </div>
         <div>
           <span className="block text-slate-400">Data key</span>
-          <span className="font-mono text-slate-700">{section?.data_key || '—'}</span>
+          <span className="font-mono text-slate-700">{section?.data_key || 'â€”'}</span>
         </div>
         <div>
           <span className="block text-slate-400">Stats</span>

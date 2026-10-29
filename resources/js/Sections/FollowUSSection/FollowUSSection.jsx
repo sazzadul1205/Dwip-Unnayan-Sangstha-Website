@@ -1,4 +1,4 @@
-// js/Sections/FollowUSSection/FollowUSSection.jsx
+// resources/js/Sections/FollowUSSection/FollowUSSection.jsx
 
 // React
 import React from 'react';
@@ -51,7 +51,7 @@ const FollowUSSkeleton = ({ count = 5, hasTitle = true }) => (
       <Skeleton className="h-7 sm:h-8 md:h-9 lg:h-10 xl:h-11 w-40 sm:w-48 md:w-56 mb-4 sm:mb-6 md:mb-8 lg:mb-10 xl:mb-12.5" />
     )}
 
-    {/* Grid — matches real: 2 / 3 / 5 cols */}
+    {/* Grid â€” matches real: 2 / 3 / 5 cols */}
     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 border border-[#EFEFEF] bg-white rounded-lg overflow-hidden">
       {Array.from({ length: count }).map((_, i) => (
         <SocialSkeletonCell
@@ -72,8 +72,8 @@ const FollowUSSection = ({
   data,
   followData,
   socialItems = [],
-  loading = false,               // ← NEW
-  skeletonCount = 5,             // ← NEW
+  loading = false,               // â† NEW
+  skeletonCount = 5,             // â† NEW
   title = 'Follow Us',
   bgColor = 'bg-white',
   paddingY = 'py-12 sm:py-16 md:py-20 lg:py-25 xl:py-30 2xl:py-37.5',

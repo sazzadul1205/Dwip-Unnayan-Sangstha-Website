@@ -1,4 +1,4 @@
-// js/Sections/OurActionSection/OurActionSection.jsx
+// resources/js/Sections/OurActionSection/OurActionSection.jsx
 
 // React
 import React, { useState } from 'react';
@@ -15,13 +15,13 @@ import { hasValue, getPlaceholderIcon } from '../../utils/sectionHelpers';
 // ============================================
 const ActionSkeletonCard = () => (
   <div className="bg-[#FAFAFA] p-5 sm:p-6 md:p-7 lg:p-8 xl:p-10 2xl:p-12.5 rounded-xl">
-    {/* Icon — 7→12.5 */}
+    {/* Icon â€” 7â†’12.5 */}
     <Skeleton className="w-7 h-7 sm:w-8 sm:h-8 md:w-9 md:h-9 lg:w-10 lg:h-10 xl:w-11 xl:h-11 2xl:w-12.5 2xl:h-12.5 rounded-md mb-2 sm:mb-3 md:mb-4 lg:mb-5" />
 
     {/* Title */}
     <Skeleton className="h-5 sm:h-5.5 md:h-6 lg:h-6.5 xl:h-7 w-3/5 mb-2 sm:mb-2.5 md:mb-3" />
 
-    {/* Description — 3 lines */}
+    {/* Description â€” 3 lines */}
     <SkeletonText
       lines={3}
       lineClassName="h-3 sm:h-3.5 md:h-4 lg:h-4.5 xl:h-5"
@@ -45,7 +45,7 @@ const OurActionSkeleton = ({ count = 6 }) => (
       </div>
     </div>
 
-    {/* Actions grid — matches real: 1 / 2 / 3 cols */}
+    {/* Actions grid â€” matches real: 1 / 2 / 3 cols */}
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 md:gap-6 lg:gap-7 xl:gap-7.5 pt-6 sm:pt-8 md:pt-10 lg:pt-12 xl:pt-12.5">
       {Array.from({ length: count }).map((_, i) => (
         <ActionSkeletonCard key={`action-skeleton-${i}`} />
@@ -60,8 +60,8 @@ const OurActionSkeleton = ({ count = 6 }) => (
 const OurActionSection = ({
   data,
   actionData,
-  loading = false,               // ← NEW
-  skeletonCount = 6,             // ← NEW
+  loading = false,               // â† NEW
+  skeletonCount = 6,             // â† NEW
   bgColor = 'bg-[#F5F5F5]',
   paddingY = 'py-12 sm:py-16 md:py-20 lg:py-25 xl:py-30 2xl:py-37.5',
   paddingX = 'px-5 sm:px-8 md:px-12 lg:px-20 xl:px-30 2xl:px-50',

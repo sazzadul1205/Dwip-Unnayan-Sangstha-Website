@@ -1,4 +1,4 @@
-// resources/js/pages/Backend/CMS/Sections/components/modals/Editors/shared/CodePane.jsx
+// resources/js/Shared/SectionEditor/CodePane.jsx
 
 import React, { memo, useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { FaExclamationTriangle } from 'react-icons/fa';
@@ -368,7 +368,7 @@ const CodePane = ({
     } catch (e) {
       setError(
         e instanceof Error && e.message
-          ? `Could not format — ${e.message.split('\n')[0]}`
+          ? `Could not format â€” ${e.message.split('\n')[0]}`
           : 'Could not format this code. Check for an unclosed tag or brace.'
       );
     } finally {
@@ -399,7 +399,7 @@ const CodePane = ({
           className="flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] text-[#cccccc] transition hover:bg-[#3c3c3c] hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
         >
           <FaWandMagicSparkles size={10} />
-          {busy ? 'Formatting…' : 'Format'}
+          {busy ? 'Formattingâ€¦' : 'Format'}
         </button>
 
         {actions}

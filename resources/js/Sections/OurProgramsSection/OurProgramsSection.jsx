@@ -1,4 +1,4 @@
-// js/Sections/OurProgramsSection/OurProgramsSection.jsx
+// resources/js/Sections/OurProgramsSection/OurProgramsSection.jsx
 
 // React
 import React, { useRef, useEffect, useState, useMemo, useCallback } from "react";
@@ -47,11 +47,11 @@ const ProgramSkeletonCard = ({ index = 0, total = 0 }) => (
     <div className="flex flex-col lg:flex-row justify-between items-center gap-6 sm:gap-8 md:gap-10 lg:gap-15 xl:gap-20 2xl:gap-25 p-5 sm:p-6 md:p-8 lg:p-12 lg:h-tall:p-10 lg:h-mid:p-8 lg:h-short:p-6 xl:p-20 xl:h-tall:p-16 xl:h-mid:p-8 xl:h-short:p-6 2xl:p-25 2xl:h-tall:p-20 2xl:h-mid:p-10 2xl:h-short:p-6 rounded-3xl min-h-[clamp(28rem,78vh,40.625rem)] lg:min-h-0 bg-white shadow-lg">
       {/* Left Content */}
       <div className="w-full lg:w-1/2 flex flex-col justify-center">
-        {/* Title — matches real: 22→46px, 3 lines max */}
+        {/* Title â€” matches real: 22â†’46px, 3 lines max */}
         <Skeleton className="h-7 sm:h-8 md:h-9 lg:h-11 xl:h-12 2xl:h-14 w-4/5 mb-3 sm:mb-4 md:mb-5" />
         <Skeleton className="h-7 sm:h-8 md:h-9 lg:h-11 xl:h-12 2xl:h-14 w-3/5 mb-4 sm:mb-5 md:mb-6 lg:mb-7" />
 
-        {/* Description — 5 short lines */}
+        {/* Description â€” 5 short lines */}
         <SkeletonText
           lines={5}
           lineClassName="h-4 sm:h-4.5 md:h-5 lg:h-5.5 lg:h-mid:h-5 xl:h-6"
@@ -90,7 +90,7 @@ const ProgramSkeletonStack = ({ count = 3 }) => (
       <Skeleton className="h-12 sm:h-14 lg:h-16 xl:h-17 2xl:h-18 w-40 sm:w-48 lg:w-56 rounded-md shrink-0" />
     </div>
 
-    {/* Scroll stack — height matches real layout */}
+    {/* Scroll stack â€” height matches real layout */}
     <div
       className="relative mt-12 sm:mt-16 md:mt-20 lg:mt-24 xl:mt-28 2xl:mt-32"
       style={{ height: `${count * 100}vh` }}
@@ -106,7 +106,7 @@ const ProgramSkeletonStack = ({ count = 3 }) => (
       ))}
     </div>
 
-    {/* Bottom spacer — matches real component */}
+    {/* Bottom spacer â€” matches real component */}
     <div className="h-12 sm:h-16 md:h-20 lg:h-25 xl:h-30 2xl:h-50" />
   </>
 );
@@ -117,8 +117,8 @@ const ProgramSkeletonStack = ({ count = 3 }) => (
 const OurProgramsSection = ({
   data,
   programsData,
-  loading = false,               // ← NEW
-  skeletonCount = 3,             // ← NEW: how many stacked skeleton cards
+  loading = false,               // â† NEW
+  skeletonCount = 3,             // â† NEW: how many stacked skeleton cards
   limit,
   showFeatured,
   showHeader = true,
@@ -338,7 +338,7 @@ const OurProgramsSection = ({
   const hasPrograms = hasValue(filteredPrograms);
 
   // ============================================
-  // LOADING STATE — SKELETON
+  // LOADING STATE â€” SKELETON
   // ============================================
   if (loading) {
     return (
@@ -352,7 +352,7 @@ const OurProgramsSection = ({
   }
 
   // ============================================
-  // EARLY RETURN — No content
+  // EARLY RETURN â€” No content
   // ============================================
   if (!shouldShowHeader && !hasPrograms) {
     return null;

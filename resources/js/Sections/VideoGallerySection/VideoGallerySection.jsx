@@ -1,4 +1,4 @@
-// js/Sections/VideoGallerySection/VideoGallerySection.jsx
+// resources/js/Sections/VideoGallerySection/VideoGallerySection.jsx
 
 import { useState } from 'react';
 
@@ -11,7 +11,7 @@ import { Skeleton, SkeletonCircle } from '../../Shared/Skeletons/SkeletonPrimiti
 // ============================================
 const VideoSkeletonCard = () => (
   <div className="rounded-lg overflow-hidden shadow-md bg-white">
-    {/* 16:9 aspect-ratio block — same technique as real iframe wrapper */}
+    {/* 16:9 aspect-ratio block â€” same technique as real iframe wrapper */}
     <div className="relative pb-[56.25%] h-0 overflow-hidden">
       <Skeleton
         className="absolute inset-0 w-full h-full"
@@ -45,7 +45,7 @@ const VideoGallerySkeleton = ({
       <Skeleton className="h-8 sm:h-9 md:h-10 w-28 sm:w-32 rounded-lg" />
     </div>
 
-    {/* 2-column grid — matches real grid exactly */}
+    {/* 2-column grid â€” matches real grid exactly */}
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5 md:gap-6 lg:gap-7.5">
       {Array.from({ length: count }).map((_, index) => (
         <VideoSkeletonCard key={`video-skeleton-${index}`} />
@@ -62,8 +62,8 @@ const VideoGallerySkeleton = ({
 const VideoGallerySection = ({
   data,
   videoData,
-  loading = false,                       // ← NEW: externally controlled
-  skeletonCount = 4,                     // ← NEW: how many skeleton video cards
+  loading = false,                       // â† NEW: externally controlled
+  skeletonCount = 4,                     // â† NEW: how many skeleton video cards
   sectionTitle = 'Videos',
   videoCountLabel = 'Video Count',
   videosPerPage = 4,
@@ -106,7 +106,7 @@ const VideoGallerySection = ({
   }
 
   // ============================================
-  // LOADING STATE — SKELETON
+  // LOADING STATE â€” SKELETON
   // ============================================
   if (loading) {
     return (

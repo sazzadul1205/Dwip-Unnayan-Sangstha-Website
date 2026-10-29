@@ -1,4 +1,4 @@
-// resources/js/pages/Backend/CMS/Sections/components/modals/Editors/BlogEditor.jsx
+// resources/js/Sections/BlogSection/BlogEditor.jsx
 
 import { FaBlog } from 'react-icons/fa';
 import ExternalManagerRedirect from '../../Shared/SectionEditor/ExternalManagerRedirect';

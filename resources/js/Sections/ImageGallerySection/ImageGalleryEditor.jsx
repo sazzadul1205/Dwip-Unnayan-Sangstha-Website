@@ -1,4 +1,4 @@
-// resources/js/pages/Backend/CMS/Sections/components/modals/Editors/ImageGalleryEditor.jsx
+// resources/js/Sections/ImageGallerySection/ImageGalleryEditor.jsx
 
 import { useState, useEffect } from 'react';
 import { FaTrash, FaPlus, FaTimes, FaImage, FaImages, FaTag } from 'react-icons/fa';
@@ -242,11 +242,11 @@ const ImageGalleryEditor = ({ section, hasData, onDataChange }) => {
         </div>
         <div>
           <span className="block text-slate-400">Data table</span>
-          <span className="font-mono text-slate-700">{section.data_table || '—'}</span>
+          <span className="font-mono text-slate-700">{section.data_table || 'â€”'}</span>
         </div>
         <div>
           <span className="block text-slate-400">Data key</span>
-          <span className="font-mono text-slate-700">{section.data_key || '—'}</span>
+          <span className="font-mono text-slate-700">{section.data_key || 'â€”'}</span>
         </div>
         <div>
           <span className="block text-slate-400">Images</span>

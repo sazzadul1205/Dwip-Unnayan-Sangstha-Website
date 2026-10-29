@@ -1,4 +1,4 @@
-// js/Sections/JobsSection/JobsSection.jsx
+// resources/js/Sections/JobsSection/JobsSection.jsx
 
 // Inertia & React
 import { Link } from '@inertiajs/react';
@@ -22,13 +22,13 @@ import { Skeleton } from '../../Shared/Skeletons/SkeletonPrimitives';
 
 // ============================================
 // SKELETON: Single job card
-// Matches real: p-5 → p-10, meta row, title, 3-line desc, salary, Apply button
+// Matches real: p-5 â†’ p-10, meta row, title, 3-line desc, salary, Apply button
 // ============================================
 const JobSkeletonCard = () => (
   <div className="bg-white p-5 sm:p-6 md:p-8 lg:p-10 rounded-2xl">
     <div className="flex flex-col md:flex-row items-start justify-between gap-5">
       <div className="flex-1 w-full">
-        {/* Meta row — 3 pills separated by dots */}
+        {/* Meta row â€” 3 pills separated by dots */}
         <div className="flex items-center gap-2 sm:gap-3 mb-3 flex-wrap">
           <Skeleton className="h-4 w-20 rounded-full" />
           <Skeleton className="h-4 w-px rounded-none" />
@@ -40,7 +40,7 @@ const JobSkeletonCard = () => (
         {/* Title */}
         <Skeleton className="h-8 w-3/4 rounded-lg mb-3" />
 
-        {/* Description — 3 lines */}
+        {/* Description â€” 3 lines */}
         <div className="space-y-2">
           <Skeleton className="h-4 w-full rounded" />
           <Skeleton className="h-4 w-5/6 rounded" />
@@ -83,7 +83,7 @@ const JobsSection = ({
   description: propDescription,
   limit: propLimit,
   filterPlaceholder: propFilterPlaceholder,
-  loading: externalLoading = false,     // ← NEW: force skeleton (parent-controlled)
+  loading: externalLoading = false,     // â† NEW: force skeleton (parent-controlled)
   bgColor = 'bg-[#F5F5F5]',
   paddingY = 'py-12 sm:py-16 md:py-20 lg:py-25 xl:py-30 2xl:py-37.5',
   paddingX = 'px-5 sm:px-8 md:px-12 lg:px-20 xl:px-30 2xl:px-50',
@@ -621,7 +621,7 @@ const JobsSection = ({
                       </div>
                       <div className="flex items-center gap-2 mt-1 text-[11px] sm:text-[12px] md:text-[13px] lg:text-[14px] text-[#524B48]">
                         {job.type && <span>{job.type}</span>}
-                        {job.type && job.location && <span>•</span>}
+                        {job.type && job.location && <span>â€¢</span>}
                         {job.location && <span>{job.location}</span>}
                       </div>
                     </button>
@@ -639,7 +639,7 @@ const JobsSection = ({
         </div>
       )}
 
-      {/* Skeleton — initial or parent-forced */}
+      {/* Skeleton â€” initial or parent-forced */}
       {showSkeleton && (
         <div data-frontend-loader="true" className="space-y-4 sm:space-y-5 lg:space-y-6">
           <JobSkeleton count={3} />

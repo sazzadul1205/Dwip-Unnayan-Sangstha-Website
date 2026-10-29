@@ -15,7 +15,7 @@ const FAQSkeletonRow = () => (
   <div className="bg-white w-full rounded-lg overflow-hidden shadow-sm">
     <div className="w-full py-3.5 sm:py-4 md:py-5 lg:py-6 xl:py-7.5 px-4 sm:px-5 md:px-6 lg:px-7.5">
       <div className="flex items-start sm:items-center justify-between gap-3 sm:gap-4">
-        {/* Question — variable width so it looks organic */}
+        {/* Question â€” variable width so it looks organic */}
         <Skeleton className="h-4 sm:h-4.5 md:h-5 lg:h-5.5 flex-1 max-w-[85%]" />
         {/* Plus/minus */}
         <Skeleton className="h-5 sm:h-5.5 md:h-6 lg:h-6.5 w-5 sm:w-5.5 md:w-6 lg:w-6.5 rounded-md shrink-0" />
@@ -51,8 +51,8 @@ const FAQSkeleton = ({ count = 6, hasTitle = true, hasSubtitle = true }) => (
 const FAQSection = ({
   faqData,
   data,
-  loading = false,               // ← NEW
-  skeletonCount = 6,             // ← NEW
+  loading = false,               // â† NEW
+  skeletonCount = 6,             // â† NEW
   bgColor = 'bg-[#F5F5F5]',
   paddingY = 'py-12 sm:py-16 md:py-20 lg:py-25 xl:py-30 2xl:py-37.5',
   paddingX = 'px-5 sm:px-8 md:px-12 lg:px-20 xl:px-30 2xl:px-50',
@@ -157,7 +157,7 @@ const FAQSection = ({
                           }`}
                         aria-hidden="true"
                       >
-                        {isOpen ? '−' : '+'}
+                        {isOpen ? 'âˆ’' : '+'}
                       </span>
                     </div>
                   </button>

@@ -1,4 +1,4 @@
-// js/Sections/StoriesSection/StoriesSection.jsx
+// resources/js/Sections/StoriesSection/StoriesSection.jsx
 
 // React
 import React, { useRef, useEffect, useState, useCallback } from 'react';
@@ -278,7 +278,7 @@ const StoriesSection = ({
   );
 
   // ============================================
-  // LOADING STATE — SKELETON
+  // LOADING STATE â€” SKELETON
   // ============================================
   if (isLoading) {
     return (
@@ -309,7 +309,7 @@ const StoriesSection = ({
   }
 
   // ============================================
-  // RENDER — WITH STORIES
+  // RENDER â€” WITH STORIES
   // ============================================
   return (
     <section

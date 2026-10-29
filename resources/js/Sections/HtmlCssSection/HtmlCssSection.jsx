@@ -1,12 +1,12 @@
-// js/Sections/HtmlCssSection/HtmlCssSection.jsx
+// resources/js/Sections/HtmlCssSection/HtmlCssSection.jsx
 //
-// "HTML / CSS Section" – renders raw HTML together with the CSS the admin
+// "HTML / CSS Section" â€“ renders raw HTML together with the CSS the admin
 // pasted in the CMS.
 //
 // Two styling modes are supported:
-//   * Custom CSS (default) – the admin's stylesheet is injected, scoped to this
+//   * Custom CSS (default) â€“ the admin's stylesheet is injected, scoped to this
 //     section. Tailwind utility classes in the markup are not used.
-//   * Tailwind mode (`useTailwind`) – the site's own Tailwind build styles the
+//   * Tailwind mode (`useTailwind`) â€“ the site's own Tailwind build styles the
 //     markup, so any CSS saved for the section is deliberately ignored. This
 //     keeps the CSS box free to be left empty or minimised.
 

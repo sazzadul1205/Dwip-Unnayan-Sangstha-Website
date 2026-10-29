@@ -1,4 +1,4 @@
-// resources/js/pages/Backend/CMS/Sections/components/modals/Editors/shared/formatCode.js
+// resources/js/Shared/SectionEditor/formatCode.js
 //
 // Client-side formatting through Prettier's standalone browser build.
 //

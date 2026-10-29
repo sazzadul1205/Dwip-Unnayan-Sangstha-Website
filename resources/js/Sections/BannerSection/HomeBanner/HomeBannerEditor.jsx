@@ -1,4 +1,4 @@
-// resources/js/pages/Backend/CMS/Sections/components/modals/Editors/HomeBannerEditor.jsx
+// resources/js/Sections/BannerSection/HomeBanner/HomeBannerEditor.jsx
 
 // React
 import { useState, useEffect, useCallback, useMemo } from 'react';
@@ -625,7 +625,7 @@ const HomeBannerEditor = ({ section, hasData, onDataChange }) => {
           <div>
             <span className="text-gray-500">Has Data:</span>
             <span className={`ml-2 font-medium ${hasData ? 'text-green-600' : 'text-gray-400'}`}>
-              {hasData ? '✓ Yes' : 'No'}
+              {hasData ? 'âœ“ Yes' : 'No'}
             </span>
           </div>
         </div>

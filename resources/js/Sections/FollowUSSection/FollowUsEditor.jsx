@@ -1,4 +1,4 @@
-// resources/js/pages/Backend/CMS/Sections/components/modals/Editors/FollowUsEditor.jsx
+// resources/js/Sections/FollowUSSection/FollowUsEditor.jsx
 
 import { useState, useEffect } from 'react';
 import { FaTrash, FaPlus, FaFacebook, FaInstagram, FaLinkedin, FaYoutube, FaTwitter, FaGlobe, FaShareAlt } from 'react-icons/fa';
@@ -90,7 +90,7 @@ const FollowUsEditor = ({ section, hasData, onDataChange }) => {
                 <span className="flex items-center gap-2 text-sm font-medium text-slate-700">
                   {getIconPreview(link.icon)}
                   {getIconLabel(link.icon)}
-                  {link.label && <span className="text-slate-400">·</span>}
+                  {link.label && <span className="text-slate-400">Â·</span>}
                   {link.label && <span className="text-xs text-slate-500">{link.label}</span>}
                 </span>
                 <button type="button" onClick={() => removeLink(index)}
@@ -134,11 +134,11 @@ const FollowUsEditor = ({ section, hasData, onDataChange }) => {
         </div>
         <div>
           <span className="block text-slate-400">Data table</span>
-          <span className="font-mono text-slate-700">{section.data_table || '—'}</span>
+          <span className="font-mono text-slate-700">{section.data_table || 'â€”'}</span>
         </div>
         <div>
           <span className="block text-slate-400">Data key</span>
-          <span className="font-mono text-slate-700">{section.data_key || '—'}</span>
+          <span className="font-mono text-slate-700">{section.data_key || 'â€”'}</span>
         </div>
         <div>
           <span className="block text-slate-400">Links</span>

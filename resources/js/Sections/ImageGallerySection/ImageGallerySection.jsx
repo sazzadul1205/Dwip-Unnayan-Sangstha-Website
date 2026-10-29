@@ -1,4 +1,4 @@
-// js/Sections/ImageGallerySection/ImageGallerySection.jsx
+// resources/js/Sections/ImageGallerySection/ImageGallerySection.jsx
 
 import { useCallback, useEffect, useState, useRef, useLayoutEffect } from 'react';
 import { usePage, router } from '@inertiajs/react';
@@ -29,7 +29,7 @@ const ImageGallerySkeleton = ({
       <Skeleton className="h-8 sm:h-9 md:h-10 w-28 sm:w-32 rounded-lg" />
     </div>
 
-    {/* Image grid — matches real grid breakpoints exactly */}
+    {/* Image grid â€” matches real grid breakpoints exactly */}
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 md:gap-6 lg:gap-7.5">
       {Array.from({ length: count }).map((_, index) => (
         <Skeleton
@@ -49,8 +49,8 @@ const ImageGallerySkeleton = ({
 const ImageGallerySection = ({
   data,
   galleryData,
-  loading = false,                       // ← NEW: externally controlled
-  skeletonCount = 9,                     // ← NEW: how many skeleton tiles
+  loading = false,                       // â† NEW: externally controlled
+  skeletonCount = 9,                     // â† NEW: how many skeleton tiles
   sectionTitle = 'Gallery',
   imageCountLabel = 'Image Count',
   imagesPerPage = 9,
@@ -233,7 +233,7 @@ const ImageGallerySection = ({
   }, [modalOpen, thumbnailRect]);
 
   // ============================================
-  // LOADING STATE — SKELETON
+  // LOADING STATE â€” SKELETON
   // ============================================
   if (loading) {
     return (
@@ -295,7 +295,7 @@ const ImageGallerySection = ({
         {/* Fallback: No images for this tag */}
         {!hasFilteredImages ? (
           <div className="flex flex-col items-center justify-center py-12 sm:py-16 md:py-20 text-center">
-            <div className="text-5xl mb-4">🔍</div>
+            <div className="text-5xl mb-4">ðŸ”</div>
             <h4 className="text-xl sm:text-2xl font-semibold text-gray-700">
               No images found
             </h4>

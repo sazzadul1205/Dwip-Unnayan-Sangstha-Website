@@ -1,4 +1,4 @@
-// js/Sections/BlogSection/BlogSection.jsx
+// resources/js/Sections/BlogSection/BlogSection.jsx
 
 // React
 import React, { useState } from 'react';
@@ -69,7 +69,7 @@ const BlogSkeleton = ({
       </div>
     )}
 
-    {/* Main blog — only when not related */}
+    {/* Main blog â€” only when not related */}
     {!isRelated && hasMain && <BlogSkeletonMainCard />}
 
     {/* Grid */}
@@ -91,9 +91,9 @@ const BlogSection = ({
   data,
   blogData,
   blogsData,
-  loading = false,               // ← NEW
-  skeletonCount = 6,             // ← NEW
-  hasMainSkeleton = true,        // ← NEW: mimic main blog presence
+  loading = false,               // â† NEW
+  skeletonCount = 6,             // â† NEW
+  hasMainSkeleton = true,        // â† NEW: mimic main blog presence
   mainBlog = null,
   blogPosts = [],
   sectionTitle = null,

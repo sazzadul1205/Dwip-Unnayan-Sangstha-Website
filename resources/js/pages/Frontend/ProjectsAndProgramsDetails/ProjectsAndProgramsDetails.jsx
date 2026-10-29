@@ -1,4 +1,4 @@
-// resources/js/Pages/Frontend/ProjectsAndProgramsDetails/ProjectsAndProgramsDetails.jsx (original version)
+// resources/js/pages/Frontend/ProjectsAndProgramsDetails/ProjectsAndProgramsDetails.jsx
 
 // React
 import React from 'react';
@@ -78,7 +78,7 @@ const ProjectsAndProgramsDetails = ({
       >
         <Head title="Program Not Found | DUS" />
         <NotFoundContent
-          icon="📁"
+          icon="ðŸ“"
           title="Program Not Available"
           message={notFoundMessage || 'The program you are looking for is no longer available or has been removed.'}
           buttonText="View All Programs"

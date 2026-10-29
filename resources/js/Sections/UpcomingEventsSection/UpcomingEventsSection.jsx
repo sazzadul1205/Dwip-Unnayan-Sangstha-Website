@@ -1,4 +1,4 @@
-// js/Sections/UpcomingEventsSection/UpcomingEventsSection.jsx
+// resources/js/Sections/UpcomingEventsSection/UpcomingEventsSection.jsx
 
 // Inertia
 import React from 'react';
@@ -21,7 +21,7 @@ import { hasValue } from '../../utils/sectionHelpers';
 // ============================================
 const EventSkeletonCard = () => (
   <div className="flex flex-col gap-4 rounded-2xl bg-[#F5F5F5] p-4 sm:gap-5 sm:p-5 md:flex-row">
-    {/* Date block — matches real: white card, w-40→50 */}
+    {/* Date block â€” matches real: white card, w-40â†’50 */}
     <div className="w-full shrink-0 rounded-2xl bg-white px-3 py-4 text-center sm:px-2 sm:py-6 md:w-40 md:min-w-40 lg:w-44 lg:min-w-44 lg:py-8 xl:w-48 xl:min-w-48 2xl:w-50 2xl:min-w-50">
       <div className="flex items-center justify-center gap-2 md:block">
         {/* Day */}
@@ -77,7 +77,7 @@ const UpcomingEventsSkeleton = ({ eventCount = 3 }) => (
       <Skeleton className="mt-8 sm:mt-10 lg:mt-15 w-full h-64 sm:h-80 md:h-100 lg:h-110 xl:h-120 2xl:h-139.25 rounded-2xl" />
     </div>
 
-    {/* Right side — events list */}
+    {/* Right side â€” events list */}
     <div className="mt-0 w-full space-y-5 sm:space-y-6 lg:space-y-7.5 xl:w-[58%]">
       {Array.from({ length: eventCount }).map((_, i) => (
         <EventSkeletonCard key={`event-skeleton-${i}`} />
@@ -92,8 +92,8 @@ const UpcomingEventsSkeleton = ({ eventCount = 3 }) => (
 const UpcomingEventsSection = ({
   data,
   eventsData,
-  loading = false,               // ← NEW
-  skeletonEventCount = 3,        // ← NEW
+  loading = false,               // â† NEW
+  skeletonEventCount = 3,        // â† NEW
   bgColor = 'bg-[#FFFFFF]',
   paddingY = 'py-12 sm:py-16 md:py-25 lg:py-30 xl:py-37.5',
   paddingX = 'px-5 sm:px-10 md:px-16 lg:px-20 xl:px-30 2xl:px-50',
@@ -131,7 +131,7 @@ const UpcomingEventsSection = ({
   }
 
   // ============================================
-  // EARLY RETURN — No data
+  // EARLY RETURN â€” No data
   // ============================================
   if (!hasValue(resolvedData)) return null;
 
@@ -202,7 +202,7 @@ const UpcomingEventsSection = ({
           </div>
         )}
 
-        {/* Right Section — Events */}
+        {/* Right Section â€” Events */}
         {hasValidEvents && (
           <div className="mt-0 w-full space-y-5 sm:space-y-6 lg:space-y-7.5 xl:w-[58%]">
             {validEvents.map((event) => {

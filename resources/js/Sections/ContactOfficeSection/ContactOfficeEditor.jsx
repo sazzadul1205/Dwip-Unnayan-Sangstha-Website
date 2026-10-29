@@ -1,4 +1,4 @@
-// resources/js/pages/Backend/CMS/Sections/components/modals/Editors/ContactOfficeEditor.jsx
+// resources/js/Sections/ContactOfficeSection/ContactOfficeEditor.jsx
 
 import React, { useState, useEffect } from 'react';
 import {
@@ -94,7 +94,7 @@ const ContactOfficeEditor = ({ section, onDataChange }) => {
       <EditorSection
         icon={FaAddressCard}
         title="Offices"
-        description={`${formData.length} office${formData.length === 1 ? '' : 's'} • Contact details and locations`}
+        description={`${formData.length} office${formData.length === 1 ? '' : 's'} â€¢ Contact details and locations`}
         tone="emerald"
         action={
           <button
@@ -160,7 +160,7 @@ const ContactOfficeEditor = ({ section, onDataChange }) => {
                         value={office.address || ''}
                         onChange={(e) => updateArrayItem(index, 'address', e.target.value)}
                         rows={2} className={`${inputClass} resize-y`}
-                        placeholder="24/5 Mollika, Prominent Housing…"
+                        placeholder="24/5 Mollika, Prominent Housingâ€¦"
                       />
                     </div>
                     <div>
@@ -169,7 +169,7 @@ const ContactOfficeEditor = ({ section, onDataChange }) => {
                         type="text" value={office.map_url || ''}
                         onChange={(e) => updateArrayItem(index, 'map_url', e.target.value)}
                         className={inputClass}
-                        placeholder="https://www.google.com/maps?q=…&output=embed"
+                        placeholder="https://www.google.com/maps?q=â€¦&output=embed"
                       />
                     </div>
                   </div>
@@ -287,11 +287,11 @@ const ContactOfficeEditor = ({ section, onDataChange }) => {
         </div>
         <div>
           <span className="block text-slate-400">Data table</span>
-          <span className="font-mono text-slate-700">{section.data_table || '—'}</span>
+          <span className="font-mono text-slate-700">{section.data_table || 'â€”'}</span>
         </div>
         <div>
           <span className="block text-slate-400">Data key</span>
-          <span className="font-mono text-slate-700">{section.data_key || '—'}</span>
+          <span className="font-mono text-slate-700">{section.data_key || 'â€”'}</span>
         </div>
         <div>
           <span className="block text-slate-400">Offices</span>

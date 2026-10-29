@@ -1,4 +1,4 @@
-// resources/js/pages/Backend/CMS/Sections/components/modals/Editors/HtmlCssEditor.jsx
+// resources/js/Sections/HtmlCssSection/HtmlCssEditor.jsx
 
 import React, {
   useRef,
@@ -43,7 +43,7 @@ import HtmlCssSection from './HtmlCssSection';
 // ============================================
 const EXAMPLE_HTML = `<div class="dus-feature">
   <h2>Built with plain HTML &amp; CSS</h2>
-  <p>Tailwind classes are ignored here – every style comes from the CSS box.</p>
+  <p>Tailwind classes are ignored here â€“ every style comes from the CSS box.</p>
   <a class="dus-feature__cta" href="/contact">Get in touch</a>
 </div>`;
 
@@ -82,7 +82,7 @@ const TAILWIND_EXAMPLE_HTML = `<div class="mx-auto max-w-4xl px-4 text-center">
     Built with Tailwind classes
   </h2>
   <p class="mt-4 text-base text-gray-600 md:text-lg">
-    No CSS box needed — style everything with the utility classes already used across the site.
+    No CSS box needed â€” style everything with the utility classes already used across the site.
   </p>
   <a
     href="/contact"
@@ -181,7 +181,7 @@ const escapeAttr = (value = '') =>
     .replace(/>/g, '&gt;');
 
 // For values placed inside a CSS url('...'). CSS is NOT HTML-decoded, so
-// "&" must stay "&" — only quotes, backslashes and newlines need escaping.
+// "&" must stay "&" â€” only quotes, backslashes and newlines need escaping.
 const escapeCssUrl = (value = '') =>
   value.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/[\r\n]+/g, '');
 
@@ -279,7 +279,7 @@ const HtmlCssEditor = ({ section, hasData, onDataChange, onUploadsChange }) => {
   const nativeFsRef = useRef(false);
   const htmlRef = useRef(null);
   const cssRef = useRef(null);
-  // null = the user has not placed a caret yet → insert at the end.
+  // null = the user has not placed a caret yet â†’ insert at the end.
   const caretRef = useRef({ html: null, css: null });
   const pendingCaretRef = useRef(null);
 
@@ -385,7 +385,7 @@ const HtmlCssEditor = ({ section, hasData, onDataChange, onUploadsChange }) => {
     }
   }, [enterFullscreen, exitFullscreen, isFullscreen]);
 
-  // Ctrl/Cmd + Shift + F — only while focus is inside this editor.
+  // Ctrl/Cmd + Shift + F â€” only while focus is inside this editor.
   const handleCardKeyDown = useCallback(
     (event) => {
       if ((event.ctrlKey || event.metaKey) && event.shiftKey && event.code === 'KeyF') {
@@ -569,7 +569,7 @@ const HtmlCssEditor = ({ section, hasData, onDataChange, onUploadsChange }) => {
       if (failures.length > 0) {
         setFormatError(
           failures
-            .map((field) => `Could not format the ${field.toUpperCase()} — ${FORMAT_HINTS[field]}.`)
+            .map((field) => `Could not format the ${field.toUpperCase()} â€” ${FORMAT_HINTS[field]}.`)
             .join(' ')
         );
       }
@@ -578,7 +578,7 @@ const HtmlCssEditor = ({ section, hasData, onDataChange, onUploadsChange }) => {
     }
   }, [css, html, isFormatting, setFormData, useTailwind]);
 
-  // Restore the caret after a programmatic insert (before paint → no flicker).
+  // Restore the caret after a programmatic insert (before paint â†’ no flicker).
   useLayoutEffect(() => {
     const pending = pendingCaretRef.current;
     if (!pending) return;
@@ -644,7 +644,7 @@ const HtmlCssEditor = ({ section, hasData, onDataChange, onUploadsChange }) => {
             className={`${headerActionClass} bg-emerald-50 text-emerald-700 hover:bg-emerald-100 focus-visible:ring-emerald-400`}
           >
             <FaWandMagicSparkles size={11} />
-            {isFormatting ? 'Formatting…' : 'Format'}
+            {isFormatting ? 'Formattingâ€¦' : 'Format'}
           </button>
           <button
             type="button"
@@ -682,7 +682,7 @@ const HtmlCssEditor = ({ section, hasData, onDataChange, onUploadsChange }) => {
             <FaInfoCircle size={13} className="mt-0.5 shrink-0 text-yellow-500" />
             <span>
               <strong className="font-semibold">New section.</strong>{' '}
-              A starter snippet has been loaded — tweak it, then click{' '}
+              A starter snippet has been loaded â€” tweak it, then click{' '}
               <strong className="font-semibold">Save Changes</strong> to create this section.
             </span>
           </div>
@@ -744,7 +744,7 @@ const HtmlCssEditor = ({ section, hasData, onDataChange, onUploadsChange }) => {
                 )}
               </>
             ) : (
-              'Plain CSS only — Tailwind classes in the HTML are ignored.'
+              'Plain CSS only â€” Tailwind classes in the HTML are ignored.'
             )}
           </p>
         </div>
@@ -754,8 +754,8 @@ const HtmlCssEditor = ({ section, hasData, onDataChange, onUploadsChange }) => {
           <FaHdd size={12} className="shrink-0 text-sky-600" />
           <span className="font-medium">Images are stored on this server.</span>
           <span className="text-sky-700">
-            Use <span className="font-semibold">Insert image</span> — the file uploads and a{' '}
-            <code className="rounded bg-white px-1">/storage/editor-images/…</code> URL is dropped
+            Use <span className="font-semibold">Insert image</span> â€” the file uploads and a{' '}
+            <code className="rounded bg-white px-1">/storage/editor-images/â€¦</code> URL is dropped
             into your markup.
           </span>
         </div>
@@ -765,7 +765,7 @@ const HtmlCssEditor = ({ section, hasData, onDataChange, onUploadsChange }) => {
             <FaExclamationTriangle size={13} className="mt-0.5 shrink-0 text-amber-600" />
             <span>
               {externalImageCount} image{externalImageCount > 1 ? 's are' : ' is'} linked from an
-              external host (<code className="rounded bg-white px-1">http(s)://…</code>). Upload{' '}
+              external host (<code className="rounded bg-white px-1">http(s)://â€¦</code>). Upload{' '}
               {externalImageCount > 1 ? 'them' : 'it'} with{' '}
               <span className="font-semibold">Insert image</span> and replace the link so the site
               does not depend on someone else&apos;s server.
@@ -793,7 +793,7 @@ const HtmlCssEditor = ({ section, hasData, onDataChange, onUploadsChange }) => {
                 HTML
               </button>
               <span className="text-[10px] tabular-nums text-gray-400">
-                {htmlStats.lines} lines · {htmlStats.chars} chars
+                {htmlStats.lines} lines Â· {htmlStats.chars} chars
               </span>
             </div>
 
@@ -840,7 +840,7 @@ const HtmlCssEditor = ({ section, hasData, onDataChange, onUploadsChange }) => {
                 textareaRef={htmlRef}
                 onCaret={rememberCaret('html')}
                 height={paneHeight}
-                headerHint='Tab indents · Enter auto-indents · {} " auto-close'
+                headerHint='Tab indents Â· Enter auto-indents Â· {} " auto-close'
                 actions={
                   storedImages.length > 0 ? (
                     <span className="rounded-full bg-[#3c3c3c] px-1.5 text-[10px] text-[#9cdcfe]">
@@ -871,7 +871,7 @@ const HtmlCssEditor = ({ section, hasData, onDataChange, onUploadsChange }) => {
                   CSS
                 </button>
                 <span className="text-[10px] tabular-nums text-gray-400">
-                  {cssStats.lines} lines · {cssStats.chars} chars
+                  {cssStats.lines} lines Â· {cssStats.chars} chars
                 </span>
               </div>
 
@@ -902,7 +902,7 @@ const HtmlCssEditor = ({ section, hasData, onDataChange, onUploadsChange }) => {
                   textareaRef={cssRef}
                   onCaret={rememberCaret('css')}
                   height={paneHeight}
-                  headerHint="Tab indents · Enter auto-indents · {} auto-close"
+                  headerHint="Tab indents Â· Enter auto-indents Â· {} auto-close"
                 />
               </div>
             </div>
@@ -921,8 +921,8 @@ const HtmlCssEditor = ({ section, hasData, onDataChange, onUploadsChange }) => {
             <span className="text-[11px] leading-relaxed text-gray-600">
               <strong className="font-semibold text-gray-700">Scope CSS to this section</strong>{' '}
               <span className="text-gray-400">
-                (recommended) — every rule is prefixed with this section&apos;s wrapper, so{' '}
-                <code className="rounded border border-gray-200 bg-white px-1">h1 {'{'} … {'}'}</code>{' '}
+                (recommended) â€” every rule is prefixed with this section&apos;s wrapper, so{' '}
+                <code className="rounded border border-gray-200 bg-white px-1">h1 {'{'} â€¦ {'}'}</code>{' '}
                 only affects this section.
               </span>
             </span>
@@ -1008,7 +1008,7 @@ const HtmlCssEditor = ({ section, hasData, onDataChange, onUploadsChange }) => {
           <div className="bg-white">
             {isEmpty ? (
               <p className="p-6 text-center text-sm text-gray-400">
-                Nothing to preview yet — add HTML and CSS above.
+                Nothing to preview yet â€” add HTML and CSS above.
               </p>
             ) : (
               <PreviewBoundary resetKey={`${previewKey}:${previewData.html}:${previewData.css}`}>
@@ -1024,7 +1024,7 @@ const HtmlCssEditor = ({ section, hasData, onDataChange, onUploadsChange }) => {
             <code className="rounded bg-gray-100 px-1">&lt;script&gt;</code> tags and inline event
             handlers are stripped for safety, and{' '}
             <code className="rounded bg-gray-100 px-1">&lt;style&gt;</code> tags inside the HTML box
-            are ignored — put your rules in the CSS box instead.
+            are ignored â€” put your rules in the CSS box instead.
           </span>
         </p>
       </div>

@@ -1,4 +1,4 @@
-// resources/js/pages/Backend/CMS/Sections/components/modals/Editors/shared/codeHighlight.js
+// resources/js/Shared/SectionEditor/codeHighlight.js
 //
 // Dependency-free tokenizers that colour HTML and CSS the way VS Code's
 // Dark+ theme does. The editor paints these tokens in a <pre> that sits behind

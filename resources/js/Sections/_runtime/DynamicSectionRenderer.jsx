@@ -1,7 +1,7 @@
 // resources/js/Sections/_runtime/DynamicSectionRenderer.jsx
 // FRONTEND lazy-loaded section renderer (used by pages/Frontend/* detail pages + DynamicPage).
 // Resolves components via _runtime/sectionRegistry.js (SECTION_COMPONENTS/CONFIGS).
-// NOTE: NOT a duplicate of _runtime/SectionIndex.jsx — that one is the
+// NOTE: NOT a duplicate of _runtime/SectionIndex.jsx â€” that one is the
 // BACKEND-ONLY synchronous preview renderer with legacy normalizeData mapping.
 // Keep both; do not merge without aligning prop-mapping + normalization first.
 
@@ -10,7 +10,7 @@ import SectionLoader from './SectionLoader';
 import { SECTION_COMPONENTS, SECTION_CONFIGS } from './sectionRegistry';
 
 // Components that always receive their whole payload as ONE prop object.
-// These must never be spread (isMultiProp) — otherwise the shape breaks.
+// These must never be spread (isMultiProp) â€” otherwise the shape breaks.
 const SINGLE_PAYLOAD_COMPONENTS = new Set([
   'HomeBanner',
   'PageBannerSection',

@@ -1,4 +1,4 @@
-
+// resources/js/Sections/JobsSection/JobsEditor.jsx
 // resources/js/pages/Backend/CMS/Sections/components/modals/Editors/JobsEditor.jsx
 
 import { useState, useEffect } from 'react';

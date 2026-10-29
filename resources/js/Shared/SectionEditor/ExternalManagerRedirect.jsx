@@ -1,4 +1,4 @@
-// resources/js/pages/Backend/CMS/Sections/components/modals/Editors/shared/ExternalManagerRedirect.jsx
+// resources/js/Shared/SectionEditor/ExternalManagerRedirect.jsx
 
 import React from 'react';
 import { FaExternalLinkAlt, FaInfoCircle } from 'react-icons/fa';

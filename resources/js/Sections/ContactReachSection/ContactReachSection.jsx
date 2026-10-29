@@ -1,4 +1,4 @@
-// js/Sections/ContactReachSection/ContactReachSection.jsx
+// resources/js/Sections/ContactReachSection/ContactReachSection.jsx
 
 // React
 import React, { useState } from 'react';
@@ -35,7 +35,7 @@ const FormFieldSkeleton = ({ multiline = false }) => (
 // ============================================
 const ContactReachSkeleton = () => (
   <>
-    {/* Left image block — matches real min-h chain */}
+    {/* Left image block â€” matches real min-h chain */}
     <div className="w-full lg:w-1/2 relative min-h-50 sm:min-h-62.5 md:min-h-75 lg:min-h-100 xl:min-h-125">
       <Skeleton
         className="w-full h-full max-h-64 sm:max-h-80 md:max-h-100 lg:max-h-none rounded-none"
@@ -81,7 +81,7 @@ const ContactReachSection = ({
   data,
   reachData,
   image,
-  loading = false,               // ← NEW
+  loading = false,               // â† NEW
   title = 'Reach out to us today!',
   buttonText = 'Submit Message',
   bgColor = 'bg-[#F5F5F5]',
