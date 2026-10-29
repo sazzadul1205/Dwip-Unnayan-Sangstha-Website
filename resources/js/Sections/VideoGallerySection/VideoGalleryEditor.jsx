@@ -4,381 +4,225 @@
 import React, { useState, useEffect } from 'react';
 
 // Icons
-import { FaTrash, FaPlus, FaTimes, FaVideo, FaYoutube } from 'react-icons/fa';
+import { FaTrash, FaPlus, FaTimes, FaVideo, FaYoutube, FaImages } from 'react-icons/fa';
 
 // Sweetalert
 import Swal from 'sweetalert2';
 
 // Shared Components
 import { TextField, TextAreaField } from '../../Shared/SectionEditor/Fields';
+import EditorSection from '../../pages/Backend/CMS/Shared/components/EditorSection';
 
 const VideoGalleryEditor = ({ section, hasData, onDataChange }) => {
-  // STATE MANAGEMENT
   const initialData = section?.data?.data || section?.data || {};
   const [formData, setFormData] = useState(initialData);
-
-  // Track thumbnail changes for deletion tracking
-  const [thumbnailChanges, setThumbnailChanges] = useState({});
-  const [oldThumbnailPaths, setOldThumbnailPaths] = useState({});
   const [uploadingThumbnail, setUploadingThumbnail] = useState({});
 
-  // Notify parent when form data changes
-  useEffect(() => {
-    if (onDataChange) {
-      onDataChange(formData);
-    }
-  }, [formData, onDataChange]);
+  useEffect(() => { onDataChange?.(formData); }, [formData, onDataChange]);
 
-  // HELPER FUNCTIONS
-
-  // Update top-level fields
-  const updateField = (field, value) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-  };
-
-  // Update a field in an array item
+  const updateField = (field, value) => setFormData((prev) => ({ ...prev, [field]: value }));
   const updateArrayItem = (index, field, value) => {
-    const newData = { ...formData };
-    if (!newData.videos) newData.videos = [];
-    if (!newData.videos[index]) newData.videos[index] = {};
-    newData.videos[index][field] = value;
-    setFormData(newData);
+    const next = { ...formData };
+    if (!next.videos) next.videos = [];
+    if (!next.videos[index]) next.videos[index] = {};
+    next.videos[index][field] = value;
+    setFormData(next);
   };
 
-  // VIDEO MANAGEMENT FUNCTIONS
-
-  // Add a new video with default values
   const addVideo = () => {
-    const newData = { ...formData };
-    if (!newData.videos) newData.videos = [];
-    const newId = Math.max(0, ...newData.videos.map(v => v.id || 0)) + 1;
-    newData.videos.push({
-      id: newId,
-      title: '',
-      description: '',
-      src: '',
-      thumbnail: ''
-    });
-    setFormData(newData);
+    const next = { ...formData };
+    if (!next.videos) next.videos = [];
+    const newId = Math.max(0, ...next.videos.map((v) => v.id || 0)) + 1;
+    next.videos.push({ id: newId, title: '', description: '', src: '', thumbnail: '' });
+    setFormData(next);
   };
 
-  // Remove a video and track its thumbnail for deletion
   const removeVideo = (index) => {
-    const items = formData.videos || [];
-    if (items[index]?.thumbnail) {
-      setOldThumbnailPaths(prev => ({
-        ...prev,
-        [index]: items[index].thumbnail
-      }));
-      setThumbnailChanges(prev => ({ ...prev, [index]: true }));
-    }
-    const newData = { ...formData };
-    newData.videos.splice(index, 1);
-    setFormData(newData);
+    const next = { ...formData };
+    next.videos.splice(index, 1);
+    setFormData(next);
   };
 
-  // THUMBNAIL HANDLING FUNCTIONS
-
-  // Handle thumbnail drop from drag & drop
-  const handleThumbnailDrop = (e, index) => {
-    e.preventDefault();
-    e.stopPropagation();
-
-    const files = e.dataTransfer.files;
-    if (files && files[0]) {
-      const file = files[0];
-      processThumbnailFile(file, index);
-    }
-  };
-
-  // Handle thumbnail selection via file input
-  const handleThumbnailSelect = (e, index) => {
-    const file = e.target.files[0];
-    if (file) {
-      processThumbnailFile(file, index);
-    }
-    e.target.value = '';
-  };
-
-  // Process and upload the thumbnail file
-  const processThumbnailFile = (file, index) => {
-    // Validate file type
+  const processThumb = (file, index) => {
     if (!file.type.startsWith('image/')) {
-      Swal.fire({
-        icon: 'error',
-        title: 'Invalid File',
-        text: 'Please select an image file (JPEG, PNG, GIF, WebP, SVG)',
-        confirmButtonColor: '#3b82f6',
-      });
+      Swal.fire({ icon: 'error', title: 'Invalid file', text: 'Please select an image.', confirmButtonColor: '#3b82f6' });
       return;
     }
-
-    // Validate file size (max 2MB for thumbnails)
     if (file.size > 2 * 1024 * 1024) {
-      Swal.fire({
-        icon: 'error',
-        title: 'File Too Large',
-        text: 'Thumbnail size should be less than 2MB',
-        confirmButtonColor: '#3b82f6',
-      });
+      Swal.fire({ icon: 'error', title: 'File too large', text: 'Max 2MB.', confirmButtonColor: '#3b82f6' });
       return;
     }
-
-    // Store old thumbnail path if it exists
-    const items = formData.videos || [];
-    if (items[index]?.thumbnail && !thumbnailChanges[index]) {
-      setOldThumbnailPaths(prev => ({
-        ...prev,
-        [index]: items[index].thumbnail
-      }));
-    }
-
-    // Read and convert thumbnail to base64
-    setUploadingThumbnail(prev => ({ ...prev, [index]: true }));
+    setUploadingThumbnail((p) => ({ ...p, [index]: true }));
     const reader = new FileReader();
-    reader.onload = (event) => {
-      const imageUrl = event.target.result;
-      updateArrayItem(index, 'thumbnail', imageUrl);
-      setThumbnailChanges(prev => ({ ...prev, [index]: true }));
-      setUploadingThumbnail(prev => ({ ...prev, [index]: false }));
+    reader.onload = (e) => {
+      updateArrayItem(index, 'thumbnail', e.target.result);
+      setUploadingThumbnail((p) => ({ ...p, [index]: false }));
     };
     reader.onerror = () => {
-      setUploadingThumbnail(prev => ({ ...prev, [index]: false }));
-      Swal.fire({
-        icon: 'error',
-        title: 'Error',
-        text: 'Failed to read the image file',
-        confirmButtonColor: '#3b82f6',
-      });
+      setUploadingThumbnail((p) => ({ ...p, [index]: false }));
+      Swal.fire({ icon: 'error', title: 'Error', text: 'Failed to read image.', confirmButtonColor: '#3b82f6' });
     };
     reader.readAsDataURL(file);
   };
 
-  // Remove thumbnail from a video
-  const removeThumbnail = (index) => {
-    const items = formData.videos || [];
-    if (items[index]?.thumbnail) {
-      setOldThumbnailPaths(prev => ({
-        ...prev,
-        [index]: items[index].thumbnail
-      }));
-    }
+  const handleDrop = (e, i) => {
+    e.preventDefault(); e.stopPropagation();
+    const file = e.dataTransfer.files?.[0];
+    if (file) processThumb(file, i);
+  };
+
+  const handleSelect = (e, i) => {
+    const file = e.target.files?.[0];
+    if (file) processThumb(file, i);
+    e.target.value = '';
+  };
+
+  const removeThumb = (index) => {
     updateArrayItem(index, 'thumbnail', '');
-    setThumbnailChanges(prev => ({ ...prev, [index]: true }));
   };
 
-  // Display path for thumbnail
-  const getDisplayPath = (src) => {
-    if (!src) return '';
-    if (src.startsWith('data:image')) {
-      return 'New image (will be uploaded)';
-    }
-    return src;
-  };
-
-  // EMPTY STATE
   if (!hasData || !formData || Object.keys(formData).length === 0) {
     return (
-      <div className="bg-white rounded-lg border border-gray-200 p-4">
-        <h3 className="text-sm font-semibold text-gray-700 mb-3">Edit Video Gallery Data</h3>
-        <div className="text-center py-8 text-gray-400">
-          <p className="text-sm">No videos added</p>
-          <p className="text-xs mt-1">Click "Add Video" to create one</p>
-        </div>
-        <div className="flex justify-end">
-          <button
-            type="button"
-            onClick={addVideo}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm font-medium"
-          >
-            <FaPlus size={14} />
-            Add Video
-          </button>
-        </div>
+      <div className="rounded-lg border-2 border-dashed border-slate-200 bg-slate-50/40 px-6 py-10 text-center">
+        <p className="text-sm font-medium text-slate-600">No data yet</p>
+        <p className="mt-0.5 text-xs text-slate-400">Click <span className="font-medium text-blue-600">Save Changes</span> to seed the initial structure</p>
       </div>
     );
   }
 
   const videos = formData.videos || [];
 
-  // MAIN RENDER
   return (
-    <div className="bg-white rounded-lg border border-gray-200 p-4">
-      <h3 className="text-sm font-semibold text-gray-700 mb-3">Edit Video Gallery Data</h3>
-
-      {/* Section Settings */}
-      <div className="mb-4">
-        <h4 className="text-sm font-medium text-gray-600 mb-2">Section Settings</h4>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <TextField
-            label="Section Title"
-            value={formData.sectionTitle || ''}
+    <div className="space-y-5">
+      <EditorSection icon={FaImages} title="Section Settings" description="Heading and count label" tone="blue">
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+          <TextField label="Section title" value={formData.sectionTitle || ''}
             onChange={(e) => updateField('sectionTitle', e.target.value)}
-            placeholder="Video Gallery"
-          />
-          <TextField
-            label="Video Count Label"
-            value={formData.videoCountLabel || 'Video Count'}
+            placeholder="Video Gallery" />
+          <TextField label="Video count label" value={formData.videoCountLabel || 'Video Count'}
             onChange={(e) => updateField('videoCountLabel', e.target.value)}
-            placeholder="Video Count"
-          />
+            placeholder="Video Count" />
         </div>
-      </div>
+      </EditorSection>
 
-      {/* Videos List */}
-      <div>
-        <div className="flex items-center justify-between mb-2">
-          <h4 className="text-sm font-medium text-gray-600">Videos ({videos.length})</h4>
-          <button
-            type="button"
-            onClick={addVideo}
-            className="text-xs text-blue-600 hover:text-blue-700 flex items-center gap-1"
-          >
-            <FaPlus size={12} /> Add Video
+      <EditorSection
+        icon={FaVideo}
+        title="Videos"
+        description={`${videos.length} video${videos.length === 1 ? '' : 's'}`}
+        tone="orange"
+        action={
+          <button type="button" onClick={addVideo}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm shadow-blue-600/25 transition hover:bg-blue-700">
+            <FaPlus size={10} /> Add video
           </button>
-        </div>
+        }
+      >
+        {videos.length === 0 ? (
+          <div className="rounded-lg border-2 border-dashed border-slate-200 bg-slate-50/40 px-6 py-10 text-center">
+            <p className="text-sm font-medium text-slate-600">No videos yet</p>
+            <p className="mt-0.5 text-xs text-slate-400">Click <span className="font-medium text-blue-600">Add video</span> to get started</p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {videos.map((video, index) => (
+              <div key={video.id || index} className="rounded-lg border border-slate-200 bg-white p-4 transition hover:border-slate-300">
+                <div className="mb-3 flex items-center justify-between">
+                  <span className="flex items-center gap-2 text-sm font-medium text-slate-700">
+                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-50 text-[10px] font-bold text-blue-600">
+                      {index + 1}
+                    </span>
+                    {video.title || `Video ${index + 1}`}
+                  </span>
+                  <button type="button" onClick={() => removeVideo(index)}
+                    className="rounded-md p-1.5 text-slate-400 transition hover:bg-red-50 hover:text-red-600">
+                    <FaTrash size={11} />
+                  </button>
+                </div>
 
-        <div className="space-y-4">
-          {videos.map((video, index) => (
-            <div key={video.id || index} className="p-4 bg-gray-50 rounded-lg border border-gray-200">
-              {/* Header */}
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-xs font-medium text-gray-500">Video #{index + 1}</span>
-                <button
-                  type="button"
-                  onClick={() => removeVideo(index)}
-                  className="text-xs text-red-500 hover:text-red-700 flex items-center gap-1"
-                >
-                  <FaTrash size={12} /> Remove
-                </button>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {/* Left Column - Thumbnail */}
-                <div>
-                  <label className="block text-xs text-gray-400 mb-0.5">Thumbnail</label>
-                  <div
-                    className={`relative border-2 border-dashed rounded-lg p-3 transition-all ${uploadingThumbnail[index] ? 'opacity-50' : 'border-gray-300 hover:border-gray-400'
-                      }`}
-                    onDragEnter={(e) => e.preventDefault()}
-                    onDragLeave={(e) => e.preventDefault()}
-                    onDragOver={(e) => e.preventDefault()}
-                    onDrop={(e) => handleThumbnailDrop(e, index)}
-                  >
-                    {video.thumbnail ? (
-                      <div className="flex items-center gap-3">
-                        <img
-                          src={video.thumbnail}
-                          alt={video.title || 'Video thumbnail'}
-                          className="w-20 h-14 object-cover rounded border border-gray-200"
-                        />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs text-gray-500 truncate">
-                            {getDisplayPath(video.thumbnail)}
-                          </p>
-                          {thumbnailChanges[index] && oldThumbnailPaths[index] && (
-                            <p className="text-xs text-red-400">🗑️ Will delete old</p>
-                          )}
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <div>
+                    <label className="block text-xs font-medium text-slate-500 mb-1">Thumbnail</label>
+                    <div
+                      className={`relative rounded-lg border-2 border-dashed p-3 transition ${uploadingThumbnail[index] ? 'pointer-events-none opacity-60' : 'border-slate-200 bg-slate-50/40 hover:border-slate-300'
+                        }`}
+                      onDragEnter={(e) => e.preventDefault()}
+                      onDragLeave={(e) => e.preventDefault()}
+                      onDragOver={(e) => e.preventDefault()}
+                      onDrop={(e) => handleDrop(e, index)}
+                    >
+                      {video.thumbnail ? (
+                        <div className="flex items-center gap-3">
+                          <img src={video.thumbnail} alt={video.title || ''}
+                            className="h-14 w-20 shrink-0 rounded-md border border-slate-200 object-cover" />
+                          <span className="flex-1 truncate text-xs text-slate-500">
+                            {video.thumbnail.startsWith('data:image') ? 'New (pending upload)' : video.thumbnail}
+                          </span>
+                          <button type="button" onClick={() => removeThumb(index)}
+                            className="shrink-0 rounded p-1 text-slate-400 transition hover:bg-red-50 hover:text-red-600">
+                            <FaTimes size={11} />
+                          </button>
                         </div>
-                        <button
-                          type="button"
-                          onClick={() => removeThumbnail(index)}
-                          className="p-1 text-red-500 hover:bg-red-50 rounded transition"
-                        >
-                          <FaTimes size={12} />
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-3 text-gray-400">
-                        <FaVideo size={18} />
-                        <span className="text-sm">Drop thumbnail or click to browse</span>
-                      </div>
-                    )}
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => handleThumbnailSelect(e, index)}
-                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                      disabled={uploadingThumbnail[index]}
-                    />
-                    {uploadingThumbnail[index] && (
-                      <div className="absolute inset-0 flex items-center justify-center bg-white/80 rounded-lg">
-                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600" />
-                      </div>
-                    )}
+                      ) : (
+                        <div className="flex items-center gap-2 py-1 text-slate-400">
+                          <FaVideo size={14} />
+                          <span className="text-xs">Drop thumbnail or click to browse</span>
+                        </div>
+                      )}
+                      <input type="file" accept="image/*"
+                        onChange={(e) => handleSelect(e, index)}
+                        className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+                        disabled={uploadingThumbnail[index]} />
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <TextField label="Title" value={video.title || ''}
+                      onChange={(e) => updateArrayItem(index, 'title', e.target.value)}
+                      placeholder="Video title" />
+                    <TextField label="Video URL" value={video.src || ''}
+                      onChange={(e) => updateArrayItem(index, 'src', e.target.value)}
+                      placeholder="https://www.youtube.com/watch?v=ID or /storage/videos/file.mp4" />
+                    <TextAreaField label="Description" value={video.description || ''}
+                      onChange={(e) => updateArrayItem(index, 'description', e.target.value)}
+                      placeholder="Video description" rows={2} />
                   </div>
                 </div>
 
-                {/* Right Column - Video Details */}
-                <div className="space-y-2">
-                  <TextField
-                    label="Title"
-                    value={video.title || ''}
-                    onChange={(e) => updateArrayItem(index, 'title', e.target.value)}
-                    placeholder="Video title"
-                  />
-                  <TextField
-                    label="Video URL"
-                    value={video.src || ''}
-                    onChange={(e) => updateArrayItem(index, 'src', e.target.value)}
-                    placeholder="https://www.youtube.com/watch?v=VIDEO_ID or /storage/videos/video.mp4"
-                  />
-                  <TextAreaField
-                    label="Description"
-                    value={video.description || ''}
-                    onChange={(e) => updateArrayItem(index, 'description', e.target.value)}
-                    placeholder="Video description"
-                    rows={2}
-                  />
-                </div>
-              </div>
-
-              {/* Video URL Preview */}
-              {video.src && (
-                <div className="mt-3 pt-3 border-t border-gray-200">
-                  <div className="flex items-center gap-2 text-xs text-gray-500">
-                    <FaYoutube className="text-red-500" />
+                {video.src && (
+                  <div className="mt-2 flex items-center gap-2 border-t border-slate-100 pt-2 text-xs text-slate-500">
+                    <FaYoutube className="text-red-500" size={11} />
                     <span className="truncate">{video.src}</span>
                     {video.src.includes('youtube.com') || video.src.includes('youtu.be') ? (
-                      <span className="text-green-600">✓ YouTube</span>
+                      <span className="text-emerald-600">YouTube</span>
                     ) : video.src.endsWith('.mp4') || video.src.endsWith('.webm') ? (
-                      <span className="text-blue-600">✓ Self-hosted</span>
+                      <span className="text-blue-600">Self-hosted</span>
                     ) : (
-                      <span className="text-gray-400">Unknown source</span>
+                      <span className="text-slate-400">Unknown source</span>
                     )}
                   </div>
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-
-        {videos.length === 0 && (
-          <div className="text-center py-6 text-gray-400 text-sm">
-            No videos added. Click "Add Video" to create one.
+                )}
+              </div>
+            ))}
           </div>
         )}
-      </div>
+      </EditorSection>
 
-      {/* Data Information */}
-      <div className="mt-4 bg-gray-50 rounded-lg p-4 border border-gray-200">
-        <div className="grid grid-cols-2 gap-3 text-sm">
-          <div>
-            <span className="text-gray-500">Section ID:</span>
-            <span className="ml-2 text-gray-700 font-mono">{section.id}</span>
-          </div>
-          <div>
-            <span className="text-gray-500">Data Table:</span>
-            <span className="ml-2 text-gray-700 font-mono">{section.data_table || 'None'}</span>
-          </div>
-          <div>
-            <span className="text-gray-500">Data Key:</span>
-            <span className="ml-2 text-gray-700 font-mono">{section.data_key || 'None'}</span>
-          </div>
-          <div>
-            <span className="text-gray-500">Total Videos:</span>
-            <span className="ml-2 text-gray-700 font-mono">{videos.length}</span>
-          </div>
+      <div className="grid grid-cols-2 gap-2 rounded-lg border border-slate-200 bg-slate-50/60 p-3 text-xs md:grid-cols-4">
+        <div>
+          <span className="block text-slate-400">Section ID</span>
+          <span className="font-mono text-slate-700">{section.id}</span>
+        </div>
+        <div>
+          <span className="block text-slate-400">Data table</span>
+          <span className="font-mono text-slate-700">{section.data_table || '—'}</span>
+        </div>
+        <div>
+          <span className="block text-slate-400">Data key</span>
+          <span className="font-mono text-slate-700">{section.data_key || '—'}</span>
+        </div>
+        <div>
+          <span className="block text-slate-400">Videos</span>
+          <span className="font-medium text-slate-700">{videos.length}</span>
         </div>
       </div>
     </div>
