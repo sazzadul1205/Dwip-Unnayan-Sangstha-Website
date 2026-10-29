@@ -1,210 +1,277 @@
 import RichTextEditor from '@/components/editor/RichTextEditor';
 import FileUpload from '../../Shared/components/FileUpload';
-import FormField from '../../Shared/components/FormField';
 import ToggleGroup from '../../Shared/components/ToggleGroup';
 import TagInput from '../../Shared/components/TagInput';
 import {
-  FaLock, FaInfoCircle, FaExclamationTriangle,
-  FaUser, FaCalendarAlt, FaClock,
+  FaLock, FaInfoCircle, FaExclamationCircle, FaUser,
+  FaCalendarAlt, FaClock, FaTag, FaRegFilePdf,
 } from 'react-icons/fa';
 
+// ─── Design tokens ──────────────────────────────────────────────
+const inputBase =
+  'w-full rounded-lg border bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition placeholder:text-slate-400';
+const inputIdle = 'border-slate-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-100/60';
+const inputError = 'border-red-300 focus:border-red-400 focus:ring-4 focus:ring-red-100/60';
+
+// ─── Sub-components ─────────────────────────────────────────────
+const Section = ({ title, description, children, action }) => (
+  <section className="rounded-xl border border-slate-200 bg-white shadow-sm">
+    <header className="flex items-start justify-between border-b border-slate-100 px-6 py-4">
+      <div>
+        <h2 className="text-sm font-semibold text-slate-900">{title}</h2>
+        {description && <p className="mt-0.5 text-xs text-slate-500">{description}</p>}
+      </div>
+      {action}
+    </header>
+    <div className="p-6">{children}</div>
+  </section>
+);
+
+const Field = ({ label, required, hint, error, children }) => (
+  <div className="space-y-1.5">
+    <label className="flex items-baseline gap-1.5 text-sm font-medium text-slate-700">
+      {label}
+      {required && <span className="text-red-500">*</span>}
+      {hint && <span className="text-xs font-normal text-slate-400">{hint}</span>}
+    </label>
+    {children}
+    {error && (
+      <p className="flex items-center gap-1.5 text-xs font-medium text-red-600">
+        <FaExclamationCircle size={11} />
+        {Array.isArray(error) ? error[0] : error}
+      </p>
+    )}
+  </div>
+);
+
+const IconInput = ({ icon: Icon, error, ...props }) => (
+  <div className="relative">
+    <Icon
+      className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+      size={13}
+    />
+    <input
+      {...props}
+      className={`${inputBase} pl-9 ${error ? inputError : inputIdle}`}
+    />
+  </div>
+);
+
+// ─── Main component ─────────────────────────────────────────────
 const PublicationForm = ({ form }) => {
   const {
-    data,
-    errors,
-    isSubmitting,
-    dragActive,
-    uploading,
-    pdfUploading,
-    tagInput,
-    tagSuggestions,
+    data, errors, isSubmitting, dragActive, uploading,
+    pdfUploading, tagInput, tagSuggestions,
   } = form;
 
-  const handleChange = (field, value) => {
-    form.updateField(field, value);
-  };
+  const set = (field, value) => form.updateField(field, value);
+  const hasErrors = errors && Object.keys(errors).length > 0;
 
   return (
     <form onSubmit={form.handleSubmit} className="space-y-6">
-      {errors && Object.keys(errors).length > 0 && (
-        <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-          <h3 className="text-sm font-medium text-red-800 mb-2 flex items-center gap-2">
-            <FaExclamationTriangle size={14} />
-            Please fix the following errors:
-          </h3>
-          <ul className="text-sm text-red-700 space-y-1">
-            {Object.entries(errors).map(([field, msgs]) => (
-              <li key={field}>• {Array.isArray(msgs) ? msgs[0] : msgs}</li>
-            ))}
-          </ul>
+      {/* Error banner */}
+      {hasErrors && (
+        <div className="rounded-lg border-l-4 border-red-400 bg-red-50 px-4 py-3">
+          <div className="flex items-start gap-2">
+            <FaExclamationCircle className="mt-0.5 shrink-0 text-red-500" size={14} />
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold text-red-800">
+                Please fix the following before saving
+              </p>
+              <ul className="mt-1 list-inside list-disc space-y-0.5 text-sm text-red-700">
+                {Object.entries(errors).map(([f, msgs]) => (
+                  <li key={f}>{Array.isArray(msgs) ? msgs[0] : msgs}</li>
+                ))}
+              </ul>
+            </div>
+          </div>
         </div>
       )}
 
-      {/* Title */}
-      <FormField
-        label="Title"
-        name="title"
-        value={data.title || ''}
-        onChange={(e) => handleChange('title', e.target.value)}
-        placeholder="Enter publication title"
-        required
-        error={errors?.title}
-      />
-
-      {/* Slug (auto-generated) */}
-      <div className="space-y-1.5">
-        <label className="block text-sm font-medium text-gray-700">
-          Slug <span className="text-gray-400 text-xs">(auto-generated)</span>
-        </label>
-        <div className="relative">
-          <input
-            type="text"
-            value={data.slug || ''}
-            onChange={(e) => handleChange('slug', e.target.value)}
-            readOnly
-            className="w-full px-4 py-2 pr-10 border border-gray-200 rounded-lg bg-gray-50 text-gray-500 cursor-default"
-            placeholder="Auto-generated from title..."
-          />
-          <FaLock className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
-        </div>
-        <div className="flex items-center gap-2">
-          <FaInfoCircle className="text-gray-400" size={12} />
-          <p className="text-xs text-gray-400">
-            Automatically generated from the title. Locked to keep URLs clean.
-          </p>
-        </div>
-      </div>
-
-      {/* Excerpt */}
-      <div className="space-y-1.5">
-        <label className="block text-sm font-medium text-gray-700">
-          Excerpt <span className="text-gray-400 text-xs">(optional)</span>
-        </label>
-        <textarea
-          value={data.excerpt || ''}
-          onChange={(e) => handleChange('excerpt', e.target.value)}
-          placeholder="Brief summary of the publication"
-          rows={2}
-          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-        />
-      </div>
-
-      {/* Full Content */}
-      <div className="space-y-1.5">
-        <label className="block text-sm font-medium text-gray-700">Full Content</label>
-        <RichTextEditor
-          value={data.full_content || ''}
-          onChange={(html) => handleChange('full_content', html)}
-          placeholder="Write your publication content here..."
-          height="400px"
-          features={{ codeView: false, colors: false }}
-          onImageUploaded={(url) => form.addUploadedImage(url)}
-        />
-        <div className="flex items-center gap-2">
-          <FaInfoCircle className="text-gray-400" size={12} />
-          <p className="text-xs text-gray-400">
-            Use the formatting toolbar to style your content. HTML source editing is disabled.
-          </p>
-        </div>
-      </div>
-
-      {/* Image */}
-      <FileUpload
-        label="Featured Image"
-        value={data.image || ''}
-        onChange={form.handleFileSelect}
-        onRemove={form.removeImage}
-        dragActive={dragActive}
-        onDrag={form.handleDrag}
-        onDrop={form.handleDrop}
-        uploading={uploading}
-      />
-
-      {/* PDF Upload */}
-      <div className="space-y-1.5">
-        <label className="block text-sm font-medium text-gray-700">
-          PDF File <span className="text-gray-400 text-xs">(optional - max 20MB)</span>
-        </label>
-        <FileUpload
-          label=""
-          value={data.pdf_url || ''}
-          onChange={form.handlePdfFileSelect}
-          onRemove={form.removePdf}
-          dragActive={false}
-          onDrag={() => {}}
-          onDrop={form.handlePdfDrop}
-          uploading={pdfUploading}
-          accept=".pdf,application/pdf"
-          maxSizeText="max 20MB"
-          fileTypesText="PDF"
-        />
-      </div>
-
-      {/* Author, Category, Date, Read Time */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <FormField
-          label="Author"
-          name="author"
-          value={data.author || ''}
-          onChange={(e) => handleChange('author', e.target.value)}
-          placeholder="Author name"
-          icon={<FaUser className="text-gray-400" size={14} />}
-          error={errors?.author}
-        />
-        <FormField
-          label="Category"
-          name="category"
-          value={data.category || ''}
-          onChange={(e) => handleChange('category', e.target.value)}
-          placeholder="e.g., Climate Change, Agriculture"
-          error={errors?.category}
-        />
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="space-y-1.5">
-          <label className="block text-sm font-medium text-gray-700">Date</label>
-          <div className="relative">
+      {/* ─── Content ─────────────────────────────── */}
+      <Section title="Content" description="The publication's title, summary, and body">
+        <div className="space-y-5">
+          {/* Title */}
+          <Field label="Title" required error={errors?.title}>
             <input
-              type="date"
-              value={data.date || ''}
-              onChange={(e) => handleChange('date', e.target.value)}
-              className="w-full px-4 py-2 pl-9 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              type="text"
+              value={data.title || ''}
+              onChange={(e) => set('title', e.target.value)}
+              placeholder="Enter publication title"
+              required
+              className={`${inputBase} py-3 text-base font-medium ${errors?.title ? inputError : inputIdle
+                }`}
             />
-            <FaCalendarAlt className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
-          </div>
+          </Field>
+
+          {/* Slug */}
+          <Field label="URL Slug" hint="auto-generated">
+            <div className="relative">
+              <input
+                type="text"
+                value={data.slug || ''}
+                readOnly
+                className="w-full cursor-default rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 pr-9 text-sm text-slate-500 outline-none"
+                placeholder="Auto-generated from title"
+              />
+              <FaLock
+                className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"
+                size={12}
+              />
+            </div>
+            <p className="flex items-center gap-1.5 text-xs text-slate-400">
+              <FaInfoCircle size={10} /> Locked after creation to keep URLs stable
+            </p>
+          </Field>
+
+          {/* Excerpt */}
+          <Field label="Excerpt" hint="optional" error={errors?.excerpt}>
+            <textarea
+              value={data.excerpt || ''}
+              onChange={(e) => set('excerpt', e.target.value)}
+              placeholder="Brief summary of the publication…"
+              rows={2}
+              className={`${inputBase} min-h-16 resize-y ${errors?.excerpt ? inputError : inputIdle
+                }`}
+            />
+          </Field>
+
+          {/* Content */}
+          <Field label="Full Content" error={errors?.full_content}>
+            <div className="overflow-hidden rounded-lg border border-slate-200 focus-within:border-blue-500 focus-within:ring-4 focus-within:ring-blue-100/60">
+              <RichTextEditor
+                value={data.full_content || ''}
+                onChange={(html) => set('full_content', html)}
+                placeholder="Write your publication content here…"
+                height="420px"
+                features={{ codeView: false, colors: false }}
+                onImageUploaded={(url) => form.addUploadedImage(url)}
+              />
+            </div>
+            <p className="flex items-center gap-1.5 text-xs text-slate-400">
+              <FaInfoCircle size={10} /> HTML source editing is disabled
+            </p>
+          </Field>
         </div>
-        <FormField
-          label="Read Time"
-          name="read_time"
-          value={data.read_time || ''}
-          onChange={(e) => handleChange('read_time', e.target.value)}
-          placeholder="e.g., 3 minutes"
-          icon={<FaClock className="text-gray-400" size={14} />}
-          error={errors?.read_time}
-        />
+      </Section>
+
+      {/* ─── Media ───────────────────────────────── */}
+      <div className="grid gap-6 md:grid-cols-2">
+        <Section title="Featured Image" description="Shown in listings and previews">
+          <FileUpload
+            label=""
+            value={data.image || ''}
+            onChange={form.handleFileSelect}
+            onRemove={form.removeImage}
+            dragActive={dragActive}
+            onDrag={form.handleDrag}
+            onDrop={form.handleDrop}
+            uploading={uploading}
+          />
+        </Section>
+
+        <Section title="PDF Document" description="Attach the full publication as PDF">
+          <div className="space-y-2">
+            <FileUpload
+              label=""
+              value={data.pdf_url || ''}
+              onChange={form.handlePdfFileSelect}
+              onRemove={form.removePdf}
+              dragActive={false}
+              onDrag={() => { }}
+              onDrop={form.handlePdfDrop}
+              uploading={pdfUploading}
+              accept=".pdf,application/pdf"
+              maxSizeText="max 20MB"
+              fileTypesText="PDF"
+            />
+            <div className="flex items-start gap-1.5 text-xs text-slate-400">
+              <FaRegFilePdf className="mt-0.5 shrink-0 text-red-400" size={11} />
+              <span>PDFs are downloadable by visitors on the publication page</span>
+            </div>
+          </div>
+        </Section>
       </div>
 
-      {/* Tags */}
-      <TagInput
-        tags={data.tags || []}
-        tagInput={tagInput}
-        suggestions={tagSuggestions}
-        onAddTag={form.addTag}
-        onRemoveTag={form.removeTag}
-        onInputChange={form.handleTagInputChange}
-        onKeyDown={form.handleTagKeyDown}
-        error={errors?.tags ? (Array.isArray(errors.tags) ? errors.tags[0] : errors.tags) : null}
-      />
+      {/* ─── Metadata ────────────────────────────── */}
+      <Section title="Metadata" description="Author, category, date, and reading time">
+        <div className="grid gap-4 md:grid-cols-2">
+          {/* Author */}
+          <Field label="Author" error={errors?.author}>
+            <IconInput
+              icon={FaUser}
+              type="text"
+              value={data.author || ''}
+              onChange={(e) => set('author', e.target.value)}
+              placeholder="Author name"
+              error={errors?.author}
+            />
+          </Field>
 
-      {/* Status Toggles */}
+          {/* Category */}
+          <Field label="Category" hint="e.g. Climate, Agriculture" error={errors?.category}>
+            <IconInput
+              icon={FaTag}
+              type="text"
+              value={data.category || ''}
+              onChange={(e) => set('category', e.target.value)}
+              placeholder="e.g. Climate Change"
+              error={errors?.category}
+            />
+          </Field>
+
+          {/* Date */}
+          <Field label="Publish Date">
+            <div className="relative">
+              <FaCalendarAlt
+                className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                size={13}
+              />
+              <input
+                type="date"
+                value={data.date || ''}
+                onChange={(e) => set('date', e.target.value)}
+                className={`${inputBase} pl-9 ${inputIdle}`}
+              />
+            </div>
+          </Field>
+
+          {/* Read Time */}
+          <Field label="Read Time" hint="e.g. 5 minutes" error={errors?.read_time}>
+            <IconInput
+              icon={FaClock}
+              type="text"
+              value={data.read_time || ''}
+              onChange={(e) => set('read_time', e.target.value)}
+              placeholder="e.g. 3 minutes"
+              error={errors?.read_time}
+            />
+          </Field>
+        </div>
+      </Section>
+
+      {/* ─── Tags ────────────────────────────────── */}
+      <Section title="Tags" description="Improve discoverability — max 10 tags">
+        <TagInput
+          tags={data.tags || []}
+          tagInput={tagInput}
+          suggestions={tagSuggestions}
+          onAddTag={form.addTag}
+          onRemoveTag={form.removeTag}
+          onInputChange={form.handleTagInputChange}
+          onKeyDown={form.handleTagKeyDown}
+          error={errors?.tags ? (Array.isArray(errors.tags) ? errors.tags[0] : errors.tags) : null}
+        />
+      </Section>
+
+      {/* ─── Sticky save bar ─────────────────────── */}
       <ToggleGroup
         isSubmitting={isSubmitting}
         submitLabel="Save Publication"
         statusValue={data.is_active}
         featuredValue={data.is_featured}
-        onStatusToggle={() => handleChange('is_active', !data.is_active)}
-        onFeaturedToggle={() => handleChange('is_featured', !data.is_featured)}
+        onStatusToggle={() => set('is_active', !data.is_active)}
+        onFeaturedToggle={() => set('is_featured', !data.is_featured)}
       />
     </form>
   );

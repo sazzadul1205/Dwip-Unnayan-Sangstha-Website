@@ -1,89 +1,75 @@
 // resources/js/pages/Backend/CMS/Shared/Modals/StoriesEditor.jsx
-// CANONICAL editor for Shared Data type `stories` (used by Shared/Index.jsx).
-// NOTE: there is no local StoriesEditor file anymore — page-level
-// StoriesSection rows use a SharedDataNotice redirect in RenderDataTab.jsx.
-
-import React from 'react';
 import { FaInfoCircle, FaExternalLinkAlt } from 'react-icons/fa';
+import EditorSection from '../components/EditorSection';
 
-export default function StoriesEditor({
-  formData,
-  updateFormData,
-  isLoading = false,
-}) {
+const inputClass =
+  'w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-100/60 disabled:bg-slate-50 disabled:text-slate-500';
 
-  // Check if any upload is in progress
+const labelClass = 'block text-sm font-medium text-slate-700';
+const hintClass = 'mt-1.5 flex items-center gap-1.5 text-xs text-slate-400';
+
+export default function StoriesEditor({ formData, updateFormData, isLoading = false }) {
   const isDisabled = isLoading;
 
-  // RENDER
   return (
-    <div className="space-y-8 w-full">
-
-      {/*  SECTION HEADER */}
-      <div className="bg-linear-to-r from-blue-50 to-indigo-50 rounded-xl p-6 border border-blue-100">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="p-2 bg-blue-100 rounded-lg">
-            <FaInfoCircle className="text-blue-600 text-lg" />
-          </div>
-          <div>
-            <h3 className="font-semibold text-gray-800 text-lg">Stories Section Settings</h3>
-            <p className="text-xs text-gray-500">Configure the title and description for your stories section</p>
-          </div>
+    <div className="space-y-6 w-full">
+      {/* Settings */}
+      <EditorSection
+        icon={FaInfoCircle}
+        title="Stories Section Settings"
+        description="Configure the title and description for your stories section"
+        tone="blue"
+      >
+        <div>
+          <label className={labelClass}>
+            Section Title
+            <span className="ml-2 text-xs font-normal text-slate-400">(optional)</span>
+          </label>
+          <input
+            type="text"
+            value={formData.section?.title || ''}
+            onChange={(e) => updateFormData('section.title', e.target.value)}
+            placeholder="e.g., Our Latest Stories"
+            className={`${inputClass} mt-1.5`}
+            disabled={isDisabled}
+          />
         </div>
-
-        <div className="grid grid-cols-1 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Section Title
-              <span className="text-xs text-gray-400 ml-2">(optional)</span>
-            </label>
-            <input
-              type="text"
-              value={formData.section?.title || ''}
-              onChange={(e) => updateFormData('section.title', e.target.value)}
-              placeholder="e.g., Our Latest Stories"
-              className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition outline-none"
-              disabled={isDisabled}
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Section Description
-              <span className="text-xs text-gray-400 ml-2">(optional)</span>
-            </label>
-            <textarea
-              value={formData.section?.description || ''}
-              onChange={(e) => updateFormData('section.description', e.target.value)}
-              rows={2}
-              placeholder="e.g., Read inspiring stories from our community"
-              className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition outline-none resize-y"
-              disabled={isDisabled}
-            />
-          </div>
+        <div>
+          <label className={labelClass}>
+            Section Description
+            <span className="ml-2 text-xs font-normal text-slate-400">(optional)</span>
+          </label>
+          <textarea
+            value={formData.section?.description || ''}
+            onChange={(e) => updateFormData('section.description', e.target.value)}
+            rows={2}
+            placeholder="e.g., Read inspiring stories from our community"
+            className={`${inputClass} mt-1.5 resize-y`}
+            disabled={isDisabled}
+          />
         </div>
-      </div>
+      </EditorSection>
 
-      {/*  QUICK LINK TO BLOGS */}
-      <div className="bg-linear-to-r from-cyan-50 to-teal-50 rounded-xl p-6 border border-cyan-100">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-cyan-100 rounded-lg">
-              <FaExternalLinkAlt className="text-cyan-600 text-lg" />
-            </div>
-            <div>
-              <h3 className="font-semibold text-gray-800 text-lg">Manage Your Stories</h3>
-              <p className="text-xs text-gray-500">To add or edit stories, go to the Blog management section</p>
-            </div>
-          </div>
+      {/* Manage link */}
+      <EditorSection
+        icon={FaExternalLinkAlt}
+        title="Manage Your Stories"
+        description="To add or edit stories, go to the Blog management section"
+        tone="cyan"
+        action={
           <a
             href="/backend/cms/blogs"
-            className="px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition shadow-sm text-sm font-medium flex items-center gap-2"
+            className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm shadow-blue-600/25 transition hover:bg-blue-700 hover:shadow-md focus:outline-none focus-visible:ring-4 focus-visible:ring-blue-200"
           >
-            <span>Go to Blogs</span>
-            <FaExternalLinkAlt size={14} />
+            Go to Blogs <FaExternalLinkAlt size={11} />
           </a>
-        </div>
-      </div>
+        }
+      >
+        <p className={hintClass}>
+          <FaInfoCircle size={10} />
+          Stories are managed as blog posts. Any post marked as Featured appears in this section.
+        </p>
+      </EditorSection>
     </div>
   );
 }

@@ -1,4 +1,12 @@
+// resources/js/pages/Backend/CMS/Shared/components/FormField.jsx
 import { FaExclamationCircle } from 'react-icons/fa';
+
+const inputBase =
+  'w-full rounded-lg border bg-white py-2.5 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 disabled:bg-slate-50 disabled:text-slate-500';
+const inputIdle =
+  'border-slate-200 hover:border-slate-300 focus:border-blue-500 focus:ring-4 focus:ring-blue-100/60';
+const inputError =
+  'border-red-300 focus:border-red-400 focus:ring-4 focus:ring-red-100/60';
 
 const FormField = ({
   label,
@@ -25,7 +33,10 @@ const FormField = ({
   return (
     <div className="space-y-1.5">
       {label && (
-        <label htmlFor={name} className="flex items-center gap-1 text-sm font-medium text-slate-700">
+        <label
+          htmlFor={name}
+          className="flex items-baseline gap-1 text-sm font-medium text-slate-700"
+        >
           {label}
           {required && <span className="text-xs text-red-500">*</span>}
         </label>
@@ -33,7 +44,7 @@ const FormField = ({
 
       <div className="relative">
         {icon && (
-          <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400">
+          <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
             {icon}
           </span>
         )}
@@ -50,18 +61,14 @@ const FormField = ({
           max={max}
           rows={rows}
           maxLength={maxLength}
-          className={`w-full rounded-xl border bg-white py-2.5 text-sm text-slate-800 outline-none transition-all duration-150 placeholder:text-slate-400
-            ${icon ? 'pl-10' : 'pl-3.5'} pr-3.5
-            ${isTextarea ? 'min-h-24 resize-y' : ''}
-            ${hasError
-              ? 'border-red-300 focus:border-red-400 focus:ring-4 focus:ring-red-50'
-              : 'border-slate-200 hover:border-slate-300 focus:border-blue-500 focus:ring-4 focus:ring-blue-50'}`}
+          className={`${inputBase} ${hasError ? inputError : inputIdle} ${icon ? 'pl-9' : 'px-3.5'
+            } pr-3.5 ${isTextarea ? 'min-h-24 resize-y' : ''}`}
         />
       </div>
 
       {error && (
         <p className="flex items-center gap-1.5 text-xs font-medium text-red-600">
-          <FaExclamationCircle size={12} />
+          <FaExclamationCircle size={11} />
           {Array.isArray(error) ? error[0] : error}
         </p>
       )}

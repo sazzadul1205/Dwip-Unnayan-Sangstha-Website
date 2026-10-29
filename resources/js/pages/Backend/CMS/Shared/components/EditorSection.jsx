@@ -1,11 +1,14 @@
 // resources/js/pages/Backend/CMS/Shared/Components/EditorSection.jsx
+
 const TONES = {
-  blue: { panel: 'from-blue-50 to-indigo-50 border-blue-100/80', icon: 'bg-blue-100 text-blue-600' },
-  emerald: { panel: 'from-emerald-50 to-teal-50 border-emerald-100/80', icon: 'bg-emerald-100 text-emerald-600' },
-  orange: { panel: 'from-orange-50 to-amber-50 border-orange-100/80', icon: 'bg-orange-100 text-orange-600' },
-  violet: { panel: 'from-violet-50 to-fuchsia-50 border-violet-100/80', icon: 'bg-violet-100 text-violet-600' },
-  cyan: { panel: 'from-cyan-50 to-sky-50 border-cyan-100/80', icon: 'bg-cyan-100 text-cyan-600' },
-  slate: { panel: 'from-slate-50 to-gray-50 border-slate-200/80', icon: 'bg-slate-100 text-slate-600' },
+  blue: 'bg-blue-50 text-blue-600 ring-blue-100',
+  indigo: 'bg-indigo-50 text-indigo-600 ring-indigo-100',
+  emerald: 'bg-emerald-50 text-emerald-600 ring-emerald-100',
+  orange: 'bg-orange-50 text-orange-600 ring-orange-100',
+  violet: 'bg-violet-50 text-violet-600 ring-violet-100',
+  cyan: 'bg-cyan-50 text-cyan-600 ring-cyan-100',
+  pink: 'bg-pink-50 text-pink-600 ring-pink-100',
+  slate: 'bg-slate-100 text-slate-600 ring-slate-200',
 };
 
 export default function EditorSection({
@@ -17,24 +20,31 @@ export default function EditorSection({
   children,
   className = '',
 }) {
-  const t = TONES[tone] ?? TONES.blue;
+  const toneClasses = TONES[tone] ?? TONES.blue;
+
   return (
-    <section className={`rounded-2xl border bg-linear-to-br ${t.panel} p-5 sm:p-6 ${className}`}>
-      <header className="mb-5 flex items-start gap-3">
-        {Icon && (
-          <div className={`shrink-0 rounded-xl p-2.5 ${t.icon}`}>
-            <Icon size={18} />
-          </div>
-        )}
-        <div className="min-w-0 flex-1">
-          <h3 className="text-base font-semibold text-slate-800">{title}</h3>
-          {description && (
-            <p className="mt-0.5 text-xs text-slate-500">{description}</p>
+    <section
+      className={`rounded-xl border border-slate-200 bg-white shadow-sm ${className}`}
+    >
+      <header className="flex items-start justify-between gap-3 border-b border-slate-100 px-5 py-4 sm:px-6">
+        <div className="flex min-w-0 items-start gap-3">
+          {Icon && (
+            <div className={`shrink-0 rounded-lg p-2 ring-1 ${toneClasses}`}>
+              <Icon size={16} />
+            </div>
           )}
+          <div className="min-w-0">
+            <h2 className="truncate text-sm font-semibold text-slate-900">
+              {title}
+            </h2>
+            {description && (
+              <p className="mt-0.5 text-xs text-slate-500">{description}</p>
+            )}
+          </div>
         </div>
         {action && <div className="shrink-0">{action}</div>}
       </header>
-      <div className="space-y-4">{children}</div>
+      <div className="space-y-4 p-5 sm:p-6">{children}</div>
     </section>
   );
 }

@@ -1,3 +1,4 @@
+// resources/js/pages/Backend/CMS/Shared/components/ToggleGroup.jsx
 import {
   FaCheckCircle, FaTimesCircle, FaStar, FaRegStar, FaSave, FaSpinner,
 } from 'react-icons/fa';
@@ -10,58 +11,85 @@ const ToggleGroup = ({
   onStatusToggle,
   onFeaturedToggle,
   showFeatured = true,
-}) => (
-  <div className="sticky bottom-0 -mx-6 -mb-6 mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 bg-white/95 px-6 py-4 backdrop-blur">
-    <div className="flex flex-wrap items-center gap-4">
-      <div className="flex items-center gap-2">
-        <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
-          Status
-        </span>
-        <button
-          type="button"
-          onClick={onStatusToggle}
-          className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold ring-1 transition
-            ${statusValue
-              ? 'bg-emerald-50 text-emerald-700 ring-emerald-200 hover:bg-emerald-100'
-              : 'bg-slate-100 text-slate-600 ring-slate-200 hover:bg-slate-200'}`}
-        >
-          {statusValue
-            ? <><FaCheckCircle size={11} /> Active</>
-            : <><FaTimesCircle size={11} /> Inactive</>}
-        </button>
-      </div>
+  sticky = true,          
+}) => {
+  const shell = sticky
+    ? 'sticky bottom-0 -mx-6 -mb-6 mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 bg-white/95 px-6 py-4 backdrop-blur'
+    : 'flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-5 py-3 shadow-sm';
 
-      {showFeatured && (
+  return (
+    <div className={shell}>
+      <div className="flex flex-wrap items-center gap-4">
+        {/* Status */}
         <div className="flex items-center gap-2">
           <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
-            Featured
+            Status
           </span>
           <button
             type="button"
-            onClick={onFeaturedToggle}
-            className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold ring-1 transition
-              ${featuredValue
-                ? 'bg-amber-50 text-amber-700 ring-amber-200 hover:bg-amber-100'
-                : 'bg-slate-100 text-slate-600 ring-slate-200 hover:bg-slate-200'}`}
+            onClick={onStatusToggle}
+            className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold ring-1 transition focus:outline-none focus-visible:ring-4 focus-visible:ring-emerald-200 ${statusValue
+                ? 'bg-emerald-50 text-emerald-700 ring-emerald-200 hover:bg-emerald-100'
+                : 'bg-slate-100 text-slate-600 ring-slate-200 hover:bg-slate-200'
+              }`}
           >
-            {featuredValue
-              ? <><FaStar size={11} /> Featured</>
-              : <><FaRegStar size={11} /> Not featured</>}
+            {statusValue ? (
+              <>
+                <FaCheckCircle size={11} /> Active
+              </>
+            ) : (
+              <>
+                <FaTimesCircle size={11} /> Inactive
+              </>
+            )}
           </button>
         </div>
-      )}
-    </div>
 
-    <button
-      type="submit"
-      disabled={isSubmitting}
-      className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm shadow-blue-600/20 transition hover:bg-blue-700 hover:shadow-md focus:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-60"
-    >
-      {isSubmitting
-        ? <><FaSpinner className="animate-spin" size={14} /> Saving…</>
-        : <><FaSave size={14} /> {submitLabel}</>}
-    </button>
-  </div>
-);
+        {/* Featured */}
+        {showFeatured && (
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+              Featured
+            </span>
+            <button
+              type="button"
+              onClick={onFeaturedToggle}
+              className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold ring-1 transition focus:outline-none focus-visible:ring-4 focus-visible:ring-amber-200 ${featuredValue
+                  ? 'bg-amber-50 text-amber-700 ring-amber-200 hover:bg-amber-100'
+                  : 'bg-slate-100 text-slate-600 ring-slate-200 hover:bg-slate-200'
+                }`}
+            >
+              {featuredValue ? (
+                <>
+                  <FaStar size={11} /> Featured
+                </>
+              ) : (
+                <>
+                  <FaRegStar size={11} /> Not featured
+                </>
+              )}
+            </button>
+          </div>
+        )}
+      </div>
+
+      <button
+        type="submit"
+        disabled={isSubmitting}
+        className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm shadow-blue-600/20 transition hover:bg-blue-700 hover:shadow-md focus:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-60"
+      >
+        {isSubmitting ? (
+          <>
+            <FaSpinner className="animate-spin" size={13} /> Saving…
+          </>
+        ) : (
+          <>
+            <FaSave size={13} /> {submitLabel}
+          </>
+        )}
+      </button>
+    </div>
+  );
+};
 
 export default ToggleGroup;

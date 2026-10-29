@@ -1,3 +1,4 @@
+// resources/js/pages/Backend/CMS/Shared/hooks/useContentForm.js
 import { useState, useCallback } from 'react';
 import { router } from '@inertiajs/react';
 import axios from 'axios';
@@ -12,6 +13,29 @@ import {
 } from '../utils/contentFormUtils';
 
 const PDF_MAX_BYTES = 20 * 1024 * 1024;
+const MAX_TAGS = 10;
+
+const buildInitialState = (initialData) => {
+  if (initialData) {
+    return {
+      ...initialData,
+      tags: normalizeTags(initialData.tags),
+      image: initialData.image || '',
+      is_featured: !!initialData.is_featured,
+      is_active: initialData.is_active !== undefined ? !!initialData.is_active : true,
+    };
+  }
+  return {
+    title: '',
+    slug: '',
+    excerpt: '',
+    full_content: '',
+    image: '',
+    tags: [],
+    is_featured: false,
+    is_active: true,
+  };
+};
 
 export const useContentForm = ({
   initialData = null,
@@ -20,49 +44,29 @@ export const useContentForm = ({
   updateRoute,
   itemLabel = 'item',
 }) => {
-  const [data, setData] = useState(() => {
-    if (initialData) {
-      return {
-        ...initialData,
-        tags: normalizeTags(initialData.tags),
-        image: initialData.image || '',
-        is_featured: !!initialData.is_featured,
-        is_active: initialData.is_active !== undefined ? !!initialData.is_active : true,
-      };
-    }
-    return {
-      title: '',
-      slug: '',
-      excerpt: '',
-      full_content: '',
-      image: '',
-      tags: [],
-      is_featured: false,
-      is_active: true,
-    };
-  });
-
+  const [data, setData] = useState(() => buildInitialState(initialData));
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [slugManuallyEdited, setSlugManuallyEdited] = useState(false);
 
+  // ─── Field updates ──────────────────────────────────────────
   const updateField = useCallback((field, value) => {
-    setData(prev => {
+    setData((prev) => {
       const next = { ...prev, [field]: value };
       if (field === 'title' && !slugManuallyEdited) {
         next.slug = generateSlug(value);
       }
       return next;
     });
-    setErrors(prev => (prev[field] ? { ...prev, [field]: null } : prev));
+    setErrors((prev) => (prev[field] ? { ...prev, [field]: null } : prev));
   }, [slugManuallyEdited]);
 
   const setSlugManually = useCallback((value) => {
     setSlugManuallyEdited(true);
-    setData(prev => ({ ...prev, slug: value }));
+    setData((prev) => ({ ...prev, slug: value }));
   }, []);
 
-  // Tags
+  // ─── Tags ───────────────────────────────────────────────────
   const [tagInput, setTagInput] = useState('');
   const [tagSuggestions, setTagSuggestions] = useState([]);
 
@@ -73,18 +77,18 @@ export const useContentForm = ({
       showErrorToast('Duplicate Tag', `"${trimmed}" is already added.`);
       return false;
     }
-    if (data.tags.length >= 10) {
-      showErrorToast('Too Many Tags', 'You can add a maximum of 10 tags.');
+    if (data.tags.length >= MAX_TAGS) {
+      showErrorToast('Too Many Tags', `You can add a maximum of ${MAX_TAGS} tags.`);
       return false;
     }
-    setData(prev => ({ ...prev, tags: [...prev.tags, trimmed] }));
+    setData((prev) => ({ ...prev, tags: [...prev.tags, trimmed] }));
     setTagInput('');
     setTagSuggestions([]);
     return true;
   }, [data.tags]);
 
   const removeTag = useCallback((tagToRemove) => {
-    setData(prev => ({ ...prev, tags: prev.tags.filter(t => t !== tagToRemove) }));
+    setData((prev) => ({ ...prev, tags: prev.tags.filter((t) => t !== tagToRemove) }));
   }, []);
 
   const handleTagInputChange = useCallback((e) => {
@@ -93,7 +97,7 @@ export const useContentForm = ({
     setTagSuggestions(
       value
         ? COMMON_TAG_SUGGESTIONS
-            .filter(t => t.toLowerCase().includes(value.toLowerCase()) && !data.tags.includes(t))
+            .filter((t) => t.toLowerCase().includes(value.toLowerCase()) && !data.tags.includes(t))
             .slice(0, 5)
         : []
     );
@@ -109,7 +113,7 @@ export const useContentForm = ({
     }
   }, [tagInput, addTag, removeTag, data.tags]);
 
-  // File uploads
+  // ─── File uploads ───────────────────────────────────────────
   const [dragActive, setDragActive] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [pdfUploading, setPdfUploading] = useState(false);
@@ -133,8 +137,8 @@ export const useContentForm = ({
     setUploading(true);
     try {
       const base64 = await readAsBase64(file);
-      setData(prev => ({ ...prev, [field]: base64 }));
-      showSuccessToast('Image Uploaded', 'Image has been added successfully.');
+      setData((prev) => ({ ...prev, [field]: base64 }));
+      showSuccessToast('Image Uploaded', 'Image has been added.');
     } catch {
       showErrorToast('Upload Failed', 'Failed to read the image file. Please try again.');
     } finally {
@@ -157,11 +161,11 @@ export const useContentForm = ({
   }, [processImageFile]);
 
   const removeImage = useCallback((field = 'image') => {
-    setData(prev => ({ ...prev, [field]: '' }));
+    setData((prev) => ({ ...prev, [field]: '' }));
     showSuccessToast('Image Removed', 'Image has been removed.');
   }, []);
 
-  // PDF
+  // ─── PDF upload ─────────────────────────────────────────────
   const processPdfFile = useCallback(async (file) => {
     if (file.type !== 'application/pdf') {
       showErrorToast('Invalid File', 'Please select a PDF file.');
@@ -174,8 +178,8 @@ export const useContentForm = ({
     setPdfUploading(true);
     try {
       const base64 = await readAsBase64(file);
-      setData(prev => ({ ...prev, pdf_url: base64 }));
-      showSuccessToast('PDF Uploaded', 'PDF has been added successfully.');
+      setData((prev) => ({ ...prev, pdf_url: base64 }));
+      showSuccessToast('PDF Uploaded', 'PDF has been added.');
     } catch {
       showErrorToast('Upload Failed', 'Failed to read the PDF file. Please try again.');
     } finally {
@@ -198,15 +202,15 @@ export const useContentForm = ({
   }, [processPdfFile]);
 
   const removePdf = useCallback(() => {
-    setData(prev => ({ ...prev, pdf_url: '' }));
+    setData((prev) => ({ ...prev, pdf_url: '' }));
     showSuccessToast('PDF Removed', 'PDF has been removed.');
   }, []);
 
-  // Editor image tracking & cleanup
+  // ─── Editor image tracking ──────────────────────────────────
   const [uploadedEditorImages, setUploadedEditorImages] = useState([]);
 
   const addUploadedImage = useCallback((url) => {
-    setUploadedEditorImages(prev => [...prev, url]);
+    setUploadedEditorImages((prev) => [...prev, url]);
   }, []);
 
   const deleteEditorImages = useCallback(async () => {
@@ -220,14 +224,14 @@ export const useContentForm = ({
         headers: { 'Content-Type': 'application/json' },
       });
     } catch {
-      // Silent fail — orphaned images are non-blocking
+      // Silent — orphaned images are non-blocking
     }
     setUploadedEditorImages([]);
   }, [uploadedEditorImages]);
 
-  // Submission
+  // ─── Submission ─────────────────────────────────────────────
   const handleSubmit = useCallback((e) => {
-    e.preventDefault();
+    if (e) e.preventDefault();
     setErrors({});
 
     const payload = { ...data };
@@ -259,18 +263,32 @@ export const useContentForm = ({
         if (serverErrors) {
           setErrors(serverErrors);
           const messages = Object.values(serverErrors).flat().join('\n');
-          showErrorToast('Submission Error', messages || 'Please check your input and try again.');
+          showErrorToast(
+            'Submission Error',
+            messages || 'Please check your input and try again.'
+          );
         }
       },
     });
   }, [data, initialData, indexRoute, storeRoute, updateRoute, itemLabel]);
 
+  // ─── Cancel / reset ────────────────────────────────────────
   const handleCancel = useCallback(() => {
     if (uploadedEditorImages.length > 0) deleteEditorImages();
     router.visit(window.route(indexRoute), { preserveScroll: true });
   }, [indexRoute, deleteEditorImages, uploadedEditorImages]);
 
+  const resetForm = useCallback(() => {
+    setData(buildInitialState(initialData));
+    setErrors({});
+    setTagInput('');
+    setTagSuggestions([]);
+    setSlugManuallyEdited(false);
+    setUploadedEditorImages([]);
+  }, [initialData]);
+
   return {
+    // State
     data,
     errors,
     isSubmitting,
@@ -280,11 +298,14 @@ export const useContentForm = ({
     tagInput,
     tagSuggestions,
     uploadedEditorImages,
+
+    // Tags
     addTag,
-    addUploadedImage,
     removeTag,
     handleTagInputChange,
     handleTagKeyDown,
+
+    // File uploads
     handleDrag,
     handleDrop,
     handleFileSelect,
@@ -294,11 +315,19 @@ export const useContentForm = ({
     handlePdfFileSelect,
     processPdfFile,
     removePdf,
+
+    // Editor images
+    addUploadedImage,
+    deleteEditorImages,
+
+    // Submission
     handleSubmit,
     handleCancel,
+    resetForm,
+
+    // Fields
     updateField,
     setSlugManually,
-    deleteEditorImages,
     setData,
   };
 };

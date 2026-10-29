@@ -1,3 +1,4 @@
+// resources/js/pages/Backend/CMS/Shared/components/FileUpload.jsx
 import { FaUpload, FaTrashAlt, FaCheckCircle } from 'react-icons/fa';
 
 const FileUpload = ({
@@ -14,17 +15,16 @@ const FileUpload = ({
   fileTypesText = 'JPEG, PNG, GIF, WebP, SVG',
 }) => (
   <div>
-    <label className="mb-1.5 flex items-center gap-1 text-sm font-medium text-slate-700">
+    <label className="mb-1.5 flex items-baseline gap-1 text-sm font-medium text-slate-700">
       {label}
       <span className="text-xs font-normal text-slate-400">(optional)</span>
     </label>
 
     <div
-      className={`relative rounded-xl border-2 border-dashed transition-all
-        ${dragActive
+      className={`relative rounded-lg border-2 border-dashed transition-all ${dragActive
           ? 'border-blue-500 bg-blue-50/60'
-          : 'border-slate-200 bg-slate-50/40 hover:border-slate-300 hover:bg-slate-50'}
-        ${uploading ? 'pointer-events-none opacity-60' : ''}`}
+          : 'border-slate-200 bg-slate-50/40 hover:border-slate-300 hover:bg-slate-50'
+        } ${uploading ? 'pointer-events-none opacity-60' : ''}`}
       onDragEnter={onDrag}
       onDragLeave={onDrag}
       onDragOver={onDrag}
@@ -39,7 +39,7 @@ const FileUpload = ({
               className="h-16 w-16 rounded-lg object-cover ring-1 ring-slate-200"
             />
             <span className="absolute -right-1 -top-1 rounded-full bg-emerald-500 p-0.5 text-white ring-2 ring-white">
-              <FaCheckCircle size={14} />
+              <FaCheckCircle size={12} />
             </span>
           </div>
           <div className="min-w-0 flex-1">
@@ -51,10 +51,10 @@ const FileUpload = ({
           <button
             type="button"
             onClick={onRemove}
-            className="shrink-0 rounded-lg p-2 text-slate-400 transition hover:bg-red-50 hover:text-red-600"
+            className="shrink-0 rounded-md p-2 text-slate-400 transition hover:bg-red-50 hover:text-red-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-300"
             aria-label="Remove image"
           >
-            <FaTrashAlt size={14} />
+            <FaTrashAlt size={13} />
           </button>
         </div>
       ) : (
@@ -82,7 +82,7 @@ const FileUpload = ({
       />
 
       {uploading && (
-        <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-white/70 backdrop-blur-sm">
+        <div className="absolute inset-0 flex items-center justify-center rounded-lg bg-white/70 backdrop-blur-sm">
           <div className="flex items-center gap-2.5 text-sm text-slate-600">
             <span className="inline-block h-5 w-5 animate-spin rounded-full border-2 border-blue-200 border-t-blue-600" />
             Uploading…

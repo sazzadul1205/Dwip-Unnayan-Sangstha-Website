@@ -1,22 +1,17 @@
 // resources/js/pages/Backend/CMS/Shared/Modals/FaqEditor.jsx
-// CANONICAL editor for Shared Data type `faq` (used by Shared/Index.jsx).
-// NOTE: Section/.../Editors/FAQEditor.jsx is a DIFFERENT, read-only redirect
-// notice for page-level FAQSection rows — it only links back here, it does not edit.
-
-import { FaPlus, FaTrash, FaQuestionCircle, FaInfoCircle } from 'react-icons/fa';
+import { FaPlus, FaTrash, FaRegQuestionCircle, FaInfoCircle, FaLightbulb } from 'react-icons/fa';
 import Swal from 'sweetalert2';
+import EditorSection from '../components/EditorSection';
 
-export default function FaqEditor({
-  formData,
-  updateFormData,
-  removeArrayItem,
-  isLoading = false,
-}) {
+const inputClass =
+  'w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-100/60 disabled:bg-slate-50 disabled:text-slate-500';
+const labelClass = 'block text-sm font-medium text-slate-700';
+const hintClass = 'mt-1.5 flex items-center gap-1.5 text-xs text-slate-400';
 
-  // Check if any upload is in progress
+export default function FaqEditor({ formData, updateFormData, removeArrayItem, isLoading = false }) {
   const isDisabled = isLoading;
+  const totalFaqs = (formData.faqs || []).length;
 
-  // Handle removing a FAQ item with confirmation
   const handleRemoveFaq = (index, faq) => {
     Swal.fire({
       title: 'Remove FAQ?',
@@ -28,112 +23,91 @@ export default function FaqEditor({
       confirmButtonText: 'Yes, remove',
       cancelButtonText: 'Cancel',
     }).then((result) => {
-      if (result.isConfirmed) {
-        removeArrayItem('faqs', index);
-      }
+      if (result.isConfirmed) removeArrayItem('faqs', index);
     });
   };
 
-  // Handle adding a new FAQ at the top
   const handleAddFaq = () => {
     const newFaq = { id: Date.now(), question: '', answer: '' };
-    const currentFaqs = formData.faqs || [];
-    // Add to the beginning of the array
-    const updatedFaqs = [newFaq, ...currentFaqs];
-    updateFormData('faqs', updatedFaqs);
+    updateFormData('faqs', [newFaq, ...(formData.faqs || [])]);
   };
 
-  // Count the total number of FAQ items
-  const totalFaqs = (formData.faqs || []).length;
-
   return (
-    <div className="space-y-8 w-full">
-
-      {/* SECTION HEADER */}
-      <div className="bg-linear-to-r from-blue-50 to-indigo-50 rounded-xl p-6 border border-blue-100">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="p-2 bg-blue-100 rounded-lg">
-            <FaInfoCircle className="text-blue-600 text-lg" />
-          </div>
-          <div>
-            <h3 className="font-semibold text-gray-800 text-lg">FAQ Section Settings</h3>
-            <p className="text-xs text-gray-500">Configure the title and subtitle for your FAQ section</p>
-          </div>
+    <div className="space-y-6 w-full">
+      {/* Section Settings */}
+      <EditorSection
+        icon={FaInfoCircle}
+        title="FAQ Section Settings"
+        description="Configure the title and subtitle for your FAQ section"
+        tone="blue"
+      >
+        <div>
+          <label className={labelClass}>
+            Section Title
+            <span className="ml-2 text-xs font-normal text-slate-400">(optional)</span>
+          </label>
+          <input
+            type="text"
+            value={formData.section?.title || ''}
+            onChange={(e) => updateFormData('section.title', e.target.value)}
+            placeholder="Frequently Asked Questions"
+            className={`${inputClass} mt-1.5`}
+            disabled={isDisabled}
+          />
         </div>
-
-        <div className="grid grid-cols-1 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Section Title
-              <span className="text-xs text-gray-400 ml-2">(optional)</span>
-            </label>
-            <input
-              type="text"
-              value={formData.section?.title || ''}
-              onChange={(e) => updateFormData('section.title', e.target.value)}
-              placeholder="Frequently Asked Questions"
-              className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition outline-none"
-              disabled={isDisabled}
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Section Subtitle
-              <span className="text-xs text-gray-400 ml-2">(optional)</span>
-            </label>
-            <input
-              type="text"
-              value={formData.section?.subtitle || ''}
-              onChange={(e) => updateFormData('section.subtitle', e.target.value)}
-              placeholder="Find answers to common questions"
-              className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition outline-none"
-              disabled={isDisabled}
-            />
-          </div>
+        <div>
+          <label className={labelClass}>
+            Section Subtitle
+            <span className="ml-2 text-xs font-normal text-slate-400">(optional)</span>
+          </label>
+          <input
+            type="text"
+            value={formData.section?.subtitle || ''}
+            onChange={(e) => updateFormData('section.subtitle', e.target.value)}
+            placeholder="Find answers to common questions"
+            className={`${inputClass} mt-1.5`}
+            disabled={isDisabled}
+          />
         </div>
-      </div>
+      </EditorSection>
 
-      {/* FAQ ITEMS SECTION */}
-      <div className="bg-linear-to-r from-cyan-50 to-teal-50 rounded-xl p-6 border border-cyan-100">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-cyan-100 rounded-lg">
-              <FaQuestionCircle className="text-cyan-600 text-lg" />
-            </div>
-            <div>
-              <h3 className="font-semibold text-gray-800 text-lg">FAQ Items</h3>
-              <p className="text-xs text-gray-500">
-                {totalFaqs} {totalFaqs === 1 ? 'question' : 'questions'} • New items appear at the top
-              </p>
-            </div>
-          </div>
+      {/* FAQ Items */}
+      <EditorSection
+        icon={FaRegQuestionCircle}
+        title="FAQ Items"
+        description={`${totalFaqs} ${totalFaqs === 1 ? 'question' : 'questions'} • New items appear at the top`}
+        tone="cyan"
+        action={
           <button
             type="button"
             onClick={handleAddFaq}
-            className="flex items-center gap-2 px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition shadow-sm"
+            className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-3.5 py-2 text-sm font-semibold text-white shadow-sm shadow-blue-600/25 transition hover:bg-blue-700 focus:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-60"
             disabled={isDisabled}
           >
-            <FaPlus size={14} />
-            Add FAQ
+            <FaPlus size={11} /> Add FAQ
           </button>
-        </div>
-
+        }
+      >
         {totalFaqs === 0 ? (
-          <div className="bg-white rounded-lg p-8 text-center border-2 border-dashed border-gray-300">
-            <FaQuestionCircle className="text-gray-300 text-4xl mx-auto mb-3" />
-            <p className="text-gray-400 font-medium">No FAQ items added yet</p>
-            <p className="text-xs text-gray-400">Click "Add FAQ" to start building your FAQ section</p>
+          <div className="rounded-lg border-2 border-dashed border-slate-200 bg-slate-50/40 py-10 text-center">
+            <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400">
+              <FaRegQuestionCircle size={20} />
+            </div>
+            <p className="text-sm font-medium text-slate-600">No FAQ items yet</p>
+            <p className="mt-0.5 text-xs text-slate-400">
+              Click <span className="font-medium text-blue-600">Add FAQ</span> to start
+            </p>
           </div>
         ) : (
           <div className="space-y-3">
             {formData.faqs.map((faq, index) => (
               <div
                 key={faq.id || index}
-                className="bg-white rounded-lg p-4 shadow-sm border border-gray-200 hover:border-cyan-300 transition"
+                className="rounded-lg border border-slate-200 bg-white p-4 transition hover:border-slate-300"
               >
-                <div className="flex justify-between items-center mb-3">
-                  <span className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                    <span className="w-6 h-6 rounded-full bg-cyan-100 text-cyan-600 flex items-center justify-center text-xs font-bold">
+                <div className="mb-3 flex items-center justify-between">
+                  <span className="flex items-center gap-2 text-sm font-medium text-slate-700">
+                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-50 text-xs font-bold text-blue-600">
                       {index + 1}
                     </span>
                     FAQ Question
@@ -141,53 +115,54 @@ export default function FaqEditor({
                   <button
                     type="button"
                     onClick={() => handleRemoveFaq(index, faq)}
-                    className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition shrink-0"
+                    className="rounded-md p-1.5 text-slate-400 transition hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
                     disabled={isDisabled}
+                    title="Remove FAQ"
                   >
-                    <FaTrash size={16} />
+                    <FaTrash size={13} />
                   </button>
                 </div>
 
                 <div className="space-y-3">
                   <div>
-                    <label className="block text-xs font-medium text-gray-500 mb-1">
-                      Question <span className="text-red-400">*</span>
+                    <label className="text-xs font-medium text-slate-500">
+                      Question <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="text"
                       value={faq.question || ''}
                       onChange={(e) => updateFormData(`faqs.${index}.question`, e.target.value)}
                       placeholder="Enter the question"
-                      className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition outline-none"
+                      className={`${inputClass} mt-1`}
                       disabled={isDisabled}
                     />
                   </div>
-
                   <div>
-                    <label className="block text-xs font-medium text-gray-500 mb-1">
-                      Answer <span className="text-red-400">*</span>
+                    <label className="text-xs font-medium text-slate-500">
+                      Answer <span className="text-red-500">*</span>
                     </label>
                     <textarea
                       value={faq.answer || ''}
                       onChange={(e) => updateFormData(`faqs.${index}.answer`, e.target.value)}
                       placeholder="Enter the answer"
                       rows={3}
-                      className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition outline-none resize-y"
+                      className={`${inputClass} mt-1 resize-y`}
                       disabled={isDisabled}
                     />
                   </div>
                 </div>
 
-                {/* Preview */}
                 {faq.question && faq.answer && (
-                  <div className="mt-3 pt-3 border-t border-gray-100">
-                    <div className="text-xs text-gray-400 mb-2">Preview:</div>
-                    <div className="bg-gray-50 rounded-lg p-3">
-                      <div className="font-medium text-gray-800 text-sm mb-1">
-                        Q: {faq.question}
+                  <div className="mt-3 border-t border-slate-100 pt-3">
+                    <div className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-400">
+                      Preview
+                    </div>
+                    <div className="rounded-lg bg-slate-50 p-3">
+                      <div className="text-sm font-medium text-slate-800">
+                        {faq.question}
                       </div>
-                      <div className="text-gray-600 text-sm">
-                        A: {faq.answer.length > 100 ? `${faq.answer.substring(0, 100)}...` : faq.answer}
+                      <div className="mt-1 text-sm text-slate-600">
+                        {faq.answer.length > 100 ? `${faq.answer.substring(0, 100)}…` : faq.answer}
                       </div>
                     </div>
                   </div>
@@ -197,26 +172,23 @@ export default function FaqEditor({
           </div>
         )}
 
-        <p className="text-xs text-gray-400 mt-3 flex items-center gap-1">
-          <span>💡</span>
-          New FAQs appear at the top. Drag to reorder coming soon.
+        <p className={hintClass}>
+          <FaLightbulb className="text-amber-400" size={10} />
+          New FAQs appear at the top. Drag-to-reorder coming soon.
         </p>
-      </div>
+      </EditorSection>
 
-      {/* TIPS SECTION */}
-      <div className="bg-linear-to-r from-amber-50 to-yellow-50 rounded-xl p-6 border border-amber-100">
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-amber-100 rounded-lg">
-            <span className="text-amber-600 text-lg">💡</span>
-          </div>
-          <div>
-            <h3 className="font-semibold text-gray-800 text-lg">Tips for Great FAQs</h3>
-            <ul className="text-xs text-gray-600 mt-2 space-y-1 list-disc list-inside">
-              <li>Keep questions clear and concise</li>
-              <li>Write answers in simple, easy-to-understand language</li>
-              <li>Group related questions together</li>
-              <li>Update FAQs regularly based on common customer questions</li>
-              <li>Include important information that customers frequently ask about</li>
+      {/* Tips */}
+      <div className="rounded-lg border border-amber-200 bg-amber-50/60 px-4 py-3">
+        <div className="flex items-start gap-2.5">
+          <FaLightbulb className="mt-0.5 shrink-0 text-amber-500" size={13} />
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-amber-900">Tips for great FAQs</p>
+            <ul className="mt-1.5 space-y-1 text-xs text-amber-800/90">
+              <li>• Keep questions clear and concise</li>
+              <li>• Write answers in simple, easy-to-understand language</li>
+              <li>• Group related questions together</li>
+              <li>• Update FAQs regularly based on common questions</li>
             </ul>
           </div>
         </div>
