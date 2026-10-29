@@ -1,4 +1,12 @@
 // pages/auth/Steps/ProfessionalInfo.jsx
+// -----------------------------------------------------------------------------
+// Step 2 of the profile wizard — Years of experience, job title, social links.
+//
+// Brand: orange/amber. Platform brand colors (LinkedIn, GitHub, …) preserved.
+// All picker logic (outside-click, focus management, Escape/Enter handling) is
+// unchanged.
+// -----------------------------------------------------------------------------
+
 import { useState, useRef, useEffect } from 'react';
 import {
   FaBriefcase, FaPlus, FaTimes, FaLink, FaCheck,
@@ -7,6 +15,7 @@ import {
 } from 'react-icons/fa';
 import { MdWorkOutline } from 'react-icons/md';
 
+// Platform metadata — brand colors preserved so icons read correctly.
 const PLATFORMS = [
   { id: 'linkedin', name: 'LinkedIn', icon: FaLinkedin, color: 'text-[#0A66C2]', bg: 'bg-[#0A66C2]/10', border: 'border-[#0A66C2]/20', placeholder: 'https://linkedin.com/in/username' },
   { id: 'github', name: 'GitHub', icon: FaGithub, color: 'text-gray-900', bg: 'bg-gray-900/10', border: 'border-gray-900/20', placeholder: 'https://github.com/username' },
@@ -27,10 +36,10 @@ const ProfessionalInfo = ({ data, setData }) => {
   const pickerRef = useRef(null);
 
   const socialLinks = data.social_links || {};
-  const inputCls = "w-full px-3 py-2 text-sm text-gray-900 bg-white border border-gray-200 rounded-lg outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 placeholder:text-gray-400";
+  const inputCls = "w-full px-3 py-2 text-sm text-gray-900 bg-white border border-gray-200 rounded-lg outline-none transition focus:border-orange-400 focus:ring-2 focus:ring-orange-500/20 placeholder:text-gray-400";
   const labelCls = "block text-xs font-medium text-gray-600 mb-1.5";
 
-  // Close picker on outside click
+  // Close the picker when clicking outside it.
   useEffect(() => {
     if (!openPicker) return;
     const handler = (e) => {
@@ -43,7 +52,7 @@ const ProfessionalInfo = ({ data, setData }) => {
     return () => document.removeEventListener('mousedown', handler);
   }, [openPicker]);
 
-  // Focus URL input once a platform is picked
+  // Auto-focus URL field once a platform is picked.
   useEffect(() => {
     if (selectedPlatform && urlInputRef.current) urlInputRef.current.focus();
   }, [selectedPlatform]);
@@ -70,8 +79,8 @@ const ProfessionalInfo = ({ data, setData }) => {
     <div className="space-y-5">
       {/* Header */}
       <div className="flex items-center gap-3 pb-4 border-b border-gray-100">
-        <div className="p-2 bg-blue-50 rounded-lg">
-          <FaBriefcase className="h-4 w-4 text-blue-600" />
+        <div className="p-2 bg-orange-50 rounded-lg">
+          <FaBriefcase className="h-4 w-4 text-orange-600" />
         </div>
         <div className="flex-1">
           <h2 className="text-base font-semibold text-gray-900">Professional Information</h2>
@@ -79,7 +88,7 @@ const ProfessionalInfo = ({ data, setData }) => {
         </div>
       </div>
 
-      {/* Two field grid */}
+      {/* Two-field grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label className={labelCls}>Years of experience</label>
@@ -113,7 +122,7 @@ const ProfessionalInfo = ({ data, setData }) => {
         </div>
       </div>
 
-      {/* Social links */}
+      {/* Social links section */}
       <div className="pt-2">
         <div className="flex items-center justify-between mb-3">
           <label className="text-xs font-medium text-gray-600 inline-flex items-center gap-1.5">
@@ -127,7 +136,7 @@ const ProfessionalInfo = ({ data, setData }) => {
           )}
         </div>
 
-        {/* Chips of added links */}
+        {/* Chips of currently-added links (brand colors preserved) */}
         {Object.keys(socialLinks).length > 0 && (
           <div className="flex flex-wrap gap-2 mb-3">
             {Object.entries(socialLinks).map(([id, url]) => {
@@ -163,19 +172,19 @@ const ProfessionalInfo = ({ data, setData }) => {
           </div>
         )}
 
-        {/* Add link trigger */}
+        {/* Add-link trigger / picker */}
         {!openPicker ? (
           <button
             type="button"
             onClick={() => setOpenPicker(true)}
-            className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium text-gray-600 bg-white border border-dashed border-gray-300 rounded-lg hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50/40 transition"
+            className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium text-gray-600 bg-white border border-dashed border-orange-300 rounded-lg hover:border-orange-400 hover:text-orange-600 hover:bg-orange-50/40 transition"
           >
             <FaPlus className="h-3 w-3" />
             Add social link
           </button>
         ) : (
           <div ref={pickerRef} className="border border-gray-200 rounded-xl bg-white overflow-hidden shadow-sm">
-            {/* Platform grid */}
+            {/* Step A: choose platform */}
             {!selectedPlatform ? (
               <div className="p-3">
                 <p className="text-[11px] font-medium text-gray-500 mb-2">
@@ -212,7 +221,7 @@ const ProfessionalInfo = ({ data, setData }) => {
                 </button>
               </div>
             ) : (
-              /* URL input step */
+              /* Step B: URL input for the chosen platform */
               <div className="p-3 space-y-3">
                 <div className="flex items-center gap-2">
                   <span className={`flex items-center justify-center h-7 w-7 rounded-lg ${selectedMeta.bg} ${selectedMeta.color}`}>
@@ -225,7 +234,7 @@ const ProfessionalInfo = ({ data, setData }) => {
                   <button
                     type="button"
                     onClick={() => setSelectedPlatform('')}
-                    className="text-[11px] font-medium text-blue-600 hover:text-blue-700 transition"
+                    className="text-[11px] font-medium text-orange-600 hover:text-orange-700 transition"
                   >
                     Change
                   </button>
@@ -245,11 +254,12 @@ const ProfessionalInfo = ({ data, setData }) => {
                 />
 
                 <div className="flex gap-2">
+                  {/* Primary save — matches wizard brand gradient */}
                   <button
                     type="button"
                     onClick={addSocialLink}
                     disabled={!socialUrl.trim()}
-                    className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed transition"
+                    className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-semibold text-white bg-linear-to-r from-orange-500 to-amber-500 rounded-lg shadow-sm shadow-orange-500/20 hover:from-orange-600 hover:to-amber-600 disabled:from-gray-200 disabled:to-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed disabled:shadow-none transition"
                   >
                     <FaCheck className="h-2.5 w-2.5" />
                     Save link

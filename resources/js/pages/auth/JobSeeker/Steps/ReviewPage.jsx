@@ -1,4 +1,11 @@
 // pages/auth/Steps/ReviewPage.jsx
+// -----------------------------------------------------------------------------
+// Step 7 (final) of the profile wizard — full review + completion meter.
+//
+// Brand: orange/amber (progress bar, Edit buttons). Semantic greens on the
+// "current job" badge and success check remain.
+// -----------------------------------------------------------------------------
+
 import { useState, useEffect } from 'react';
 import {
   FaEdit, FaUser, FaFileAlt,
@@ -12,6 +19,7 @@ import { GiSuitcase, GiAchievement } from 'react-icons/gi';
 const ReviewPage = ({ data, onEditStep }) => {
   const [photoUrl, setPhotoUrl] = useState(null);
 
+  // Resolve photo preview from File → URL → stored path.
   useEffect(() => {
     if (data.photo instanceof File) {
       const url = URL.createObjectURL(data.photo);
@@ -29,6 +37,7 @@ const ReviewPage = ({ data, onEditStep }) => {
     youtube: FaYoutube, medium: FaMedium, devto: FaDev, stackoverflow: FaStackOverflow, portfolio: FaGlobe,
   };
 
+  // Reusable section wrapper with orange "Edit" button.
   const Section = ({ icon: Icon, title, step, count, children }) => (
     <section className="border border-gray-200 rounded-xl bg-white overflow-hidden">
       <header className="flex items-center justify-between px-4 py-2.5 bg-gray-50/70 border-b border-gray-100">
@@ -41,7 +50,7 @@ const ReviewPage = ({ data, onEditStep }) => {
         </div>
         <button
           onClick={() => onEditStep(step)}
-          className="inline-flex items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-800 px-2 py-1 rounded-md hover:bg-blue-50 transition"
+          className="inline-flex items-center gap-1 text-xs font-medium text-orange-600 hover:text-orange-800 px-2 py-1 rounded-md hover:bg-orange-50 transition"
         >
           <FaEdit className="h-3 w-3" /> Edit
         </button>
@@ -57,7 +66,7 @@ const ReviewPage = ({ data, onEditStep }) => {
     </div>
   );
 
-  // completion
+  // Overall completion — counts each filled field / list.
   let total = 0, done = 0;
   const tick = (cond) => { total++; if (cond) done++; };
   tick(!!data.first_name); tick(!!data.last_name); tick(!!data.phone);
@@ -69,7 +78,7 @@ const ReviewPage = ({ data, onEditStep }) => {
 
   return (
     <div className="space-y-4">
-      {/* Compact header with completion */}
+      {/* Profile header + completion meter */}
       <div className="flex flex-col sm:flex-row sm:items-center gap-4 p-4 border border-gray-200 rounded-xl bg-white">
         <div className="flex items-center gap-3 flex-1 min-w-0">
           {photoUrl ? (
@@ -94,16 +103,17 @@ const ReviewPage = ({ data, onEditStep }) => {
             <span>Profile</span>
             <span className="font-semibold text-gray-800 tabular-nums">{pct}%</span>
           </div>
+          {/* Completion bar — brand gradient */}
           <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
             <div
-              className="h-full bg-blue-600 rounded-full transition-all"
+              className="h-full bg-linear-to-r from-orange-500 to-amber-500 rounded-full transition-all"
               style={{ width: `${pct}%` }}
             />
           </div>
         </div>
       </div>
 
-      {/* Two-column grid */}
+      {/* Two-column grid of all sections */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <Section icon={FaUser} title="Basic Information" step={0}>
           <div className="grid grid-cols-2 gap-3">
@@ -176,7 +186,7 @@ const ReviewPage = ({ data, onEditStep }) => {
           ) : (
             <ul className="space-y-3">
               {data.job_histories.map((job, i) => (
-                <li key={i} className="border-l-2 border-gray-200 pl-3">
+                <li key={i} className="border-l-2 border-orange-200 pl-3">
                   <p className="text-sm font-medium text-gray-900">{job.position || '—'}</p>
                   <p className="text-xs text-gray-500">
                     {job.company_name || '—'} · {job.starting_year} – {job.is_current ? 'Present' : (job.ending_year || 'Present')}
@@ -193,7 +203,7 @@ const ReviewPage = ({ data, onEditStep }) => {
           ) : (
             <ul className="space-y-3">
               {data.education_histories.map((edu, i) => (
-                <li key={i} className="border-l-2 border-gray-200 pl-3">
+                <li key={i} className="border-l-2 border-orange-200 pl-3">
                   <p className="text-sm font-medium text-gray-900">{edu.degree || '—'}</p>
                   <p className="text-xs text-gray-500">
                     {edu.institution_name || '—'} · {edu.passing_year}
@@ -222,7 +232,7 @@ const ReviewPage = ({ data, onEditStep }) => {
         </Section>
       </div>
 
-      {/* Single compact status line */}
+      {/* Trust note */}
       <div className="flex items-center gap-2 text-xs text-gray-500 px-1">
         <FaCheckCircle className="h-3.5 w-3.5 text-green-500" />
         <span>Your data is encrypted. You can still edit your profile after submission.</span>

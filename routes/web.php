@@ -1,12 +1,6 @@
 <?php
 
 // ============================================
-// MAIN ROUTES: WEB.PHP
-// ============================================
-// This file imports all route groups
-// ============================================
-
-// ============================================
 // SECTION 1: PUBLIC DATA API ROUTES
 // URL: /data/*, /api/*
 // ============================================
@@ -19,54 +13,54 @@ require __DIR__ . '/api.php';
 require __DIR__ . '/newsletter.php';
 
 // ============================================
-// SECTION 2: PUBLIC FRONTEND ROUTES
-// URL: /* (catch-all for public pages)
-// ============================================
-require __DIR__ . '/public.php';
-
-// ============================================
-// SECTION 3: AUTHENTICATION ROUTES
+// SECTION 2: AUTHENTICATION ROUTES
 // URL: /login, /register, /auth/*
 // ============================================
 require __DIR__ . '/auth.php';
 
 // ============================================
-// SECTION 4: AUTHENTICATED JOB SEEKER ROUTES
+// SECTION 3: AUTHENTICATED JOB SEEKER ROUTES
 // URL: /seeker/*, /profile/*, /complete-profile
 // ============================================
 require __DIR__ . '/job-seeker.php';
 
 // ============================================
-// SECTION 5: ADMIN/BACKEND ROUTES
+// SECTION 4: ADMIN/BACKEND ROUTES
 // URL: /dashboard, /backend/*
 // ============================================
 require __DIR__ . '/admin/dashboard.php';
 
 // ============================================
-// SECTION 6: EMAIL TEMPLATE EDITOR ROUTES
+// SECTION 5: EMAIL TEMPLATE EDITOR ROUTES
 // URL: /backend/email-templates/*
 // ============================================
 require __DIR__ . '/admin/email-templates.php';
 
 // ============================================
-// SECTION 6.5: AUDIT TRAIL ROUTES
+// SECTION 6: AUDIT TRAIL ROUTES
 // URL: /backend/audit-logs/*
 // ============================================
 require __DIR__ . '/admin/audit-logs.php';
 
 // ============================================
-// SECTION 6.6: ASSET / IMAGE MANAGEMENT
+// SECTION 7: ASSET / IMAGE MANAGEMENT
 // URL: /backend/assets/*
 // ============================================
 require __DIR__ . '/admin/assets.php';
-
-// ============================================
-// SECTION 7: FALLBACK ROUTE (MUST BE AT THE END)
-// ============================================
-require __DIR__ . '/fallback.php';
 
 // ============================================
 // SECTION 8: ADMIN/BACKEND PAGE MAP ROUTES
 // URL: /backend/page-map/*
 // ============================================
 require __DIR__ . '/admin/page-map.php';
+
+// ============================================
+// SECTION 9: PUBLIC FRONTEND ROUTES (catch-all must be near end)
+// URL: /* (catch-all for public pages)
+// ============================================
+require __DIR__ . '/public.php';
+
+// ============================================
+// SECTION 10: FALLBACK ROUTE (MUST BE AT THE VERY END)
+// ============================================
+require __DIR__ . '/fallback.php';

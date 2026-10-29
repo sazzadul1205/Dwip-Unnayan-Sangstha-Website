@@ -39,10 +39,14 @@ class EnsureApplicantProfileComplete
     {
         $user = $request->user();
 
-        // Proceed if not authenticated or not a job-seeker
-        if (!$user || !$user->hasRole('job-seeker')) {
-            return $next($request);
-        }
+    // Proceed if not authenticated, not a job-seeker, or has admin/employer roles
+    if (!$user || !$user->hasRole('job-seeker')) {
+        return $next($request);
+    }
+    $hasNonSeekerRole = $user->roles->pluck('slug')->contains(fn($slug) => $slug !== 'job-seeker');
+    if ($hasNonSeekerRole) {
+        return $next($request);
+    }
 
         // Skip bypass routes
         if ($request->routeIs(...self::BYPASS_ROUTES)) {

@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Auth\JobSeeker;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\Role;
-use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -79,8 +78,6 @@ class JobSeekerRegisterController extends Controller
 
         // Send email verification notification
         $user->sendEmailVerificationNotification();
-
-        event(new Registered($user));
 
         // Log the user in
         Auth::login($user);

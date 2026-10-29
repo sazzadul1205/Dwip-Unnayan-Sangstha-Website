@@ -1,10 +1,46 @@
 // pages/auth/completeProfile.jsx
+// -----------------------------------------------------------------------------
+// Multi-step "Complete Your Profile" wizard for Dwip Unoyon Songstha.
+//
+// Flow:
+//   Step 1. Basic info          (required: first name, last name, phone)
+//   Step 2. Professional info   (optional)
+//   Step 3. CV upload           (required: at least one CV)
+//   Step 4. Work experience     (optional — validated if any field is filled)
+//   Step 5. Education           (optional — validated if any field is filled)
+//   Step 6. Achievements        (optional — validated if any field is filled)
+//   Step 7. Review & Submit     (final step, no Next button)
+//
+// State / persistence:
+//   • Data lives in Inertia's `useForm` (single source of truth).
+//   • On every change, we mirror it into `localStorage.profile_form_data`
+//     so users can close the tab and resume later.
+//   • `photo` (File) is *never* saved to localStorage — File objects aren't
+//     serializable, and photo files are uploaded separately via `handlePhotoUpload`.
+//   • The wizard re-hydrates from localStorage on mount, then (if a server
+//     `applicantProfile` prop is present) overwrites with server state.
+//
+// Important implementation notes:
+//   • `handleSetData` wraps `setData` so that children always get a
+//     localStorage write after every keystroke — the setTimeout defers the
+//     write until React has committed the new `data` value.
+//   • Step components are unchanged and receive the same props
+//     (`data`, `setData={handleSetData}`, `errors`).
+//   • The Review step is rendered separately and gets `onEditStep` so the
+//     user can jump back to any completed step.
+// -----------------------------------------------------------------------------
+
 import { useEffect, useState, useCallback } from 'react';
 import { Head, router, useForm } from '@inertiajs/react';
 import Swal from 'sweetalert2';
-import { FaArrowLeft, FaArrowRight, FaCheck, FaRedoAlt, FaSpinner, FaUser, FaFileAlt, FaBriefcase, FaGraduationCap, FaTrophy, FaEye } from 'react-icons/fa';
+import {
+  FaArrowLeft, FaArrowRight, FaCheck, FaRedoAlt, FaSpinner,
+  FaUser, FaFileAlt, FaBriefcase, FaGraduationCap, FaTrophy, FaEye,
+  FaShieldAlt,
+} from 'react-icons/fa';
 import { MdWork } from 'react-icons/md';
 
+// Step components — DO NOT modify imports; these own their own UI.
 import CVUpload from './Steps/CVUpload';
 import Education from './Steps/Education';
 import BasicInfo from './Steps/BasicInfo';
@@ -14,9 +50,19 @@ import WorkExperience from './Steps/WorkExperience';
 import ProfessionalInfo from './Steps/ProfessionalInfo';
 
 const CompleteProfile = ({ applicantProfile = null }) => {
+  // ---------------------------------------------------------------------------
+  // Wizard state
+  //   - currentStep    : index into `steps` (0..6)
+  //   - completedSteps : Set of step indices that pass their validator
+  // ---------------------------------------------------------------------------
   const [currentStep, setCurrentStep] = useState(0);
   const [completedSteps, setCompletedSteps] = useState(new Set());
 
+  // ---------------------------------------------------------------------------
+  // Form state — mirrors the final submission payload.
+  //   NOTE: `photo` is a File (never persisted to localStorage).
+  //   `photo_path` / `photo_url` come from the server after upload.
+  // ---------------------------------------------------------------------------
   const { data, setData, post, processing, errors } = useForm({
     first_name: '', last_name: '', birth_date: '', gender: '', blood_type: '', phone: '', address: '',
     photo: null, photo_path: null, photo_url: null,
@@ -24,6 +70,10 @@ const CompleteProfile = ({ applicantProfile = null }) => {
     cvs: [], job_histories: [], education_histories: [], achievements: [],
   });
 
+  // ---------------------------------------------------------------------------
+  // Step registry — icon + component for each step (order matters).
+  // The final entry (Review) is rendered specially in the layout.
+  // ---------------------------------------------------------------------------
   const steps = [
     { name: 'Basic', component: BasicInfo, icon: FaUser },
     { name: 'Professional', component: ProfessionalInfo, icon: MdWork },
@@ -34,20 +84,24 @@ const CompleteProfile = ({ applicantProfile = null }) => {
     { name: 'Review', component: ReviewPage, icon: FaEye },
   ];
 
-  // ... keep all effect/validation functions the same from your original file ...
-  // (I'll keep them identical, just leave a placeholder here)
-
+  // ---------------------------------------------------------------------------
+  // LocalStorage helpers
+  //   - `photo` (File) is stripped before saving
+  //   - any JSON error is logged but never throws to the UI
+  // ---------------------------------------------------------------------------
   const saveToLocalStorage = useCallback((d) => {
     try {
       const s = { ...d };
       if (s.photo instanceof File) s.photo = null;
       localStorage.setItem('profile_form_data', JSON.stringify(s));
     } catch (e) {
-      console.error("Error :", e);
-
+      console.error('Error :', e);
     }
   }, []);
 
+  // Re-hydrate from localStorage on mount.
+  // Note: `photo` is intentionally skipped (File can't be revived from JSON);
+  // `cvs` and `photo_path` are restored because they're serializable.
   useEffect(() => {
     const saved = localStorage.getItem('profile_form_data');
     if (saved) {
@@ -59,12 +113,13 @@ const CompleteProfile = ({ applicantProfile = null }) => {
           else if (k === 'photo_path') setData('photo_path', v);
         });
       } catch (e) {
-        console.error("Error :", e);
-
+        console.error('Error :', e);
       }
     }
   }, [setData]);
 
+  // If the server sends a saved profile, it wins over localStorage.
+  // We also refresh the localStorage snapshot so the two stay in sync.
   useEffect(() => {
     if (applicantProfile?.id) {
       const next = {
@@ -91,12 +146,18 @@ const CompleteProfile = ({ applicantProfile = null }) => {
     }
   }, [applicantProfile, setData, saveToLocalStorage]);
 
+  // Wrapper passed to step components — updates form state AND schedules a
+  // localStorage write. The `setTimeout(…, 0)` waits for `setData` to commit
+  // so the snapshot reflects the new value (not the previous `data`).
   const handleSetData = useCallback((key, value) => {
     setData(key, value);
     setTimeout(() => saveToLocalStorage({ ...data, [key]: value }), 0);
   }, [data, setData, saveToLocalStorage]);
 
-  // Validators (same as before, condensed)
+  // ---------------------------------------------------------------------------
+  // Step validators — each returns an array of human-readable error strings.
+  // An empty array means the step is valid.
+  // ---------------------------------------------------------------------------
   const validateBasicInfo = useCallback(() => {
     const errs = [];
     if (!data.first_name?.trim()) errs.push('First name is required');
@@ -105,7 +166,10 @@ const CompleteProfile = ({ applicantProfile = null }) => {
     return errs;
   }, [data.first_name, data.last_name, data.phone]);
 
-  const validateCVUpload = useCallback(() => (data.cvs?.length ? [] : ['Please upload at least one CV']), [data.cvs]);
+  const validateCVUpload = useCallback(
+    () => (data.cvs?.length ? [] : ['Please upload at least one CV']),
+    [data.cvs]
+  );
 
   const validateWorkExperience = useCallback(() => {
     const errs = [];
@@ -136,27 +200,35 @@ const CompleteProfile = ({ applicantProfile = null }) => {
     return errs;
   }, [data.achievements]);
 
+  // Dispatch to the correct validator by step index.
   const validateStep = useCallback((i) => {
     switch (i) {
       case 0: return validateBasicInfo();
-      case 1: return [];
+      case 1: return [];                      // Professional: always optional
       case 2: return validateCVUpload();
       case 3: return validateWorkExperience();
       case 4: return validateEducation();
       case 5: return validateAchievements();
-      default: return [];
+      default: return [];                     // Review: no validation
     }
   }, [validateBasicInfo, validateCVUpload, validateWorkExperience, validateEducation, validateAchievements]);
 
+  // Convenience: does a given step currently pass its validator?
   const isStepCompleted = useCallback((i) => validateStep(i).length === 0, [validateStep]);
 
+  // ---------------------------------------------------------------------------
+  // Navigation handlers
+  // ---------------------------------------------------------------------------
+  // Next: validate current step → mark complete → advance + persist + scroll.
   const handleNext = useCallback(() => {
     const errs = validateStep(currentStep);
     if (errs.length) {
+      // SweetAlert2 with brand-themed confirm color.
       Swal.fire({
-        icon: 'warning', title: 'Please complete this step',
+        icon: 'warning',
+        title: 'Please complete this step',
         html: `<ul class="text-left text-sm text-red-600 space-y-1">${errs.map((e) => `<li>• ${e}</li>`).join('')}</ul>`,
-        confirmButtonColor: '#3b82f6',
+        confirmButtonColor: '#ea580c',
       });
       return;
     }
@@ -168,6 +240,7 @@ const CompleteProfile = ({ applicantProfile = null }) => {
     }
   }, [currentStep, data, steps.length, validateStep, saveToLocalStorage]);
 
+  // Back: persist current data before moving back.
   const handleBack = useCallback(() => {
     if (currentStep > 0) {
       saveToLocalStorage(data);
@@ -176,6 +249,7 @@ const CompleteProfile = ({ applicantProfile = null }) => {
     }
   }, [currentStep, data, saveToLocalStorage]);
 
+  // Jump to a step from the rail — only allowed for completed/current steps.
   const handleEditStep = useCallback((i) => {
     if (i < 0 || i >= steps.length) return;
     if (i === currentStep || completedSteps.has(i) || i < currentStep) {
@@ -185,13 +259,17 @@ const CompleteProfile = ({ applicantProfile = null }) => {
     }
   }, [currentStep, completedSteps, steps.length, data, saveToLocalStorage]);
 
+  // ---------------------------------------------------------------------------
+  // Photo upload (separate endpoint, returns the stored path)
+  // ---------------------------------------------------------------------------
   const handlePhotoUpload = useCallback(async (file) => {
     if (!file) return null;
     const fd = new FormData();
     fd.append('photo', file);
     try {
       const r = await fetch('/profile/photo', {
-        method: 'POST', body: fd,
+        method: 'POST',
+        body: fd,
         headers: {
           'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
           'X-Requested-With': 'XMLHttpRequest',
@@ -206,67 +284,143 @@ const CompleteProfile = ({ applicantProfile = null }) => {
     }
   }, []);
 
+  // ---------------------------------------------------------------------------
+  // Final submit
+  //   1. Confirm with the user.
+  //   2. Sanity-check required fields.
+  //   3. Upload the photo if it's still a File.
+  //   4. POST the trimmed payload to /profile/complete.
+  //   5. Clear localStorage and redirect to the dashboard.
+  // ---------------------------------------------------------------------------
   const handleSubmit = useCallback(() => {
     Swal.fire({
       title: 'Submit profile?',
       html: '<p class="text-sm text-gray-600">You can still edit your profile later from the dashboard.</p>',
       icon: 'question',
       showCancelButton: true,
-      confirmButtonColor: '#10b981',
+      confirmButtonColor: '#10b981', // success green — kept semantic
       cancelButtonColor: '#6b7280',
       confirmButtonText: 'Submit',
       cancelButtonText: 'Cancel',
       reverseButtons: true,
     }).then(async (r) => {
       if (!r.isConfirmed) return;
+
       if (!data.first_name || !data.last_name || !data.phone) {
-        Swal.fire({ icon: 'error', title: 'Missing info', text: 'First name, last name and phone are required.' });
+        Swal.fire({
+          icon: 'error',
+          title: 'Missing info',
+          text: 'First name, last name and phone are required.',
+        });
         return;
       }
+
+      // Upload the photo if the user picked one during this session.
       let photoPath = data.photo_path;
       if (data.photo instanceof File) {
         const p = await handlePhotoUpload(data.photo);
         if (p) photoPath = p;
       }
+
+      // Only send what the backend needs for CVs (skip preview URLs etc.).
       const submitData = {
         ...data,
         photo_path: photoPath,
-        cvs: data.cvs.map((cv) => ({ id: cv.id, is_primary: cv.is_primary, order_position: cv.order_position })),
+        cvs: data.cvs.map((cv) => ({
+          id: cv.id,
+          is_primary: cv.is_primary,
+          order_position: cv.order_position,
+        })),
       };
-      delete submitData.photo;
+      delete submitData.photo; // File is not JSON-serializable
+
       post('/profile/complete', {
         data: submitData,
         onSuccess: () => {
           localStorage.removeItem('profile_form_data');
-          Swal.fire({ icon: 'success', title: 'Profile submitted!', text: 'Redirecting…', timer: 1800, showConfirmButton: false })
-            .then(() => router.visit('/dashboard'));
+          Swal.fire({
+            icon: 'success',
+            title: 'Profile submitted!',
+            text: 'Redirecting…',
+            timer: 1800,
+            showConfirmButton: false,
+          }).then(() => router.visit('/dashboard'));
         },
-        onError: (errs) => Swal.fire({ icon: 'error', title: 'Submission failed', text: Object.values(errs).flat().join('\n') }),
+        onError: (errs) =>
+          Swal.fire({
+            icon: 'error',
+            title: 'Submission failed',
+            text: Object.values(errs).flat().join('\n'),
+          }),
       });
     });
   }, [data, handlePhotoUpload, post]);
 
+  // ---------------------------------------------------------------------------
+  // Derived flags
+  // ---------------------------------------------------------------------------
   const isReviewPage = currentStep === steps.length - 1;
+  // Progress bar: 0..5 steps map to 16%..100% (review hides the bar).
   const progress = ((currentStep + 1) / (steps.length - 1)) * 100;
   const CurrentStepComponent = steps[currentStep].component;
 
+  // Auto-mark step as complete whenever its validator passes.
   useEffect(() => {
     if (!isReviewPage && isStepCompleted(currentStep)) {
       setCompletedSteps((p) => new Set([...p, currentStep]));
     }
   }, [data, currentStep, isReviewPage, isStepCompleted]);
 
+  // ---------------------------------------------------------------------------
+  // Render
+  // ---------------------------------------------------------------------------
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-900">
-      <Head title="Complete Your Profile" />
+    <div className="min-h-screen bg-[#FDFDFC] text-[#1b1b18]">
+      <Head title="Complete Your Profile · Dwip Unoyon Songstha" />
 
-      {/* Sticky compact top bar */}
-      <div className="sticky top-0 z-20 bg-white/90 backdrop-blur border-b border-gray-100">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-3">
-          {/* Step rail */}
+      {/* ============================================================ */}
+      {/*                STATIC HEADER — org branding                  */}
+      {/* ============================================================ */}
+      <div className="border-b border-[#19140010] bg-white/85 backdrop-blur-sm">
+        <div className="mx-auto max-w-5xl px-4 py-5 sm:px-6">
+          <div className="flex items-center justify-between gap-3">
+            {/* Org brand + page title */}
+            <div className="flex min-w-0 items-center gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-linear-to-br from-orange-500 to-amber-500 shadow-lg shadow-orange-500/25">
+                <FaUser className="h-4 w-4 text-white" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-orange-600">
+                  Welcome to
+                </p>
+                <h1 className="truncate text-base font-bold leading-tight text-[#1b1b18] sm:text-lg">
+                  Dwip Unoyon Songstha
+                </h1>
+                <p className="truncate text-xs text-[#706f6c]">
+                  Complete your profile to get started
+                </p>
+              </div>
+            </div>
+
+            {/* Step counter (hidden on the review step and on mobile) */}
+            {!isReviewPage && (
+              <span className="hidden shrink-0 items-center gap-1.5 rounded-full border border-orange-200 bg-orange-50 px-3 py-1 text-xs font-semibold text-orange-700 sm:inline-flex">
+                Step {currentStep + 1} of {steps.length - 1}
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* ============================================================ */}
+      {/*                STICKY STEP RAIL + PROGRESS                   */}
+      {/* ============================================================ */}
+      <div className="sticky top-0 z-20 border-b border-[#19140010] bg-white/95 backdrop-blur">
+        <div className="mx-auto max-w-5xl px-4 py-3 sm:px-6">
           {!isReviewPage && (
             <>
-              <div className="flex items-center gap-1 overflow-x-auto pb-1 -mx-1 px-1">
+              {/* Step pills — horizontally scrollable on small screens */}
+              <div className="-mx-1 flex items-center gap-1 overflow-x-auto px-1 pb-1">
                 {steps.slice(0, -1).map((s, i) => {
                   const Icon = s.icon;
                   const isDone = completedSteps.has(i);
@@ -277,29 +431,44 @@ const CompleteProfile = ({ applicantProfile = null }) => {
                       key={i}
                       onClick={() => isAccessible && handleEditStep(i)}
                       disabled={!isAccessible}
-                      className={`group shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-medium transition ${isActive ? 'bg-blue-600 text-white'
-                        : isDone ? 'bg-green-50 text-green-700 hover:bg-green-100'
-                          : isAccessible ? 'text-gray-600 hover:bg-gray-100'
-                            : 'text-gray-300 cursor-not-allowed'
+                      className={`group inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1.5 text-xs font-medium transition ${isActive
+                          ? 'bg-orange-500 text-white shadow-sm shadow-orange-500/25'
+                          : isDone
+                            ? 'bg-orange-50 text-orange-700 hover:bg-orange-100'
+                            : isAccessible
+                              ? 'text-[#706f6c] hover:bg-[#f4f4f2]'
+                              : 'cursor-not-allowed text-[#d1d0cc]'
                         }`}
                     >
-                      {isDone && !isActive ? <FaCheck className="h-2.5 w-2.5" /> : <Icon className="h-3 w-3" />}
+                      {isDone && !isActive ? (
+                        <FaCheck className="h-2.5 w-2.5" />
+                      ) : (
+                        <Icon className="h-3 w-3" />
+                      )}
                       <span className="whitespace-nowrap">{s.name}</span>
                     </button>
                   );
                 })}
               </div>
-              <div className="mt-2 h-0.5 bg-gray-100 rounded-full overflow-hidden">
-                <div className="h-full bg-blue-600 transition-all duration-500" style={{ width: `${progress}%` }} />
+
+              {/* Progress bar (brand gradient) */}
+              <div className="mt-2 h-1 overflow-hidden rounded-full bg-[#e3e3e0]">
+                <div
+                  className="h-full bg-linear-to-r from-orange-500 to-amber-500 transition-all duration-500"
+                  style={{ width: `${progress}%` }}
+                />
               </div>
             </>
           )}
         </div>
       </div>
 
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6">
-        {/* Content card */}
-        <div className="bg-white rounded-2xl border border-gray-100 p-5 sm:p-6">
+      {/* ============================================================ */}
+      {/*                        CONTENT AREA                          */}
+      {/* ============================================================ */}
+      <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6">
+        {/* Card — hosts the current step OR the review page */}
+        <div className="rounded-2xl border border-[#19140015] bg-white p-5 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.05)] sm:p-7">
           {isReviewPage ? (
             <ReviewPage data={data} onEditStep={handleEditStep} />
           ) : (
@@ -307,35 +476,40 @@ const CompleteProfile = ({ applicantProfile = null }) => {
           )}
         </div>
 
-        {/* Nav row */}
+        {/* Nav row — Back/Next or Clear/Submit depending on the step */}
         <div className="mt-4 flex items-center gap-3">
           {!isReviewPage ? (
             <>
               <button
                 onClick={handleBack}
                 disabled={currentStep === 0}
-                className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-[#19140035] bg-white px-4 py-2.5 text-sm font-medium text-[#1b1b18] transition hover:border-[#1915014a] hover:bg-[#f8f8f6] disabled:cursor-not-allowed disabled:opacity-40"
               >
                 <FaArrowLeft className="h-3 w-3" /> Back
               </button>
               <div className="flex-1" />
               <button
                 onClick={handleNext}
-                className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 shadow-sm transition"
+                className="group inline-flex items-center gap-1.5 rounded-lg bg-linear-to-r from-[#1b1b18] to-[#2a2a26] px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-black/10 transition-all hover:scale-[1.01] hover:shadow-black/20 active:scale-[0.99]"
               >
-                Next <FaArrowRight className="h-3 w-3" />
+                Next
+                <FaArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" />
               </button>
             </>
           ) : (
             <>
+              {/* Clear local draft + reset the wizard */}
               <button
                 onClick={() => {
                   Swal.fire({
                     title: 'Clear all data?',
                     text: 'All locally saved profile data will be removed.',
-                    icon: 'warning', showCancelButton: true,
-                    confirmButtonText: 'Clear', confirmButtonColor: '#dc2626',
-                    cancelButtonText: 'Cancel', cancelButtonColor: '#6b7280',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'Clear',
+                    confirmButtonColor: '#dc2626', // destructive — kept red
+                    cancelButtonText: 'Cancel',
+                    cancelButtonColor: '#6b7280',
                     reverseButtons: true,
                   }).then((r) => {
                     if (r.isConfirmed) {
@@ -344,24 +518,36 @@ const CompleteProfile = ({ applicantProfile = null }) => {
                     }
                   });
                 }}
-                className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-[#19140035] bg-white px-4 py-2.5 text-sm font-medium text-[#1b1b18] transition hover:border-[#1915014a] hover:bg-[#f8f8f6]"
               >
                 <FaRedoAlt className="h-3 w-3" /> Clear
               </button>
               <div className="flex-1" />
+
+              {/* Final submit (brand gradient) */}
               <button
                 onClick={handleSubmit}
                 disabled={processing}
-                className="inline-flex items-center gap-1.5 px-5 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 disabled:opacity-60 transition shadow-sm"
+                className="inline-flex items-center gap-1.5 rounded-lg bg-linear-to-r from-orange-500 to-amber-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-orange-500/25 transition-all hover:scale-[1.01] hover:shadow-orange-500/30 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:scale-100"
               >
-                {processing ? <><FaSpinner className="h-3 w-3 animate-spin" /> Submitting…</> : <><FaCheck className="h-3 w-3" /> Submit Profile</>}
+                {processing ? (
+                  <>
+                    <FaSpinner className="h-3 w-3 animate-spin" /> Submitting…
+                  </>
+                ) : (
+                  <>
+                    <FaCheck className="h-3 w-3" /> Submit Profile
+                  </>
+                )}
               </button>
             </>
           )}
         </div>
 
+        {/* Trust / autosave note (only while filling out the form) */}
         {!isReviewPage && (
-          <p className="text-center text-xs text-gray-400 mt-4">
+          <p className="mt-4 flex items-center justify-center gap-1.5 text-center text-xs text-[#a09f9c]">
+            <FaShieldAlt className="h-3 w-3" />
             Your progress is saved locally — you can close this tab and come back later.
           </p>
         )}

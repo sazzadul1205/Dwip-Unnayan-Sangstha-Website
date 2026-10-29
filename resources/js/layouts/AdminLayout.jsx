@@ -463,7 +463,6 @@ const AdminLayout = ({ children }) => {
 
       items.push({
         name: 'Newsletter',
-        routeName: 'backend.newsletter.index',
         icon: FaEnvelope,
         isDropdown: true,
         dropdownKey: 'adminNewsletter',

@@ -1,4 +1,12 @@
 // pages/auth/Steps/BasicInfo.jsx
+// -----------------------------------------------------------------------------
+// Step 1 of the profile wizard — Basic info + photo upload.
+//
+// Brand: orange/amber. Photo area uses a soft orange dashed border and
+// an orange drop overlay when dragging. All validation / drag-and-drop logic
+// is identical to the original.
+// -----------------------------------------------------------------------------
+
 import { useState, useRef, useEffect, useCallback } from 'react';
 import {
   FaUser, FaCloudUploadAlt, FaCalendarAlt, FaPhone, FaVenusMars,
@@ -10,12 +18,14 @@ import Swal from 'sweetalert2';
 const BasicInfo = ({ data, setData }) => {
   const genders = ['Male', 'Female', 'Other'];
   const bloodTypes = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
+
   const [previewUrl, setPreviewUrl] = useState(null);
   const [dragActive, setDragActive] = useState(false);
   const fileInputRef = useRef(null);
   const dateInputRef = useRef(null);
   const dragCounter = useRef(0);
 
+  // Derive a preview URL from File → existing URL → stored path (in that order).
   useEffect(() => {
     if (data.photo && data.photo instanceof File) {
       const url = URL.createObjectURL(data.photo);
@@ -26,11 +36,13 @@ const BasicInfo = ({ data, setData }) => {
     else setPreviewUrl(null);
   }, [data.photo, data.photo_path, data.photo_url]);
 
+  // Strip anything that isn't a digit, +, -, (, ), or space; cap at 20 chars.
   const handlePhoneChange = (e) => {
     const value = e.target.value.replace(/[^\d+\-()\s]/g, '').slice(0, 20);
     setData('phone', value);
   };
 
+  // Validate + set the photo file (type + size guard).
   const validateAndSetPhoto = useCallback((file) => {
     const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
     if (!validTypes.includes(file.type)) {
@@ -48,11 +60,13 @@ const BasicInfo = ({ data, setData }) => {
 
   const openFilePicker = () => fileInputRef.current?.click();
 
+  // Drag events use a counter to avoid flicker from child-element enter/leave.
   const handleDragEnter = (e) => { e.preventDefault(); e.stopPropagation(); dragCounter.current += 1; if (e.dataTransfer?.items?.length) setDragActive(true); };
   const handleDragOver = (e) => { e.preventDefault(); e.stopPropagation(); e.dataTransfer.dropEffect = 'copy'; };
   const handleDragLeave = (e) => { e.preventDefault(); e.stopPropagation(); dragCounter.current -= 1; if (dragCounter.current <= 0) { dragCounter.current = 0; setDragActive(false); } };
   const handleDrop = (e) => { e.preventDefault(); e.stopPropagation(); dragCounter.current = 0; setDragActive(false); const file = e.dataTransfer?.files?.[0]; if (file) validateAndSetPhoto(file); };
 
+  // Remove photo with confirmation.
   const handleDeletePhoto = (e) => {
     e.stopPropagation();
     Swal.fire({ title: 'Remove photo?', icon: 'warning', showCancelButton: true, confirmButtonText: 'Remove', confirmButtonColor: '#dc2626', cancelButtonColor: '#6b7280', reverseButtons: true })
@@ -65,6 +79,7 @@ const BasicInfo = ({ data, setData }) => {
       });
   };
 
+  // Native date picker where available.
   const openDatePicker = (e) => {
     const el = e.currentTarget;
     if (typeof el.showPicker === 'function') {
@@ -72,15 +87,15 @@ const BasicInfo = ({ data, setData }) => {
     }
   };
 
-  const inputCls = "w-full px-3 py-2 text-sm text-gray-900 bg-white border border-gray-200 rounded-lg outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 placeholder:text-gray-400";
+  const inputCls = "w-full px-3 py-2 text-sm text-gray-900 bg-white border border-gray-200 rounded-lg outline-none transition focus:border-orange-400 focus:ring-2 focus:ring-orange-500/20 placeholder:text-gray-400";
   const labelCls = "flex items-center gap-1.5 text-xs font-medium text-gray-600 mb-1.5";
 
   return (
     <div className="space-y-5">
-      {/* Header */}
+      {/* Header — title + required indicator */}
       <div className="flex items-center gap-3 pb-4 border-b border-gray-100">
-        <div className="p-2 bg-blue-50 rounded-lg">
-          <FaUser className="h-4 w-4 text-blue-600" />
+        <div className="p-2 bg-orange-50 rounded-lg">
+          <FaUser className="h-4 w-4 text-orange-600" />
         </div>
         <div className="flex-1">
           <h2 className="text-base font-semibold text-gray-900">Tell us about you</h2>
@@ -88,20 +103,20 @@ const BasicInfo = ({ data, setData }) => {
         </div>
       </div>
 
-      {/* Photo row */}
+      {/* Photo row — drag-and-drop zone + preview + remove */}
       <div
         onDragEnter={handleDragEnter}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
-        className={`relative flex items-center gap-4 p-3 rounded-xl border-2 border-dashed transition-colors duration-150 ${dragActive ? 'border-blue-500 bg-blue-50' : 'border-gray-200 bg-gray-50/50'
+        className={`relative flex items-center gap-4 p-3 rounded-xl border-2 border-dashed transition-colors duration-150 ${dragActive ? 'border-orange-400 bg-orange-50' : 'border-gray-200 bg-gray-50/50'
           }`}
       >
         {dragActive && (
-          <div className="absolute inset-0 z-10 rounded-xl bg-blue-500/5 border border-blue-400 flex items-center justify-center pointer-events-none">
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white border border-blue-200 shadow-sm">
-              <FaCloudUploadAlt className="h-3.5 w-3.5 text-blue-600" />
-              <span className="text-xs font-medium text-blue-700">Drop image to upload</span>
+          <div className="absolute inset-0 z-10 rounded-xl bg-orange-500/5 border border-orange-300 flex items-center justify-center pointer-events-none">
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white border border-orange-200 shadow-sm">
+              <FaCloudUploadAlt className="h-3.5 w-3.5 text-orange-600" />
+              <span className="text-xs font-medium text-orange-700">Drop image to upload</span>
             </div>
           </div>
         )}
@@ -110,7 +125,7 @@ const BasicInfo = ({ data, setData }) => {
           type="button"
           onClick={openFilePicker}
           aria-label="Choose profile photo"
-          className="group relative shrink-0 h-14 w-14 rounded-full overflow-hidden border-2 border-gray-200 bg-white flex items-center justify-center cursor-pointer hover:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500/30 transition"
+          className="group relative shrink-0 h-14 w-14 rounded-full overflow-hidden border-2 border-gray-200 bg-white flex items-center justify-center cursor-pointer hover:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-500/30 transition"
         >
           {previewUrl ? <img src={previewUrl} alt="" className="h-full w-full object-cover" /> : <FaUser className="h-5 w-5 text-gray-300" />}
           <span className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition flex items-center justify-center opacity-0 group-hover:opacity-100">
@@ -124,7 +139,7 @@ const BasicInfo = ({ data, setData }) => {
           </p>
           <p className="text-xs text-gray-500">
             Click the image or drag & drop here ·{' '}
-            <button type="button" onClick={openFilePicker} className="text-blue-600 hover:text-blue-700 underline-offset-2 hover:underline font-medium">
+            <button type="button" onClick={openFilePicker} className="text-orange-600 hover:text-orange-700 underline-offset-2 hover:underline font-medium">
               browse
             </button>{' '}
             · JPG, PNG, GIF · max 2MB
@@ -141,7 +156,7 @@ const BasicInfo = ({ data, setData }) => {
         </div>
       </div>
 
-      {/* Form fields */}
+      {/* Form fields — 2-col grid on sm+ */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label className={labelCls}>
@@ -209,7 +224,7 @@ const BasicInfo = ({ data, setData }) => {
         </div>
       </div>
 
-      {/* Friendly hint */}
+      {/* Trust note */}
       <p className="text-xs text-gray-400 flex items-center gap-1.5">
         <FaHeartbeat className="h-3 w-3 text-rose-400" />
         We never share your personal details with anyone.

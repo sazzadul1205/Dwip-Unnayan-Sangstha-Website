@@ -1,20 +1,44 @@
 // pages/auth/confirm-password.jsx
+// -----------------------------------------------------------------------------
+// Password Confirmation page for Dwip Unoyon Songstha.
+//
+// Shown before accessing sensitive areas of the app (Laravel's
+// `password.confirm` middleware triggers this automatically).
+//
+// Layout:
+//   - LEFT  : Confirm form (single password field + submit)
+//   - RIGHT : "Why we're asking" info panel (desktop)
+//   - Mobile: security tips rendered below the form
+// -----------------------------------------------------------------------------
 
 // React
 import { useState } from 'react';
 import { Head, useForm } from '@inertiajs/react';
 
 // Icons
-import { FaSpinner, FaEye, FaEyeSlash, FaLock, FaShieldAlt, FaArrowRight, FaCheckCircle } from 'react-icons/fa';
+import {
+    FaSpinner, FaEye, FaEyeSlash, FaLock, FaShieldAlt, FaArrowRight,
+    FaCheckCircle, FaArrowLeft, FaUserShield, FaHistory, FaKey,
+} from 'react-icons/fa';
 
 export default function ConfirmPassword() {
+    // ---------------------------------------------------------------------------
+    // Form state — single password field posted to `password.confirm`.
+    // ---------------------------------------------------------------------------
     const { data, setData, post, processing, errors, reset } = useForm({
         password: '',
     });
 
+    // ---------------------------------------------------------------------------
+    // UI-only state
+    // ---------------------------------------------------------------------------
     const [showPassword, setShowPassword] = useState(false);
     const [focusedField, setFocusedField] = useState(null);
 
+    // ---------------------------------------------------------------------------
+    // Submit — POST to `password.confirm`; clears the field on completion
+    // so the plaintext password isn't left in the DOM.
+    // ---------------------------------------------------------------------------
     const submit = (e) => {
         e.preventDefault();
         post(route('password.confirm'), {
@@ -22,205 +46,248 @@ export default function ConfirmPassword() {
         });
     };
 
+    // ---------------------------------------------------------------------------
+    // Static content for the right-hand info panel
+    // ---------------------------------------------------------------------------
+    const reasons = [
+        { icon: FaUserShield, title: 'Verify your identity', text: 'Confirms it’s really you accessing this page' },
+        { icon: FaKey, title: 'Protect sensitive actions', text: 'Bank-level protection for critical changes' },
+        { icon: FaHistory, title: 'Quick check', text: 'Usually expires in 15 minutes — no friction' },
+    ];
+
+    const securityTips = [
+        'Never share your password with anyone',
+        'Use a strong, unique password for this account',
+        'Enable two-factor authentication for extra security',
+    ];
+
     return (
         <>
-            <Head title="Confirm password" />
+            <Head title="Confirm Password · Dwip Unoyon Songstha" />
 
-            <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-yellow-50 via-orange-50 to-red-50 py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
-                {/* Animated background elements */}
-                <div className="absolute -top-20 -right-20 w-64 h-64 bg-linear-to-r from-yellow-400 to-orange-500 rounded-full blur-3xl opacity-20 animate-pulse" />
-                <div className="absolute -bottom-20 -left-20 w-64 h-64 bg-linear-to-r from-red-400 to-pink-500 rounded-full blur-3xl opacity-20 animate-pulse animation-delay-1000" />
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full max-w-4xl" />
+            {/* ---------------- Page wrapper ---------------- */}
+            <div className="relative flex min-h-screen flex-col items-center overflow-hidden bg-[#FDFDFC] p-4 text-[#1b1b18] sm:p-6 lg:justify-center lg:p-8">
+                {/* Decorative background (purely cosmetic, non-interactive) */}
+                <div className="pointer-events-none absolute inset-0 bg-linear-to-br from-orange-50/40 via-transparent to-amber-50/30" />
+                <div className="pointer-events-none absolute -top-40 -right-40 h-96 w-96 rounded-full bg-orange-100/30 blur-3xl" />
+                <div className="pointer-events-none absolute -bottom-40 -left-40 h-96 w-96 rounded-full bg-amber-100/30 blur-3xl" />
+                <div className="pointer-events-none absolute top-1/2 left-1/2 h-200 w-200 -translate-x-1/2 -translate-y-1/2 rounded-full bg-orange-50/20 blur-3xl" />
 
-                <div className="max-w-md w-full space-y-8 relative z-10">
-                    {/* Logo and Header */}
-                    <div className="text-center animate-fade-in-up">
-                        <div className="flex justify-center mb-4">
-                            <div className="bg-linear-to-r from-yellow-500 to-orange-600 rounded-2xl p-3 shadow-lg transform hover:scale-105 transition-transform duration-300">
-                                <FaShieldAlt className="h-8 w-8 text-white" />
-                            </div>
-                        </div>
-                        <h2 className="mt-6 text-3xl font-extrabold text-gray-900">
-                            Confirm your password
-                        </h2>
-                        <p className="mt-2 text-sm text-gray-600">
-                            This is a secure area of the application. Please confirm your password before continuing.
-                        </p>
-                    </div>
+                <div className="relative z-10 flex w-full items-center justify-center">
+                    {/* Main two-column container */}
+                    <main className="flex w-full max-w-md flex-col items-stretch lg:max-w-4xl lg:flex-row">
+                        {/* ============================================================ */}
+                        {/*                    LEFT — CONFIRM FORM                       */}
+                        {/* ============================================================ */}
+                        <div className="flex-1 rounded-t-2xl border border-[#19140015] bg-white/90 p-6 pb-8 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.08)] backdrop-blur-md sm:p-8 lg:rounded-l-2xl lg:rounded-tr-none lg:rounded-br-none lg:p-10">
+                            {/* Back link to landing page */}
+                            <a
+                                href="/"
+                                className="group mb-6 inline-flex items-center gap-1.5 text-xs text-[#706f6c] transition-colors hover:text-[#1b1b18]"
+                            >
+                                <FaArrowLeft className="h-3 w-3 transition-transform group-hover:-translate-x-0.5" />
+                                Back to home
+                            </a>
 
-                    {/* Security Notice */}
-                    <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-lg animate-fade-in-up animation-delay-100">
-                        <div className="flex">
-                            <div className="shrink-0">
-                                <FaShieldAlt className="h-5 w-5 text-yellow-400" />
-                            </div>
-                            <div className="ml-3">
-                                <p className="text-sm text-yellow-700">
-                                    For your security, we need to verify your identity before accessing sensitive areas.
+                            {/* Header — brand + page title */}
+                            <div className="mb-6">
+                                <div className="mb-3 flex items-center gap-3">
+                                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-linear-to-br from-orange-500 to-amber-500 shadow-lg shadow-orange-500/25">
+                                        <FaShieldAlt className="h-5 w-5 text-white" />
+                                    </div>
+                                    <div className="min-w-0">
+                                        <p className="text-[11px] font-semibold uppercase tracking-wider text-orange-600">
+                                            Welcome to
+                                        </p>
+                                        <h1 className="text-lg font-bold leading-tight text-[#1b1b18] sm:text-xl">
+                                            Dwip Unoyon Songstha
+                                        </h1>
+                                        <p className="text-xs text-[#706f6c]">Job Seeker Portal</p>
+                                    </div>
+                                </div>
+                                <h2 className="text-xl font-bold leading-tight text-[#1b1b18]">
+                                    Confirm your password
+                                </h2>
+                                <p className="mt-1 text-sm text-[#706f6c]">
+                                    This is a secure area. Please confirm your password before
+                                    continuing.
                                 </p>
                             </div>
-                        </div>
-                    </div>
 
-                    {/* Confirm Password Form */}
-                    <form className="mt-8 space-y-6" onSubmit={submit}>
-                        <div className="space-y-4">
-                            {/* Password Field */}
-                            <div className="animate-fade-in-up animation-delay-200">
-                                <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
-                                    Password
-                                </label>
-                                <div className={`relative transition-all duration-300 ${focusedField === 'password' ? 'transform scale-[1.02]' : ''}`}>
-                                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                        <FaLock className="h-5 w-5 text-gray-400" />
-                                    </div>
-                                    <input
-                                        id="password"
-                                        name="password"
-                                        type={showPassword ? 'text' : 'password'}
-                                        required
-                                        autoFocus
-                                        autoComplete="current-password"
-                                        value={data.password}
-                                        onChange={(e) => setData('password', e.target.value)}
-                                        onFocus={() => setFocusedField('password')}
-                                        onBlur={() => setFocusedField(null)}
-                                        className="appearance-none rounded-lg relative block w-full px-3 py-2 pl-10 pr-10 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 focus:z-10 sm:text-sm transition-all duration-300"
-                                        placeholder="Enter your password"
-                                    />
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowPassword(!showPassword)}
-                                        className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 transition-colors"
-                                    >
-                                        {showPassword ? <FaEyeSlash className="h-5 w-5" /> : <FaEye className="h-5 w-5" />}
-                                    </button>
-                                </div>
-                                {errors.password && (
-                                    <p className="mt-1 text-sm text-red-600 animate-slide-in">{errors.password}</p>
-                                )}
+                            {/* Amber security notice */}
+                            <div className="mb-5 flex items-start gap-2.5 rounded-lg border border-amber-200 bg-amber-50/80 p-3.5">
+                                <FaShieldAlt className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
+                                <p className="text-xs leading-relaxed text-amber-800">
+                                    For your security, we need to verify your identity before
+                                    accessing sensitive areas.
+                                </p>
                             </div>
 
-                            {/* Submit Button */}
-                            <button
-                                type="submit"
-                                disabled={processing}
-                                className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-linear-to-r from-yellow-500 to-orange-600 hover:from-yellow-600 hover:to-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500 transition-all duration-300 transform hover:scale-[1.02] hover:shadow-lg animate-fade-in-up animation-delay-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
-                            >
-                                {processing ? (
-                                    <FaSpinner className="animate-spin h-5 w-5" />
-                                ) : (
-                                    <>
-                                        <span className="absolute left-0 inset-y-0 flex items-center pl-3">
-                                            <FaCheckCircle className="h-5 w-5 text-white opacity-0 group-hover:opacity-100 transition-all duration-300" />
-                                        </span>
-                                        Confirm password
-                                        <FaArrowRight className="ml-2 h-4 w-4 opacity-0 group-hover:opacity-100 transition-all duration-300 group-hover:translate-x-1" />
-                                    </>
-                                )}
-                            </button>
+                            {/* -------------------- CONFIRM FORM -------------------- */}
+                            <form className="flex flex-col gap-4" onSubmit={submit}>
+                                {/* Password field */}
+                                <div className="grid gap-1.5">
+                                    <label htmlFor="password" className="text-sm font-medium text-[#1b1b18]">
+                                        Password
+                                    </label>
+                                    <div
+                                        className={`relative rounded-lg transition-all duration-200 ${focusedField === 'password' ? 'ring-2 ring-orange-500/30 ring-offset-1' : ''
+                                            }`}
+                                    >
+                                        <input
+                                            id="password"
+                                            name="password"
+                                            type={showPassword ? 'text' : 'password'}
+                                            required
+                                            autoFocus
+                                            autoComplete="current-password"
+                                            value={data.password}
+                                            onChange={(e) => setData('password', e.target.value)}
+                                            onFocus={() => setFocusedField('password')}
+                                            onBlur={() => setFocusedField(null)}
+                                            placeholder="Enter your password"
+                                            className="peer w-full rounded-lg border border-[#19140035] bg-white py-3 pl-10 pr-10 text-sm transition-all duration-200 placeholder:text-[#a09f9c] focus:border-orange-400 focus:outline-none"
+                                        />
+                                        <FaLock className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#706f6c] transition-colors peer-focus:text-orange-600" />
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowPassword(!showPassword)}
+                                            className="absolute inset-y-0 right-0 flex items-center pr-3 text-[#706f6c] transition-colors hover:text-[#1b1b18]"
+                                            tabIndex={-1}
+                                            aria-label={showPassword ? 'Hide password' : 'Show password'}
+                                        >
+                                            {showPassword ? <FaEyeSlash className="h-4 w-4" /> : <FaEye className="h-4 w-4" />}
+                                        </button>
+                                    </div>
+                                    {errors.password && (
+                                        <p className="mt-0.5 flex items-center gap-1.5 text-xs text-red-500 animate-in slide-in-from-top-1 duration-200">
+                                            <span className="inline-block h-1 w-1 rounded-full bg-red-500" />
+                                            {errors.password}
+                                        </p>
+                                    )}
+                                </div>
 
-                            {/* Security Tips */}
-                            <div className="mt-6 p-4 bg-gray-50 rounded-lg animate-fade-in-up animation-delay-400">
-                                <h4 className="text-sm font-medium text-gray-900 mb-2">Security Tips:</h4>
-                                <ul className="space-y-1 text-xs text-gray-600">
-                                    <li className="flex items-center">
-                                        <span className="h-1.5 w-1.5 bg-yellow-400 rounded-full mr-2" />
-                                        Never share your password with anyone
-                                    </li>
-                                    <li className="flex items-center">
-                                        <span className="h-1.5 w-1.5 bg-yellow-400 rounded-full mr-2" />
-                                        Use a strong, unique password for this account
-                                    </li>
-                                    <li className="flex items-center">
-                                        <span className="h-1.5 w-1.5 bg-yellow-400 rounded-full mr-2" />
-                                        Enable two-factor authentication for extra security
-                                    </li>
+                                {/* Primary submit — brand gradient */}
+                                <button
+                                    type="submit"
+                                    disabled={processing}
+                                    className="group relative mt-2 inline-flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg bg-linear-to-r from-[#1b1b18] to-[#2a2a26] px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-black/10 transition-all duration-200 hover:scale-[1.01] hover:shadow-black/20 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100"
+                                >
+                                    {processing ? (
+                                        <>
+                                            <FaSpinner className="h-4 w-4 animate-spin" />
+                                            Confirming...
+                                        </>
+                                    ) : (
+                                        <>
+                                            Confirm password
+                                            <FaArrowRight className="h-3.5 w-3.5 transition-transform duration-200 group-hover:translate-x-1" />
+                                        </>
+                                    )}
+                                </button>
+
+                                {/* Forgot-password link */}
+                                <p className="text-center text-sm text-[#706f6c]">
+                                    Forgot it?{' '}
+                                    <a
+                                        href={route('password.request')}
+                                        className="font-medium text-[#1b1b18] underline-offset-4 transition-colors hover:text-orange-600 hover:underline"
+                                    >
+                                        Reset your password
+                                    </a>
+                                </p>
+                            </form>
+
+                            {/* Trust note */}
+                            <div className="mt-6 flex items-center justify-center gap-1.5 text-xs text-[#a09f9c]">
+                                <FaShieldAlt className="h-3 w-3" />
+                                <span>Your password is never stored in this page</span>
+                            </div>
+
+                            {/* Mobile-only security tips */}
+                            <div className="mt-5 rounded-xl border border-amber-200 bg-amber-50/70 p-4 lg:hidden">
+                                <p className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-amber-800">
+                                    <FaShieldAlt className="h-4 w-4" />
+                                    Security tips
+                                </p>
+                                <ul className="space-y-1.5">
+                                    {securityTips.map((tip) => (
+                                        <li
+                                            key={tip}
+                                            className="flex items-start gap-2 text-xs text-amber-700"
+                                        >
+                                            <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-amber-500" />
+                                            <span>{tip}</span>
+                                        </li>
+                                    ))}
                                 </ul>
                             </div>
                         </div>
-                    </form>
 
-                    {/* Help Section */}
-                    <div className="text-center text-sm animate-fade-in-up animation-delay-500">
-                        <p className="text-gray-600">
-                            <a href={route('password.request')} className="font-medium text-yellow-600 hover:text-yellow-700 transition-colors">
-                                Forgot your password?
-                            </a>
-                        </p>
-                    </div>
+                        {/* ============================================================ */}
+                        {/*           RIGHT — WHY WE'RE ASKING PANEL (desktop)           */}
+                        {/* ============================================================ */}
+                        <div className="relative hidden w-95 shrink-0 overflow-hidden rounded-r-2xl lg:block">
+                            <div className="absolute inset-0 bg-linear-to-br from-orange-100 via-amber-50 to-orange-50" />
+                            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.5),transparent_60%)]" />
+                            <div className="pointer-events-none absolute -bottom-20 -right-20 h-64 w-64 rounded-full bg-orange-200/30 blur-3xl" />
+
+                            <div className="relative flex h-full flex-col p-8">
+                                {/* Pill badge */}
+                                <div className="mb-5 inline-flex items-center gap-1.5 self-start rounded-full border border-white/60 bg-white/60 px-2.5 py-1 text-xs font-medium text-[#1b1b18] backdrop-blur-sm">
+                                    <FaShieldAlt className="h-3 w-3 text-orange-600" />
+                                    Secure area
+                                </div>
+
+                                <h3 className="mb-1 text-base font-bold leading-snug text-[#1b1b18]">
+                                    Why we're asking
+                                </h3>
+                                <p className="mb-4 text-sm text-[#5c5b56]">
+                                    A quick check to keep your account safe.
+                                </p>
+
+                                {/* Reasons */}
+                                <div className="mb-6 space-y-2">
+                                    {reasons.map((r) => (
+                                        <div
+                                            key={r.title}
+                                            className="flex items-start gap-3 rounded-lg border border-white/60 bg-white/60 p-2.5 backdrop-blur-sm"
+                                        >
+                                            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-orange-100">
+                                                <r.icon className="h-4 w-4 text-orange-600" />
+                                            </div>
+                                            <div className="min-w-0">
+                                                <p className="text-xs font-semibold text-[#1b1b18]">{r.title}</p>
+                                                <p className="text-[11px] leading-snug text-[#706f6c]">{r.text}</p>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                {/* Security tips */}
+                                <div className="rounded-xl border border-white/70 bg-white/80 p-4 shadow-md backdrop-blur-md">
+                                    <h4 className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-[#1b1b18]">
+                                        <FaCheckCircle className="h-4 w-4 text-green-500" />
+                                        Security tips
+                                    </h4>
+                                    <ul className="space-y-1.5">
+                                        {securityTips.map((tip) => (
+                                            <li key={tip} className="flex items-start gap-2 text-[11px] text-[#5c5b56]">
+                                                <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-orange-500" />
+                                                <span>{tip}</span>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            </div>
+
+                            <div className="pointer-events-none absolute inset-0 rounded-r-2xl shadow-[inset_0px_0px_0px_1px_rgba(26,26,0,0.08)]" />
+                        </div>
+                    </main>
                 </div>
-            </div>
 
-            <style>{`
-                @keyframes fadeInUp {
-                    from {
-                        opacity: 0;
-                        transform: translateY(20px);
-                    }
-                    to {
-                        opacity: 1;
-                        transform: translateY(0);
-                    }
-                }
-                
-                @keyframes slideIn {
-                    from {
-                        opacity: 0;
-                        transform: translateX(-10px);
-                    }
-                    to {
-                        opacity: 1;
-                        transform: translateX(0);
-                    }
-                }
-                
-                @keyframes pulse {
-                    0%, 100% {
-                        opacity: 0.2;
-                    }
-                    50% {
-                        opacity: 0.3;
-                    }
-                }
-                
-                .animate-fade-in-up {
-                    animation: fadeInUp 0.6s ease-out forwards;
-                    opacity: 0;
-                }
-                
-                .animate-slide-in {
-                    animation: slideIn 0.3s ease-out forwards;
-                }
-                
-                .animate-pulse {
-                    animation: pulse 3s ease-in-out infinite;
-                }
-                
-                .animation-delay-100 {
-                    animation-delay: 0.1s;
-                }
-                
-                .animation-delay-200 {
-                    animation-delay: 0.2s;
-                }
-                
-                .animation-delay-300 {
-                    animation-delay: 0.3s;
-                }
-                
-                .animation-delay-400 {
-                    animation-delay: 0.4s;
-                }
-                
-                .animation-delay-500 {
-                    animation-delay: 0.5s;
-                }
-                
-                .animation-delay-1000 {
-                    animation-delay: 1s;
-                }
-            `}</style>
+                <div className="hidden h-14.5 lg:block" />
+            </div>
         </>
     );
 }

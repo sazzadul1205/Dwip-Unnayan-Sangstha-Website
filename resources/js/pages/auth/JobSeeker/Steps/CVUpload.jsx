@@ -1,4 +1,12 @@
 // pages/auth/Steps/CVUpload.jsx
+// -----------------------------------------------------------------------------
+// Step 3 of the profile wizard — Upload up to 3 CVs, mark one as primary.
+//
+// Brand: orange/amber. Word files keep their natural blue icon; PDF keeps red.
+// All fetch calls (upload / delete / set-primary), slot logic, and formatting
+// are unchanged.
+// -----------------------------------------------------------------------------
+
 import { useState } from 'react';
 import { FaFilePdf, FaFileWord, FaFileAlt, FaTrashAlt, FaStar, FaRegStar, FaSpinner, FaCloudUploadAlt, FaLightbulb } from 'react-icons/fa';
 import Swal from 'sweetalert2';
@@ -8,6 +16,7 @@ const MAX_CVS = 3;
 const CVUpload = ({ data, setData }) => {
   const [uploading, setUploading] = useState(false);
 
+  // POST to /profile/cv — validation happens client-side first.
   const uploadCV = async (file) => {
     if (data.cvs.length >= MAX_CVS) {
       Swal.fire({ icon: 'warning', title: 'Limit reached', text: `You can upload up to ${MAX_CVS} CVs.`, timer: 2500, showConfirmButton: false });
@@ -52,6 +61,7 @@ const CVUpload = ({ data, setData }) => {
     }
   };
 
+  // DELETE the CV (if it has a server id) then re-index the remaining items.
   const removeCV = (index) => {
     Swal.fire({
       title: 'Remove CV?', icon: 'warning', showCancelButton: true,
@@ -75,6 +85,7 @@ const CVUpload = ({ data, setData }) => {
     });
   };
 
+  // PATCH the primary flag (optimistic UI + server sync).
   const setPrimaryCV = async (index) => {
     setData('cvs', data.cvs.map((cv, i) => ({ ...cv, is_primary: i === index })));
     const cv = data.cvs[index];
@@ -89,6 +100,7 @@ const CVUpload = ({ data, setData }) => {
     }
   };
 
+  // File-type icon (Word is blue by convention, PDF is red).
   const getIcon = (name) => {
     const ext = name.split('.').pop().toLowerCase();
     if (ext === 'pdf') return <FaFilePdf className="h-4 w-4 text-red-500" />;
@@ -104,11 +116,11 @@ const CVUpload = ({ data, setData }) => {
 
   return (
     <div className="space-y-5">
-      {/* Header */}
+      {/* Header — title + counter */}
       <div className="flex items-center justify-between pb-4 border-b border-gray-100">
         <div className="flex items-center gap-3">
-          <div className="p-2 bg-blue-50 rounded-lg">
-            <FaFileAlt className="h-4 w-4 text-blue-600" />
+          <div className="p-2 bg-orange-50 rounded-lg">
+            <FaFileAlt className="h-4 w-4 text-orange-600" />
           </div>
           <div>
             <h2 className="text-base font-semibold text-gray-900">Upload your CV</h2>
@@ -120,27 +132,27 @@ const CVUpload = ({ data, setData }) => {
         </span>
       </div>
 
-      {/* Slot dots */}
+      {/* Slot progress dots — orange when filled */}
       <div className="flex gap-1.5">
         {[...Array(MAX_CVS)].map((_, i) => (
           <div
             key={i}
-            className={`h-1.5 flex-1 rounded-full transition-all duration-300 ${i < data.cvs.length ? 'bg-blue-500' : 'bg-gray-150 bg-gray-100'}`}
+            className={`h-1.5 flex-1 rounded-full transition-all duration-300 ${i < data.cvs.length ? 'bg-orange-500' : 'bg-gray-100'}`}
           />
         ))}
       </div>
 
-      {/* Upload zone */}
+      {/* Upload zone — orange hover accents */}
       {data.cvs.length < MAX_CVS && (
-        <label className="relative flex items-center gap-3 p-4 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-blue-500 hover:bg-blue-50/30 transition group">
+        <label className="relative flex items-center gap-3 p-4 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-orange-400 hover:bg-orange-50/30 transition group">
           <input
             type="file"
             accept=".pdf,.doc,.docx"
             onChange={(e) => e.target.files?.[0] && uploadCV(e.target.files[0])}
             className="absolute inset-0 opacity-0 cursor-pointer"
           />
-          <div className="p-2.5 bg-blue-50 group-hover:bg-blue-100 rounded-lg transition">
-            {uploading ? <FaSpinner className="h-4 w-4 text-blue-600 animate-spin" /> : <FaCloudUploadAlt className="h-4 w-4 text-blue-600" />}
+          <div className="p-2.5 bg-orange-50 group-hover:bg-orange-100 rounded-lg transition">
+            {uploading ? <FaSpinner className="h-4 w-4 text-orange-600 animate-spin" /> : <FaCloudUploadAlt className="h-4 w-4 text-orange-600" />}
           </div>
           <div className="flex-1">
             <p className="text-sm font-medium text-gray-800">
@@ -151,7 +163,7 @@ const CVUpload = ({ data, setData }) => {
         </label>
       )}
 
-      {/* List */}
+      {/* Uploaded CV list */}
       {data.cvs.length > 0 && (
         <div className="divide-y divide-gray-100 border border-gray-100 rounded-xl overflow-hidden">
           {data.cvs.map((cv, i) => (
@@ -162,6 +174,7 @@ const CVUpload = ({ data, setData }) => {
                 <p className="text-xs text-gray-500">{fmtSize(cv.size)} · {new Date(cv.upload_date).toLocaleDateString()}</p>
               </div>
 
+              {/* Primary toggle — amber accent (semantic) */}
               <button
                 onClick={() => setPrimaryCV(i)}
                 disabled={cv.is_primary}
@@ -187,7 +200,7 @@ const CVUpload = ({ data, setData }) => {
         </div>
       )}
 
-      {/* Empty hint */}
+      {/* Empty state tip */}
       {data.cvs.length === 0 && (
         <div className="flex items-start gap-2 p-3 bg-amber-50/60 border border-amber-100 rounded-lg">
           <FaLightbulb className="h-3.5 w-3.5 text-amber-600 mt-0.5 shrink-0" />
