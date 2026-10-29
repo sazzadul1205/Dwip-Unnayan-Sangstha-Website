@@ -761,7 +761,11 @@ Uploaded images are automatically optimized via `Intervention/Image`:
 
 ---
 
-## 🧪 Testing
+## 📚 Documentation
+
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — Comprehensive architecture documentation including independent processes, services, and permission matrix
+- [docs/VISUAL_TESTING.md](docs/VISUAL_TESTING.md) — Visual testing guide
+- [docs/routes.md](docs/routes.md) — Route documentation
 
 ### Running Tests
 
