@@ -49,7 +49,7 @@ class JobSeekerRegisterController extends Controller
     }
 
     $request->validate([
-      'email' => 'required|string|lowercase|email|max:255|unique:' . User::class,
+      'email' => 'required|string|email|max:255|unique:' . User::class,
       'password' => ['required', 'confirmed', Rules\Password::defaults()],
     ]);
 

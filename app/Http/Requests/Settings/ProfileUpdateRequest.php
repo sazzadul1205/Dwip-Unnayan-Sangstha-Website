@@ -32,7 +32,6 @@ class ProfileUpdateRequest extends FormRequest
             'email' => [
                 'required',
                 'string',
-                'lowercase',
                 'email',
                 'max:255',
                 Rule::unique(User::class)->ignore($this->user()->id),
@@ -47,7 +46,7 @@ class ProfileUpdateRequest extends FormRequest
     {
         $this->merge([
             'name' => trim($this->name),
-            'email' => trim($this->email),
+            'email' => strtolower(trim($this->email)),
         ]);
     }
 }
