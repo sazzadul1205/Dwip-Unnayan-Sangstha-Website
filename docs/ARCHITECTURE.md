@@ -384,7 +384,11 @@ This document describes all independent processes, services, and modules in the 
 
 ---
 
-## Architecture Summary
+## Related Documentation
+
+- [RBAC.md](RBAC.md) — Comprehensive Role-Based Access Control documentation
+- [VISUAL_TESTING.md](VISUAL_TESTING.md) — Visual testing guide
+- [routes.md](routes.md) — Route documentation
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐

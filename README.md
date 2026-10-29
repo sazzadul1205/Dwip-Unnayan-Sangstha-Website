@@ -764,6 +764,7 @@ Uploaded images are automatically optimized via `Intervention/Image`:
 ## 📚 Documentation
 
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — Comprehensive architecture documentation including independent processes, services, and permission matrix
+- [docs/RBAC.md](docs/RBAC.md) — Role-Based Access Control documentation with permission matrix and role hierarchy
 - [docs/VISUAL_TESTING.md](docs/VISUAL_TESTING.md) — Visual testing guide
 - [docs/routes.md](docs/routes.md) — Route documentation
 
