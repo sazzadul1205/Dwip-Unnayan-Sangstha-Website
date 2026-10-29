@@ -8,7 +8,7 @@ use App\Console\Commands\UpdateJobStatuses;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\SanitizeInput;
 use App\Http\Middleware\SecurityHeaders;
-use App\Http\Middleware\StaticAssetCache;
+use App\Http\Middleware\PerformanceMonitor;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -51,6 +51,9 @@ return Application::configure(basePath: dirname(__DIR__))
 
         // Input sanitization middleware (detect SQL injection/XSS attempts)
         $middleware->appendToGroup('web', SanitizeInput::class);
+
+        // Performance monitoring middleware (tracks execution time)
+        $middleware->appendToGroup('web', PerformanceMonitor::class);
 
         // Web middleware group
         $middleware->web(append: [
