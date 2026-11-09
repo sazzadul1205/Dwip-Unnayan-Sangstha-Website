@@ -13,10 +13,10 @@ set -e
 PROJECT_DIR="$(pwd)"
 NODE_PATH="/opt/alt/alt-nodejs22/root/usr/bin"
 
-# Limit Go/esbuild concurrency for shared hosting.
-# Required because the server fails to create additional
-# OS threads when esbuild uses normal parallelism.
+# Limit native build-tool concurrency for shared hosting.
+# The server may fail to create the worker threads used by Go and Rayon.
 export GOMAXPROCS=1
+export RAYON_NUM_THREADS=1
 
 # ------------------------------------------------------------
 # Helper Functions
@@ -154,6 +154,9 @@ npm -v
 echo ""
 echo "GOMAXPROCS:"
 echo "$GOMAXPROCS"
+echo ""
+echo "RAYON_NUM_THREADS:"
+echo "$RAYON_NUM_THREADS"
 
 success "Node.js environment is ready."
 
@@ -197,7 +200,7 @@ success "Node modules permissions checked."
 
 echo "STEP 5: Building frontend..."
 
-echo "Using GOMAXPROCS=$GOMAXPROCS to limit esbuild concurrency."
+echo "Limiting Go concurrency with GOMAXPROCS=$GOMAXPROCS and Rayon concurrency with RAYON_NUM_THREADS=$RAYON_NUM_THREADS."
 
 npm run build
 
