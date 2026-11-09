@@ -12,6 +12,7 @@ uses(RefreshDatabase::class, SeedsFrontendContent::class);
 
 beforeEach(function () {
     Cache::flush();
+    Cache::store('frontend')->flush();
     $this->seedFrontendContent();
     $this->withoutVite();
 });
@@ -36,46 +37,38 @@ it('serves fresh content as soon as the purge the CMS controllers call is execut
         ->and($afterPurge['count'])->toBeGreaterThan(2);
 });
 
-it('serves stale content for up to one hour when the purge is not triggered', function () {
+it('refreshes content after the five-minute TTL if the purge is not triggered', function () {
     $this->get('/');
 
     DB::table('shared_data')
         ->where('type', 'banner')
         ->update(['data' => json_encode(['title' => 'Banner v2']), 'updated_at' => now()]);
 
-    reportFact('Cache::remember keys (page.*, sections.*)', 'expire after 60 s (the property claims 60 min)');
-    reportFact('ContentService::getSharedData keys (shared.*)', 'expire after 3600 s');
+    reportFact('Frontend content cache TTL', '300 s');
 
-    // 301 s: the 300 s PageController keys are gone, but shared.banner is not.
+    // At 301 s all cached page and shared data has expired.
     $this->travel(301)->seconds();
 
     $afterFiveMinutes = measureCall(fn () => $this->get('/'));
 
-    reportFact('Frontend 301 s after a raw SQL update', 'still serves the stale "Banner v1"');
+    reportFact('Frontend 301 s after a raw SQL update', 'serves the fresh "Banner v2"');
 
-    expect($afterFiveMinutes['result']->getContent())->toContain('Banner v1')
-        ->and($afterFiveMinutes['result']->getContent())->not->toContain('Banner v2');
-
-    // Past the 3600 s TTL of the shared data cache the value finally refreshes.
-    $this->travel(3300)->seconds();
-
-    $afterAnHour = measureCall(fn () => $this->get('/'));
-
-    expect($afterAnHour['result']->getContent())->toContain('Banner v2');
+    expect($afterFiveMinutes['result']->getContent())->toContain('Banner v2')
+        ->and($afterFiveMinutes['result']->getContent())->not->toContain('Banner v1');
 
     $this->travelBack();
 });
 
-it('clears the whole cache store, not just the content keys', function () {
+it('clears only the frontend cache and preserves unrelated application cache keys', function () {
     $sentinels = [
         'user_roles_permissions_1',
         'api_rate_limit_pages|127.0.0.1',
-        'frontend_shared_data',
     ];
 
     foreach ($sentinels as $key) {
         Cache::put($key, 'sentinel', 300);
     }
+    Cache::store('frontend')->put('frontend_shared_data', 'sentinel', 300);
 
     $this->get('/');
 
@@ -83,26 +76,21 @@ it('clears the whole cache store, not just the content keys', function () {
 
     $survivors = collect($sentinels)->filter(fn ($key) => Cache::has($key))->values();
 
-    reportFact('Unrelated keys surviving a CMS purge', $survivors->count() . ' of ' . count($sentinels) . ' (Cache::flush() is global)');
+    reportFact('Unrelated keys surviving a CMS purge', $survivors->count() . ' of ' . count($sentinels));
 
-    expect($survivors)->toBeEmpty();
+    expect($survivors)->toHaveCount(count($sentinels))
+          ->and(Cache::store('frontend')->has('frontend_shared_data'))->toBeFalse();
 });
 
-it('cannot purge everything through the console because that code path is broken', function (array $arguments) {
-    $thrown = null;
+it('purges frontend content through the console with or without the all option', function (array $arguments) {
+    $this->get('/');
 
-    try {
-        Artisan::call('frontend:clear-cache', $arguments);
-    } catch (Throwable $exception) {
-        $thrown = $exception;
-    }
+    expect(Cache::store('frontend')->has('frontend_shared_data'))->toBeTrue();
 
-    $invocation = 'frontend:clear-cache ' . (implode(' ', array_keys($arguments)) ?: '(no options)');
+    $exitCode = Artisan::call('frontend:clear-cache', $arguments);
 
-    reportFact($invocation, $thrown ? class_basename($thrown) . ': ' . $thrown->getMessage() : 'worked');
-
-    expect($thrown)->not->toBeNull('this purge path is expected to fail: it calls an undefined method')
-        ->and($thrown->getMessage())->toContain('clearFrontendCache');
+    expect($exitCode)->toBe(0)
+          ->and(Cache::store('frontend')->has('frontend_shared_data'))->toBeFalse();
 })->with([
     'no options' => [[]],
     'all pages' => [['--all' => true]],
@@ -111,14 +99,14 @@ it('cannot purge everything through the console because that code path is broken
 it('can still purge a single page through the console', function () {
     $this->get('/');
 
-    expect(Cache::has('frontend_shared_data'))->toBeTrue();
+    expect(Cache::store('frontend')->has('frontend_shared_data'))->toBeTrue();
 
     $exitCode = Artisan::call('frontend:clear-cache', ['--page' => 'home']);
 
     reportFact('frontend:clear-cache --page=home', 'exit code ' . $exitCode . ' (works)');
 
     expect($exitCode)->toBe(0)
-        ->and(Cache::has('frontend_shared_data'))->toBeFalse();
+        ->and(Cache::store('frontend')->has('frontend_shared_data'))->toBeFalse();
 });
 
 it('keeps the purge wired into every CMS content controller', function () {

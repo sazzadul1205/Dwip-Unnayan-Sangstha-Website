@@ -14,6 +14,7 @@ uses(RefreshDatabase::class, SeedsFrontendContent::class);
 
 beforeEach(function () {
     Cache::flush();
+    Cache::store('frontend')->flush();
     $this->seedFrontendContent();
 });
 
@@ -22,14 +23,14 @@ it('invalidates page cache when the page is updated', function () {
 
     // Warm the cache
     $service->getPage('home');
-    expect(Cache::has('page.home'))->toBeTrue();
+    expect(Cache::store('frontend')->has('page.home'))->toBeTrue();
 
     // Update the page in the database
     $page = Page::where('slug', 'home')->first();
     $page->update(['title' => 'Updated Home Title']);
 
     // Clear cache to simulate invalidation
-    Cache::forget('page.home');
+    Cache::store('frontend')->forget('page.home');
 
     // Fetch again - should hit SQL
     $fresh = measureCall(fn () => $service->getPage('home'));
@@ -65,13 +66,13 @@ it('validates blog cache invalidation on update', function () {
     $service = app(ContentService::class);
 
     $service->getBlogs();
-    expect(Cache::has('blogs.all.all'))->toBeTrue();
+    expect(Cache::store('frontend')->has('blogs.all.all'))->toBeTrue();
 
     // Add a new blog
     Blog::factory()->create(['is_active' => true, 'title' => 'New Test Blog']);
 
     // Clear cache
-    Cache::forget('blogs.all.all');
+    Cache::store('frontend')->forget('blogs.all.all');
 
     $fresh = measureCall(fn () => $service->getBlogs());
     expect($fresh['count'])->toBeGreaterThan(0, 'After invalidation, next call must hit SQL');
@@ -84,11 +85,11 @@ it('validates cache TTL behavior', function () {
     config(['cache.default' => 'array']);
 
     $service->getPage('home');
-    expect(Cache::has('page.home'))->toBeTrue();
+    expect(Cache::store('frontend')->has('page.home'))->toBeTrue();
 
     // Simulate TTL expiry by forgetting
-    Cache::forget('page.home');
-    expect(Cache::has('page.home'))->toBeFalse();
+    Cache::store('frontend')->forget('page.home');
+    expect(Cache::store('frontend')->has('page.home'))->toBeFalse();
 
     // Re-fetch should hit SQL
     $refetch = measureCall(fn () => $service->getPage('home'));
@@ -100,9 +101,9 @@ it('validates cache key consistency', function () {
 
     // Same call should produce same cache key
     $service->getPage('home');
-    expect(Cache::has('page.home'))->toBeTrue();
+    expect(Cache::store('frontend')->has('page.home'))->toBeTrue();
 
     // Different slug should use different key
     $service->getPage('home'); // same key
-    expect(Cache::has('page.home'))->toBeTrue();
+    expect(Cache::store('frontend')->has('page.home'))->toBeTrue();
 });

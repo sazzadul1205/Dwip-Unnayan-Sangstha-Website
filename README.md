@@ -663,49 +663,27 @@ dwip-unnayan-songstha/
 
 ### Cache Keys & TTLs
 
-| Cache Key | TTL | Description |
-|-----------|-----|-------------|
-| `frontend_shared_data` | 5 min | Topbar, navbar, footer, stories |
-| `sections.*` | 60 min | Page section configurations |
-| `blogs.all.*` | 60 min | Blog listings |
-| `programs.all.*` | 60 min | Program listings |
-| `publications.all.*` | 60 min | Publication listings |
-| `job_statistics_*` | 5 min | Job statistics dashboard |
-| `page_map_data` | 5 min | Page map data |
-| `navigation_tree` | 5 min | Frontend navigation tree |
-| `sitemap_urls` | 60 min | Sitemap URLs |
-| `public_job_filters` | 5 min | Public job filter options |
-| `public_job_stats` | 5 min | Public job statistics |
+Public page content, shared data, page/section records, listings, and public content APIs use the dedicated `frontend` file cache at `storage/framework/cache/frontend`. This avoids a database query just to read a cached value, even when the general `CACHE_STORE` is set to `database`.
+
+| Data | TTL | Description |
+|------|-----|-------------|
+| Public CMS content and page configuration | 5 min | Pages, sections, shared data, blogs, programs, publications, and related content |
+| Public content API responses | 5 min | Cached by endpoint and query parameters |
+| Public job listings and filter options | 30–60 sec | Short TTL for changing job data |
+| Sitemap URLs | 60 min | Public sitemap |
+| Hashed Vite assets | 1 year | Browser cache; filenames change when assets change |
+
+HTML responses remain private and uncached because they contain session, CSRF, and authentication-dependent data. Cache hits for public content do not use the database; a cache miss reads the database and fills the cache.
 
 ### Cache Invalidation
 
-Cache is automatically invalidated when:
-- CMS content is created, updated, or deleted
-- Jobs are created, updated, or deleted
-- Applications are created, updated, or deleted
-- Shared data is updated
-- Roles/permissions are changed
-- Cleared manually via the `/backend/cache/clear` endpoint
+CMS content changes clear the dedicated frontend cache. Public job feeds use short TTLs. The cache can also be cleared with `php artisan frontend:clear-cache` or the `/backend/cache/clear` endpoint.
 
 ### Static Asset Caching
 
-Images, CSS, JS, and fonts are cached for 1 year with immutable headers via `StaticAssetCache` middleware.
+The web server sets `Cache-Control: public, max-age=31536000, immutable` for fingerprinted Vite assets under `public/build/assets` and a seven-day cache for static images and fonts. The site fonts are bundled locally with the frontend build, avoiding third-party font stylesheet requests.
 
-Apply the `static.cache` middleware to your static asset routes:
-
-```php
-// routes/web.php
-Route::middleware('static.cache')->group(function () {
-    Route::get('/storage/{path}', function ($path) {
-        return Storage::disk('public')->response($path);
-    })->where('path', '.*');
-});
-```
-
-**Headers added:**
-- `Cache-Control: public, max-age=31536000, immutable`
-- `ETag` for conditional requests (304 Not Modified)
-- Security headers: `X-Content-Type-Options: nosniff`, `X-XSS-Protection: 1; mode=block`
+The file cache is shared across requests on a single server. For multiple application servers, configure a shared cache store such as Redis for the `frontend` store.
 
 ### Image Optimization
 

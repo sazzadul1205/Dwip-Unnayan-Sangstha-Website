@@ -21,7 +21,7 @@ trait SharedDataTrait
   public function getSharedData(): array
   {
     // Cache the entire result to avoid multiple DB queries per request
-    return Cache::remember('frontend_shared_data', $this->sharedDataCacheMinutes * 60, function () {
+    return Cache::store('frontend')->remember('frontend_shared_data', $this->sharedDataCacheMinutes * 60, function () {
       $asset = fn(string $path): string => route('asset', ['path' => ltrim($path, '/')]);
 
       return $this->fetchSharedData($asset);
@@ -108,7 +108,7 @@ trait SharedDataTrait
    */
   public function clearSharedDataCache(): void
   {
-    Cache::forget('frontend_shared_data');
+    Cache::store('frontend')->forget('frontend_shared_data');
     Log::info('Shared data cache cleared');
   }
 }

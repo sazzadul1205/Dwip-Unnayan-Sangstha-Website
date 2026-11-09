@@ -61,7 +61,7 @@
     }
 
     .loader-title {
-        font-family: 'Instrument Sans', ui-sans-serif, system-ui, -apple-system, sans-serif;
+        font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
         font-weight: 800;
         font-size: 20px;
         margin: 0;
@@ -69,7 +69,7 @@
     }
 
     .loader-subtitle {
-        font-family: 'Instrument Sans', ui-sans-serif, system-ui, -apple-system, sans-serif;
+        font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
         font-weight: 400;
         opacity: 0.5;
         font-size: 12px;

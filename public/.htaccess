@@ -5,6 +5,22 @@
 
     RewriteEngine On
 
+    # Vite fingerprints generated asset filenames, so they can be cached
+    # for a year without risking stale frontend code after a deployment.
+    RewriteCond %{REQUEST_URI} ^/build/assets/.+-[A-Za-z0-9_-]{8,}\.(css|js|mjs|woff2?)$
+    RewriteCond %{REQUEST_FILENAME} -f
+    RewriteRule ^ - [E=VITE_IMMUTABLE_ASSET:1]
+
+    RewriteCond %{REQUEST_URI} !^/build/assets/.+-[A-Za-z0-9_-]{8,}\.(css|js|mjs|woff2?)$ [NC]
+    RewriteCond %{REQUEST_URI} \.(avif|gif|jpe?g|png|svg|webp|woff2?|ttf|otf|eot|pdf)$ [NC]
+    RewriteCond %{REQUEST_FILENAME} -f
+    RewriteRule ^ - [E=PUBLIC_STATIC_ASSET:1]
+
+    <IfModule mod_headers.c>
+        Header set Cache-Control "public, max-age=31536000, immutable" env=VITE_IMMUTABLE_ASSET
+        Header set Cache-Control "public, max-age=604800" env=PUBLIC_STATIC_ASSET
+    </IfModule>
+
     # Handle Authorization Header
     RewriteCond %{HTTP:Authorization} .
     RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]

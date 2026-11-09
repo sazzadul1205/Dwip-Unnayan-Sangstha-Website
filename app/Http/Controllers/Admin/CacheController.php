@@ -3,8 +3,8 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Http\Controllers\Frontend\SharedDataTrait;
 use App\Models\User;
+use App\Services\ContentService;
 use App\Services\SimpleLogger;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -16,8 +16,6 @@ use Illuminate\Validation\ValidationException;
 
 class CacheController extends Controller
 {
-  use SharedDataTrait;
-
   /**
    * List of cache keys to clear when clearing all cache.
    */
@@ -78,6 +76,8 @@ class CacheController extends Controller
 
     try {
       $cleared = [];
+      app(ContentService::class)->clearCache();
+      $cleared[] = 'frontend_data';
 
       // Clear individual keys
       foreach ($this->cacheKeys as $key) {
@@ -93,9 +93,6 @@ class CacheController extends Controller
           }
         }
       }
-
-      // Also clear shared data via trait cache
-      $this->clearSharedDataCache();
 
       RateLimiter::clear($this->getThrottleKey('cache_clear_all', $user->id));
 
@@ -320,17 +317,6 @@ class CacheController extends Controller
     }
 
     return $matches;
-  }
-
-  /**
-   * Clear shared data cache from the trait.
-   */
-  private function clearSharedDataCache(): void
-  {
-    if (method_exists($this, 'clearSharedDataCache')) {
-      $this->clearSharedDataCache();
-    }
-    Cache::forget('frontend_shared_data');
   }
 
   /**

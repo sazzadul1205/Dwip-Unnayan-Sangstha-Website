@@ -48,11 +48,10 @@ class JobListingApiController extends Controller
     $this->checkApiRateLimit($request, 'job_listings');
     $this->logApiRequest($request, 'job_listings');
 
-    // ✅ Don't cache for infinite scroll to ensure real-time data
-    // $cacheKey = $this->getCacheKey($request, 'job_listings');
-    // return Cache::remember($cacheKey, self::CACHE_DURATION, function () use ($request) {
+    $cacheKey = $this->getCacheKey($request, 'job_listings');
 
-    try {
+    return Cache::store('frontend')->remember($cacheKey, 30, function () use ($request) {
+      try {
       $query = JobListing::with(['category', 'locations', 'employer']);
 
       // Apply active filter by default (unless show_all is true)
@@ -122,8 +121,8 @@ class JobListingApiController extends Controller
         'request' => $request->all(),
       ]);
       return $this->errorResponse('Failed to fetch job listings');
-    }
-    // }); // Remove cache
+      }
+    });
   }
 
   /**
@@ -169,7 +168,7 @@ class JobListingApiController extends Controller
     // Cache per slug and request params (excluding page for related)
     $cacheKey = 'related_jobs_' . $slug . '_' . md5(json_encode($request->query()));
 
-    return Cache::remember($cacheKey, self::CACHE_DURATION, function () use ($slug, $request) {
+    return Cache::store('frontend')->remember($cacheKey, self::CACHE_DURATION, function () use ($slug, $request) {
       try {
         $job = JobListing::with(['category', 'locations', 'employer'])
           ->where('slug', $slug)
@@ -204,7 +203,8 @@ class JobListingApiController extends Controller
   {
     $this->checkApiRateLimit($request, 'filter_options');
 
-    try {
+    return Cache::store('frontend')->remember('job_filter_options', 60, function () {
+      try {
       // Get categories with job counts
       $categories = \App\Models\JobCategory::whereHas('jobListings', function ($query) {
         $query->where('is_active', true)
@@ -261,13 +261,14 @@ class JobListingApiController extends Controller
           'experience_levels' => $experienceLevels,
         ],
       ]);
-    } catch (\Exception $e) {
-      Log::error('Filter options error: ' . $e->getMessage());
-      return response()->json([
-        'success' => false,
-        'message' => 'Failed to fetch filter options',
-      ], 500);
-    }
+      } catch (\Exception $e) {
+        Log::error('Filter options error: ' . $e->getMessage());
+        return response()->json([
+          'success' => false,
+          'message' => 'Failed to fetch filter options',
+        ], 500);
+      }
+    });
   }
 
     // ==========================================

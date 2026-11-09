@@ -26,7 +26,6 @@ class CachePipelineBenchmark extends Command
 {
     protected $signature = 'dus:cache-benchmark
         {--iterations=3 : Repetitions used to average the warm measurements}
-        {--store= : Cache store to benchmark (defaults to cache.default)}
         {--json : Emit the report as JSON instead of console tables}';
 
     protected $description = 'Benchmark the SQL -> backend -> frontend pipeline and prove whether the cache is by-passing SQL';
@@ -40,22 +39,21 @@ class CachePipelineBenchmark extends Command
     /** @var array<string, bool> Every cache key the application has written (used to force cold reads) */
     private array $knownKeys = [];
 
+    private string $store = 'frontend';
+
     /** @var array<int, array<string, mixed>> */
     private array $report = [];
 
     public function handle(): int
     {
-        $store = $this->option('store') ?: config('cache.default');
-        config(['cache.default' => $store]);
-
         $services = app(ContentService::class);
+        $services->clearCache();
 
         $this->listenForQueriesAndCacheEvents();
 
         $this->section('Environment');
-        $this->line('  Cache store  : ' . $store . ' (prefix "' . (string) config('cache.prefix') . '")');
+        $this->line('  Cache store  : frontend (file)');
         $this->line('  Database     : ' . $this->databaseLabel());
-        $this->line('  Cache rows   : ' . $this->cacheRowCount() . ' in the live store');
 
         $this->section('Content cache readers (backend -> SQL or cache)');
         $this->benchmarkReaders($services);
@@ -104,7 +102,7 @@ class CachePipelineBenchmark extends Command
         $rows = [];
 
         foreach ($readers as $label => [$key, $reader]) {
-            Cache::forget($key);
+            Cache::store($this->store)->forget($key);
             $cold = $this->measure($reader);
             $warm = $this->measureAverage($reader, (int) $this->option('iterations'));
 
@@ -313,36 +311,9 @@ class CachePipelineBenchmark extends Command
 
         // Keys left behind by earlier traffic (a warmed page never rewrites them,
         // so they would otherwise survive and fake a "cold" measurement).
-        if (config('cache.default') === 'database') {
-            $prefix = (string) config('cache.prefix');
-            $stored = DB::table(config('cache.stores.database.table', 'cache'))->pluck('key')->all();
-
-            foreach ($stored as $storedKey) {
-                $bare = $prefix !== '' && str_starts_with($storedKey, $prefix)
-                    ? substr($storedKey, strlen($prefix))
-                    : $storedKey;
-
-                if ($this->looksLikeContentKey($bare)) {
-                    $keys[] = $bare;
-                }
-            }
-        }
-
         foreach (array_unique($keys) as $key) {
-            Cache::forget($key);
+            Cache::store($this->store)->forget($key);
         }
-    }
-
-    private function looksLikeContentKey(string $key): bool
-    {
-        foreach (['page.', 'sections.', 'section_data.', 'shared.', 'blogs.', 'blog.', 'programs.', 'program.', 'publications.',
-                  'publication.', 'jobs.', 'about.', 'custom.', 'page_sections_', 'frontend_shared_data', 'sitemap_urls', 'api_'] as $prefix) {
-            if (str_starts_with($key, $prefix)) {
-                return true;
-            }
-        }
-
-        return false;
     }
 
     /* ==========================================
@@ -361,15 +332,6 @@ class CachePipelineBenchmark extends Command
 
         return $connection . ' @ ' . config("database.connections.{$connection}.host", 'n/a')
             . '/' . config("database.connections.{$connection}.database", 'n/a');
-    }
-
-    private function cacheRowCount(): int
-    {
-        if (config('cache.default') !== 'database') {
-            return 0;
-        }
-
-        return (int) DB::table(config('cache.stores.database.table', 'cache'))->count();
     }
 
     private function kilobytes(int $bytes): string

@@ -16,6 +16,7 @@ uses(RefreshDatabase::class, SeedsFrontendContent::class);
 
 beforeEach(function () {
     Cache::flush();
+    Cache::store('frontend')->flush();
     $this->seedFrontendContent();
 });
 
@@ -32,7 +33,7 @@ it('serves ContentService::getPage() from cache on the second call', function ()
         ->and($cold['result'])->toBeInstanceOf(Page::class)
         ->and($warm['result'])->toBeInstanceOf(Page::class)
         ->and($warm['result']->slug)->toBe('home')
-        ->and(Cache::has('page.home'))->toBeTrue();
+        ->and(Cache::store('frontend')->has('page.home'))->toBeTrue();
 });
 
 it('keeps answering getPage() after the row is deleted from SQL', function () {
@@ -123,13 +124,13 @@ it('caches the first load of a whole page in a single pass and replays it with 0
         ->and($warm['ms'])->toBeLessThan($cold['ms']);
 });
 
-it('re-queries (does not cache) a null result for a missing page', function () {
+it('caches missing pages to avoid repeating the same database lookup', function () {
     $service = app(ContentService::class);
 
     $first = measureCall(fn () => $service->getPage('does-not-exist'));
     $second = measureCall(fn () => $service->getPage('does-not-exist'));
 
     expect($first['count'])->toBe(1)
-        ->and($second['count'])->toBe(1, 'null results are never stored by Cache::remember, so every 404 re-queries SQL')
+        ->and($second['count'])->toBe(0, 'missing pages must be served from the negative cache')
         ->and($second['result'])->toBeNull();
 });

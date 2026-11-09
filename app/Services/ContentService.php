@@ -11,13 +11,12 @@ use App\Models\pages\Program;
 use App\Models\pages\Publication;
 use App\Models\pages\SectionConfig;
 use App\Models\pages\SharedData;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Collection;
 
 class ContentService
 {
-  protected int $cacheMinutes = 60;
+  protected int $cacheSeconds = 300;
 
   /* ==========================================
      | PAGE & SECTION METHODS
@@ -25,14 +24,16 @@ class ContentService
 
   public function getPage(string $slug): ?Page
   {
-    return Cache::remember("page.{$slug}", $this->cacheMinutes, function () use ($slug) {
-      return Page::where('slug', $slug)->active()->first();
+    $page = $this->cache()->remember("page.{$slug}", $this->cacheSeconds, function () use ($slug) {
+      return Page::where('slug', $slug)->active()->first() ?? false;
     });
+
+    return $page === false ? null : $page;
   }
 
   public function getPageSections(string $pageSlug): Collection
   {
-    return Cache::remember("sections.{$pageSlug}", $this->cacheMinutes, function () use ($pageSlug) {
+    return $this->cache()->remember("sections.{$pageSlug}", $this->cacheSeconds, function () use ($pageSlug) {
       return SectionConfig::forPage($pageSlug)
         ->enabled()
         ->ordered()
@@ -46,13 +47,13 @@ class ContentService
   public function getSectionData(string $pageSlug, string $sectionKey)
   {
     $cacheKey = "section_data.{$pageSlug}.{$sectionKey}";
-    return Cache::remember($cacheKey, $this->cacheMinutes, function () use ($pageSlug, $sectionKey) {
+    $data = $this->cache()->remember($cacheKey, $this->cacheSeconds, function () use ($pageSlug, $sectionKey) {
       $sectionConfig = SectionConfig::forPage($pageSlug)
         ->where('section_key', $sectionKey)
         ->first();
 
       if (!$sectionConfig) {
-        return null;
+        return false;
       }
 
       return match ($sectionConfig->data_table) {
@@ -74,8 +75,10 @@ class ContentService
         'shared_data' => SharedData::ofType($sectionKey)->active()->first(),
 
         default => null,
-      };
+      } ?? false;
     });
+
+    return $data === false ? null : $data;
   }
 
   /* ==========================================
@@ -85,17 +88,11 @@ class ContentService
   public function getSharedData(string $type): ?SharedData
   {
     $key = "shared.{$type}";
-    $cached = Cache::get($key);
+    $result = $this->cache()->remember($key, $this->cacheSeconds, function () use ($type) {
+      return SharedData::ofType($type)->active()->first() ?? false;
+    });
 
-    if ($cached instanceof SharedData) {
-      return $cached;
-    }
-
-    $result = SharedData::ofType($type)->active()->first();
-    if ($result) {
-      Cache::put($key, $result, $this->cacheMinutes * 60);
-    }
-    return $result;
+    return $result === false ? null : $result;
   }
 
   /* ==========================================
@@ -139,7 +136,7 @@ class ContentService
   public function getBlogs(?int $limit = null): Collection
   {
     $key = "blogs.all." . ($limit ?? 'all');
-    return Cache::remember($key, $this->cacheMinutes, function () use ($limit) {
+    return $this->cache()->remember($key, $this->cacheSeconds, function () use ($limit) {
       return Blog::active()
         ->latest()
         ->when($limit, fn($q) => $q->limit($limit))
@@ -150,7 +147,7 @@ class ContentService
   public function getFeaturedBlogs(?int $limit = null): Collection
   {
     $key = "blogs.featured." . ($limit ?? 'all');
-    return Cache::remember($key, $this->cacheMinutes, function () use ($limit) {
+    return $this->cache()->remember($key, $this->cacheSeconds, function () use ($limit) {
       return Blog::active()
         ->featured()
         ->latest()
@@ -161,7 +158,7 @@ class ContentService
 
   public function getBlog(string $slug): Blog
   {
-    return Cache::remember("blog.{$slug}", $this->cacheMinutes, function () use ($slug) {
+    return $this->cache()->remember("blog.{$slug}", $this->cacheSeconds, function () use ($slug) {
       return Blog::where('slug', $slug)->active()->firstOrFail();
     });
   }
@@ -169,7 +166,7 @@ class ContentService
   public function getRelatedBlogs(int $blogId, array $tags = [], int $limit = 3): Collection
   {
     $key = "blogs.related.{$blogId}." . md5(implode(',', $tags) . $limit);
-    return Cache::remember($key, $this->cacheMinutes, function () use ($blogId, $tags, $limit) {
+    return $this->cache()->remember($key, $this->cacheSeconds, function () use ($blogId, $tags, $limit) {
       $query = Blog::active()->where('id', '!=', $blogId);
       if (!empty($tags)) {
         $query->where(function ($q) use ($tags) {
@@ -189,7 +186,7 @@ class ContentService
   public function getPrograms(?int $limit = null): Collection
   {
     $key = "programs.all." . ($limit ?? 'all');
-    return Cache::remember($key, $this->cacheMinutes, function () use ($limit) {
+    return $this->cache()->remember($key, $this->cacheSeconds, function () use ($limit) {
       return Program::active()
         ->ordered()
         ->when($limit, fn($q) => $q->limit($limit))
@@ -200,7 +197,7 @@ class ContentService
   public function getFeaturedPrograms(?int $limit = null): Collection
   {
     $key = "programs.featured." . ($limit ?? 'all');
-    return Cache::remember($key, $this->cacheMinutes, function () use ($limit) {
+    return $this->cache()->remember($key, $this->cacheSeconds, function () use ($limit) {
       return Program::active()
         ->featured()
         ->ordered()
@@ -211,7 +208,7 @@ class ContentService
 
   public function getProgram(string $slug): Program
   {
-    return Cache::remember("program.{$slug}", $this->cacheMinutes, function () use ($slug) {
+    return $this->cache()->remember("program.{$slug}", $this->cacheSeconds, function () use ($slug) {
       return Program::where('slug', $slug)->active()->firstOrFail();
     });
   }
@@ -222,21 +219,21 @@ class ContentService
 
   public function getAboutContent(string $slug): AboutContent
   {
-    return Cache::remember("about.{$slug}", $this->cacheMinutes, function () use ($slug) {
+    return $this->cache()->remember("about.{$slug}", $this->cacheSeconds, function () use ($slug) {
       return AboutContent::where('slug', $slug)->active()->firstOrFail();
     });
   }
 
   public function getMainAboutContent(): ?AboutContent
   {
-    return Cache::remember('about.main', $this->cacheMinutes, function () {
+    return $this->cache()->remember('about.main', $this->cacheSeconds, function () {
       return AboutContent::main()->active()->first();
     });
   }
 
   public function getAboutDetails(): Collection
   {
-    return Cache::remember('about.details', $this->cacheMinutes, function () {
+    return $this->cache()->remember('about.details', $this->cacheSeconds, function () {
       return AboutContent::detail()->active()->ordered()->get();
     });
   }
@@ -248,7 +245,7 @@ class ContentService
   public function getPublications(?int $limit = null): Collection
   {
     $key = "publications.all." . ($limit ?? 'all');
-    return Cache::remember($key, $this->cacheMinutes, function () use ($limit) {
+    return $this->cache()->remember($key, $this->cacheSeconds, function () use ($limit) {
       return Publication::active()
         ->latest()
         ->when($limit, fn($q) => $q->limit($limit))
@@ -259,7 +256,7 @@ class ContentService
   public function getFeaturedPublications(?int $limit = null): Collection
   {
     $key = "publications.featured." . ($limit ?? 'all');
-    return Cache::remember($key, $this->cacheMinutes, function () use ($limit) {
+    return $this->cache()->remember($key, $this->cacheSeconds, function () use ($limit) {
       return Publication::active()
         ->featured()
         ->latest()
@@ -270,7 +267,7 @@ class ContentService
 
   public function getPublication(string $slug): Publication
   {
-    return Cache::remember("publication.{$slug}", $this->cacheMinutes, function () use ($slug) {
+    return $this->cache()->remember("publication.{$slug}", $this->cacheSeconds, function () use ($slug) {
       return Publication::where('slug', $slug)->active()->firstOrFail();
     });
   }
@@ -278,7 +275,7 @@ class ContentService
   public function getRelatedPublications(int $publicationId, array $tags = [], int $limit = 3): Collection
   {
     $key = "publications.related.{$publicationId}." . md5(implode(',', $tags) . $limit);
-    return Cache::remember($key, $this->cacheMinutes, function () use ($publicationId, $tags, $limit) {
+    return $this->cache()->remember($key, $this->cacheSeconds, function () use ($publicationId, $tags, $limit) {
       $query = Publication::active()->where('id', '!=', $publicationId);
       if (!empty($tags)) {
         $query->where(function ($q) use ($tags) {
@@ -301,7 +298,7 @@ class ContentService
       return collect();
     }
     $key = "jobs." . ($limit ?? 'all');
-    return Cache::remember($key, $this->cacheMinutes, function () use ($limit) {
+    return $this->cache()->remember($key, $this->cacheSeconds, function () use ($limit) {
       return JobListing::active()
         ->orderBy('views_count', 'desc')
         ->when($limit, fn($q) => $q->limit($limit))
@@ -316,7 +313,7 @@ class ContentService
   public function getCustomSectionData(string $pageSlug, string $sectionKey): ?CustomSectionData
   {
     $key = "custom.{$pageSlug}.{$sectionKey}";
-    return Cache::remember($key, $this->cacheMinutes, function () use ($pageSlug, $sectionKey) {
+    return $this->cache()->remember($key, $this->cacheSeconds, function () use ($pageSlug, $sectionKey) {
       return CustomSectionData::forPage($pageSlug)
         ->forSection($sectionKey)
         ->active()
@@ -330,6 +327,31 @@ class ContentService
 
   public function clearCache(): void
   {
-    Cache::flush();
+    $this->cache()->flush();
+  }
+
+  public function getPages(): Collection
+  {
+    return $this->cache()->remember('pages.active', $this->cacheSeconds, function () {
+      return Page::where('is_active', true)
+        ->orderBy('name')
+        ->get();
+    });
+  }
+
+  public function getJobListing(string $slug): ?JobListing
+  {
+    $job = $this->cache()->remember("job.{$slug}", $this->cacheSeconds, function () use ($slug) {
+      return JobListing::where('slug', $slug)
+        ->with(['category', 'locations', 'employer'])
+        ->first() ?? false;
+    });
+
+    return $job === false ? null : $job;
+  }
+
+  private function cache(): \Illuminate\Contracts\Cache\Repository
+  {
+    return Cache::store('frontend');
   }
 }

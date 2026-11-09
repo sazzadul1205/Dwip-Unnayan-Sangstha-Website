@@ -6,13 +6,13 @@
 // ============================================
 
 // Facades
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Route;
 
 // Controllers
 use App\Http\Controllers\Api\ContentApiController;
 use App\Http\Controllers\Api\JobListingApiController;
 use App\Http\Controllers\JobListing\PublicJobListingController;
-// Models
 use App\Models\pages\Page;
 use App\Models\pages\Program;
 
@@ -48,59 +48,65 @@ Route::prefix('api')->group(function () {
 
 // Navigation endpoints
 Route::get('/data/navigation.json', function () {
-  $pages = Page::where('is_active', true)
-    ->where('slug', 'not like', '%-details')
-    ->select('id', 'slug', 'name')
-    ->orderBy('name')
-    ->get()
-    ->map(fn($page) => [
-      'id' => $page->id,
-      'slug' => $page->slug,
-      'name' => $page->name,
-      'type' => 'page',
-      'url' => '/' . $page->slug
-    ]);
-
-  $programs = Program::where('is_active', true)
-    ->select('id', 'slug', 'title as name')
-    ->orderBy('display_order')
-    ->get()
-    ->map(fn($program) => [
-      'id' => $program->id,
-      'slug' => $program->slug,
-      'name' => $program->name,
-      'type' => 'program',
-      'url' => '/projects-programs/' . $program->slug
-    ]);
-
-  return response()->json([
-    'success' => true,
-    'items' => $pages->concat($programs)->sortBy('name')->values(),
-    'pages' => $pages,
-    'programs' => $programs
-  ]);
-})->name('data.navigation');
-
-// Legacy API endpoints (maintained for backward compatibility)
-Route::get('/api/pages', function () {
-  return response()->json([
-    'success' => true,
-    'pages' => Page::where('is_active', true)
+  return Cache::store('frontend')->remember('data.navigation', 300, function () {
+    $pages = Page::where('is_active', true)
       ->where('slug', 'not like', '%-details')
       ->select('id', 'slug', 'name')
       ->orderBy('name')
       ->get()
-  ]);
-})->name('api.pages');
+      ->map(fn($page) => [
+        'id' => $page->id,
+        'slug' => $page->slug,
+        'name' => $page->name,
+        'type' => 'page',
+        'url' => '/' . $page->slug
+      ]);
 
-Route::get('/api/programs', function () {
-  return response()->json([
-    'success' => true,
-    'programs' => Program::where('is_active', true)
+    $programs = Program::where('is_active', true)
       ->select('id', 'slug', 'title as name')
       ->orderBy('display_order')
       ->get()
-  ]);
+      ->map(fn($program) => [
+        'id' => $program->id,
+        'slug' => $program->slug,
+        'name' => $program->name,
+        'type' => 'program',
+        'url' => '/projects-programs/' . $program->slug
+      ]);
+
+    return response()->json([
+      'success' => true,
+      'items' => $pages->concat($programs)->sortBy('name')->values(),
+      'pages' => $pages,
+      'programs' => $programs
+    ]);
+  });
+})->name('data.navigation');
+
+// Legacy API endpoints (maintained for backward compatibility)
+Route::get('/api/pages', function () {
+  return Cache::store('frontend')->remember('api.legacy.pages', 300, function () {
+    return response()->json([
+      'success' => true,
+      'pages' => Page::where('is_active', true)
+        ->where('slug', 'not like', '%-details')
+        ->select('id', 'slug', 'name')
+        ->orderBy('name')
+        ->get()
+    ]);
+  });
+})->name('api.pages');
+
+Route::get('/api/programs', function () {
+  return Cache::store('frontend')->remember('api.legacy.programs', 300, function () {
+    return response()->json([
+      'success' => true,
+      'programs' => Program::where('is_active', true)
+        ->select('id', 'slug', 'title as name')
+        ->orderBy('display_order')
+        ->get()
+    ]);
+  });
 })->name('api.programs');
 
 // ============================================

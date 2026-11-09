@@ -1,4 +1,5 @@
-@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,200..800&display=swap');
+@import '@fontsource-variable/bricolage-grotesque';
+@import '@fontsource-variable/noto-sans-bengali';
 @import 'tailwindcss';
 
 @plugin 'tailwindcss-animate';
@@ -93,14 +94,14 @@
 }
 
 * {
-    font-family: 'Bricolage Grotesque', sans-serif;
+    font-family: 'Bricolage Grotesque', 'Noto Sans Bengali', sans-serif;
 }
 
 /* =========================
    FONT UTILITY HELPERS
 ========================= */
 .bricolage-grotesque {
-    font-family: "Bricolage Grotesque", sans-serif;
+    font-family: "Bricolage Grotesque", "Noto Sans Bengali", sans-serif;
 }
 
 /* font weights */

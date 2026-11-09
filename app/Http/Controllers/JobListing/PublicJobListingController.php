@@ -5,6 +5,7 @@ namespace App\Http\Controllers\JobListing;
 use Inertia\Inertia;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\Controller;
 use App\Models\JobView;
@@ -154,19 +155,21 @@ class PublicJobListingController extends Controller
      */
     public function popular(): JsonResponse
     {
-        /** @var Collection<int, JobListing> $popularJobs */
-        $popularJobs = JobListing::where('is_active', true)
-            ->whereNull('deleted_at')
-            ->where('application_deadline', '>=', now())
-            ->with(['category', 'locations'])
-            ->withCount(['applications', 'views'])
-            ->orderBy('views_count', 'desc')
-            ->limit(10)
-            ->get();
+        return Cache::store('frontend')->remember('public_jobs.popular', 60, function () {
+            /** @var Collection<int, JobListing> $popularJobs */
+            $popularJobs = JobListing::where('is_active', true)
+                ->whereNull('deleted_at')
+                ->where('application_deadline', '>=', now())
+                ->with(['category', 'locations'])
+                ->withCount(['applications', 'views'])
+                ->orderBy('views_count', 'desc')
+                ->limit(10)
+                ->get();
 
-        return response()->json(
-            $popularJobs->map(fn(JobListing $job) => $this->formatPublicApiJob($job))->values()
-        );
+            return response()->json(
+                $popularJobs->map(fn(JobListing $job) => $this->formatPublicApiJob($job))->values()
+            );
+        });
     }
 
     /**
@@ -174,19 +177,21 @@ class PublicJobListingController extends Controller
      */
     public function trending(): JsonResponse
     {
-        /** @var Collection<int, JobListing> $trendingJobs */
-        $trendingJobs = JobListing::where('is_active', true)
-            ->whereNull('deleted_at')
-            ->where('application_deadline', '>=', now())
-            ->with(['category', 'locations'])
-            ->withCount(['applications', 'views'])
-            ->orderBy('applications_count', 'desc')
-            ->limit(10)
-            ->get();
+        return Cache::store('frontend')->remember('public_jobs.trending', 60, function () {
+            /** @var Collection<int, JobListing> $trendingJobs */
+            $trendingJobs = JobListing::where('is_active', true)
+                ->whereNull('deleted_at')
+                ->where('application_deadline', '>=', now())
+                ->with(['category', 'locations'])
+                ->withCount(['applications', 'views'])
+                ->orderBy('applications_count', 'desc')
+                ->limit(10)
+                ->get();
 
-        return response()->json(
-            $trendingJobs->map(fn(JobListing $job) => $this->formatPublicApiJob($job))->values()
-        );
+            return response()->json(
+                $trendingJobs->map(fn(JobListing $job) => $this->formatPublicApiJob($job))->values()
+            );
+        });
     }
 
     // ==========================================

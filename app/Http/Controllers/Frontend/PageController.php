@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Frontend;
 
 use App\Http\Controllers\Controller;
-use App\Models\JobListing;
 use App\Models\pages\CustomSectionData;
 use App\Models\pages\Page;
 use App\Services\ContentService;
@@ -73,7 +72,7 @@ class PageController extends Controller
      */
     public function sitemap(): SymfonyResponse
     {
-        $urls = Cache::remember('sitemap_urls', 3600, function () {
+        $urls = Cache::store('frontend')->remember('sitemap_urls', 3600, function () {
             return App::make(PageMapService::class)->getPublicUrls();
         });
 
@@ -102,7 +101,7 @@ class PageController extends Controller
             $configSlug = $this->resolveConfigSlug($pageSlug, $detailSlug);
 
             // Cache section configs for 5 minutes
-            $sectionConfigs = Cache::remember(
+            $sectionConfigs = Cache::store('frontend')->remember(
                 "page_sections_{$configSlug}",
                 300,
                 fn() => $this->contentService->getPageSections($configSlug)
@@ -114,7 +113,7 @@ class PageController extends Controller
 
             // Render the public sitemap page if requested
             if ($pageSlug === 'sitemap' && is_null($detailSlug)) {
-                $urls = Cache::remember('sitemap_urls', 3600, function () {
+                $urls = Cache::store('frontend')->remember('sitemap_urls', 3600, function () {
                     return App::make(PageMapService::class)->getPublicUrls();
                 });
 
@@ -217,9 +216,7 @@ class PageController extends Controller
             $slug = 'blog';
         }
 
-        return Page::where('slug', $slug)
-            ->where('is_active', true)
-            ->first();
+        return $this->contentService->getPage($slug);
     }
 
     /**
@@ -409,17 +406,12 @@ class PageController extends Controller
 
         // Jobs (listing)
         if (!empty($needs['jobs'])) {
-            $data['jobs'] = JobListing::active()
-                ->orderBy('views_count', 'desc')
-                ->limit(5)
-                ->get();
+            $data['jobs'] = $this->contentService->getJobs(5);
         }
 
         // Job details
         if (!empty($needs['job_details']) && $detailSlug) {
-            $data['job_details'] = JobListing::where('slug', $detailSlug)
-                ->with(['category', 'locations', 'employer'])
-                ->first();
+            $data['job_details'] = $this->contentService->getJobListing($detailSlug);
         }
 
         // Publications
@@ -429,9 +421,7 @@ class PageController extends Controller
 
         // Pages (navigation)
         if (!empty($needs['pages'])) {
-            $data['pages'] = Page::where('is_active', true)
-                ->orderBy('name')
-                ->get();
+            $data['pages'] = $this->contentService->getPages();
         }
 
         // Custom section data
@@ -783,14 +773,6 @@ class PageController extends Controller
     public function clearPageCache(string $pageSlug): void
     {
         // Clear the entire content service cache (frontend)
-        app(\App\Services\ContentService::class)->clearCache();
-
-        // Also clear page-specific caches for good measure
-        Cache::forget('frontend_page_' . $pageSlug);
-        Cache::forget('frontend_detail_' . $pageSlug);
-        Cache::forget('frontend_custom_' . $pageSlug);
-        Cache::forget('page_sections_' . $pageSlug);
-        Cache::forget('page.' . $pageSlug);
-        Cache::forget('sections.' . $pageSlug);
+        $this->contentService->clearCache();
     }
 }

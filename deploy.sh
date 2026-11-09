@@ -161,35 +161,30 @@ echo "$RAYON_NUM_THREADS"
 success "Node.js environment is ready."
 
 # ------------------------------------------------------------
-# STEP 4 - Fix node_modules permissions
+# STEP 4 - Install dependencies and fix node_modules permissions
 # ------------------------------------------------------------
 
-echo "STEP 4: Fixing node_modules permissions..."
+echo "STEP 4: Installing npm dependencies and fixing permissions..."
 
 if [ -d "node_modules" ]; then
 
     chmod -R u+rwX node_modules
 
-    if [ -f "node_modules/.bin/vite" ]; then
-        chmod +x node_modules/.bin/vite
-        echo "Vite executable permission fixed."
-    else
-        echo "WARNING: node_modules/.bin/vite does not exist."
-    fi
-
 else
 
     echo "node_modules does not exist."
-    echo "Installing npm dependencies..."
 
-    npm install
+fi
 
-    chmod -R u+rwX node_modules
+npm install --no-audit --no-fund
 
-    if [ -f "node_modules/.bin/vite" ]; then
-        chmod +x node_modules/.bin/vite
-    fi
+chmod -R u+rwX node_modules
 
+if [ -f "node_modules/.bin/vite" ]; then
+    chmod +x node_modules/.bin/vite
+else
+    error "Vite executable was not installed."
+    exit 1
 fi
 
 success "Node modules permissions checked."
@@ -215,6 +210,16 @@ echo "STEP 6: Clearing Laravel caches..."
 php artisan optimize:clear
 
 success "Laravel caches cleared."
+
+# ------------------------------------------------------------
+# Clear the dedicated frontend content cache
+# ------------------------------------------------------------
+
+echo "Clearing cached frontend content..."
+
+php artisan frontend:clear-cache --all
+
+success "Frontend content cache cleared."
 
 # ------------------------------------------------------------
 # STEP 6.5 - Warm up config cache for production

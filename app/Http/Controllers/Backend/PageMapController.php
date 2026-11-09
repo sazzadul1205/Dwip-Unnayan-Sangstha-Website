@@ -155,7 +155,7 @@ class PageMapController extends Controller
 
     Cache::forget('page_map_data');
     Cache::forget('navigation_tree');
-    Cache::forget('sitemap_urls');
+    Cache::store('frontend')->forget('sitemap_urls');
 
     return response()->json([
       'success' => true,

@@ -49,7 +49,7 @@ class ContentApiController extends Controller
 
     $cacheKey = $this->getCacheKey($request, 'pages');
 
-    return Cache::remember($cacheKey, self::CACHE_DURATION, function () use ($request) {
+    return Cache::store('frontend')->remember($cacheKey, self::CACHE_DURATION, function () use ($request) {
       try {
         $query = DB::table('pages')
           ->where('is_active', 1)
@@ -90,7 +90,7 @@ class ContentApiController extends Controller
 
     $cacheKey = $this->getCacheKey($request, 'section_configs');
 
-    return Cache::remember($cacheKey, self::CACHE_DURATION, function () use ($request) {
+    return Cache::store('frontend')->remember($cacheKey, self::CACHE_DURATION, function () use ($request) {
       try {
         $query = DB::table('section_configs')
           ->where('is_enabled', 1)
@@ -144,7 +144,7 @@ class ContentApiController extends Controller
 
     $cacheKey = $this->getCacheKey($request, 'shared_data');
 
-    return Cache::remember($cacheKey, self::CACHE_DURATION, function () use ($request) {
+    return Cache::store('frontend')->remember($cacheKey, self::CACHE_DURATION, function () use ($request) {
       try {
         $query = DB::table('shared_data')->where('is_active', 1);
 
@@ -185,7 +185,7 @@ class ContentApiController extends Controller
 
     $cacheKey = $this->getCacheKey($request, 'custom_section_data');
 
-    return Cache::remember($cacheKey, self::CACHE_DURATION, function () use ($request) {
+    return Cache::store('frontend')->remember($cacheKey, self::CACHE_DURATION, function () use ($request) {
       try {
         $query = DB::table('custom_section_data')->where('is_active', 1);
 
@@ -223,7 +223,7 @@ class ContentApiController extends Controller
 
     $cacheKey = $this->getCacheKey($request, 'programs');
 
-    return Cache::remember($cacheKey, self::CACHE_DURATION, function () use ($request) {
+    return Cache::store('frontend')->remember($cacheKey, self::CACHE_DURATION, function () use ($request) {
       try {
         $query = DB::table('programs')->where('is_active', 1);
 
@@ -277,7 +277,7 @@ class ContentApiController extends Controller
 
     $cacheKey = $this->getCacheKey($request, 'blogs');
 
-    return Cache::remember($cacheKey, self::CACHE_DURATION, function () use ($request) {
+    return Cache::store('frontend')->remember($cacheKey, self::CACHE_DURATION, function () use ($request) {
       try {
         $query = DB::table('blogs')->where('is_active', 1);
 
@@ -353,7 +353,7 @@ class ContentApiController extends Controller
 
     $cacheKey = $this->getCacheKey($request, 'publications');
 
-    return Cache::remember($cacheKey, self::CACHE_DURATION, function () use ($request) {
+    return Cache::store('frontend')->remember($cacheKey, self::CACHE_DURATION, function () use ($request) {
       try {
         $query = DB::table('publications')
           ->where('is_active', 1)
@@ -403,7 +403,7 @@ class ContentApiController extends Controller
 
     $cacheKey = $this->getCacheKey($request, 'about_content');
 
-    return Cache::remember($cacheKey, self::CACHE_DURATION, function () use ($request) {
+    return Cache::store('frontend')->remember($cacheKey, self::CACHE_DURATION, function () use ($request) {
       try {
         $query = DB::table('about_content')->where('is_active', 1);
 
@@ -438,14 +438,18 @@ class ContentApiController extends Controller
   }
 
   /**
-   * Get jobs – with rate limiting, logging, and NO caching (data changes frequently).
+   * Get public jobs – with rate limiting, logging, and short-lived caching.
    */
   public function jobs(Request $request): JsonResponse
   {
     $this->checkApiRateLimit($request, 'jobs');
     $this->logApiRequest($request, 'jobs');
 
-    try {
+    return Cache::store('frontend')->remember(
+      $this->getCacheKey($request, 'jobs'),
+      60,
+      function () use ($request) {
+        try {
       $query = DB::table('job_listings')->where('is_active', 1);
 
       $this->applyFilters($query, $request, [
@@ -540,6 +544,8 @@ class ContentApiController extends Controller
       Log::error('Jobs API error: ' . $e->getMessage());
       return $this->errorResponse('Failed to fetch jobs');
     }
+      }
+    );
   }
 
     // ==========================================

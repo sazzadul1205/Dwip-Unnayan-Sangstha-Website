@@ -23,7 +23,7 @@ class StaticAssetCache
         'ico'  => 31536000,
         'avif' => 31536000,
         
-        // CSS/JS - 1 year (versioned via Vite manifest)
+        // CSS/JS - 1 year (versioned via Vite filenames)
         'css'  => 31536000,
         'js'   => 31536000,
         'mjs'  => 31536000,

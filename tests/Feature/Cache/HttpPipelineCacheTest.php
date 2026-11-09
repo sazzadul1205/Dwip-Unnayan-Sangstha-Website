@@ -9,6 +9,7 @@ uses(RefreshDatabase::class, SeedsFrontendContent::class);
 
 beforeEach(function () {
     Cache::flush();
+    Cache::store('frontend')->flush();
     $this->seedFrontendContent();
     $this->withoutVite();
 });
@@ -20,11 +21,13 @@ it('measures a cold vs warm home page request through the whole HTTP pipeline', 
     $cold['result']->assertOk();
     $warm['result']->assertOk();
 
+    expect($cold['result']->headers->get('Cache-Control'))->toContain('private');
+
     reportMeasurement('GET / (home page, full HTML)', $cold, $warm);
     reportFact('HTML payload size', strlen($cold['result']->getContent()) . ' bytes');
 
     expect($cold['count'])->toBeGreaterThanOrEqual(10)
-        ->and($warm['count'])->toBeLessThanOrEqual(2, 'after warming, only the two uncached PageController queries may remain')
+        ->and($warm['count'])->toBe(0, 'a warm public page must not query the database')
         ->and($warm['ms'])->toBeLessThan($cold['ms'])
         ->and($cold['result']->getContent())->toContain('Banner v1');
 });
@@ -40,11 +43,7 @@ it('shows exactly which queries the warm home page still runs', function () {
         reportFact('  warm query #' . ($index + 1), substr(preg_replace('/\s+/', ' ', $sql), 0, 110));
     }
 
-    // These two come from PageController::getPageBySlug() and the jobs section
-    // which bypass ContentService/cache entirely and hit SQL on every request.
-    expect($warm['count'])->toBe(2)
-        ->and(implode(' ', $warm['queries']))->toContain('pages')
-        ->and(implode(' ', $warm['queries']))->toContain('job_listings');
+    expect($warm['count'])->toBe(0);
 });
 
 it('measures the Inertia JSON payload the React frontend receives', function () {
@@ -74,7 +73,12 @@ it('measures the Inertia JSON payload the React frontend receives', function () 
 });
 
 it('measures the JSON content API used by the React components', function () {
-    $endpoints = ['/data/pages.json', '/data/section_configs.json', '/data/shared_data.json'];
+    $endpoints = [
+        '/data/pages.json',
+        '/data/section_configs.json',
+        '/data/shared_data.json',
+        '/data/jobs.json',
+    ];
 
     foreach ($endpoints as $endpoint) {
         $cold = measureCall(fn () => $this->getJson($endpoint));
@@ -96,25 +100,21 @@ it('measures the JSON content API used by the React components', function () {
     }
 });
 
-it('leaves /api/pages uncached because a duplicate route name shadows the cached action', function () {
+it('serves the legacy /api/pages route from the frontend cache', function () {
     $cold = measureCall(fn () => $this->getJson('/api/pages'));
     $warm = measureCall(fn () => $this->getJson('/api/pages'));
 
     $cold['result']->assertOk();
     $warm['result']->assertOk();
 
-    reportMeasurement('GET /api/pages (legacy closure wins)', $cold, $warm);
+    reportMeasurement('GET /api/pages (legacy endpoint)', $cold, $warm);
 
     foreach ($warm['queries'] as $index => $sql) {
         reportFact('  warm query #' . ($index + 1), substr(preg_replace('/\s+/', ' ', $sql), 0, 100));
     }
 
-    // routes/api.php registers `api.pages` twice: ContentApiController@pages
-    // (cached, 300 s) and a legacy closure. Laravel keys routes by method+URI,
-    // so the closure replaces the cached action and every call hits SQL.
-    expect($warm['count'])->toBe($cold['count'], 'this endpoint is not cached at all')
-        ->and($warm['count'])->toBeGreaterThan(0)
-        ->and(implode(' ', $warm['queries']))->toContain('pages')
+    expect($cold['result']->json('pages'))->not->toBeEmpty()
+        ->and($warm['count'])->toBe(0, 'the legacy endpoint must be replayed from frontend cache')
         ->and($cold['result']->json('success'))->toBeTrue();
 });
 
@@ -127,7 +127,6 @@ it('measures the sitemap page which aggregates every content source', function (
 
     reportMeasurement('GET /sitemap (PageMapService aggregate)', $cold, $warm);
 
-    expect($warm['count'])->toBeLessThan($cold['count'])
-        ->and($warm['count'])->toBeLessThanOrEqual(2)
-        ->and(Cache::has('sitemap_urls'))->toBeTrue();
+    expect($warm['count'])->toBe(0)
+        ->and(Cache::store('frontend')->has('sitemap_urls'))->toBeTrue();
 });
