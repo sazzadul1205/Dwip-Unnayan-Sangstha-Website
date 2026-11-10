@@ -356,7 +356,7 @@ const Footer = ({
   const secondProgramColumn = hasPrograms ? programs.slice(itemsPerColumn) : [];
 
   return (
-    <footer className="overflow-hidden rounded-t-[40px] bg-[#080C14] text-white sm:rounded-t-[50px] md:rounded-t-[70px] lg:rounded-t-[80px] xl:rounded-t-[90px] 2xl:rounded-t-[100px]">
+    <footer className="overflow-hidden bg-[#080C14] text-white">
 
       {/* MAIN FOOTER */}
       <div className="mx-auto flex max-w-[1800px] flex-col gap-12 pb-12 sm:gap-14 sm:pb-16 md:gap-16 md:pb-20 lg:gap-20 lg:pb-24 xl:flex-row xl:gap-20 xl:pb-25 2xl:gap-40 px-4 pt-12 sm:px-8 sm:pt-16 md:px-12 md:pt-2 lg:px-20 lg:pt-25 xl:px-30 xl:pt-30 2xl:px-50 2xl:pt-37.5">

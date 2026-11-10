@@ -130,6 +130,45 @@ class SharedDataController extends Controller
     }
   }
 
+  /**
+   * Toggle visibility for the shared site chrome.
+   */
+  public function toggleVisibility(Request $request, int $id): RedirectResponse
+  {
+    $user = $this->getAuthUser();
+
+    if (!$user->hasPermission('shared_data.update')) {
+      return redirect()->back()->with('error', 'You do not have permission to update shared data.');
+    }
+
+    $this->checkRateLimit('shared_data_visibility', $user->id);
+
+    $validated = $request->validate([
+      'is_active' => 'required|boolean',
+    ]);
+
+    $shared = SharedData::findOrFail($id);
+    abort_unless(in_array($shared->type, ['topbar', 'navbar', 'footer'], true), 404);
+
+    $shared->update(['is_active' => $validated['is_active']]);
+    $this->clearCache($shared->type);
+    RateLimiter::clear($this->getThrottleKey('shared_data_visibility', $user->id));
+
+    SimpleLogger::cms(
+      "Shared data visibility updated: {$shared->type}",
+      [
+        'shared_id' => $id,
+        'type' => $shared->type,
+        'is_active' => $shared->is_active,
+        'updated_by' => $user->email,
+        'ip' => $request->ip(),
+      ]
+    );
+
+    $status = $shared->is_active ? 'shown' : 'hidden';
+    return redirect()->back()->with('success', ucfirst($shared->type) . " will now be {$status}.");
+  }
+
   // ==========================================
   // PRIVATE HELPER METHODS
   // ==========================================
@@ -243,7 +282,7 @@ class SharedDataController extends Controller
       }
     }
 
-    // Sub-menus: normalise the menu tree (any depth) before the generic pass so
+    // Sub-menus: normalize the menu tree (any depth) before the generic pass so
     // editor-only keys are dropped and the legacy `dropdown` / `dropdowns`
     // shapes are migrated onto `children` (see normalizeNavLinks()).
     if (isset($newData['navLinks']) && is_array($newData['navLinks'])) {
@@ -269,7 +308,7 @@ class SharedDataController extends Controller
   }
 
   /**
-   * Normalise a navigation link tree (recursively, unlimited depth).
+   * Normalize a navigation link tree (recursively, unlimited depth).
    *
    * - strips the editor-only `_tempId` helper field,
    * - folds the legacy `dropdown` array into `children`,

@@ -59,9 +59,8 @@ createInertiaApp({
     setup({ el, App, props }) {
         const root = createRoot(el);
 
-        // No route-level listeners here — the preloader only cares about
-        // the initial paint. Subsequent navigations rely on Inertia's
-        // native progress bar + per-section skeletons.
+        // The preloader only cares about the initial paint. Subsequent
+        // navigations rely on per-section skeletons without a global bar.
 
         root.render(
             <StrictMode>
@@ -71,11 +70,7 @@ createInertiaApp({
             </StrictMode>,
         );
     },
-    progress: {
-        color: '#009BE2',
-        delay: 100,
-        showSpinner: false,
-    },
+    progress: false,
 });
 
 initializeTheme();

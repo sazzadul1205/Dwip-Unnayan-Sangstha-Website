@@ -12,6 +12,8 @@ import {
   MdErrorOutline,
   MdClose,
   MdOutlineInbox,
+  MdVisibility,
+  MdVisibilityOff,
 } from 'react-icons/md';
 import {
   FaSpinner,
@@ -124,6 +126,7 @@ export default function SharedData({ sharedData }) {
   const [expandedSection, setExpandedSection] = useState(null);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [savingSuccess, setSavingSuccess] = useState(false);
+  const [visibilityUpdating, setVisibilityUpdating] = useState(null);
 
   // Helpers-
   const parseItemData = (item) => {
@@ -257,6 +260,31 @@ export default function SharedData({ sharedData }) {
             confirmButtonColor: '#3b82f6',
           });
         },
+      }
+    );
+  };
+
+  const toggleVisibility = (event, item) => {
+    event.stopPropagation();
+    if (visibilityUpdating !== null) return;
+
+    setVisibilityUpdating(item.id);
+    router.put(
+      route('backend.cms.shared.toggle-visibility', item.id),
+      { is_active: !item.is_active },
+      {
+        preserveScroll: true,
+        onError: (errors) => {
+          Swal.fire({
+            icon: 'error',
+            title: 'Visibility Update Failed',
+            html:
+              Object.values(errors).flat().join('<br>') ||
+              'Please try again.',
+            confirmButtonColor: '#3b82f6',
+          });
+        },
+        onFinish: () => setVisibilityUpdating(null),
       }
     );
   };
@@ -459,6 +487,29 @@ export default function SharedData({ sharedData }) {
                         </>
                       )}
                     </span>
+
+                    {['topbar', 'navbar', 'footer'].includes(item.type) && (
+                      <button
+                        type="button"
+                        onClick={(event) => toggleVisibility(event, item)}
+                        onKeyDown={(event) => event.stopPropagation()}
+                        disabled={visibilityUpdating !== null}
+                        className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 disabled:cursor-wait disabled:opacity-50 ${
+                          item.is_active
+                            ? 'bg-rose-50 text-rose-700 hover:bg-rose-100'
+                            : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
+                        }`}
+                        aria-label={`${item.is_active ? 'Hide' : 'Show'} ${config.label}`}
+                        title={`${item.is_active ? 'Hide' : 'Show'} ${config.label} on public pages`}
+                      >
+                        {item.is_active ? (
+                          <MdVisibilityOff size={15} />
+                        ) : (
+                          <MdVisibility size={15} />
+                        )}
+                        <span>{item.is_active ? 'Hide' : 'Show'}</span>
+                      </button>
+                    )}
 
                     {/* Empty warning */}
                     {!hasContent && (

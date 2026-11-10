@@ -250,6 +250,25 @@ describe('CMS Shared Data Routes', function () {
 
         $response->assertStatus(302);
     });
+
+    it('can hide a shared site element and clears cached frontend data', function () {
+        $this->withoutMiddleware(\Illuminate\Foundation\Http\Middleware\ValidateCsrfToken::class);
+        $user = $this->createAdminUser();
+        $this->actingAs($user);
+        $shared = SharedData::factory()->create([
+            'type' => 'topbar',
+            'is_active' => true,
+        ]);
+        Cache::store('frontend')->put('frontend_shared_data', 'stale', 300);
+
+        $response = $this->put("/backend/cms/shared/toggle-visibility/{$shared->id}", [
+            'is_active' => false,
+        ]);
+
+        $response->assertRedirect();
+        expect($shared->fresh()->is_active)->toBeFalse()
+            ->and(Cache::store('frontend')->has('frontend_shared_data'))->toBeFalse();
+    });
 });
 
 describe('CMS Blog Routes', function () {

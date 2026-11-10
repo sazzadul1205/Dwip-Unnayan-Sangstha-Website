@@ -7,14 +7,26 @@ import TopBar from '../Shared/TopBar/TopBar';
 import Footer from '../Shared/Footer/Footer';
 import BackToTop from '../Shared/BackToTop';
 
-const PublicLayout = ({ children, topBarData, navbarData, footerData, storageUrl }) => {
+const PublicLayout = ({
+  children,
+  topBarData,
+  navbarData,
+  footerData,
+  storageUrl,
+  navbarVariant = 'legacy',
+}) => {
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
       {/* TopBar */}
       <TopBar topBarData={topBarData} storageUrl={storageUrl} />
 
-      {/* Navbar */}
-      <Navbar navbarData={navbarData} />
+      {navbarVariant === 'overlay' ? (
+        <div className="relative z-30 h-0">
+          <Navbar navbarData={navbarData} variant="overlay" />
+        </div>
+      ) : (
+        <Navbar navbarData={navbarData} />
+      )}
 
       {/* Main Content */}
       <main className="grow">

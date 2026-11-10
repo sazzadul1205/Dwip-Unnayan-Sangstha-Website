@@ -4,6 +4,8 @@ use App\Models\pages\Page;
 use App\Models\pages\CustomSectionData;
 use App\Models\pages\Program;
 use App\Models\pages\SectionConfig;
+use App\Models\pages\SharedData;
+use Illuminate\Support\Facades\Cache;
 
 uses(Tests\Support\RouteTestHelpers::class);
 
@@ -62,6 +64,23 @@ describe('Frontend Public Routes', function () {
     it('loads the sitemap page', function () {
         $response = $this->get('/sitemap');
         $response->assertOk();
+    });
+
+    it('resolves shared asset paths and provides the configured storage URL', function () {
+        SharedData::factory()->create([
+            'type' => 'topbar',
+            'data' => ['logo' => 'asset:images/logo.svg'],
+            'is_active' => true,
+        ]);
+        Cache::store('frontend')->forget('frontend_shared_data');
+
+        $this->get('/sitemap')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('topbarData.logo', asset('images/logo.svg'))
+                ->where('storageUrl', config('app.storage_url')));
+
+        expect(config('app.storage_url'))->not->toBeEmpty();
     });
 
     it('loads the playground page', function () {

@@ -81,6 +81,29 @@
 @layer base {
     html {
         scroll-behavior: smooth;
+        overflow-y: scroll;
+        scrollbar-gutter: stable;
+        scrollbar-color: #94a3b8 #f1f5f9;
+        scrollbar-width: thin;
+    }
+
+    ::-webkit-scrollbar {
+        width: 10px;
+        height: 10px;
+    }
+
+    ::-webkit-scrollbar-track {
+        background: #f1f5f9;
+    }
+
+    ::-webkit-scrollbar-thumb {
+        border: 2px solid #f1f5f9;
+        border-radius: 9999px;
+        background: #94a3b8;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+        background: #475569;
     }
 
     /* 

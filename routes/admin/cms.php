@@ -46,6 +46,7 @@ Route::prefix('cms')->name('cms.')->group(function () {
   Route::prefix('shared')->name('shared.')->group(function () {
     Route::get('/', [SharedDataController::class, 'index'])->name('index');
     Route::put('/update/{id}', [SharedDataController::class, 'update'])->name('update');
+    Route::put('/toggle-visibility/{id}', [SharedDataController::class, 'toggleVisibility'])->name('toggle-visibility');
   });
 
   // Blogs Management

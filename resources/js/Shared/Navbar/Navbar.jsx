@@ -60,6 +60,7 @@ const DesktopNavItem = ({
   level = 0,
   isActive,
   isLastTopLevel = false,
+  overlay = false,
 }) => {
   const [open, setOpen] = useState(false);
   const closeTimer = useRef(null);
@@ -126,7 +127,11 @@ const DesktopNavItem = ({
                   active ? 'bg-[#009BE2] text-white' : 'text-gray-700 hover:bg-[#009BE2] hover:text-white'
                 }`
               : `relative group whitespace-nowrap font-semibold transition-all duration-300 ${
-                  active ? 'text-[#009BE2]' : 'text-gray-800 hover:text-[#009BE2]'
+                  active
+                    ? 'text-[#009BE2]'
+                    : overlay
+                      ? 'text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.8)] hover:text-[#7dd3fc]'
+                      : 'text-gray-800 hover:text-[#009BE2]'
                 } text-sm xl:text-base 2xl:text-[20px]`
           }
         >
@@ -175,6 +180,7 @@ const DesktopNavItem = ({
             level={level + 1}
             isActive={isActive}
             isLastTopLevel={isNested && childIndex === children.length - 1}
+            overlay={overlay}
           />
         ))}
       </ul>
@@ -196,7 +202,11 @@ const DesktopNavItem = ({
           aria-expanded={open}
           aria-haspopup="true"
           className={`relative group flex items-center gap-1 whitespace-nowrap font-semibold transition-all duration-300 ${
-            active ? 'text-[#009BE2]' : 'text-gray-800 hover:text-[#009BE2]'
+            active
+              ? 'text-[#009BE2]'
+              : overlay
+                ? 'text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.8)] hover:text-[#7dd3fc]'
+                : 'text-gray-800 hover:text-[#009BE2]'
           } text-sm xl:text-base 2xl:text-[20px]`}
         >
           {link.name}
@@ -304,10 +314,19 @@ const MobileNavItem = ({ link, index, dropdowns = [], level = 0, isActive, onNav
   );
 };
 
-const Navbar = ({ navbarData, storageUrl = '', defaultLogo = '/images/default-logo.png' }) => {
+const Navbar = ({
+  navbarData,
+  storageUrl = '',
+  defaultLogo = '/images/default-logo.png',
+  variant = 'legacy',
+}) => {
+  const isOverlay = variant === 'overlay';
   const [isOpen, setIsOpen] = useState(false);
   const [imageError, setImageError] = useState(false);
   const [menuResetKey, setMenuResetKey] = useState(0);
+  const [isScrolled, setIsScrolled] = useState(false);
+  const navRef = useRef(null);
+  const overlayStartY = useRef(0);
 
   const { url } = usePage();
   const currentPath = url;
@@ -328,6 +347,30 @@ const Navbar = ({ navbarData, storageUrl = '', defaultLogo = '/images/default-lo
     setIsOpen(false);
     setMenuResetKey((prev) => prev + 1);
   }, [currentPath]);
+
+  useEffect(() => {
+    if (!isOverlay) return undefined;
+
+    const measureStartPosition = () => {
+      if (!isScrolled && navRef.current) {
+        overlayStartY.current =
+          window.scrollY + navRef.current.getBoundingClientRect().top;
+      }
+    };
+
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > overlayStartY.current + 2);
+    };
+
+    measureStartPosition();
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    window.addEventListener('resize', measureStartPosition);
+
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('resize', measureStartPosition);
+    };
+  }, [isOverlay, isScrolled]);
 
   if (!hasValue(navbarData)) return null;
 
@@ -356,9 +399,26 @@ const Navbar = ({ navbarData, storageUrl = '', defaultLogo = '/images/default-lo
   const handleImageError = () => setImageError(true);
 
   return (
-    <nav className="bg-white shadow-sm sticky top-0 z-20">
-      <div className="mx-auto px-4 sm:px-6 md:px-8 lg:px-12 xl:px-20 2xl:px-25 py-3 sm:py-4 md:py-5">
-        <div className="flex justify-between items-center">
+    <nav
+      ref={navRef}
+      className={
+        isOverlay
+          ? `inset-x-0 top-0 z-30 h-[100px] max-h-[100px] transition-colors duration-200 ${
+              isScrolled
+                ? 'fixed bg-white shadow-md'
+                : 'absolute bg-transparent'
+            }`
+          : 'sticky top-0 z-20 bg-white shadow-sm'
+      }
+    >
+      <div
+        className={
+          isOverlay
+            ? 'mx-auto flex h-full max-h-[100px] items-center px-4 sm:px-6 md:px-8 lg:px-12 xl:px-20 2xl:px-25'
+            : 'mx-auto px-4 py-3 sm:px-6 sm:py-4 md:px-8 md:py-5 lg:px-12 xl:px-20 2xl:px-25'
+        }
+      >
+        <div className={isOverlay ? 'flex w-full items-center justify-between' : 'flex items-center justify-between'}>
 
           {/* LOGO - always left */}
           <div className="shrink-0">
@@ -377,7 +437,8 @@ const Navbar = ({ navbarData, storageUrl = '', defaultLogo = '/images/default-lo
                     maxHeight: '106px',
                     objectFit: 'contain',
                     display: 'block',
-                    ...(logo.style || {})
+                    ...(logo.style || {}),
+                    ...(isOverlay ? { maxHeight: '76px' } : {}),
                   }}
                 />
               </Link>
@@ -397,6 +458,7 @@ const Navbar = ({ navbarData, storageUrl = '', defaultLogo = '/images/default-lo
                     dropdowns={dropdowns}
                     isActive={isActive}
                     isLastTopLevel={index === navLinks.length - 1}
+                    overlay={isOverlay && !isScrolled}
                   />
                 ))}
               </ul>
@@ -422,7 +484,7 @@ const Navbar = ({ navbarData, storageUrl = '', defaultLogo = '/images/default-lo
 
               <button
                 onClick={() => setIsOpen(!isOpen)}
-                className={mobileMenu.className || "lg:hidden p-2 text-gray-700 hover:text-[#009BE2] transition-colors duration-200"}
+                className={mobileMenu.className || `lg:hidden p-2 transition-colors duration-200 ${isOverlay && !isScrolled ? 'text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.8)] hover:text-[#7dd3fc]' : 'text-gray-700 hover:text-[#009BE2]'}`}
                 aria-label="Toggle menu"
                 aria-expanded={isOpen}
               >
@@ -444,7 +506,7 @@ const Navbar = ({ navbarData, storageUrl = '', defaultLogo = '/images/default-lo
             )}
             <button
               onClick={() => setIsOpen(!isOpen)}
-              className={mobileMenu.className || "p-2 text-gray-700 hover:text-[#009BE2] transition-colors duration-200"}
+              className={mobileMenu.className || `p-2 transition-colors duration-200 ${isOverlay && !isScrolled ? 'text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.8)] hover:text-[#7dd3fc]' : 'text-gray-700 hover:text-[#009BE2]'}`}
               aria-label="Toggle menu"
               aria-expanded={isOpen}
             >
@@ -459,7 +521,11 @@ const Navbar = ({ navbarData, storageUrl = '', defaultLogo = '/images/default-lo
             ${isOpen ? 'max-h-[80vh] opacity-100 mt-3 sm:mt-4' : 'max-h-0 opacity-0'}`}
           role="menu"
         >
-          <div className="border-t border-gray-100 pt-3 sm:pt-4">
+          <div
+            className={`border-t pt-3 shadow-lg backdrop-blur-md sm:pt-4 ${
+              isOverlay ? 'border-gray-200 bg-white/95' : 'border-gray-100 bg-white'
+            }`}
+          >
             <ul key={menuResetKey} className="flex flex-col space-y-1 sm:space-y-2 pb-3 sm:pb-4">
               {hasNavLinks && navLinks.map((link, index) => (
                 <MobileNavItem

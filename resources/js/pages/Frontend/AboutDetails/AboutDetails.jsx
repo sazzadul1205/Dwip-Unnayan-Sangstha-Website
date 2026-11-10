@@ -118,6 +118,7 @@ const AboutDetails = ({
       navbarData={navbarData}
       footerData={footerData}
       storageUrl={storageUrl}
+      navbarVariant={bannerSection ? 'overlay' : 'legacy'}
     >
       <Head title={`${pageData.contentSectionData?.title || 'About Us Details'}`} />
 

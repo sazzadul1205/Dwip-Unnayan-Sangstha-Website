@@ -259,6 +259,12 @@ const BlogDetails = ({
   const actualPageData = pageDataProp || pageData || {};
   const blogData = actualPageData.blogData || null;
   const bannerData = actualPageData.bannerData;
+  const sectionsToRender = Array.isArray(sectionConfig)
+    ? sectionConfig
+    : (sectionConfig?.sections || []);
+  const hasBanner = sectionsToRender.some(
+    (section) => section.component === 'BannerSection' || section.component === 'PageBannerSection'
+  );
 
   if (serverNotFound) {
     return (
@@ -279,10 +285,6 @@ const BlogDetails = ({
       </PublicLayout>
     );
   }
-
-  const sectionsToRender = Array.isArray(sectionConfig)
-    ? sectionConfig
-    : (sectionConfig?.sections || []);
 
   const renderSpecialComponent = (section) => {
     const { component, custom_props: customProps = {} } = section;
@@ -321,6 +323,7 @@ const BlogDetails = ({
         navbarData={navbarData}
         footerData={footerData}
         storageUrl={storageUrl}
+        navbarVariant={hasBanner ? 'overlay' : 'legacy'}
       >
         <Head title="Blog Not Found | DUS" />
         {sectionsToRender.map((section) => {
@@ -348,6 +351,7 @@ const BlogDetails = ({
       navbarData={navbarData}
       footerData={footerData}
       storageUrl={storageUrl}
+      navbarVariant={hasBanner ? 'overlay' : 'legacy'}
     >
       <Head title={`${blogData?.title || 'Blog Details'}`} />
 

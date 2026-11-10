@@ -39,7 +39,10 @@ return [
         'public' => [
             'driver' => 'local',
             'root' => storage_path('app/public'),
-            'url' => env('APP_URL').'/storage',
+            'url' => rtrim(
+                env('STORAGE_URL', rtrim(env('APP_URL', 'http://localhost'), '/') . '/storage'),
+                '/'
+            ),
             'visibility' => 'public',
             // Serve public files through Laravel when the web server cannot
             // resolve them directly (e.g. the public/storage symlink is

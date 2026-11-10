@@ -21,6 +21,8 @@ const DynamicPage = ({
   const sectionsToRender = (sectionConfig || [])
     .filter(section => section.enabled === true)
     .sort((a, b) => a.order - b.order);
+  const openingBanner = ['HomeBanner', 'PageBannerSection', 'BannerSection', 'PageTagBannerSection']
+    .includes(sectionsToRender[0]?.component);
 
   return (
     <PublicLayout
@@ -28,6 +30,7 @@ const DynamicPage = ({
       navbarData={navbarData}
       footerData={footerData}
       storageUrl={storageUrl}
+      navbarVariant={openingBanner ? 'overlay' : 'legacy'}
     >
       <Head title={pageTitle} />
 

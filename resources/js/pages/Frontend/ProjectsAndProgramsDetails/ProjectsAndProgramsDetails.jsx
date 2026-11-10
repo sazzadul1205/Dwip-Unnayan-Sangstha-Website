@@ -114,6 +114,7 @@ const ProjectsAndProgramsDetails = ({
       navbarData={navbarData}
       footerData={footerData}
       storageUrl={storageUrl}
+      navbarVariant={bannerSection ? 'overlay' : 'legacy'}
     >
       <Head title={`${programData?.title || 'Programs and Projects Details'}`} />
 

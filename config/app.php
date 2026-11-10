@@ -54,6 +54,11 @@ return [
 
     'url' => env('APP_URL', 'http://localhost'),
 
+    'storage_url' => rtrim(
+        env('STORAGE_URL', rtrim(env('APP_URL', 'http://localhost'), '/') . '/storage'),
+        '/'
+    ),
+
     /*
     |--------------------------------------------------------------------------
     | Application Timezone

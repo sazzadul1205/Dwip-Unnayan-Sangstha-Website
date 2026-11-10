@@ -22,7 +22,7 @@ trait SharedDataTrait
   {
     // Cache the entire result to avoid multiple DB queries per request
     return Cache::store('frontend')->remember('frontend_shared_data', $this->sharedDataCacheMinutes * 60, function () {
-      $asset = fn(string $path): string => route('asset', ['path' => ltrim($path, '/')]);
+      $asset = fn(string $path): string => asset(ltrim($path, '/'));
 
       return $this->fetchSharedData($asset);
     });

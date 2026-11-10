@@ -547,7 +547,7 @@ class PageController extends Controller
     /**
      * Assign detail data to the appropriate pageData key.
      */
-    private function assignDetailData(array &$pageData, string $pageSlug, $detail): void
+    private function assignDetailData(array &$pageData, string $pageSlug, Model|array $detail): void
     {
         $baseSlug = ($pageSlug === 'blogs') ? 'blog' : $pageSlug;
 
