@@ -11,6 +11,8 @@ import { hasValue, getPlaceholderImage, normalizeData, sanitizeHTML } from '../.
 
 // Skeleton primitives
 import { Skeleton, SkeletonText } from '../../Shared/Skeletons/SkeletonPrimitives';
+import ImagePreloader from '../../Shared/ImagePreloader';
+import ProgressiveHtmlContent from '../../Shared/ProgressiveHtmlContent';
 
 // ============================================
 // SKELETON: Text block
@@ -169,10 +171,10 @@ const HeroFigureSection = ({
       )}
 
       {hasContent && (
-        <div
+        <ProgressiveHtmlContent
           className="bricolage-grotesque text-[15px] sm:text-[16px] md:text-[17px] lg:text-[18px] xl:text-[19px] 2xl:text-[20px] text-[#333333] leading-snug overflow-hidden"
           style={{ wordBreak: 'break-word' }}
-          dangerouslySetInnerHTML={renderHTML(content.html)}
+          html={renderHTML(content.html).__html}
         />
       )}
 
@@ -193,9 +195,10 @@ const HeroFigureSection = ({
   const ImageComponent = () => (
     <div className="w-full lg:w-1/2 flex items-center mt-6 sm:mt-8 lg:mt-0 relative z-10">
       <div className="w-full h-full min-h-50 sm:min-h-62.5 md:min-h-75 lg:min-h-87.5 xl:min-h-100 2xl:min-h-112.5">
-        <img
+        <ImagePreloader
           src={imageSrc}
           alt={imageAlt}
+          wrapperClassName="h-full w-full"
           className={
             image.className ||
             'w-full h-full object-cover rounded-2xl sm:rounded-3xl lg:rounded-4xl'

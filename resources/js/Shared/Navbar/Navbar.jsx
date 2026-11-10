@@ -6,6 +6,7 @@ import { Menu, X, ChevronDown, ChevronRight } from 'lucide-react';
 
 // Components
 import ArrowIcon from '../ArrowIcon';
+import ImagePreloader from '../ImagePreloader';
 import { hasValue } from '../../utils/sectionHelpers';
 
 
@@ -150,7 +151,7 @@ const DesktopNavItem = ({
 
   // ---- Item with sub-menu ----
   // Top level: rendered exactly like a leaf link, so a parent that has sub
-  // pages is visually and behaviourally identical to a standalone page. The
+  // pages is visually and behaviorally identical to a standalone page. The
   // panel is opened by hover (and by keyboard focus), not by a separate button.
   // It stays mounted so it can fade in from its origin instead of popping.
   const panel = (
@@ -403,7 +404,7 @@ const Navbar = ({
       ref={navRef}
       className={
         isOverlay
-          ? `inset-x-0 top-0 z-30 h-[100px] max-h-[100px] transition-colors duration-200 ${
+          ? `inset-x-0 top-0 z-30 h-25 max-h-25 transition-colors duration-200 ${
               isScrolled
                 ? 'fixed bg-white shadow-md'
                 : 'absolute bg-transparent'
@@ -414,7 +415,7 @@ const Navbar = ({
       <div
         className={
           isOverlay
-            ? 'mx-auto flex h-full max-h-[100px] items-center px-4 sm:px-6 md:px-8 lg:px-12 xl:px-20 2xl:px-25'
+            ? 'mx-auto flex h-full max-h-25 items-center px-4 sm:px-6 md:px-8 lg:px-12 xl:px-20 2xl:px-25'
             : 'mx-auto px-4 py-3 sm:px-6 sm:py-4 md:px-8 md:py-5 lg:px-12 xl:px-20 2xl:px-25'
         }
       >
@@ -424,10 +425,11 @@ const Navbar = ({
           <div className="shrink-0">
             {hasLogo && (
               <Link href={logo.href || '/'} className="block">
-                <img
+                <ImagePreloader
                   src={logoUrl}
                   alt={logo.alt || 'Logo'}
                   className={logo.className || ''}
+                  wrapperClassName="shrink-0"
                   width={logo.width || 73}
                   height={logo.height || 106}
                   onError={handleImageError}

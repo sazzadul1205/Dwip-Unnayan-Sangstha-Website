@@ -2,6 +2,7 @@
 
 import { Link } from '@inertiajs/react';
 import { useState, useCallback, memo, useEffect, useMemo, useRef } from 'react';
+import ImagePreloader from '../ImagePreloader';
 
 import {
   FaFacebook,
@@ -293,10 +294,11 @@ const Footer = ({
     return (
       <li key={index} className="group flex min-w-0 items-center">
         {hasValue(iconSrc) && iconUrl && (
-          <img
+          <ImagePreloader
             src={iconUrl}
             alt=""
-            className="mr-3 h-auto w-2.5 shrink-0 opacity-70 transition-opacity group-hover:opacity-100"
+            wrapperClassName="mr-3 w-2.5 shrink-0"
+            className="h-auto w-full opacity-70 transition-opacity group-hover:opacity-100"
             aria-hidden="true"
             loading="lazy"
           />
@@ -365,10 +367,11 @@ const Footer = ({
         <div className="w-full min-w-0 xl:w-[32%] xl:max-w-110 2xl:w-[30%] 2xl:max-w-120">
           {hasLogo && (
             <div className="flex justify-center xl:justify-start">
-              <img
+              <ImagePreloader
                 src={logoUrl}
                 alt={logo.alt || 'Footer Logo'}
                 className={logo.className || 'h-auto w-20 object-contain sm:w-24 md:w-27.5'}
+                wrapperClassName={logo.className || 'h-auto w-20 sm:w-24 md:w-27.5'}
                 loading="lazy"
                 onError={handleLogoError}
               />

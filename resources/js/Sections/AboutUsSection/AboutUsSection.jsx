@@ -5,6 +5,7 @@ import React, { useState } from 'react';
 
 // Arrow Icon
 import ArrowIcon from '../../Shared/ArrowIcon';
+import ImagePreloader from '../../Shared/ImagePreloader';
 
 // Shared utilities
 import { hasValue, getPlaceholderImage, normalizeData } from '../../utils/sectionHelpers';
@@ -235,10 +236,11 @@ const AboutUsSection = ({
                     className="bg-[#F5F5F5] flex p-3.5 sm:p-4 md:p-5 lg:p-6 rounded-xl gap-3 sm:gap-4 group hover:shadow-lg transition-all duration-300 hover:-translate-y-1"
                   >
                     {item.icon && (
-                      <img
+                      <ImagePreloader
                         src={item.icon}
                         alt={item.alt || item.title || 'Mission icon'}
-                        className="w-5 h-5 sm:w-6 sm:h-6 md:w-6.5 md:h-6.5 lg:w-7.5 lg:h-7.5 group-hover:scale-110 transition-transform duration-300 shrink-0 mt-0.5"
+                        wrapperClassName="w-5 h-5 sm:w-6 sm:h-6 md:w-6.5 md:h-6.5 lg:w-7.5 lg:h-7.5 shrink-0 mt-0.5"
+                        className="h-full w-full group-hover:scale-110 transition-transform duration-300"
                       />
                     )}
                     <div>
@@ -302,10 +304,11 @@ const AboutUsSection = ({
       {/* Right Section - Image */}
       <div className="w-full lg:w-1/2 flex items-center mt-6 sm:mt-8 lg:mt-0">
         <div className="w-full h-full min-h-62.5 sm:min-h-75 md:min-h-87.5 lg:min-h-100 xl:min-h-112.5 2xl:min-h-125">
-          <img
+          <ImagePreloader
             src={imageSrc}
             alt={imageAlt}
-            className={`${image.className || ''} w-full h-full object-cover rounded-2xl sm:rounded-3xl lg:rounded-4xl`}
+            wrapperClassName="h-full w-full"
+            className={`${image.className || ''} h-full w-full object-cover rounded-2xl sm:rounded-3xl lg:rounded-4xl`}
             onError={handleImageError}
           />
         </div>

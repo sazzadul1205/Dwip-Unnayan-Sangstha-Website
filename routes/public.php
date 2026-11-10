@@ -16,16 +16,61 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
 
 // Excluded paths for dynamic routes
-$excludedPaths = ['admin', 'backend', 'login', 'register', 'dashboard', 'api', 'storage', 'playground', '_warmup', 'auth', 'complete-profile', 'seeker', 'test-write'];
+$excludedPaths = ['admin', 'backend', 'login', 'register', 'dashboard', 'api', 'storage', 'image-preview', 'playground', '_warmup', 'auth', 'complete-profile', 'seeker', 'test-write'];
 $exclusionPattern = '^(?!' . implode('|', $excludedPaths) . ').*$';
 
-// Storage file serving
-Route::get('/storage/{path}', function ($path) {
+// Progressive image preview serving
+Route::get('/image-preview/{path}', function ($path) {
   if (str_contains($path, '..')) abort(404);
   $disk = Storage::disk('public');
   if (!$disk->exists($path)) abort(404);
+
+  $extension = strtolower(pathinfo($path, PATHINFO_EXTENSION));
+  if (in_array($extension, ['jpg', 'jpeg', 'png', 'webp', 'bmp'], true)
+    && extension_loaded('gd')
+    && function_exists('imagewebp')) {
+    $sourcePath = $disk->path($path);
+    $imageSize = @getimagesize($sourcePath);
+
+    if ($imageSize && $imageSize[0] > 96) {
+      $previewPath = 'image-previews/' . hash(
+        'sha256',
+        $path . '|' . filemtime($sourcePath) . '|96'
+      ) . '.webp';
+
+      if (!$disk->exists($previewPath)) {
+        $source = @imagecreatefromstring($disk->get($path));
+
+        if ($source !== false) {
+          $preview = imagescale($source, 96);
+          unset($source);
+
+          if ($preview !== false) {
+            imagealphablending($preview, false);
+            imagesavealpha($preview, true);
+            ob_start();
+            $encoded = imagewebp($preview, null, 35);
+            $previewContent = ob_get_clean();
+            unset($preview);
+
+            if ($encoded && is_string($previewContent) && $previewContent !== '') {
+              $disk->put($previewPath, $previewContent);
+            }
+          }
+        }
+      }
+
+      if ($disk->exists($previewPath)) {
+        return response()->file($disk->path($previewPath), [
+          'Content-Type' => 'image/webp',
+          'Cache-Control' => 'public, max-age=31536000, immutable',
+        ]);
+      }
+    }
+  }
+
   return response()->file($disk->path($path));
-})->where('path', '.*')->name('storage.file');
+})->where('path', '.*')->name('image.preview');
 
 // Unauthorized access page
 Route::get('/unauthorized', function () {
@@ -40,11 +85,6 @@ Route::get('/', [PageController::class, 'show'])->name('home');
 
 // Sitemap page
 Route::get('/sitemap', [PageController::class, 'sitemap'])->name('sitemap');
-
-// Playground
-Route::get('/playground', function () {
-  return Inertia::render('Playground');
-})->name('playground');
 
 // Dynamic detail pages (more specific pattern)
 Route::get('/{pageSlug}/{detailSlug}', [PageController::class, 'show'])

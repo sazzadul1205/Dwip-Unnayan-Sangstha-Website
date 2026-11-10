@@ -7,6 +7,7 @@ import { usePage, router } from '@inertiajs/react';
 import { Skeleton } from '../../Shared/Skeletons/SkeletonPrimitives';
 
 import { getPlaceholderImage } from '../../utils/sectionHelpers';
+import ImagePreloader from '../../Shared/ImagePreloader';
 
 
 // ============================================
@@ -333,10 +334,11 @@ const ImageGallerySection = ({
                     className="rounded-lg overflow-hidden shadow-md hover:shadow-xl transition-shadow duration-300 cursor-pointer relative group"
                     onClick={(e) => openModal(e, index)}
                   >
-                    <img
+                    <ImagePreloader
                       src={imageSrc}
                       alt={imageAlt}
-                      className="w-full h-48 sm:h-52 md:h-60 lg:h-80 xl:h-90 2xl:h-100 object-cover hover:scale-105 transition-transform duration-300"
+                      wrapperClassName="w-full h-48 sm:h-52 md:h-60 lg:h-80 xl:h-90 2xl:h-100"
+                      className="h-full w-full object-cover hover:scale-105 transition-transform duration-300"
                       loading="lazy"
                       onError={() => handleImageError(imageId)}
                     />
@@ -422,16 +424,13 @@ const ImageGallerySection = ({
             onClick={(e) => e.stopPropagation()}
           >
             {selectedIndex !== null && (
-              <img
+              <ImagePreloader
                 src={getImageSrc(filteredImages[selectedIndex], selectedIndex)}
                 alt={getImageAlt(filteredImages[selectedIndex], selectedIndex)}
-                style={{
-                  width: '100%',
-                  height: '100%',
-                  objectFit: 'contain',
-                  borderRadius: '8px',
-                  boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
-                }}
+                wrapperClassName="h-full w-full"
+                className="h-full w-full"
+                objectFit="contain"
+                style={{ borderRadius: '8px', boxShadow: '0 20px 60px rgba(0,0,0,0.5)' }}
               />
             )}
           </div>

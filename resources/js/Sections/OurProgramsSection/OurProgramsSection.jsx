@@ -5,6 +5,8 @@ import React, { useRef, useEffect, useState, useMemo, useCallback } from "react"
 
 // Arrow Icon
 import ArrowIcon from "../../Shared/ArrowIcon";
+import ImagePreloader from "../../Shared/ImagePreloader";
+import ProgressiveHtmlContent from "../../Shared/ProgressiveHtmlContent";
 
 // Skeleton primitives
 import { Skeleton, SkeletonText } from '../../Shared/Skeletons/SkeletonPrimitives';
@@ -450,11 +452,9 @@ const OurProgramsSection = ({
                         </h3>
                       )}
                       {hasValue(descriptionHtml) && (
-                        <div
+                        <ProgressiveHtmlContent
                           className="bricolage-grotesque font-400 text-[15px] sm:text-[16px] md:text-[17px] lg:text-[18px] xl:text-[19px] 2xl:text-[20px] text-[#524B48] leading-relaxed line-clamp-5 sm:line-clamp-6 md:line-clamp-7 lg:line-clamp-8 lg:h-tall:line-clamp-7 lg:h-mid:line-clamp-6 lg:h-short:line-clamp-4 xl:line-clamp-5 2xl:line-clamp-10 2xl:h-tall:line-clamp-8 2xl:h-mid:line-clamp-6 2xl:h-short:line-clamp-4"
-                          dangerouslySetInnerHTML={{
-                            __html: sanitizeHTML(truncatedDescription),
-                          }}
+                          html={sanitizeHTML(truncatedDescription)}
                         />
                       )}
                       {hasValue(program.link) && (
@@ -470,10 +470,11 @@ const OurProgramsSection = ({
 
                     {/* Right Image */}
                     <div className="w-full lg:w-1/2">
-                      <img
+                      <ImagePreloader
                         src={getImageSrc(program)}
                         alt={program.title || 'Program image'}
-                        className="w-full h-60 sm:h-75 md:h-85 lg:h-100 lg:h-tall:h-90 lg:h-mid:h-80 lg:h-short:h-60 xl:h-120 xl:h-tall:h-105 xl:h-mid:h-85 xl:h-short:h-60 2xl:h-150 2xl:h-tall:h-130 2xl:h-mid:h-95 2xl:h-short:h-65 object-cover rounded-3xl hover:scale-105 transition-transform duration-300"
+                        wrapperClassName="w-full h-60 sm:h-75 md:h-85 lg:h-100 lg:h-tall:h-90 lg:h-mid:h-80 lg:h-short:h-60 xl:h-120 xl:h-tall:h-105 xl:h-mid:h-85 xl:h-short:h-60 2xl:h-150 2xl:h-tall:h-130 2xl:h-mid:h-95 2xl:h-short:h-65 rounded-3xl"
+                        className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
                         onError={() => handleImageError(program.id)}
                       />
                     </div>

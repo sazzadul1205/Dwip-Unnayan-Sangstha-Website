@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { sanitizeHTML, hasValue } from '../../utils/sectionHelpers';
+import ProgressiveHtmlContent from '../../Shared/ProgressiveHtmlContent';
 
 // Skeleton primitives
 import { Skeleton, SkeletonText } from '../../Shared/Skeletons/SkeletonPrimitives';
@@ -130,7 +131,7 @@ const TextContentSection = ({
       className={`${bgColor} ${paddingX} ${paddingY} ${sectionClassName}`}
     >
       <div className={`mx-auto ${maxWidth}`}>
-        <div
+        <ProgressiveHtmlContent
           className="max-w-none
                      [&_h1]:text-3xl sm:[&_h1]:text-4xl lg:[&_h1]:text-5xl [&_h1]:font-700 [&_h1]:text-[#080C14] [&_h1]:mt-8 [&_h1]:mb-4
                      [&_h2]:text-2xl sm:[&_h2]:text-3xl lg:[&_h2]:text-4xl [&_h2]:font-700 [&_h2]:text-[#080C14] [&_h2]:mt-8 [&_h2]:mb-4
@@ -150,7 +151,7 @@ const TextContentSection = ({
                      [&_img]:rounded-lg [&_img]:max-w-full [&_img]:h-auto
                      [&_pre]:overflow-auto [&_pre]:whitespace-pre-wrap [&_pre]:break-all [&_pre]:p-4 [&_pre]:bg-gray-50 [&_pre]:rounded-lg
           "
-          dangerouslySetInnerHTML={{ __html: sanitizedHtml }}
+          html={sanitizedHtml}
         />
       </div>
     </section>

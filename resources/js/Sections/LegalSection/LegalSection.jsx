@@ -10,6 +10,7 @@ import ArrowIcon from '../../Shared/ArrowIcon';
 import { Skeleton } from '../../Shared/Skeletons/SkeletonPrimitives';
 
 import { hasValue, getPlaceholderImage } from '../../utils/sectionHelpers';
+import ImagePreloader from '../../Shared/ImagePreloader';
 
 
 
@@ -111,10 +112,11 @@ const LegalSection = ({
       id={sectionId}
       className={`relative w-full ${height} overflow-hidden ${bgColor} ${paddingY} ${paddingX} ${sectionClassName}`}
     >
-      <img
+      <ImagePreloader
         src={imageSrc}
         alt={imageAlt}
-        className="w-full h-full object-cover object-center md:object-cover"
+        wrapperClassName="absolute inset-0 h-full w-full"
+        className="h-full w-full object-cover object-center md:object-cover"
         onError={handleImageError}
       />
 

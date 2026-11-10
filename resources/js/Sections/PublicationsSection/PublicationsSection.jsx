@@ -2,6 +2,7 @@
 
 // React
 import React, { useState } from 'react';
+import ImagePreloader from '../../Shared/ImagePreloader';
 
 // Lucide Icons
 import {
@@ -302,10 +303,11 @@ const PublicationsSection = ({
             className="text-black flex h-full min-w-0 flex-col rounded-2xl bg-white p-4 sm:p-5 md:p-6 lg:p-5 xl:p-7.5 shadow-2xl transition-shadow duration-300 hover:shadow-3xl"
           >
             {hasValue(publication.image) && (
-              <img
+              <ImagePreloader
                 src={publication.image}
                 alt={publication.title || 'Publication image'}
-                className="mb-4 sm:mb-5 h-40 sm:h-48 md:h-56 lg:h-52 xl:h-62.5 w-full rounded-2xl object-cover object-center"
+                wrapperClassName="mb-4 sm:mb-5 h-40 sm:h-48 md:h-56 lg:h-52 xl:h-62.5 w-full rounded-2xl"
+                className="h-full w-full rounded-2xl object-cover object-center"
               />
             )}
 
@@ -376,10 +378,11 @@ const PublicationsSection = ({
             className="shadow-2xl p-4 sm:p-5 md:p-6 lg:p-7.5 rounded-2xl hover:shadow-3xl transition-shadow duration-300 bg-white flex flex-col md:flex-row gap-4 sm:gap-5 md:gap-6"
           >
             {hasValue(publication.image) && (
-              <img
+              <ImagePreloader
                 src={publication.image}
                 alt={publication.title || 'Publication image'}
-                className="w-full md:w-40 lg:w-48 xl:w-56 h-32 sm:h-40 md:h-44 lg:h-48 rounded-2xl object-cover shrink-0"
+                wrapperClassName="w-full md:w-40 lg:w-48 xl:w-56 h-32 sm:h-40 md:h-44 lg:h-48 rounded-2xl shrink-0"
+                className="h-full w-full rounded-2xl object-cover"
               />
             )}
 

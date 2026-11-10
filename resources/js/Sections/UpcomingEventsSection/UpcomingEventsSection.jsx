@@ -9,6 +9,7 @@ import { CiLocationOn } from 'react-icons/ci';
 
 // Shared
 import ArrowIcon from '../../Shared/ArrowIcon';
+import ImagePreloader from '../../Shared/ImagePreloader';
 
 // Skeleton primitives
 import { Skeleton, SkeletonText } from '../../Shared/Skeletons/SkeletonPrimitives';
@@ -192,10 +193,11 @@ const UpcomingEventsSection = ({
             </div>
 
             {hasImage && (
-              <img
+              <ImagePreloader
                 src={image.src}
                 alt={image.alt || 'Upcoming events'}
-                className={`${image.className || ''} mt-8 h-auto w-full rounded-2xl object-cover sm:mt-10 lg:mt-15 xl:h-120 2xl:h-139.25`}
+                wrapperClassName="mt-8 w-full rounded-2xl sm:mt-10 lg:mt-15 xl:h-120 2xl:h-139.25"
+                className={`${image.className || ''} h-auto w-full rounded-2xl object-cover xl:h-120 2xl:h-139.25`}
                 loading="lazy"
               />
             )}

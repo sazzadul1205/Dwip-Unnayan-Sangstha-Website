@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { Skeleton } from '../../Shared/Skeletons/SkeletonPrimitives';
 
 import { hasValue, getPlaceholderImage } from '../../utils/sectionHelpers';
+import ImagePreloader from '../../Shared/ImagePreloader';
 
 
 
@@ -155,10 +156,11 @@ const WhereWeWorkSection = ({
                   key={stat.id}
                   className="bg-[#F5F5F5] text-center p-4 sm:p-5 md:p-6 lg:p-7 xl:p-8 rounded-xl transition-all duration-300 hover:-translate-y-2 hover:shadow-xl group cursor-pointer"
                 >
-                  <img
+                  <ImagePreloader
                     src={getIconSrc(stat)}
                     alt={stat.alt || stat.label || 'Statistic icon'}
-                    className="w-8 h-8 sm:w-10 sm:h-10 md:w-11 md:h-11 lg:w-12 lg:h-12 xl:w-13 xl:h-13 2xl:w-15 2xl:h-15 mx-auto mb-3 sm:mb-4 md:mb-5 lg:mb-6 xl:mb-7.5 group-hover:scale-110 transition-transform duration-300"
+                    wrapperClassName="w-8 h-8 sm:w-10 sm:h-10 md:w-11 md:h-11 lg:w-12 lg:h-12 xl:w-13 xl:h-13 2xl:w-15 2xl:h-15 mx-auto mb-3 sm:mb-4 md:mb-5 lg:mb-6 xl:mb-7.5"
+                    className="h-full w-full group-hover:scale-110 transition-transform duration-300"
                     onError={() => handleImageError({ id: `icon-${stat.id}` })}
                   />
                   {stat.value && (
@@ -180,10 +182,11 @@ const WhereWeWorkSection = ({
 
       <div className="w-full lg:w-1/2 flex items-center mt-6 sm:mt-8 lg:mt-0">
         <div className="w-full h-full min-h-62.5 sm:min-h-75 md:min-h-87.5 lg:min-h-100 xl:min-h-112.5 2xl:min-h-125">
-          <img
+          <ImagePreloader
             src={getImageSrc(image)}
             alt={image.alt || 'Where we work image'}
-            className={`${image.className || ''} w-full h-full object-cover rounded-2xl sm:rounded-3xl lg:rounded-4xl`}
+            wrapperClassName="h-full w-full"
+            className={`${image.className || ''} h-full w-full object-cover rounded-2xl sm:rounded-3xl lg:rounded-4xl`}
             onError={() => handleImageError({ id: 'main' })}
           />
         </div>

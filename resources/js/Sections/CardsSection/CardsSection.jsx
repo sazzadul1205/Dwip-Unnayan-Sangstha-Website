@@ -5,6 +5,7 @@ import React, { useState } from 'react';
 
 // Components
 import ArrowIcon from '../../Shared/ArrowIcon';
+import ImagePreloader from '../../Shared/ImagePreloader';
 
 // Skeleton primitives
 import { Skeleton } from '../../Shared/Skeletons/SkeletonPrimitives';
@@ -130,9 +131,10 @@ const CardsSection = ({
           >
             {/* Image Container */}
             <div className="flex-1 flex items-center justify-center min-h-40 sm:min-h-48 md:min-h-56 lg:min-h-64 xl:min-h-75 2xl:min-h-87.5">
-              <img
+              <ImagePreloader
                 src={getImageSrc(card)}
                 alt={getImageAlt(card)}
+                wrapperClassName="h-full max-h-full max-w-full"
                 className={`${card.image?.className || ''} max-w-full max-h-full object-contain w-auto h-auto`}
                 loading="lazy"
                 onError={() => handleImageError(card.id)}

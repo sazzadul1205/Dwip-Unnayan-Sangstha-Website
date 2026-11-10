@@ -8,6 +8,7 @@ import { Link } from '@inertiajs/react';
 
 // Components
 import ArrowIcon from '../../Shared/ArrowIcon';
+import ImagePreloader from '../../Shared/ImagePreloader';
 
 // Skeleton primitives
 import { Skeleton, SkeletonText } from '../../Shared/Skeletons/SkeletonPrimitives';
@@ -221,10 +222,11 @@ const BlogSection = ({
       {hasMainBlog && (
         <div className="flex flex-col lg:flex-row items-center gap-6 sm:gap-8 lg:gap-10 xl:gap-12.5 shadow-lg p-4 sm:p-5 md:p-6 lg:p-7.5 rounded-2xl bg-white">
           <div className="w-full lg:w-1/2">
-            <img
+            <ImagePreloader
               src={getImageSrc(resolvedMainBlog)}
               alt={getImageAlt(resolvedMainBlog)}
-              className="w-full h-48 sm:h-56 md:h-64 lg:h-80 xl:h-100 2xl:h-112.5 object-cover object-center rounded-2xl"
+              wrapperClassName="w-full h-48 sm:h-56 md:h-64 lg:h-80 xl:h-100 2xl:h-112.5 rounded-2xl"
+              className="w-full h-full object-cover object-center rounded-2xl"
               onError={() => handleImageError(resolvedMainBlog.id)}
             />
           </div>
@@ -274,10 +276,11 @@ const BlogSection = ({
                 key={post.id}
                 className="shadow-2xl p-4 sm:p-5 md:p-6 lg:p-7.5 rounded-2xl hover:shadow-3xl transition-shadow duration-300 bg-white flex flex-col h-full"
               >
-                <img
+                <ImagePreloader
                   src={getImageSrc(post)}
                   alt={getImageAlt(post)}
-                  className="w-full h-40 sm:h-44 md:h-48 lg:h-52 xl:h-56 2xl:h-62.5 object-cover object-center rounded-2xl mb-3 sm:mb-4 md:mb-5"
+                  wrapperClassName="w-full h-40 sm:h-44 md:h-48 lg:h-52 xl:h-56 2xl:h-62.5 rounded-2xl mb-3 sm:mb-4 md:mb-5"
+                  className="w-full h-full object-cover object-center rounded-2xl"
                   onError={() => handleImageError(post.id)}
                 />
 

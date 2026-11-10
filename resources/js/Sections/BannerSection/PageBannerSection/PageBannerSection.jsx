@@ -6,6 +6,7 @@ import React, { useState } from 'react';
 import { Skeleton } from '../../../Shared/Skeletons/SkeletonPrimitives';
 
 import { hasValue, getPlaceholderImage } from '../../../utils/sectionHelpers';
+import ImagePreloader from '../../../Shared/ImagePreloader';
 
 
 
@@ -125,10 +126,11 @@ const PageBannerSection = ({
         id={sectionId}
         className={`relative w-[1920px] max-w-full ${height} overflow-hidden ${bgColor} ${sectionClassName}`}
       >
-        <img
+        <ImagePreloader
           src={imageSrc}
           alt={imageAlt}
-          className="w-full h-full object-cover object-center"
+          wrapperClassName="absolute inset-0 h-full w-full"
+          className="h-full w-full object-cover object-center"
           onError={handleImageError}
         />
 

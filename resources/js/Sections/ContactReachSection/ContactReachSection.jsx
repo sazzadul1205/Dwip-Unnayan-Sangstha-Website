@@ -10,6 +10,7 @@ import ArrowIcon from '../../Shared/ArrowIcon';
 import { Skeleton } from '../../Shared/Skeletons/SkeletonPrimitives';
 
 import { hasValue, getPlaceholderImage } from '../../utils/sectionHelpers';
+import ImagePreloader from '../../Shared/ImagePreloader';
 
 
 
@@ -154,10 +155,11 @@ const ContactReachSection = ({
     >
       {/* Left Image Section */}
       <div className="w-full lg:w-1/2 relative min-h-50 sm:min-h-62.5 md:min-h-75 lg:min-h-100 xl:min-h-125">
-        <img
+        <ImagePreloader
           src={imageSrc}
           alt={imageAlt}
-          className="w-full h-full object-cover lg:max-h-none max-h-64 sm:max-h-80 md:max-h-100"
+          wrapperClassName="h-full w-full"
+          className="h-full w-full object-cover lg:max-h-none max-h-64 sm:max-h-80 md:max-h-100"
           onError={handleImageError}
         />
         <div className="absolute inset-0 bg-linear-to-b from-[#1500FF] via-[#6F07E5] to-[#F10A0A] opacity-40 sm:opacity-50" />

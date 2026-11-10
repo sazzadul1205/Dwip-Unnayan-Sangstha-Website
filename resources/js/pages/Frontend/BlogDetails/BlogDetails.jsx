@@ -13,6 +13,9 @@ import PublicLayout from '../../../layouts/PublicLayout';
 
 // Components
 import DynamicSectionRenderer from '../../../Sections/_runtime/DynamicSectionRenderer';
+import resolveImageUrl from '../../../utils/resolveImageUrl';
+import ImagePreloader from '../../../Shared/ImagePreloader';
+import ProgressiveHtmlContent from '../../../Shared/ProgressiveHtmlContent';
 
 // Banner Section Component
 const BannerSection = ({ bannerData, blogData, notFound }) => {
@@ -55,10 +58,11 @@ const BannerSection = ({ bannerData, blogData, notFound }) => {
     <section className="relative isolate w-full h-125 overflow-hidden bg-[#080C14]">
       <div className="absolute inset-0 z-0">
         {banner?.background?.src && (
-          <img
+          <ImagePreloader
             src={banner.background.src}
             alt={banner.background.alt || `Banner for ${normalizedBlogData.title}`}
             loading="lazy"
+            wrapperClassName="absolute inset-0 h-full w-full"
             className="h-full w-full object-cover object-center"
           />
         )}
@@ -144,11 +148,7 @@ const BlogContentSection = ({
   }
 
   const getImageUrl = (imagePath) => {
-    if (!imagePath) return null;
-    if (imagePath.startsWith('http')) return imagePath;
-
-    const cleanPath = imagePath.replace(/^\//, '');
-    return `${storageUrl}/${cleanPath}`;
+    return resolveImageUrl(imagePath, storageUrl);
   };
 
   const normalizedBlogData = {
@@ -157,7 +157,6 @@ const BlogContentSection = ({
     fullContent: blogData?.fullContent || blogData?.full_content || blogData?.content || '',
   };
 
-  const renderHTML = (htmlString) => ({ __html: htmlString });
   const imageUrl = getImageUrl(normalizedBlogData.image);
 
   return (
@@ -166,15 +165,13 @@ const BlogContentSection = ({
         <div className="-mt-16 sm:-mt-20 lg:-mt-24">
           {imageUrl ? (
             <div className="aspect-video w-full overflow-hidden rounded-[28px] shadow-2xl">
-              <img
+              <ImagePreloader
                 src={imageUrl}
                 alt={`Featured image for ${normalizedBlogData.title}`}
                 loading="lazy"
-                className="w-full h-full object-cover object-center"
-                onError={(e) => {
-                  e.target.onerror = null;
-                  e.target.src = "https://placehold.co/1100x500/080C14/FFFFFF?text=Blog+Image";
-                }}
+                wrapperClassName="absolute inset-0 h-full w-full"
+                className="h-full w-full object-cover object-center"
+                fallbackSrc="https://placehold.co/1100x500/080C14/FFFFFF?text=Blog+Image"
               />
             </div>
           ) : (
@@ -212,7 +209,7 @@ const BlogContentSection = ({
           </div>
 
           <div className="flex-1">
-            <div
+            <ProgressiveHtmlContent
               className="bricolage-grotesque prose prose-sm sm:prose-base lg:prose-lg max-w-none
                 prose-headings:font-700 prose-headings:text-[#080C14]
                 prose-p:text-[#333333] prose-p:leading-relaxed
@@ -222,7 +219,7 @@ const BlogContentSection = ({
                 prose-p:mt-4 prose-p:mb-4
                 prose-h2:mt-8 prose-h2:mb-4
                 prose-h3:mt-6 prose-h3:mb-3"
-              dangerouslySetInnerHTML={renderHTML(normalizedBlogData.fullContent)}
+              html={normalizedBlogData.fullContent}
             />
           </div>
         </div>

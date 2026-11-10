@@ -29,27 +29,33 @@ const ImagePreloader = ({
   fallbackSrc,
   onLoad,
   onError,
+  style,
   ...rest
 }) => {
   const [isLoaded, setIsLoaded] = useState(false);
   const [hasError, setHasError] = useState(false);
+  const [previewLoaded, setPreviewLoaded] = useState(false);
+  const [loadFullImage, setLoadFullImage] = useState(false);
   const [currentSrc, setCurrentSrc] = useState(src);
   const imgRef = useRef(null);
+  const previewSrc = getPreviewSrc(src);
 
   // Reset when `src` changes
   useEffect(() => {
     if (!src) return;
     setCurrentSrc(src);
     setHasError(false);
+    setIsLoaded(false);
+    setPreviewLoaded(false);
+    setLoadFullImage(!previewSrc);
 
     // If cached, `onLoad` may not fire — check synchronously
     const img = imgRef.current;
-    if (img && img.complete && img.naturalHeight !== 0) {
+    if (img && img.getAttribute('src') === src && img.complete && img.naturalHeight !== 0) {
       setIsLoaded(true);
-    } else {
-      setIsLoaded(false);
+      setLoadFullImage(true);
     }
-  }, [src]);
+  }, [src, previewSrc]);
 
   const handleLoad = (e) => {
     setIsLoaded(true);
@@ -65,9 +71,19 @@ const ImagePreloader = ({
     onError?.(e);
   };
 
+  const handlePreviewLoad = () => {
+    setPreviewLoaded(true);
+    setLoadFullImage(true);
+  };
+
+  const handlePreviewError = () => {
+    setPreviewLoaded(true);
+    setLoadFullImage(true);
+  };
+
   // Don't show skeleton for data: URIs (placeholders) — they load instantly
   const isDataUri = typeof src === 'string' && src.startsWith('data:');
-  const showSkeleton = !isLoaded && !hasError && !isDataUri;
+  const showSkeleton = !previewLoaded && !isLoaded && !hasError && !isDataUri;
 
   return (
     <div
@@ -82,7 +98,23 @@ const ImagePreloader = ({
         />
       )}
 
-      {!hasError && src && (
+      {previewSrc && !isLoaded && !hasError && (
+        <img
+          src={previewSrc}
+          alt=""
+          aria-hidden="true"
+          loading={eager || priority ? 'eager' : 'lazy'}
+          decoding="async"
+          onLoad={handlePreviewLoad}
+          onError={handlePreviewError}
+          className={`absolute inset-0 h-full w-full transition-opacity duration-300 ease-out ${
+            previewLoaded ? 'opacity-100 blur-sm scale-105' : 'opacity-0'
+          }`}
+          style={{ objectFit }}
+        />
+      )}
+
+      {!hasError && src && loadFullImage && (
         <img
           ref={imgRef}
           src={currentSrc}
@@ -97,7 +129,7 @@ const ImagePreloader = ({
             transition-opacity duration-300 ease-out
             ${isLoaded || isDataUri ? 'opacity-100' : 'opacity-0'}
           `}
-          style={{ objectFit }}
+          style={{ objectFit, ...style }}
           {...rest}
         />
       )}
@@ -116,3 +148,19 @@ const ImagePreloader = ({
 };
 
 export default memo(ImagePreloader);
+
+function getPreviewSrc(src) {
+  if (typeof src !== 'string' || src.startsWith('data:')) return null;
+
+  try {
+    const isAbsolute = /^https?:\/\//i.test(src);
+    const url = new URL(src, 'http://localhost');
+    if (!url.pathname.startsWith('/storage/')) return null;
+    if (!/\.(?:jpe?g|png|webp|bmp)$/i.test(url.pathname)) return null;
+
+    url.pathname = url.pathname.replace(/^\/storage\//, '/image-preview/');
+    return isAbsolute ? url.href : `${url.pathname}${url.search}${url.hash}`;
+  } catch {
+    return null;
+  }
+}

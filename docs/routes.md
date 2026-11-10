@@ -119,7 +119,8 @@ routes/
 
 | Method | URI | Controller | Name | Description |
 |--------|-----|-----------|------|-------------|
-| GET | `/storage/{path}` | *(closure)* | `storage.file` | Serve storage files |
+| GET | `/storage/{path}` | `FilesystemServiceProvider` | `storage.public` | Serve public storage files |
+| GET | `/image-preview/{path}` | *(closure)* | `image.preview` | Serve cached low-resolution WebP previews for stored raster images |
 | GET | `/unauthorized` | *(closure)* | `unauthorized.access` | 403 page |
 | GET | `/` | `PageController@show` | `home` | Home page |
 | GET | `/sitemap` | `PageController@sitemap` | `sitemap` | Sitemap page |
@@ -567,7 +568,8 @@ routes/
 | `locations.` | Location management |
 | `notifications.` | Notification management |
 | `apply.` | Job application routes |
-| `storage.file` | Storage file serving |
+| `storage.public` | Public storage file serving |
+| `image.preview` | Progressive image preview serving |
 | `unauthorized.access` | Unauthorized access page |
 | `home` | Home page |
 | `sitemap` | Sitemap page |

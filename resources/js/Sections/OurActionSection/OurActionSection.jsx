@@ -7,6 +7,7 @@ import React, { useState } from 'react';
 import { Skeleton, SkeletonText } from '../../Shared/Skeletons/SkeletonPrimitives';
 
 import { hasValue, getPlaceholderIcon } from '../../utils/sectionHelpers';
+import ImagePreloader from '../../Shared/ImagePreloader';
 
 
 
@@ -144,10 +145,11 @@ const OurActionSection = ({
               key={action.id}
               className="bg-[#FAFAFA] hover:bg-white p-5 sm:p-6 md:p-7 lg:p-8 xl:p-10 2xl:p-12.5 rounded-xl transition-all duration-300 hover:-translate-y-1 group cursor-pointer hover:shadow-[0_6px_12px_rgba(0,0,0,0.10)]"
             >
-              <img
+              <ImagePreloader
                 src={getIconSrc(action)}
                 alt={action.alt || action.title || 'Action icon'}
-                className="w-7 h-7 sm:w-8 sm:h-8 md:w-9 md:h-9 lg:w-10 lg:h-10 xl:w-11 xl:h-11 2xl:w-12.5 2xl:h-12.5 group-hover:scale-110 transition-transform duration-300 mb-2 sm:mb-3 md:mb-4 lg:mb-5"
+                wrapperClassName="w-7 h-7 sm:w-8 sm:h-8 md:w-9 md:h-9 lg:w-10 lg:h-10 xl:w-11 xl:h-11 2xl:w-12.5 2xl:h-12.5 mb-2 sm:mb-3 md:mb-4 lg:mb-5"
+                className="h-full w-full group-hover:scale-110 transition-transform duration-300"
                 onError={() => handleIconError(action.id)}
               />
               {action.title && (

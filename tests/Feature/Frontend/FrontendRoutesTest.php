@@ -6,6 +6,7 @@ use App\Models\pages\Program;
 use App\Models\pages\SectionConfig;
 use App\Models\pages\SharedData;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Storage;
 
 uses(Tests\Support\RouteTestHelpers::class);
 
@@ -98,5 +99,31 @@ describe('Frontend Public Routes', function () {
 
         $response = $this->get('/storage/test.txt');
         $response->assertNotFound();
+    });
+
+    it('serves and caches low-resolution WebP previews for stored images', function () {
+        if (!extension_loaded('gd') || !function_exists('imagewebp')) {
+            $this->markTestSkipped('GD with WebP support is required to generate image previews.');
+        }
+
+        Storage::fake('public');
+        $image = imagecreatetruecolor(400, 200);
+        ob_start();
+        imagejpeg($image);
+        $imageContent = ob_get_clean();
+        imagedestroy($image);
+        Storage::disk('public')->put('uploads/sample.jpg', $imageContent);
+
+        $response = $this->get('/image-preview/uploads/sample.jpg');
+        $response->assertOk()->assertHeader('Content-Type', 'image/webp');
+
+        $previewFiles = Storage::disk('public')->allFiles('image-previews');
+        expect($previewFiles)->toHaveCount(1);
+        $dimensions = getimagesizefromstring(Storage::disk('public')->get($previewFiles[0]));
+        expect($dimensions[0])->toBe(96)
+            ->and($dimensions[1])->toBe(48);
+
+        $this->get('/image-preview/uploads/sample.jpg')->assertOk();
+        expect(Storage::disk('public')->allFiles('image-previews'))->toHaveCount(1);
     });
 });

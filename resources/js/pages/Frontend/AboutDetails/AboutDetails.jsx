@@ -10,11 +10,11 @@ import PublicLayout from '../../../layouts/PublicLayout';
 // Components
 import DynamicSectionRenderer from '../../../Sections/_runtime/DynamicSectionRenderer';
 import NotFoundContent from '../../../Shared/NotFoundContent';
+import ImagePreloader from '../../../Shared/ImagePreloader';
+import ProgressiveHtmlContent from '../../../Shared/ProgressiveHtmlContent';
 
 // Special ContentSection component (fixed)
 const ContentSection = ({ subPageData, bgColor, paddingY, paddingX, sectionClassName, sectionId }) => {
-  const renderHTML = (htmlString) => ({ __html: htmlString });
-
   const data = subPageData || {};
   const title = data.title;
   const content = data.full_content || data.content;
@@ -36,16 +36,17 @@ const ContentSection = ({ subPageData, bgColor, paddingY, paddingX, sectionClass
       )}
       {image && (
         <div className="mb-6 sm:mb-8 md:mb-10 lg:mb-12.5">
-          <img
+          <ImagePreloader
             src={image}
             alt={title ? `Image for ${title}` : 'About image'}
             loading="lazy"
-            className="w-full h-auto max-h-64 sm:max-h-80 md:max-h-96 lg:max-h-125 object-cover rounded-2xl"
+            wrapperClassName="w-full max-h-64 sm:max-h-80 md:max-h-96 lg:max-h-125 rounded-2xl"
+            className="h-auto w-full max-h-64 sm:max-h-80 md:max-h-96 lg:max-h-125 object-cover rounded-2xl"
           />
         </div>
       )}
       {content && (
-        <div
+        <ProgressiveHtmlContent
           className="bricolage-grotesque prose prose-lg max-w-none
             prose-headings:font-700 prose-headings:text-[#080C14] 
             prose-p:text-[#333333] prose-p:leading-relaxed prose-p:mb-4
@@ -54,7 +55,7 @@ const ContentSection = ({ subPageData, bgColor, paddingY, paddingX, sectionClass
             prose-strong:text-[#009BE2]
             prose-h2:font-700 prose-h2:text-[#080C14] prose-h2:mt-8 prose-h2:mb-4
             prose-h2:text-2xl sm:prose-h2:text-3xl lg:prose-h2:text-4xl"
-          dangerouslySetInnerHTML={renderHTML(content)}
+          html={content}
         />
       )}
       {btnText && btnLink && (

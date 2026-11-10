@@ -13,6 +13,7 @@ import { Skeleton } from '../../Shared/Skeletons/SkeletonPrimitives';
 import axios from 'axios';
 
 import { hasValue } from '../../utils/sectionHelpers';
+import ImagePreloader from '../../Shared/ImagePreloader';
 
 
 // ============================================
@@ -354,14 +355,13 @@ const StoriesSection = ({
               className='bg-[#FFFFFF] p-4 sm:p-5 lg:p-7.5 w-70 sm:w-[320px] md:w-100 lg:w-137.5 rounded-xl shrink-0 hover:shadow-xl transition-all duration-300 hover:-translate-y-1'
             >
               {hasValue(story.image) && (
-                <img
+                <ImagePreloader
                   src={story.image}
                   alt={story.title || 'Story image'}
-                  className='h-48 sm:h-56 md:h-72 lg:h-86.75 rounded-2xl mx-auto object-cover w-full'
+                  wrapperClassName="h-48 sm:h-56 md:h-72 lg:h-86.75 w-full rounded-2xl"
+                  className="h-full w-full rounded-2xl object-cover"
                   loading='lazy'
-                  onError={(e) => {
-                    e.target.src = '/images/placeholder-image.jpg';
-                  }}
+                  fallbackSrc="/images/placeholder-image.jpg"
                 />
               )}
 

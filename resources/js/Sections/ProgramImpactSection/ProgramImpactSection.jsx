@@ -7,6 +7,7 @@ import React, { useState } from 'react';
 import { Skeleton } from '../../Shared/Skeletons/SkeletonPrimitives';
 
 import { hasValue, getPlaceholderImage } from '../../utils/sectionHelpers';
+import ImagePreloader from '../../Shared/ImagePreloader';
 
 
 
@@ -128,10 +129,11 @@ const ProgramImpactSection = ({
           <div className="w-full">
             <div className="relative overflow-hidden rounded-xl sm:rounded-2xl group">
               {hasValue(images[index]) && (
-                <img
+                <ImagePreloader
                   src={getCarouselImageSrc(images[index], index)}
                   alt={`Impact slide ${index + 1}`}
-                  className="w-full h-48 sm:h-60 md:h-80 lg:h-120 xl:h-150 2xl:h-186.25 object-cover transition-all duration-500 group-hover:scale-105"
+                  wrapperClassName="w-full h-48 sm:h-60 md:h-80 lg:h-120 xl:h-150 2xl:h-186.25"
+                  className="h-full w-full object-cover transition-all duration-500 group-hover:scale-105"
                   onError={() => handleImageError({ id: `carousel-${index}` })}
                 />
               )}
@@ -167,11 +169,13 @@ const ProgramImpactSection = ({
       {hasSdgImages && (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4 md:gap-5 lg:gap-6 xl:gap-7">
           {sdgImages.map((image) => (
-            <img
+            <ImagePreloader
               key={image.id}
               src={getImageSrc(image, 'SDG')}
               alt={image.alt || 'SDG'}
-              className="w-full h-auto object-cover rounded-lg hover:scale-105 hover:shadow-lg transition-all duration-300 cursor-pointer"
+              wrapperClassName="w-full rounded-lg"
+              className="h-auto w-full object-cover rounded-lg hover:scale-105 hover:shadow-lg transition-all duration-300 cursor-pointer"
+              loading="lazy"
               onClick={() => image.link && (window.location.href = image.link)}
               onError={() => handleImageError(image)}
             />

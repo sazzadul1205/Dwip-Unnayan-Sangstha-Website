@@ -13,6 +13,7 @@
 import React, { useId, useMemo } from 'react';
 import { sanitizeHTML, hasValue } from '../../utils/sectionHelpers';
 import { scopeCss as scopeCssText } from '../../utils/scopeCss';
+import ProgressiveHtmlContent from '../../Shared/ProgressiveHtmlContent';
 
 // ============================================
 // SKELETON
@@ -118,9 +119,9 @@ const HtmlCssSection = ({
       {hasValue(scopedCss) && <style dangerouslySetInnerHTML={{ __html: scopedCss }} />}
 
       {hasValue(sanitizedHtml) && (
-        <div
+        <ProgressiveHtmlContent
           className="dus-html-css-content"
-          dangerouslySetInnerHTML={{ __html: sanitizedHtml }}
+          html={sanitizedHtml}
         />
       )}
     </section>
