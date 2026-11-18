@@ -210,18 +210,20 @@ const HomeBannerEditor = ({ section, hasData, onDataChange }) => {
     { value: 'bg-black/40 lg:bg-black/50', label: 'Light Dark Overlay' },
     { value: 'bg-black/60 lg:bg-black/70', label: 'Medium Dark Overlay' },
     { value: 'bg-black/80 lg:bg-black/90', label: 'Heavy Dark Overlay' },
-    { value: 'bg-gradient-to-r from-black/85 via-black/10 to-transparent', label: 'Gradient Left to Right' },
-    { value: 'bg-gradient-to-l from-black/85 via-black/10 to-transparent', label: 'Gradient Right to Left' },
-    { value: 'bg-gradient-to-t from-black/85 via-black/10 to-transparent', label: 'Gradient Bottom to Top' },
-    { value: 'bg-gradient-to-b from-black/85 via-black/10 to-transparent', label: 'Gradient Top to Bottom' },
+    { value: 'bg-gradient-to-r from-black/85 via-black/10 to-transparent', label: 'Gradient Left to Right (Black)' },
+    { value: 'bg-gradient-to-r from-[#009BE2]/85 via-[#009BE2]/20 to-transparent', label: 'Gradient Left to Right (Brand Blue)' },
+    { value: 'bg-gradient-to-t from-[#009BE2]/85 via-[#009BE2]/20 to-transparent', label: 'Gradient Bottom to Top (Brand Blue)' },
     { value: '', label: 'None' },
   ], []);
 
   const gradientOptions = useMemo(() => [
-    { value: 'bg-gradient-to-r from-black/85 via-black/10 to-transparent', label: 'Left to Right' },
-    { value: 'bg-gradient-to-l from-black/85 via-black/10 to-transparent', label: 'Right to Left' },
-    { value: 'bg-gradient-to-t from-black/85 via-black/10 to-transparent', label: 'Bottom to Top' },
-    { value: 'bg-gradient-to-b from-black/85 via-black/10 to-transparent', label: 'Top to Bottom' },
+    { value: 'bg-gradient-to-r from-black/85 via-black/10 to-transparent', label: 'Left to Right (Black)' },
+    { value: 'bg-gradient-to-l from-black/85 via-black/10 to-transparent', label: 'Right to Left (Black)' },
+    { value: 'bg-gradient-to-t from-black/85 via-black/10 to-transparent', label: 'Bottom to Top (Black)' },
+    { value: 'bg-gradient-to-b from-black/85 via-black/10 to-transparent', label: 'Top to Bottom (Black)' },
+    { value: 'bg-gradient-to-r from-[#009BE2]/90 via-[#009BE2]/30 to-transparent', label: 'Left to Right (Brand Blue)' },
+    { value: 'bg-gradient-to-t from-[#009BE2]/90 via-[#009BE2]/30 to-transparent', label: 'Bottom to Top (Brand Blue)' },
+    { value: 'bg-gradient-to-r from-[#009BE2]/90 via-black/40 to-transparent', label: 'Left to Right (Blue to Black)' },
     { value: '', label: 'None' },
   ], []);
 
@@ -363,8 +365,8 @@ const HomeBannerEditor = ({ section, hasData, onDataChange }) => {
             onClick={addSlide}
             disabled={slides.length >= MAX_SLIDES}
             className={`text-xs flex items-center gap-1 ${slides.length >= MAX_SLIDES
-                ? 'text-gray-300 cursor-not-allowed'
-                : 'text-blue-600 hover:text-blue-700'
+              ? 'text-gray-300 cursor-not-allowed'
+              : 'text-blue-600 hover:text-blue-700'
               }`}
           >
             <FaPlus size={12} /> Add Slide
@@ -380,8 +382,8 @@ const HomeBannerEditor = ({ section, hasData, onDataChange }) => {
               type="button"
               onClick={() => setActiveSlideIndex(index)}
               className={`text-xs px-2.5 py-1 rounded-md border transition-colors ${activeSlideIndex === index
-                  ? 'bg-blue-50 border-blue-300 text-blue-700'
-                  : 'bg-gray-50 border-gray-200 text-gray-500 hover:bg-gray-100'
+                ? 'bg-blue-50 border-blue-300 text-blue-700'
+                : 'bg-gray-50 border-gray-200 text-gray-500 hover:bg-gray-100'
                 }`}
             >
               Slide #{index + 1}
@@ -403,8 +405,8 @@ const HomeBannerEditor = ({ section, hasData, onDataChange }) => {
                 onClick={() => duplicateSlide(activeSlideIndex)}
                 disabled={slides.length >= MAX_SLIDES}
                 className={`text-xs flex items-center gap-1 ${slides.length >= MAX_SLIDES
-                    ? 'text-gray-300 cursor-not-allowed'
-                    : 'text-gray-600 hover:text-gray-800'
+                  ? 'text-gray-300 cursor-not-allowed'
+                  : 'text-gray-600 hover:text-gray-800'
                   }`}
               >
                 <FaCopy size={11} /> Duplicate
@@ -534,8 +536,8 @@ const HomeBannerEditor = ({ section, hasData, onDataChange }) => {
                 onClick={() => addButton(activeSlideIndex)}
                 disabled={(activeSlide.buttons?.length || 0) >= MAX_BUTTONS}
                 className={`text-xs flex items-center gap-1 ${(activeSlide.buttons?.length || 0) >= MAX_BUTTONS
-                    ? 'text-gray-300 cursor-not-allowed'
-                    : 'text-blue-600 hover:text-blue-700'
+                  ? 'text-gray-300 cursor-not-allowed'
+                  : 'text-blue-600 hover:text-blue-700'
                   }`}
               >
                 <FaPlus size={11} /> Add Button
@@ -625,7 +627,7 @@ const HomeBannerEditor = ({ section, hasData, onDataChange }) => {
           <div>
             <span className="text-gray-500">Has Data:</span>
             <span className={`ml-2 font-medium ${hasData ? 'text-green-600' : 'text-gray-400'}`}>
-              {hasData ? 'âœ“ Yes' : 'No'}
+              {hasData ? '✓ Yes' : 'No'}
             </span>
           </div>
         </div>

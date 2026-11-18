@@ -9,7 +9,6 @@ import ArrowIcon from '../ArrowIcon';
 import ImagePreloader from '../ImagePreloader';
 import { hasValue } from '../../utils/sectionHelpers';
 
-
 // ============================================
 // SUB-MENU HELPERS
 // ============================================
@@ -61,6 +60,9 @@ const DesktopNavItem = ({
   level = 0,
   isActive,
   isLastTopLevel = false,
+  // When true, nested panels open to the LEFT so they stay on screen
+  // (used under the last top-level item, which sits at the right edge).
+  flip = false,
   overlay = false,
 }) => {
   const [open, setOpen] = useState(false);
@@ -124,16 +126,14 @@ const DesktopNavItem = ({
           href={hasValue(link.href) ? link.href : '#'}
           className={
             isNested
-              ? `flex items-center w-full px-4 py-2 text-sm normal-case transition-colors duration-200 ${
-                  active ? 'bg-[#009BE2] text-white' : 'text-gray-700 hover:bg-[#009BE2] hover:text-white'
-                }`
-              : `relative group whitespace-nowrap font-semibold transition-all duration-300 ${
-                  active
-                    ? 'text-[#009BE2]'
-                    : overlay
-                      ? 'text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.8)] hover:text-[#7dd3fc]'
-                      : 'text-gray-800 hover:text-[#009BE2]'
-                } text-sm xl:text-base 2xl:text-[20px]`
+              ? `flex items-center w-full px-4 py-2 text-sm normal-case transition-colors duration-200 ${active ? 'bg-[#009BE2] text-white' : 'text-gray-700 hover:bg-[#009BE2] hover:text-white'
+              }`
+              : `relative group whitespace-nowrap font-semibold transition-all duration-300 ${active
+                ? 'text-[#009BE2]'
+                : overlay
+                  ? 'text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.8)] hover:text-[#7dd3fc]'
+                  : 'text-gray-800 hover:text-[#009BE2]'
+              } text-sm xl:text-base 2xl:text-[20px]`
           }
         >
           {link.name}
@@ -154,21 +154,23 @@ const DesktopNavItem = ({
   // pages is visually and behaviorally identical to a standalone page. The
   // panel is opened by hover (and by keyboard focus), not by a separate button.
   // It stays mounted so it can fade in from its origin instead of popping.
+  const nestedPosition = flip
+    ? 'origin-top-right top-0 right-full pr-1'
+    : 'origin-top-left top-0 left-full pl-1';
+
   const panel = (
     <div
-      className={`absolute w-56 z-60 transition-all duration-200 ease-out ${
-        isNested
-          ? 'origin-top-left top-0 left-full pl-1'
+      className={`absolute w-56 max-w-[calc(100vw-2rem)] z-60 transition-all duration-200 ease-out ${isNested
+          ? nestedPosition
           : isLastTopLevel
             ? // The final top-level item sits closest to the CTA, so its
-              // panel hangs off the right edge to stay on screen.
-              'origin-top-right top-full right-0 pt-2'
+            // panel hangs off the right edge to stay on screen.
+            'origin-top-right top-full right-0 pt-2'
             : 'origin-top top-full left-1/2 -translate-x-1/2 pt-2'
-      } ${
-        open
+        } ${open
           ? 'visible opacity-100 scale-100'
           : 'invisible opacity-0 scale-95 pointer-events-none'
-      }`}
+        }`}
     >
       <ul className="bg-white rounded-lg shadow-lg border border-gray-100 py-2">
         {children.map((child, childIndex) => (
@@ -180,7 +182,9 @@ const DesktopNavItem = ({
             dropdowns={isNested ? [] : dropdowns}
             level={level + 1}
             isActive={isActive}
-            isLastTopLevel={isNested && childIndex === children.length - 1}
+            // Children of the last top-level item (and everything under them)
+            // open leftwards; everything else keeps opening to the right.
+            flip={isNested ? flip : isLastTopLevel}
             overlay={overlay}
           />
         ))}
@@ -202,13 +206,12 @@ const DesktopNavItem = ({
           onBlur={handleLeave}
           aria-expanded={open}
           aria-haspopup="true"
-          className={`relative group flex items-center gap-1 whitespace-nowrap font-semibold transition-all duration-300 ${
-            active
+          className={`relative group flex items-center gap-1 whitespace-nowrap font-semibold transition-all duration-300 ${active
               ? 'text-[#009BE2]'
               : overlay
                 ? 'text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.8)] hover:text-[#7dd3fc]'
                 : 'text-gray-800 hover:text-[#009BE2]'
-          } text-sm xl:text-base 2xl:text-[20px]`}
+            } text-sm xl:text-base 2xl:text-[20px]`}
         >
           {link.name}
           <span
@@ -235,12 +238,11 @@ const DesktopNavItem = ({
         onClick={() => setOpen((prev) => !prev)}
         aria-expanded={open}
         aria-haspopup="true"
-        className={`flex items-center justify-between gap-2 w-full px-4 py-2 text-sm normal-case transition-colors duration-200 ${
-          open || active ? 'bg-[#009BE2] text-white' : 'text-gray-700 hover:bg-[#009BE2] hover:text-white'
-        }`}
+        className={`flex items-center justify-between gap-2 w-full px-4 py-2 text-sm normal-case transition-colors duration-200 ${open || active ? 'bg-[#009BE2] text-white' : 'text-gray-700 hover:bg-[#009BE2] hover:text-white'
+          }`}
       >
         <span className="truncate">{link.name}</span>
-        <ChevronRight className="w-3.5 h-3.5 shrink-0" />
+        <ChevronRight className={`w-3.5 h-3.5 shrink-0 ${flip ? 'rotate-180' : ''}`} />
       </button>
 
       {panel}
@@ -266,9 +268,8 @@ const MobileNavItem = ({ link, index, dropdowns = [], level = 0, isActive, onNav
           href={hasValue(link.href) ? link.href : '#'}
           onClick={onNavigate}
           style={indent}
-          className={`block font-medium transition-colors duration-200 py-2 px-2 rounded-lg hover:bg-gray-50 ${
-            active ? 'text-[#009BE2] bg-blue-50/50' : 'text-black hover:text-[#009BE2]'
-          }`}
+          className={`block font-medium transition-colors duration-200 py-2 px-2 rounded-lg hover:bg-gray-50 ${active ? 'text-[#009BE2] bg-blue-50/50' : 'text-black hover:text-[#009BE2]'
+            }`}
         >
           {link.name}
           {active && <span className="ml-2 inline-block w-1.5 h-1.5 rounded-full bg-[#009BE2]" />}
@@ -285,9 +286,8 @@ const MobileNavItem = ({ link, index, dropdowns = [], level = 0, isActive, onNav
         onClick={() => setOpen((prev) => !prev)}
         aria-expanded={open}
         style={indent}
-        className={`flex items-center justify-between w-full font-medium transition-colors duration-200 py-2 px-2 rounded-lg hover:bg-gray-50 ${
-          active ? 'text-[#009BE2]' : 'text-black hover:text-[#009BE2]'
-        }`}
+        className={`flex items-center justify-between w-full font-medium transition-colors duration-200 py-2 px-2 rounded-lg hover:bg-gray-50 ${active ? 'text-[#009BE2]' : 'text-black hover:text-[#009BE2]'
+          }`}
       >
         <span className="text-left">{link.name}</span>
         <ChevronDown
@@ -399,28 +399,24 @@ const Navbar = ({
 
   const handleImageError = () => setImageError(true);
 
+  const transparentOverTheHero = isOverlay && !isScrolled;
+
   return (
     <nav
       ref={navRef}
       className={
         isOverlay
-          ? `inset-x-0 top-0 z-30 h-25 max-h-25 transition-colors duration-200 ${
-              isScrolled
-                ? 'fixed bg-white shadow-md'
-                : 'absolute bg-transparent'
-            }`
+          ? `inset-x-0 top-0 z-30 transition-colors duration-200 ${isScrolled ? 'fixed bg-white shadow-md' : 'absolute bg-transparent'
+          }`
           : 'sticky top-0 z-20 bg-white shadow-sm'
       }
     >
-      <div
-        className={
-          isOverlay
-            ? 'mx-auto flex h-full max-h-25 items-center px-4 sm:px-6 md:px-8 lg:px-12 xl:px-20 2xl:px-25'
-            : 'mx-auto px-4 py-3 sm:px-6 sm:py-4 md:px-8 md:py-5 lg:px-12 xl:px-20 2xl:px-25'
-        }
-      >
-        <div className={isOverlay ? 'flex w-full items-center justify-between' : 'flex items-center justify-between'}>
-
+      {/* Container is always a plain block; the fixed height lives on the row below. */}
+      <div className="mx-auto px-4 sm:px-6 md:px-8 lg:px-12 xl:px-20 2xl:px-25">
+        <div
+          className={`flex items-center justify-between ${isOverlay ? 'h-20 xl:h-25' : 'py-3 sm:py-4 md:py-5'
+            }`}
+        >
           {/* LOGO - always left */}
           <div className="shrink-0">
             {hasLogo && (
@@ -447,11 +443,10 @@ const Navbar = ({
             )}
           </div>
 
-          {/* DESKTOP: navigation + CTA + mobile toggle - all on the right */}
-          <div className="hidden lg:flex items-center gap-4 xl:gap-6 2xl:gap-9 ml-auto">
-            {/* Navigation Links */}
+          {/* DESKTOP (xl+): navigation + CTA */}
+          <div className="hidden xl:flex items-center gap-6 2xl:gap-9 ml-auto min-w-0">
             {hasNavLinks && (
-              <ul className="flex items-center gap-4 xl:gap-6 2xl:gap-9">
+              <ul className="flex items-center gap-6 2xl:gap-9">
                 {navLinks.map((link, index) => (
                   <DesktopNavItem
                     key={link?._tempId || link?.name || index}
@@ -460,93 +455,89 @@ const Navbar = ({
                     dropdowns={dropdowns}
                     isActive={isActive}
                     isLastTopLevel={index === navLinks.length - 1}
-                    overlay={isOverlay && !isScrolled}
+                    overlay={transparentOverTheHero}
                   />
                 ))}
               </ul>
             )}
 
-            {/* Right side: CTA + mobile toggle */}
-            <div className="flex items-center gap-3 sm:gap-4 xl:gap-6 2xl:gap-9">
-              {hasButton && (
-                <Link
-                  href={button.href}
-                  className="hidden sm:inline-block uppercase rounded-xl bg-[#009BE2] text-white font-semibold hover:bg-[#009BE2]/80
-                    px-3 py-1.5 text-xs
-                    sm:px-4 sm:py-2 sm:text-sm
-                    xl:px-5 xl:py-3 xl:text-base
-                    2xl:px-6 2xl:py-4 2xl:text-[18px] group-hover:translate-x-1 group-hover:-translate-y-1 transition-all duration-300 hover:shadow::"
-                >
-                  <div className='flex items-center gap-3' >
-                    {button.text}
-                    <ArrowIcon className="group-hover:translate-x-1 group-hover:-translate-y-1 transition-all duration-300" />
-                  </div>
-                </Link>
-              )}
-
-              <button
-                onClick={() => setIsOpen(!isOpen)}
-                className={mobileMenu.className || `lg:hidden p-2 transition-colors duration-200 ${isOverlay && !isScrolled ? 'text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.8)] hover:text-[#7dd3fc]' : 'text-gray-700 hover:text-[#009BE2]'}`}
-                aria-label="Toggle menu"
-                aria-expanded={isOpen}
+            {hasButton && (
+              <Link
+                href={button.href}
+                className="group inline-flex shrink-0 items-center uppercase rounded-xl bg-[#009BE2] text-white font-semibold
+                  transition-all duration-300 hover:bg-[#009BE2]/80 hover:shadow-md
+                  px-5 py-3 text-base 2xl:px-6 2xl:py-4 2xl:text-[18px]"
               >
-                {isOpen ? <X size={24} /> : <Menu size={24} />}
-              </button>
-            </div>
+                <span className="flex items-center gap-3">
+                  {button.text}
+                  <ArrowIcon className="transition-all duration-300 group-hover:translate-x-1 group-hover:-translate-y-1" />
+                </span>
+              </Link>
+            )}
           </div>
 
-          {/* MOBILE: same as before, displayed only on small screens */}
-          <div className="flex lg:hidden items-center gap-3 sm:gap-4">
+          {/* MOBILE / TABLET (below xl): CTA (sm+) + menu toggle */}
+          <div className="flex xl:hidden items-center gap-3 sm:gap-4">
             {hasButton && (
               <Link
                 href={button.href}
                 className="hidden sm:inline-block uppercase rounded-xl bg-[#009BE2] text-white font-semibold transition-colors duration-200 hover:bg-[#009BE2]/80
-                  px-3 py-1.5 text-xs sm:px-4 sm:py-2 sm:text-sm"
+                  px-4 py-2 text-sm"
               >
                 {button.text}
               </Link>
             )}
             <button
               onClick={() => setIsOpen(!isOpen)}
-              className={mobileMenu.className || `p-2 transition-colors duration-200 ${isOverlay && !isScrolled ? 'text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.8)] hover:text-[#7dd3fc]' : 'text-gray-700 hover:text-[#009BE2]'}`}
+              className={
+                mobileMenu.className ||
+                `p-2 transition-colors duration-200 ${transparentOverTheHero
+                  ? 'text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.8)] hover:text-[#7dd3fc]'
+                  : 'text-gray-700 hover:text-[#009BE2]'
+                }`
+              }
               aria-label="Toggle menu"
               aria-expanded={isOpen}
+              aria-controls="mobile-menu"
             >
               {isOpen ? <X size={24} /> : <Menu size={24} />}
             </button>
           </div>
         </div>
 
-        {/* MOBILE MENU - unchanged, slides down */}
+        {/* MOBILE MENU - slides down under the header row */}
         <div
-          className={`lg:hidden transition-all duration-300 ease-in-out overflow-hidden
-            ${isOpen ? 'max-h-[80vh] opacity-100 mt-3 sm:mt-4' : 'max-h-0 opacity-0'}`}
-          role="menu"
+          id="mobile-menu"
+          aria-hidden={!isOpen}
+          className={`xl:hidden overflow-hidden transition-all duration-300 ease-in-out ${isOpen
+              ? 'max-h-[calc(100dvh-7rem)] opacity-100 mb-3'
+              : 'invisible max-h-0 opacity-0'
+            }`}
         >
           <div
-            className={`border-t pt-3 shadow-lg backdrop-blur-md sm:pt-4 ${
-              isOverlay ? 'border-gray-200 bg-white/95' : 'border-gray-100 bg-white'
-            }`}
+            className={`max-h-[calc(100dvh-7rem)] overflow-y-auto overscroll-contain border-t pt-3 shadow-lg backdrop-blur-md sm:pt-4 ${isOverlay ? 'border-gray-200 bg-white/95' : 'border-gray-100 bg-white'
+              }`}
           >
             <ul key={menuResetKey} className="flex flex-col space-y-1 sm:space-y-2 pb-3 sm:pb-4">
-              {hasNavLinks && navLinks.map((link, index) => (
-                <MobileNavItem
-                  key={link?._tempId || link?.name || index}
-                  link={link}
-                  index={index}
-                  dropdowns={dropdowns}
-                  path={`m-${index}`}
-                  isActive={isActive}
-                  onNavigate={closeMobileMenu}
-                />
-              ))}
+              {hasNavLinks &&
+                navLinks.map((link, index) => (
+                  <MobileNavItem
+                    key={link?._tempId || link?.name || index}
+                    link={link}
+                    index={index}
+                    dropdowns={dropdowns}
+                    isActive={isActive}
+                    onNavigate={closeMobileMenu}
+                  />
+                ))}
 
+              {/* The header already shows the CTA from sm up, so only repeat it on phones. */}
               {hasButton && (
-                <li className="pt-2">
+                <li className="pt-2 sm:hidden">
                   <Link
                     href={button.href}
                     className="inline-block text-center w-full text-white bg-[#009BE2] hover:bg-[#009BE2]/80 px-4 py-2.5 rounded-lg transition-colors duration-200 font-medium"
-                    onClick={() => setIsOpen(false)}
+                    onClick={closeMobileMenu}
                   >
                     {button.text}
                   </Link>

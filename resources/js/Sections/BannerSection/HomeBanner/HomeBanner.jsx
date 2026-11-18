@@ -12,8 +12,6 @@ const MAX_SLIDES = 10;
 const MAX_BUTTONS = 2;
 const DEFAULT_INTERVAL = 5000;
 
-
-
 const EMPTY_CONTENT = {
   tagline: { text: '', className: 'uppercase tracking-[4px] font-semibold' },
   title: { text: '', className: 'font-bold leading-tight' },
@@ -150,13 +148,15 @@ const HomeBanner = ({
             const primaryButton = slide.buttons[0] || null;
             const secondaryButton = slide.buttons[1] || null;
 
+            const hasCustomOverlay = hasValue(slide.overlay?.darkOverlay) || hasValue(slide.overlay?.gradient);
+
             return (
               <div
                 key={slide.id || index}
                 className={`absolute inset-0 transition-opacity duration-700 ease-in-out ${isActive ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'}`}
                 aria-hidden={!isActive}
               >
-                {/* âœ… ImagePreloader in place of raw <img> */}
+                {/* ImagePreloader in place of raw <img> */}
                 <ImagePreloader
                   src={imageSrc}
                   alt={imageAlt}
@@ -174,7 +174,11 @@ const HomeBanner = ({
                 {hasValue(slide.overlay?.gradient) && (
                   <div className={`absolute inset-0 ${slide.overlay.gradient}`} />
                 )}
-                <div className="absolute inset-0 bg-black/40 sm:bg-black/30 md:bg-black/20 lg:bg-black/10" />
+
+                {/* Default fallback overlay ONLY applies if no custom overlay is selected */}
+                {!hasCustomOverlay && (
+                  <div className="absolute inset-0 bg-black/40 sm:bg-black/30 md:bg-black/20 lg:bg-black/10" />
+                )}
 
                 <div className={`absolute inset-0 flex items-center ${paddingX} ${paddingY}`}>
                   <div className="w-full text-white space-y-2 sm:space-y-3 md:space-y-4 lg:space-y-5">

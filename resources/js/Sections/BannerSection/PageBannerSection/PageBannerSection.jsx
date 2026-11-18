@@ -8,26 +8,24 @@ import { Skeleton } from '../../../Shared/Skeletons/SkeletonPrimitives';
 import { hasValue, getPlaceholderImage } from '../../../utils/sectionHelpers';
 import ImagePreloader from '../../../Shared/ImagePreloader';
 
-
-
 // ============================================
 // SKELETON: Full PageBanner
 // ============================================
 const PageBannerSkeleton = ({ paddingX, paddingY }) => (
   <>
-    {/* Background image â€” matches real: covers entire section */}
+    {/* Background image — matches real: covers entire section */}
     <Skeleton
       className="w-full h-full absolute inset-0"
       rounded="rounded-none"
     />
 
-    {/* Dark overlay â€” mirrors real stack */}
+    {/* Dark overlay — mirrors real stack */}
     <div className="absolute inset-0 bg-black/40 sm:bg-black/30 md:bg-black/20 lg:bg-black/10" />
 
-    {/* Text content â€” left-aligned like real */}
+    {/* Text content — left-aligned like real */}
     <div className={`absolute left-0 inset-0 flex items-center ${paddingX} ${paddingY}`}>
       <div className="w-full text-white space-y-2 sm:space-y-3 md:space-y-4 lg:space-y-5">
-        {/* Title â€” 2 lines, matches real max-w breakpoints */}
+        {/* Title — 2 lines, matches real max-w breakpoints */}
         <div className="w-full md:max-w-2xl lg:max-w-3xl xl:max-w-4xl 2xl:max-w-215.75">
           <Skeleton
             className="h-7 sm:h-9 md:h-12 lg:h-16 xl:h-20 2xl:h-25 w-5/6 mb-3"
@@ -39,7 +37,7 @@ const PageBannerSkeleton = ({ paddingX, paddingY }) => (
           />
         </div>
 
-        {/* Description â€” 2 lines */}
+        {/* Description — 2 lines */}
         <div className="w-full md:max-w-2xl lg:max-w-3xl xl:max-w-4xl 2xl:max-w-215.75">
           <Skeleton
             className="h-3.5 sm:h-4 md:h-5 lg:h-6 xl:h-7 2xl:h-8 w-5/6 mb-2"
@@ -60,7 +58,7 @@ const PageBannerSection = ({
   bannerData,
   pageBanner,
   pageBannerSection,
-  loading = false,               // â† NEW
+  loading = false,
   bgColor = '',
   height = 'h-56 sm:h-64 md:h-80 lg:h-96 xl:h-110 2xl:h-120',
   paddingY = 'py-12 sm:py-16 md:py-20 lg:py-25 xl:py-30 2xl:py-37.5',
@@ -103,6 +101,7 @@ const PageBannerSection = ({
   const hasTitle = hasValue(title.text);
   const hasDescription = hasValue(description.text);
   const hasBackground = hasValue(background.src);
+  const hasCustomOverlay = hasValue(overlay.darkOverlay) || hasValue(overlay.gradient);
 
   // ============================================
   // IMAGE HANDLING
@@ -140,7 +139,11 @@ const PageBannerSection = ({
         {hasValue(overlay.gradient) && (
           <div className={`absolute inset-0 ${overlay.gradient}`} />
         )}
-        <div className="absolute inset-0 bg-black/40 sm:bg-black/30 md:bg-black/20 lg:bg-black/10" />
+
+        {/* Default fallback overlay ONLY applies if no custom overlay is selected */}
+        {!hasCustomOverlay && (
+          <div className="absolute inset-0 bg-black/40 sm:bg-black/30 md:bg-black/20 lg:bg-black/10" />
+        )}
 
         {(hasTitle || hasDescription) && (
           <div className={`absolute left-0 inset-0 flex items-center ${paddingX} ${paddingY}`}>

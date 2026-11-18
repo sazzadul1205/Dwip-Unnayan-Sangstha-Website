@@ -9,8 +9,6 @@ import { Skeleton } from '../../../Shared/Skeletons/SkeletonPrimitives';
 import { hasValue, getPlaceholderImage } from '../../../utils/sectionHelpers';
 import ImagePreloader from '../../../Shared/ImagePreloader';
 
-
-
 // ============================================
 // SKELETON: Full PageTagBanner
 // ============================================
@@ -25,7 +23,7 @@ const PageTagBannerSkeleton = ({ paddingX, paddingY, tagCount = 5 }) => (
     {/* Dark overlay */}
     <div className="absolute inset-0 bg-black/30 sm:bg-black/20 md:bg-black/10 lg:bg-black/5" />
 
-    {/* Content â€” title + tag pills */}
+    {/* Content — title + tag pills */}
     <div className={`absolute left-0 inset-0 flex items-center ${paddingX} ${paddingY}`}>
       <div className="w-full text-white space-y-2 sm:space-y-3 md:space-y-4 lg:space-y-5">
         {/* Title */}
@@ -61,8 +59,8 @@ const PageTagBannerSkeleton = ({ paddingX, paddingY, tagCount = 5 }) => (
 const PageTagBannerSection = ({
   data,
   bannerData,
-  loading = false,               // â† NEW
-  skeletonTagCount = 5,          // â† NEW
+  loading = false,
+  skeletonTagCount = 5,
   bgColor = '',
   height = 'h-64 sm:h-80 md:h-100 lg:h-120 xl:h-135 2xl:h-147.25',
   paddingY = 'py-12 sm:py-16 md:py-20 lg:py-25 xl:py-30 2xl:py-37.5',
@@ -112,6 +110,7 @@ const PageTagBannerSection = ({
 
   const galleryTags = tags.length > 0 ? tags : resolvedData.tags || [];
   const galleryTitle = tagTitle || resolvedData.tagTitle || title.text || 'Photo Gallery';
+  const hasCustomOverlay = hasValue(overlay.darkOverlay) || hasValue(overlay.gradient);
 
   const defaultColors = [
     '#009BE2', '#FF6B6B', '#4ECDC4', '#FFE66D', '#6C5CE7',
@@ -121,10 +120,9 @@ const PageTagBannerSection = ({
 
   const hasTitle = hasValue(galleryTitle);
   const hasBackground = hasValue(background.src);
-  const hasOverlays = hasValue(overlay.darkOverlay) || hasValue(overlay.gradient);
   const hasTags = galleryTags.length > 0;
 
-  const hasAnyContent = hasTitle || hasBackground || hasOverlays || hasTags;
+  const hasAnyContent = hasTitle || hasBackground || hasCustomOverlay || hasTags;
   if (!hasAnyContent) return null;
 
   // ============================================
@@ -263,7 +261,11 @@ const PageTagBannerSection = ({
         {hasValue(overlay.gradient) && (
           <div className={`absolute inset-0 ${overlay.gradient}`} />
         )}
-        <div className="absolute inset-0 bg-black/30 sm:bg-black/20 md:bg-black/10 lg:bg-black/5" />
+
+        {/* Default fallback overlay ONLY applies if no custom overlay is selected */}
+        {!hasCustomOverlay && (
+          <div className="absolute inset-0 bg-black/30 sm:bg-black/20 md:bg-black/10 lg:bg-black/5" />
+        )}
 
         <div className={`absolute left-0 inset-0 flex items-center ${paddingX} ${paddingY}`}>
           <div className="w-full text-white space-y-2 sm:space-y-3 md:space-y-4 lg:space-y-5">

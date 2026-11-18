@@ -13,16 +13,17 @@ const overlayOptions = [
   { value: 'bg-black/40 lg:bg-black/50', label: 'Light Dark Overlay' },
   { value: 'bg-black/60 lg:bg-black/70', label: 'Medium Dark Overlay' },
   { value: 'bg-black/80 lg:bg-black/90', label: 'Heavy Dark Overlay' },
-  { value: 'bg-linear-to-r from-black/85 via-black/10 to-transparent', label: 'Gradient Left to Right' },
-  { value: 'bg-linear-to-l from-black/85 via-black/10 to-transparent', label: 'Gradient Right to Left' },
-  { value: 'bg-linear-to-t from-black/85 via-black/10 to-transparent', label: 'Gradient Bottom to Top' },
-  { value: 'bg-linear-to-b from-black/85 via-black/10 to-transparent', label: 'Gradient Top to Bottom' },
+  { value: 'bg-linear-to-r from-black/85 via-black/10 to-transparent', label: 'Gradient Left to Right (Black)' },
+  { value: 'bg-linear-to-r from-[#009BE2]/85 via-[#009BE2]/20 to-transparent', label: 'Gradient Left to Right (Brand Blue)' },
+  { value: 'bg-linear-to-t from-[#009BE2]/85 via-[#009BE2]/20 to-transparent', label: 'Gradient Bottom to Top (Brand Blue)' },
 ];
 const gradientOptions = [
-  { value: 'bg-linear-to-r from-black/85 via-black/10 to-transparent', label: 'Left to Right' },
-  { value: 'bg-linear-to-l from-black/85 via-black/10 to-transparent', label: 'Right to Left' },
-  { value: 'bg-linear-to-t from-black/85 via-black/10 to-transparent', label: 'Bottom to Top' },
-  { value: 'bg-linear-to-b from-black/85 via-black/10 to-transparent', label: 'Top to Bottom' },
+  { value: 'bg-linear-to-r from-black/85 via-black/10 to-transparent', label: 'Left to Right (Black)' },
+  { value: 'bg-linear-to-l from-black/85 via-black/10 to-transparent', label: 'Right to Left (Black)' },
+  { value: 'bg-linear-to-t from-black/85 via-black/10 to-transparent', label: 'Bottom to Top (Black)' },
+  { value: 'bg-linear-to-b from-black/85 via-black/10 to-transparent', label: 'Top to Bottom (Black)' },
+  { value: 'bg-linear-to-r from-[#009BE2]/90 via-[#009BE2]/30 to-transparent', label: 'Left to Right (Brand Blue)' },
+  { value: 'bg-linear-to-t from-[#009BE2]/90 via-[#009BE2]/30 to-transparent', label: 'Bottom to Top (Brand Blue)' },
   { value: '', label: 'None' },
 ];
 
@@ -121,7 +122,7 @@ const PageBannerEditor = ({ section, hasData, onDataChange }) => {
           <div className="space-y-2">
             <TextField label="Text" value={formData.content?.description?.text || ''}
               onChange={(e) => updateField('content.description.text', e.target.value)}
-              placeholder="Our mission is to helpâ€¦" />
+              placeholder="Our mission is to help…" />
             <TextField label="Class name" value={formData.content?.description?.className || 'font-normal leading-tight'}
               onChange={(e) => updateField('content.description.className', e.target.value)}
               placeholder="CSS classes" />
@@ -136,11 +137,11 @@ const PageBannerEditor = ({ section, hasData, onDataChange }) => {
         </div>
         <div>
           <span className="block text-slate-400">Data table</span>
-          <span className="font-mono text-slate-700">{section.data_table || 'â€”'}</span>
+          <span className="font-mono text-slate-700">{section.data_table || '—'}</span>
         </div>
         <div>
           <span className="block text-slate-400">Data key</span>
-          <span className="font-mono text-slate-700">{section.data_key || 'â€”'}</span>
+          <span className="font-mono text-slate-700">{section.data_key || '—'}</span>
         </div>
         <div>
           <span className="block text-slate-400">Status</span>
