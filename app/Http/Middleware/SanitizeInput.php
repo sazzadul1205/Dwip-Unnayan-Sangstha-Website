@@ -10,13 +10,13 @@ class SanitizeInput
 {
     /**
      * Patterns to detect potential SQL injection attempts
+     * Refined to reduce false positives - focus on SQL comment sequences and UNION patterns
      */
     private array $sqlPatterns = [
-        '/(\b(SELECT|INSERT|UPDATE|DELETE|DROP|UNION|ALTER|CREATE|EXEC|EXECUTE)\b)/i',
-        '/(\b(OR|AND)\s+\d+\s*=\s*\d+)/i',
-        '/(\bUNION\s+(ALL\s+)?SELECT)/i',
+        '/(\bUNION\s+(ALL\s+)?SELECT\b)/i',
         '/(--|\#|\/\*|\*\/)/',
         '/(\b(SCRIPT|JAVASCRIPT|VBSCRIPT|ONLOAD|ONERROR|ONCLICK)\b)/i',
+        '/(\b(OR|AND)\s+\d+\s*=\s*\d+)/i',
     ];
 
     /**
@@ -32,42 +32,48 @@ class SanitizeInput
 
     public function handle(Request $request, Closure $next): Response
     {
-        // Sanitize input data
-        $this->sanitize($request->query);
-        $this->sanitize($request->request);
-        $this->sanitize($request->json()->all());
+        // Check input data for malicious patterns
+        if ($this->checkForMaliciousInput($request->query)) {
+            return $this->blockRequest($request, 'query parameters');
+        }
+        if ($this->checkForMaliciousInput($request->request)) {
+            return $this->blockRequest($request, 'request body');
+        }
+        if ($this->checkForMaliciousInput($request->json()->all())) {
+            return $this->blockRequest($request, 'JSON payload');
+        }
 
         return $next($request);
     }
 
-    private function sanitize($input): void
+    private function checkForMaliciousInput($input): bool
     {
         if (!is_array($input)) {
-            return;
+            return false;
         }
 
         foreach ($input as $key => $value) {
-            // Skip certain fields that may contain HTML
+            // Skip certain fields that may contain HTML/SQL-like content
             if (in_array($key, $this->skipFields, true)) {
                 continue;
             }
 
             if (is_array($value)) {
-                $this->sanitize($value);
-            } elseif (is_string($value)) {
-                // Check for potential injection patterns
-                if ($this->containsMaliciousPattern($value)) {
-                    // Log the attempt but don't block (to avoid false positives)
-                    logger()->warning('Potential injection attempt detected', [
-                        'ip' => request()->ip(),
-                        'url' => request()->fullUrl(),
-                        'field' => $key,
-                        'value' => substr($value, 0, 200),
-                        'user_agent' => request()->userAgent(),
-                    ]);
+                if ($this->checkForMaliciousInput($value)) {
+                    return true;
                 }
+            } elseif (is_string($value) && $this->containsMaliciousPattern($value)) {
+                logger()->warning('Malicious input blocked', [
+                    'ip' => request()->ip(),
+                    'url' => request()->fullUrl(),
+                    'field' => $key,
+                    'value' => substr($value, 0, 200),
+                    'user_agent' => request()->userAgent(),
+                ]);
+                return true;
             }
         }
+        return false;
     }
 
     private function containsMaliciousPattern(string $value): bool
@@ -78,5 +84,13 @@ class SanitizeInput
             }
         }
         return false;
+    }
+
+    private function blockRequest(Request $request, string $location): Response
+    {
+        return response()->json([
+            'message' => 'Request blocked due to suspicious input in ' . $location,
+            'error' => 'Invalid input detected',
+        ], 400);
     }
 }

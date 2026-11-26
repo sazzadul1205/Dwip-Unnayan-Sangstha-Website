@@ -76,14 +76,36 @@ class SecurityHeaders
         // Laravel host. These are never added in production.
         $devSources = $isProduction ? '' : ' ' . $this->buildDevSources();
 
+        // Production CSP: strict, no unsafe-inline/unsafe-eval
+        // Development CSP: allows unsafe-inline/unsafe-eval for Vite HMR
+        $scriptSrc = $isProduction
+            ? "script-src 'self' https://cdn.jsdelivr.net https://unpkg.com https://cdn.tailwindcss.com"
+            : "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://unpkg.com https://cdn.tailwindcss.com" . $devSources;
+
+        $styleSrc = $isProduction
+            ? "style-src 'self' https://fonts.googleapis.com https://fonts.bunny.net https://cdn.jsdelivr.net https://unpkg.com"
+            : "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://fonts.bunny.net https://cdn.jsdelivr.net https://unpkg.com" . $devSources;
+
+        $styleSrcElem = $isProduction
+            ? "style-src-elem 'self' https://fonts.googleapis.com https://fonts.bunny.net https://cdn.jsdelivr.net https://unpkg.com"
+            : "style-src-elem 'self' 'unsafe-inline' https://fonts.googleapis.com https://fonts.bunny.net https://cdn.jsdelivr.net https://unpkg.com" . $devSources;
+
+        $fontSrc = $isProduction
+            ? "font-src 'self' data: https://fonts.gstatic.com https://fonts.bunny.net https://cdn.jsdelivr.net"
+            : "font-src 'self' data: https://fonts.gstatic.com https://fonts.bunny.net https://cdn.jsdelivr.net" . $devSources;
+
+        $connectSrc = $isProduction
+            ? "connect-src 'self' https://api.mapbox.com https://*.mapbox.com"
+            : "connect-src 'self' https://api.mapbox.com https://*.mapbox.com" . $devSources;
+
         $directives = [
             "default-src 'self'",
-            "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://unpkg.com https://cdn.tailwindcss.com".$devSources,
-            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://fonts.bunny.net https://cdn.jsdelivr.net https://unpkg.com".$devSources,
-            "style-src-elem 'self' 'unsafe-inline' https://fonts.googleapis.com https://fonts.bunny.net https://cdn.jsdelivr.net https://unpkg.com".$devSources,
-            "font-src 'self' data: https://fonts.gstatic.com https://fonts.bunny.net https://cdn.jsdelivr.net".$devSources,
+            $scriptSrc,
+            $styleSrc,
+            $styleSrcElem,
+            $fontSrc,
             "img-src 'self' data: https: blob:",
-            "connect-src 'self' https://api.mapbox.com https://*.mapbox.com".$devSources,
+            $connectSrc,
             // Third-party embeds: the video gallery (VideoGallerySection) and
             // the office map (AddressSection). Each iframe is governed by its
             // own origin's policy once loaded, so only the frame itself needs

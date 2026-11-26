@@ -223,9 +223,9 @@ class BackupController extends Controller
     }
   }
 
-  /**
-   * Download a backup ZIP file.
-   */
+/**
+    * Download a backup ZIP file.
+    */
   public function download(Request $request): BinaryFileResponse|JsonResponse
   {
     $user = $this->getAuthUser();
@@ -241,7 +241,19 @@ class BackupController extends Controller
         throw new \Exception('Backup ID is required');
       }
 
+      // Prevent path traversal attacks
+      if (str_contains($backupId, '..') || str_contains($backupId, '/') || str_contains($backupId, '\\')) {
+        throw new \Exception('Invalid backup ID');
+      }
+
       $zipPath = $this->backupPath . '/' . $backupId . '.zip';
+
+      // Ensure the resolved path is within the backup directory
+      $realBackupPath = realpath($this->backupPath);
+      $realZipPath = realpath($zipPath);
+      if ($realZipPath === false || str_starts_with($realZipPath, $realBackupPath) === false) {
+        throw new \Exception('Invalid backup path');
+      }
 
       if (!File::exists($zipPath)) {
         throw new \Exception('Backup file not found at: ' . $zipPath);
@@ -818,10 +830,18 @@ class BackupController extends Controller
 
     $envFile = $extractDir . '/.env';
     if (File::exists($envFile)) {
-      if (File::exists(base_path('.env'))) {
-        File::copy(base_path('.env'), base_path('.env_backup_' . Carbon::now()->timestamp));
+      Log::warning('Backup contains .env file - skipping restoration to prevent secret overwrite. Restore .env.example manually if needed.', [
+        'backup_id' => $backupId,
+        'restored_by' => $user->email ?? 'unknown',
+      ]);
+    }
+
+    $envExampleFile = $extractDir . '/.env.example';
+    if (File::exists($envExampleFile)) {
+      if (File::exists(base_path('.env.example'))) {
+        File::copy(base_path('.env.example'), base_path('.env.example_backup_' . Carbon::now()->timestamp));
       }
-      File::copy($envFile, base_path('.env'));
+      File::copy($envExampleFile, base_path('.env.example'));
     }
 
     $configDir = $extractDir . '/config';

@@ -94,11 +94,11 @@ class ATSService
     };
   }
 
-  /**
-   * Extract text from a PDF file.
-   *
-   * @throws \Exception
-   */
+/**
+    * Extract text from a PDF file.
+    *
+    * @throws \Exception
+    */
   private function extractFromPDF(string $pdfPath): string
   {
     try {
@@ -113,15 +113,6 @@ class ATSService
       return $text;
     } catch (\Exception $e) {
       Log::error('PDF extraction failed: ' . $e->getMessage());
-
-      // Fallback: try `pdftotext` command line tool (if available)
-      if (function_exists('shell_exec')) {
-        $output = shell_exec("pdftotext '{$pdfPath}' - 2>/dev/null");
-        if ($output && !empty(trim($output))) {
-          return $output;
-        }
-      }
-
       throw new \Exception('Failed to extract text from PDF: ' . $e->getMessage());
     }
   }
@@ -162,22 +153,14 @@ class ATSService
     }
   }
 
-  /**
-   * Extract text from a legacy DOC file.
-   *
-   * @throws \Exception
-   */
+/**
+    * Extract text from a legacy DOC file.
+    *
+    * @throws \Exception
+    */
   private function extractFromDoc(string $docPath): string
   {
-    // Try `antiword` command (most reliable)
-    if (function_exists('shell_exec')) {
-      $output = shell_exec("antiword '{$docPath}' 2>/dev/null");
-      if ($output && !empty(trim($output))) {
-        return $output;
-      }
-    }
-
-    // Fallback: read raw bytes and strip non-printable characters
+    // Read raw bytes and strip non-printable characters (no shell_exec)
     $content = file_get_contents($docPath);
     if ($content === false) {
       throw new \Exception('Cannot read DOC file');
@@ -187,7 +170,13 @@ class ATSService
     $content = preg_replace('/[^\x20-\x7E\x0A\x0D]/', ' ', $content);
     $content = preg_replace('/\s+/', ' ', $content);
 
-    return trim($content);
+    $text = trim($content);
+
+    if (empty($text)) {
+      throw new \Exception('Legacy DOC format not fully supported. Please convert to PDF or DOCX for better parsing.');
+    }
+
+    return $text;
   }
 
   /**

@@ -39,7 +39,7 @@ Route::middleware('guest')->group(function () {
 
     // Job seeker registration
     Route::get('/register', [JobSeekerRegisterController::class, 'create'])->name('register');
-    Route::post('/register', [JobSeekerRegisterController::class, 'store']);
+    Route::post('/register', [JobSeekerRegisterController::class, 'store'])->middleware('throttle:3,1');
 
     // Google authentication
     Route::get('auth/google/redirect', [GoogleAuthController::class, 'redirect'])->name('auth.google.redirect');
@@ -47,9 +47,9 @@ Route::middleware('guest')->group(function () {
 
     // Password reset
     Route::get('forgot-password', [PasswordResetLinkController::class, 'create'])->name('password.request');
-    Route::post('forgot-password', [PasswordResetLinkController::class, 'store'])->name('password.email');
+    Route::post('forgot-password', [PasswordResetLinkController::class, 'store'])->name('password.email')->middleware('throttle:3,1');
     Route::get('reset-password/{token}', [NewPasswordController::class, 'create'])->name('password.reset');
-    Route::post('reset-password', [NewPasswordController::class, 'store'])->name('password.store');
+    Route::post('reset-password', [NewPasswordController::class, 'store'])->name('password.store')->middleware('throttle:3,1');
 });
 
 // Authenticated routes
